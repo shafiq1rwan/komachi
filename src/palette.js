@@ -1,0 +1,34 @@
+// Komachi — visual identity: the fixed pastel palette and name pools (see docs/ART_DIRECTION.md)
+import { pick, irand } from './utils.js';
+
+export const PAL = {
+  water:'#bfe3d6', foam:'#d8eee5', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
+  grass:'#c8d7ad', grass2:'#bccf9f', landSide:'#e8d5b4', sidewalk:'#efe3cc', asphalt:'#9a9ea3', asphalt2:'#8e9296',
+  cream:'#f3e6cf', cream2:'#f7efe2', peachWall:'#f1d7c0', greyWall:'#dfe6ea', tealWall:'#b9d1cd', blueWall:'#cfdde6',
+  roofRose:'#d98b7a', roofSage:'#7f9b7a', roofBlue:'#8fb0c9', roofPeach:'#e9b08a', roofTeal:'#6f9a96', roofPlum:'#a98ba0',
+  wood:'#b98a5b', wood2:'#a3764a', dirt:'#d9c3a1', concrete:'#d9d3c6', raw:'#e6d3b1',
+  treePeach:'#f0b48b', treeOrange:'#e69a6a', treeSage:'#a9c08a', treeGreen:'#8fae78', bush:'#93b47c', bush2:'#a8c48c', flower:'#f3c6c0',
+  lamp:'#c9c3b7', lampGlow:'#ffd08a', window:'#e8dfcf', glow:'#ffb86b',
+  pink:'#e9b7b0', mint:'#a9d3c4', lilac:'#c4b7d6', sky2:'#a7c7d9',
+};
+export const ROOFS = [PAL.roofRose, PAL.roofSage, PAL.roofBlue, PAL.roofPeach, PAL.roofTeal, PAL.roofPlum];
+export const WALLS = [PAL.cream, PAL.cream2, PAL.peachWall, PAL.greyWall];
+export const SHOP_WALLS = [PAL.cream2, PAL.peachWall, PAL.tealWall, PAL.pink, PAL.mint, PAL.blueWall];
+export const WORK_WALLS = [PAL.greyWall, PAL.blueWall, PAL.tealWall, PAL.cream2, PAL.lilac];
+export const AWNINGS = [[PAL.roofRose, PAL.cream2], [PAL.roofBlue, PAL.cream2], [PAL.roofTeal, PAL.cream2], [PAL.roofPeach, PAL.cream2]];
+export const SKIN = ['#f5d7bd', '#e9c2a0', '#d9a77f', '#b98462', '#8c5e42'];
+export const SHIRTS = ['#d98b7a', '#7f9b7a', '#8fb0c9', '#e9b08a', '#6f9a96', '#c4b7d6', '#f3c6c0', '#f3e6cf', '#a98ba0'];
+export const HAIR = ['#4a3c36', '#6b4c3a', '#a3764a', '#2f2a2a', '#8a7a6f', '#c58a5a'];
+export const CARS = ['#e9b7b0', '#a9d3c4', '#c4b7d6', '#f3e6cf', '#8fb0c9', '#e9b08a', '#dfe6ea'];
+
+export const GIVEN = ['Aoi','Haru','Sora','Yui','Ren','Mei','Kai','Nao','Riku','Hina','Sōta','Rin','Yūto','Saki','Kaito','Mio','Hana','Taiga','Emi','Kenta','Akari','Daiki','Momo','Shun','Nana','Itsuki','Koharu','Ryo','Ayane','Tomo','Yuna','Hikaru','Fumi','Minato','Ichika','Asahi','Sana','Yamato','Kotone','Rei'];
+export const FAMILY = ['Sato','Suzuki','Takahashi','Tanaka','Watanabe','Ito','Yamamoto','Nakamura','Kobayashi','Kato','Yoshida','Yamada','Sasaki','Matsumoto','Inoue','Kimura','Hayashi','Shimizu','Mori','Ikeda','Hashimoto','Ishikawa','Ogawa','Fujita','Okada'];
+export const SHOP_NAMES = [['Momo','Bakery'],['Sora','Café'],['Yuzu','Books'],['Kumo','Florist'],['Hana','Tea House'],['Tsuki','Sweets'],['Nami','Ramen'],['Kiri','Grocer'],['Ume','Bento'],['Hoshi','Records'],['Mori','Plants'],['Koi','Sushi'],['Ao','Ceramics'],['Suzu','Coffee'],['Niji','Toys'],['Yama','Onigiri']];
+export const WORK_NAMES = [['Kumo','Studio'],['Hikari','Labs'],['Tanaka','Design'],['Sakura','Press'],['Umi','Logistics'],['Aozora','Architects'],['Minato','Software'],['Kaze','Textiles'],['Hoshizora','Animation'],['Tsubame','Engineering'],['Midori','Clinic'],['Kawa','Accounting'],['Sora','Post Office'],['Yume','Games'],['Take','Workshop']];
+export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];
+export const PLACE = ['Sakura','Momiji','Sumire','Tsubaki','Ajisai','Fuji','Kaede','Yanagi','Botan','Kiku','Ume','Matsu','Hinode','Kawa','Oka','Hoshi'];
+export const usedNames = new Set();
+export function uniqueName(list) {
+  for (let k = 0; k < 40; k++) { const [a, b] = pick(list); const n = `${a} ${b}`; if (!usedNames.has(n)) { usedNames.add(n); return n; } }
+  const [a, b] = pick(list); return `${a} ${b} ${irand(2, 9)}`;
+}
