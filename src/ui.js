@@ -1,6 +1,7 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
-import { blocks, unitCap, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
+import { S } from './state.js';
+import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt } from './sim.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'),
@@ -26,7 +27,7 @@ function renderStation(b) {
   for (const r of waiting) html += personLi(r, r.state === 'away' ? 'staying in the city tonight' : r.activity);
   if (!waiting.length) html += `<li class="empty">Nobody is waiting right now</li>`;
   html += `</ul>`;
-  const vacancies = blocks.filter(x => x.type === 'res' && x.stage === 3).reduce((s, x) => s + x.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length - u.incoming), 0), 0);
+  const vacancies = blocks.filter(x => x.type === 'res' && x.stage === DONE).reduce((s, x) => s + x.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length - u.incoming), 0), 0);
   html += `<div class="empty">${vacancies > 0 ? `${vacancies} free bed${vacancies > 1 ? 's' : ''} in town. Newcomers move in as they arrive.` : 'Zone a Residential block and newcomers will move in.'}</div>`;
   return html;
 }
@@ -44,11 +45,13 @@ function renderInspect(target) {
   else if (target.unit) {
     const u = target.unit, b = u.block, type = b.type;
     html += `<div class="kind" style="--k:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</div><h2>${esc(b.name)}</h2>`;
-    html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < 3 ? ['Surveying the plot', 'Laying foundations', 'Raising the frame'][b.stage] : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
-    if (b.stage < 3) {
+    html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < DONE ? STAGE_NAMES[b.stage] : b.renoT > 0 ? `Level ${b.level} · being extended` : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
+    if (b.stage < DONE) {
       const SH = stageHours(b), totalH = SH.reduce((a, c) => a + c, 0), done = SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT;
       html += `<div class="row"><span>Construction</span><b>${Math.round(100 * done / totalH)}%</b></div><div class="bar"><i style="width:${100 * done / totalH}%"></i></div>`;
-      html += `<div class="empty">${b.summoned ? 'The new household is on its way by train.' : 'Builders work faster in daylight.'}</div>`;
+      const onSite = b.crew.filter(x => x.state === 'working').length, h = (S.T % 24);
+      html += `<div class="row"><span>Crew</span><b>${onSite ? `${onSite} on site` : b.crew.length ? (h >= 18 || h < 6 ? 'gone home for the night' : 'on their way') : 'arriving by train'}</b></div>`;
+      if (b.summoned) html += `<div class="empty">The new household is on its way by train.</div>`;
     } else {
       const inside = Array.from(u.inside);
       if (type === 'res') {
@@ -76,6 +79,12 @@ function renderInspect(target) {
         else if (type === 'shop') html += `<div class="empty">No customers right now</div>`;
       }
     }
+  } else if (target.worker) {
+    const k = target.worker;
+    html += `<div class="kind" style="--k:#e9a25a">Construction crew</div><h2>${esc(k.name)}</h2><div class="sub">${esc(k.activity)}</div><div class="divider"></div>`;
+    html += `<div class="row"><span>Site</span><b>${esc(k.site.name)}</b></div>`;
+    html += `<div class="row"><span>Stage</span><b>${k.site.stage < DONE ? esc(STAGE_NAMES[k.site.stage]) : 'finished'}</b></div>`;
+    html += `<div class="empty">Crews ride in on the morning train and leave at 18:00.</div>`;
   } else if (target.res) {
     const r = target.res;
     html += `<div class="kind" style="--k:${r.shirt}">${r.home ? 'Resident' : 'Newcomer'}</div><h2>${esc(r.name)}</h2><div class="sub">${esc(r.state === 'inside' ? whereIs(r) : `${r.state} · ${r.activity}`)}</div><div class="divider"></div>`;
@@ -90,9 +99,9 @@ function renderInspect(target) {
 }
 function updateStats() {
   ui.pop.textContent = residents.length;
-  ui.homes.textContent = blocks.filter(b => b.type === 'res' && b.stage === 3).reduce((s, b) => s + b.units.length, 0);
+  ui.homes.textContent = blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
   ui.jobs.textContent = jobUnits().reduce((s, u) => s + unitCap(u), 0);
-  ui.shops.textContent = blocks.filter(b => b.type === 'shop' && b.stage === 3).reduce((s, b) => s + b.units.length, 0);
+  ui.shops.textContent = blocks.filter(b => b.type === 'shop' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
   ui.wait.textContent = residents.filter(r => !r.home).length;
 }
 

@@ -13,6 +13,7 @@ There is nothing to lose and nothing to optimise. The pleasure is in watching.
 ![Komachi by night](docs/screenshot-night.png)
 ![Komachi Station at night](docs/screenshot-station.png)
 ![The whole island](docs/screenshot-island.png)
+![A shop going up](docs/screenshot-construction.png)
 
 ## Quick start
 
@@ -67,9 +68,11 @@ Some things worth knowing:
 
 - Everything placed in one drag becomes **one block**. Roads form around the outside of the
   block and never between the buildings inside it. Blocks are always separated by a road.
-- Buildings pass through **three construction stages** (plot, foundation, frame) before they
-  finish. A home takes about one working day; shops and workspaces take longer. Builders work
-  faster in daylight.
+- **Builders come by train.** Zone a block and a crew rides in on the next train, walks to the
+  site and works until 18:00. Nothing is built without them. Buildings pass through five visible
+  stages (survey, foundations with a digger, frame, scaffolding, finishing) while kei trucks bring
+  materials from the station. A home takes about one working day; shops and workspaces a little
+  more. Growing a level puts the scaffolding back up for a while.
 - Residents look for work at shops and workspaces they can reach by road, and follow a daily
   schedule with personal wake and finish times. About a third own cars. A home that is not
   connected to the station by road still gets residents (they cut across the grass to move in),
@@ -95,6 +98,7 @@ src/
   island.js           organic coastline, beach terrace, rocks, pier; land/water test
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
+  construction.js     builders, crews riding the trains, material deliveries
   sim.js              time, road routing, residents and schedules, ambient traffic, growth
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip

@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
 import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door } from './kit.js';
-import { TYPE_COLOR } from './world.js';
+import { DONE } from './world.js';
 
 function dims(type, level) {
   if (type === 'res') return { w: 0.72, d: 0.6, H: 0.52 * level + 0.06 };
@@ -234,31 +234,80 @@ function genStudio(b, u, g, wg) {
   g.push(box(0.9, 0.1, 0.06, PAL.bush, 0, 0.17, -0.44)); fence(g, -0.45, 0, 0.8, false, PAL.wood2, 0.1);
 }
 
-function genConstruction(b, u, g) {
+// ── construction site parts ──
+const SCAF = K.metal2, TARP = '#cfdde6', CONE = '#e9a25a', MACHINE = '#e8cf7a';
+/** scaffolding along the +x face and/or the +z face: poles, ledgers, planks and a top rail */
+function scaffold(g, w, d, H, sides) {
+  const h = H + 0.3;
+  const run = alongZFace => {          // alongZFace: runs along the +z face (in x); else along the +x face (in z)
+    const len = alongZFace ? w + 0.16 : d + 0.16;
+    for (let k = 0; k < 3; k++) {
+      const t = (k - 1) * 0.5 * len;
+      for (const off of [0.14, 0.3]) { const px = alongZFace ? t : w / 2 + off, pz = alongZFace ? d / 2 + off : t; g.push(cyl(0.016, 0.016, h, SCAF, px, 0.12 + h / 2, pz, 5)); }
+    }
+    for (let lv = 1; lv * 0.42 < h; lv++) {
+      const y = 0.12 + lv * 0.42;
+      g.push(box(alongZFace ? len : 0.18, 0.03, alongZFace ? 0.18 : len, PAL.wood, alongZFace ? 0 : w / 2 + 0.22, y, alongZFace ? d / 2 + 0.22 : 0));
+      g.push(box(alongZFace ? len : 0.012, 0.012, alongZFace ? 0.012 : len, SCAF, alongZFace ? 0 : w / 2 + 0.3, y + 0.14, alongZFace ? d / 2 + 0.3 : 0));
+    }
+  };
+  if (sides.includes('z')) run(true); if (sides.includes('x')) run(false);
+}
+function excavator(g, x, z, rot) {
+  const p = [];
+  p.push(box(0.3, 0.08, 0.26, '#4a4340', 0, 0.16, 0)); p.push(box(0.2, 0.12, 0.2, MACHINE, -0.02, 0.26, 0)); p.push(box(0.1, 0.12, 0.14, PAL.window, 0.03, 0.27, 0.0));
+  const arm = new THREE.BoxGeometry(0.04, 0.04, 0.3); arm.rotateX(-0.9); arm.translate(0.06, 0.4, 0.14); p.push(colorize(arm, MACHINE));
+  const fore = new THREE.BoxGeometry(0.035, 0.035, 0.26); fore.rotateX(0.7); fore.translate(0.06, 0.36, 0.34); p.push(colorize(fore, MACHINE));
+  p.push(box(0.12, 0.08, 0.08, '#4a4340', 0.06, 0.2, 0.44));
+  for (const q of p) { q.rotateY(rot); q.translate(x, 0, z); g.push(q); }
+}
+function pallet(g, x, z, kind) {
+  g.push(box(0.22, 0.03, 0.18, PAL.wood, x, 0.135, z));
+  if (kind === 'blocks') for (let k = 0; k < 6; k++) g.push(box(0.06, 0.06, 0.07, PAL.concrete, x - 0.07 + (k % 3) * 0.07, 0.18 + Math.floor(k / 3) * 0.06, z + (k % 2 ? 0.04 : -0.04)));
+  else if (kind === 'timber') for (let k = 0; k < 5; k++) g.push(box(0.05, 0.05, 0.4, PAL.wood2, x - 0.08 + (k % 3) * 0.06 + (k > 2 ? 0.03 : 0), 0.175 + Math.floor(k / 3) * 0.05, z));
+  else for (let k = 0; k < 3; k++) g.push(cyl(0.035, 0.035, 0.07, [PAL.roofRose, PAL.cream2, PAL.roofBlue][k], x - 0.06 + k * 0.06, 0.185, z, 8));
+}
+function cones(g, pts) { for (const [x, z] of pts) { g.push(cyl(0.012, 0.04, 0.1, CONE, x, 0.17, z, 6)); g.push(box(0.09, 0.012, 0.09, CONE, x, 0.126, z)); } }
+function siteSign(g, x, z) { g.push(cyl(0.015, 0.015, 0.36, PAL.wood2, x, 0.3, z, 4)); g.push(box(0.26, 0.16, 0.02, PAL.cream2, x, 0.5, z)); g.push(box(0.2, 0.03, 0.025, CONE, x, 0.53, z + 0.005)); g.push(box(0.16, 0.02, 0.025, K.chalk, x, 0.47, z + 0.005)); }
+function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : genWork)(b, u, g, wg); }
+
+function genConstruction(b, u, g, wg) {
   const st = b.stage, { w, d, H } = dims(b.type, b.level), y0 = 0.12;
-  if (st === 0) {
+  if (st === 0) {          // surveying: stakes and string, a sign, a heap of earth
     g.push(box(0.82, 0.03, 0.72, PAL.dirt, 0, y0 + 0.015, 0));
     for (const [x, z] of [[-0.38, -0.33], [0.38, -0.33], [-0.38, 0.33], [0.38, 0.33]]) g.push(cyl(0.02, 0.02, 0.22, PAL.wood, x, y0 + 0.11, z, 4));
     g.push(box(0.8, 0.012, 0.012, PAL.cream2, 0, y0 + 0.2, 0.33)); g.push(box(0.012, 0.012, 0.7, PAL.cream2, 0.38, y0 + 0.2, 0));
-    g.push(cyl(0.02, 0.02, 0.36, PAL.wood2, 0.3, y0 + 0.18, 0.44, 4)); g.push(box(0.26, 0.16, 0.02, PAL.cream2, 0.3, y0 + 0.36, 0.44)); g.push(box(0.16, 0.03, 0.025, TYPE_COLOR[b.type], 0.3, y0 + 0.38, 0.445));
-    g.push(blob(0.1, PAL.dirt, -0.28, y0 + 0.05, 0.3, 0, 0.5));
-  } else if (st === 1) {
+    siteSign(g, 0.3, 0.44); g.push(blob(0.1, PAL.dirt, -0.28, y0 + 0.05, 0.3, 0, 0.5)); cones(g, [[-0.42, 0.44], [0.0, 0.46]]);
+  } else if (st === 1) {   // foundations: slab, corner posts, the little digger, a pallet of blocks
     g.push(box(w + 0.04, 0.1, d + 0.04, PAL.concrete, 0, y0 + 0.05, 0));
     for (const [x, z] of [[-w / 2, -d / 2], [w / 2, -d / 2], [-w / 2, d / 2], [w / 2, d / 2]]) g.push(box(0.06, 0.5, 0.06, PAL.wood, x, y0 + 0.35, z));
     g.push(box(w + 0.06, 0.05, 0.06, PAL.wood, 0, y0 + 0.6, d / 2)); g.push(box(w + 0.06, 0.05, 0.06, PAL.wood, 0, y0 + 0.6, -d / 2));
-    g.push(blob(0.18, PAL.dirt, 0.34, y0 + 0.06, 0.4, 0, 0.5)); g.push(box(0.14, 0.14, 0.14, PAL.wood2, -0.36, y0 + 0.07, 0.4)); g.push(box(0.12, 0.12, 0.12, PAL.wood2, -0.36, y0 + 0.2, 0.4, 0.4));
-  } else {
-    const h = H * 0.62;
+    excavator(g, -0.36, 0.34, 0.5); pallet(g, 0.36, 0.42, 'blocks'); g.push(blob(0.14, PAL.dirt, 0.1, y0 + 0.05, 0.44, 0, 0.5)); siteSign(g, 0.44, -0.1); cones(g, [[-0.44, 0.46]]);
+  } else if (st === 2) {   // frame: raw walls to shoulder height, beams, timber stack
+    const h = H * 0.6;
     g.push(box(w, h, d, PAL.raw, 0, y0 + h / 2, 0));
-    for (const [x, z] of [[-w / 2, d / 2], [w / 2, d / 2], [-w / 2, -d / 2], [w / 2, -d / 2]]) g.push(box(0.05, h + 0.2, 0.05, PAL.wood, x, y0 + h / 2 + 0.1, z));
-    g.push(box(w + 0.05, 0.05, 0.05, PAL.wood, 0, y0 + h + 0.2, d / 2)); g.push(box(0.05, 0.05, d + 0.05, PAL.wood, w / 2, y0 + h + 0.2, 0));
-    for (let k = 0; k < 3; k++) g.push(box(0.03, h + 0.15, 0.03, PAL.wood2, -w / 2 + 0.15 + k * 0.2, y0 + h / 2 + 0.07, -d / 2 - 0.02));
-    for (const z of [-0.3, 0.3]) g.push(cyl(0.02, 0.02, h + 0.35, PAL.lamp, w / 2 + 0.16, y0 + (h + 0.35) / 2, z, 4));
-    g.push(box(0.1, 0.03, 0.72, PAL.wood, w / 2 + 0.16, y0 + h * 0.55, 0));
-    g.push(box(0.14, 0.14, 0.14, PAL.wood2, -0.36, y0 + 0.07, 0.4)); g.push(blob(0.12, PAL.dirt, 0.34, y0 + 0.05, 0.42, 0, 0.5));
+    for (const [x, z] of [[-w / 2, d / 2], [w / 2, d / 2], [-w / 2, -d / 2], [w / 2, -d / 2]]) g.push(box(0.05, H + 0.15, 0.05, PAL.wood, x, y0 + (H + 0.15) / 2, z));
+    g.push(box(w + 0.05, 0.05, 0.05, PAL.wood, 0, y0 + H + 0.12, d / 2)); g.push(box(w + 0.05, 0.05, 0.05, PAL.wood, 0, y0 + H + 0.12, -d / 2)); g.push(box(0.05, 0.05, d + 0.05, PAL.wood, w / 2, y0 + H + 0.12, 0)); g.push(box(0.05, 0.05, d + 0.05, PAL.wood, -w / 2, y0 + H + 0.12, 0));
+    for (let k = 0; k < 3; k++) g.push(box(0.03, H, 0.03, PAL.wood2, -w / 2 + 0.15 + k * 0.2, y0 + H / 2, -d / 2 - 0.02));
+    pallet(g, 0.36, 0.42, 'timber'); g.push(box(0.14, 0.14, 0.14, PAL.wood2, -0.36, y0 + 0.07, 0.4)); siteSign(g, 0.44, -0.1);
+  } else if (st === 3) {   // scaffolding: full-height raw walls, roof frame, scaffold on two faces, a tarp
+    g.push(box(w, H, d, PAL.raw, 0, y0 + H / 2, 0));
+    g.push(box(w + 0.1, 0.03, 0.03, PAL.wood, 0, y0 + H + 0.3, 0));
+    for (const sz of [-1, 1]) { const r = new THREE.BoxGeometry(w + 0.1, 0.025, Math.hypot(d / 2 + 0.05, 0.3)); r.rotateX(-sz * Math.atan2(0.3, d / 2 + 0.05)); r.translate(0, y0 + H + 0.15, sz * (d / 4 + 0.03)); g.push(colorize(r, PAL.wood)); }
+    scaffold(g, w, d, H, 'xz');
+    g.push(box(0.02, H * 0.75, d * 0.8, TARP, w / 2 + 0.24, y0 + H * 0.45, 0));
+    pallet(g, -0.38, 0.44, 'paint'); g.push(cyl(0.08, 0.06, 0.16, '#8fb0c9', 0.4, y0 + 0.1, 0.42, 8)); siteSign(g, -0.44, -0.2);
+  } else {                 // finishing: the real building, still with scaffold on one side, wet-paint sign, cones
+    finalGen(b, u, g, wg);
+    scaffold(g, w, d, H, 'x'); pallet(g, -0.4, 0.44, 'paint'); cones(g, [[0.44, 0.46]]);
+    g.push(box(0.16, 0.1, 0.012, PAL.cream2, 0.1, y0 + 0.12, 0.47)); g.push(box(0.1, 0.02, 0.015, K.red, 0.1, y0 + 0.12, 0.475));
   }
-  g.push(box(0.06, 0.12, 0.72, PAL.bush, -0.43, 0.18, -0.04));
+  if (st < 4) g.push(box(0.06, 0.12, 0.72, PAL.bush, -0.43, 0.18, -0.04));
 }
+/** scaffold and paint pots on a finished building that is being extended to the next level */
+function renovationOverlay(b, u, g) { const { w, d, H } = dims(b.type, b.level); scaffold(g, w, d, H, 'x'); pallet(g, -0.4, 0.44, 'paint'); cones(g, [[0.44, 0.46]]); }
+/** a local (front = +z) point on a unit's cell, in world space, with the unit's facing applied */
+function unitLocal(u, lx, lz, y = 0) { const ry = u.facing || 0, s = Math.sin(ry), c = Math.cos(ry); return new THREE.Vector3(cx(u.cell.i) + lx * c + lz * s, y, cz(u.cell.j) - lx * s + lz * c); }
 
 // ───────────────────────────── the station plaza ─────────────────────────────
 const RAIL = '#4f6b66', PIT = '#3f3a38';
@@ -333,7 +382,8 @@ function rebuildUnitMesh(u, pop = false) {
   u.door = null;
   if (!isEntrance) g.push(box(0.98, 0.12, 0.98, PAL.sidewalk, 0, 0.06, 0));
   if (b.type === 'station') genStation(b, u, g, wg);
-  else if (b.stage < 3) genConstruction(b, u, g); else (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : genWork)(b, u, g, wg);
+  else if (b.stage < DONE) genConstruction(b, u, g, wg);
+  else { finalGen(b, u, g, wg); if (b.renoT > 0) renovationOverlay(b, u, g); }
   const grp = new THREE.Group();
   const body = mergeMesh(g, false); grp.add(body);
   if (wg.length) { const wm = mergeMesh(wg, false, false); wm.material = u.winMat; wm.castShadow = false; grp.add(wm); }
@@ -343,4 +393,4 @@ function rebuildUnitMesh(u, pop = false) {
   if (pop) u.pop = 1;
 }
 
-export { dims, doorLocal, unitDoorPoints, rebuildUnitMesh };
+export { dims, doorLocal, unitDoorPoints, unitLocal, rebuildUnitMesh };

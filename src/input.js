@@ -126,7 +126,7 @@ function updateHover() {
   if (!ptr.panning && !ptr.sel) {
     raycaster.setFromCamera(ptr.ndc, camera);
     const hits = raycaster.intersectObjects([townGroup, peopleGroup], true);
-    for (const h of hits) { let o = h.object; while (o && !o.userData.unit && !o.userData.res) o = o.parent; if (o && (o.userData.unit || o.userData.res)) { hovered = o.userData; break; } if (isDecor(h.object)) break; }
+    for (const h of hits) { let o = h.object; while (o && !o.userData.unit && !o.userData.res && !o.userData.worker) o = o.parent; if (o && (o.userData.unit || o.userData.res || o.userData.worker)) { hovered = o.userData; break; } if (isDecor(h.object)) break; }
   }
   const target = pinned || hovered;
   const hu = target && target.unit ? target.unit : null;

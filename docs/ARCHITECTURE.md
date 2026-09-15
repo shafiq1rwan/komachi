@@ -66,6 +66,17 @@ shared parts in `kit.js` and must set `u.door` so trips start and end at the rig
 Roof style (tile or metal) and wall colour are chosen per block; small details (bicycles,
 pots, signs) vary per unit from its seed.
 
+## Construction
+
+Blocks carry `stage` (0–4 building, `DONE` = 5) and `stageT` crew-hours into the stage. `sim.js`
+advances `stageT` by `progressRate(b)` each game hour; `construction.js` installs that rule (0 with
+no builders on site, 0.8 with one, 1.2 with three) and owns the builders and trucks. Builders are
+not residents: they ride in on `onTrain`, walk to fixed spots around the unit, hammer (a small
+torso rotation), leave at 18:00 and come back on the first morning train; when the site finishes
+they walk to the station and are removed. Trucks are plain meshes driven along `buildPoints`
+routes from the station road to the site kerb and back. Households are summoned when a home
+enters the finishing stage. `renoT` puts a scaffold overlay on a finished building after a level-up.
+
 ## Rendering
 
 - Orthographic camera at 38° pitch, yaw in 45° steps, eased toward `cam.tView` / `cam.tYaw`.

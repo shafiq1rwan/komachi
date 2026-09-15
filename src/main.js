@@ -3,7 +3,8 @@ import * as THREE from 'three';
 import { lerp } from './utils.js';
 import { S } from './state.js';
 import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
-import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, rebuildDecor, rebuildRoads } from './world.js';
+import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads } from './world.js';
+import { updateConstruction, workers } from './construction.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
@@ -19,7 +20,7 @@ let last = performance.now(), realT = 0, uiAcc = 0;
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
-  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); }
+  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); }
   // camera easing + keyboard panning
   const k = 1 - Math.exp(-dt * 9); cam.view = lerp(cam.view, cam.tView, k); cam.yaw = lerp(cam.yaw, cam.tYaw, k);
   const mv = dt * cam.view * 0.9;
@@ -40,7 +41,7 @@ function frame(now) {
 /** Step the simulation forward by a number of game hours without rendering. */
 function fastForward(hours) {
   const stepH = 0.04, stepS = stepH / HPS;
-  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); }
+  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); }
 }
 function demoTown() {
   const o = HALF - 17;   // layout was authored around a station at cell 17; every block shares a road with the station ring
@@ -48,13 +49,13 @@ function demoTown() {
   put('res', [[14, 16], [14, 17]]); put('res', [[20, 16], [20, 17], [20, 18]]); put('res', [[16, 14], [17, 14]]);
   put('shop', [[14, 20]]); put('shop', [[19, 20]]);
   put('work', [[20, 13], [20, 14]]); put('work', [[16, 20], [17, 20]]);
-  for (const b of blocks) { if (b.type !== 'station') { b.stage = 3; for (const u of b.units) rebuildUnitMesh(u); } }
+  for (const b of blocks) { if (b.type !== 'station') { b.stage = DONE; for (const u of b.units) rebuildUnitMesh(u); } }
   cam.target.set(cx(HALF), 0, cz(HALF)); cam.tView = cam.view = 14;
   fastForward(30); S.T = Math.floor(S.T / 24) * 24 + 13;
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, cell, cam, fastForward, demoTown, setTool, STATION,
+  placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, cell, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; },
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },

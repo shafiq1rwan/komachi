@@ -7,6 +7,16 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Construction crews: three builders in vests and helmets ride the next train after a block is
+  zoned, walk to the site, work until 18:00, go home down the stairs and return on the first
+  morning train. A site only progresses while builders are on it; more builders build faster
+- Five visible construction stages: survey stakes and sign → foundation slab with a mini digger and
+  a pallet of blocks → timber frame → full scaffolding with roof frame, tarp and cement mixer →
+  finishing touches on the real building with one scaffold still up and a wet-paint sign
+- Kei trucks deliver materials from the station at the start of each stage and drive back
+- Growing to the next level puts scaffolding and paint pots on the building for a couple of hours
+- Inspect cards show the stage name, crew status, and builders can be hovered like residents
+
 - Organic island: seeded coastline with beaches, rocky stretches and grassy cliffs, a pier and a
   boat; cells outside the coast are water and cannot be built on; `?seed=` fixes the shape
 - Biomes as data (`?biome=suburban|sakura|coastal`): colours, tree mix, blossom, pines, shore bias

@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { lerp } from './utils.js';
 import { renderer, scene, hemi, sun, fill } from './scene.js';
 import { lampHeadMat } from './geometry.js';
-import { units, lampGlowMat } from './world.js';
+import { units, lampGlowMat, DONE } from './world.js';
 import { hourOf, dayOf, daylight, carMeshes } from './sim.js';
 import { ui } from './ui.js';
 
@@ -25,10 +25,10 @@ function envUpdate(realT) {
   const shopOpen = h >= 7 && h < 22;
   for (const u of units.values()) {
     const occ = u.inside.size > 0, b = u.block;
-    let base = b.stage < 3 ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (shopOpen ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);
+    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (shopOpen ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);
     const flick = 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);
     u.winMat.emissiveIntensity = night * base * flick;
-    u.glowMat.opacity = night * (base > 0.5 ? 0.55 : 0.08) * (b.stage < 3 ? 0 : 1);
+    u.glowMat.opacity = night * (base > 0.5 ? 0.55 : 0.08) * (b.stage < DONE ? 0 : 1);
     if (u.pop > 0) { u.pop = Math.max(0, u.pop - 0.016 * 1.6); const p = 1 - u.pop; const sy = 0.5 + 0.5 * (1 - Math.pow(1 - p, 3)) + 0.12 * Math.sin(p * Math.PI) * (1 - p); u.mesh.scale.set(1 + (1 - sy) * 0.3, sy, 1 + (1 - sy) * 0.3); }
     else if (u.mesh.scale.y !== 1) u.mesh.scale.set(1, 1, 1);
   }

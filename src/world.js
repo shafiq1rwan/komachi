@@ -165,8 +165,11 @@ function rebuildRoads() {
 // ───────────────────────────── blocks & units ─────────────────────────────
 const blocks = []; const units = new Map();
 const CAP = { res: [0, 2, 4, 6], work: [0, 4, 7, 10], shop: [0, 1, 2, 3] };
-const STAGE_HOURS = [3, 5, 6];            // shops, workspaces
-const RES_STAGE_HOURS = [2, 3, 4];        // homes: about one working day
+// construction: plot → foundation → frame → scaffolding → finishing → DONE. Hours are crew-hours at rate 1.
+const DONE = 5;
+const STAGE_HOURS = [2, 2.5, 2.5, 2, 2];        // shops, workspaces (~11 crew-hours)
+const RES_STAGE_HOURS = [1.5, 2, 2, 1.5, 1.5];  // homes (~8.5 crew-hours, about one working day)
+const STAGE_NAMES = ['Surveying the plot', 'Laying foundations', 'Raising the frame', 'Up on the scaffolding', 'Finishing touches'];
 const stageHours = b => b.type === 'res' ? RES_STAGE_HOURS : STAGE_HOURS;
 const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', station: 'Station' };
 const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, station: PAL.roofSage };
@@ -205,7 +208,7 @@ for (const dz of [-0.22, 0.22]) STATION.vending.push({ pos: new THREE.Vector3(SX
 STATION.vending.push({ pos: new THREE.Vector3(SX - 1.08, 0.12, SZ - 0.2), rot: -Math.PI / 2, taken: null });
 
 function placeStation() {
-  const block = { id: S.nextId++, type: 'station', cells: [], units: [], stage: 3, stageT: 0, level: 1, occT: 0, visitScore: 0, created: S.T,
+  const block = { id: S.nextId++, type: 'station', cells: [], units: [], stage: DONE, stageT: 0, crew: [], renoT: 0, level: 1, occT: 0, visitScore: 0, created: S.T,
     roof: PAL.roofSage, wall: PAL.cream2, awning: [PAL.roofSage, PAL.cream2], family: 'Station', name: 'Komachi Station', trains: 0 };
   for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
     const c = cell(SC.i + di, SC.j + dj); block.cells.push(c);
@@ -223,6 +226,7 @@ function placeBlock(type, sel) {
   const family = pick(FAMILY);
   const block = {
     id: S.nextId++, type, cells: sel.slice(), units: [], stage: 0, stageT: 0, level: 1, occT: 0, visitScore: 0, created: S.T,
+    crew: [], crewBooked: false, renoT: 0, deliveredStage: -1,
     roof: ROOFS[Math.floor(seed * ROOFS.length)],
     wall: type === 'res' ? pick(WALLS) : type === 'shop' ? pick(SHOP_WALLS) : pick(WORK_WALLS),
     awning: pick(AWNINGS), family,
@@ -249,5 +253,5 @@ function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of world
 const isDecor = obj => obj === decorMesh;
 
 export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat,
-  blocks, units, CAP, STAGE_HOURS, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
+  blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat };

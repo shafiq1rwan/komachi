@@ -1,11 +1,11 @@
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
 import { PAL, GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
-import { rand, pick, clamp, lerp, smooth, hash } from './utils.js';
+import { rand, pick, clamp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, stageHours, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
+import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
@@ -236,6 +236,8 @@ function removeResident(r) {
 }
 
 // ── trains ──
+const trainListeners = [];
+function onTrain(fn) { trainListeners.push(fn); }
 let nextTrain = 7.4;
 const arrivals = [];             // pending arrivals: { t, r } (r = a resident returning from the city, else a newcomer)
 let pendingSummoned = 0;         // beds in homes about to finish; their households ride the next train
@@ -246,7 +248,7 @@ function updateStation() {
     if (h < 5.9) nextTrain = Math.floor(S.T / 24) * 24 + 6;
     else {
       const beds = u => Math.max(0, unitCap(u) - u.residents.length - u.incoming);
-      const vacancies = blocks.filter(b => b.type === 'res' && b.stage === 3).reduce((s, b) => s + b.units.reduce((t, u) => t + beds(u), 0), 0);
+      const vacancies = blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.reduce((t, u) => t + beds(u), 0), 0);
       const waiting = residents.filter(r => !r.home && r.state !== 'away').length;
       const returning = h < 7 ? residents.filter(r => r.state === 'away') : [];   // night-trippers ride the first morning train only
       let room = Math.max(0, freeSpots() - arrivals.length - returning.length);
@@ -259,6 +261,7 @@ function updateStation() {
       n = Math.min(n, room, 4); if (n > 0 || h < 21.5) pendingSummoned = 0;
       for (let k = 0; k < n; k++) arrivals.push({ t: (t += 0.07), r: null });
       STATION.block.trains++;
+      for (const fn of trainListeners) fn(h);
       if (n > 0 && STATION.block.trains <= 2) toast(n === 1 ? 'A train pulled in. Someone is looking for a home.' : `A train pulled in. ${n} newcomers are looking for homes.`);
       nextTrain = h >= 22 ? Math.floor(S.T / 24) * 24 + 30 : S.T + 1.5;
     }
@@ -276,8 +279,8 @@ function returnFromCity(r) {
   else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
 }
 function waitingNewcomer() { return residents.find(r => !r.home && !r.movingIn && r.state === 'inside' && r.at === STATION.anchor); }
-const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === 3).flatMap(b => b.units);
-const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop') && b.stage === 3).flatMap(b => b.units);
+const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === DONE).flatMap(b => b.units);
+const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop') && b.stage === DONE).flatMap(b => b.units);
 function findJob(r) {
   let best = null, bestLen = 1e9;
   for (const u of jobUnits()) {
@@ -437,25 +440,28 @@ function updateWanderers(simDt) {
 
 // ───────────────────────────── block lifecycle ─────────────────────────────
 let lastDay = dayOf();
+/** how fast a site builds right now (crew-hours per game hour); construction.js installs the real rule */
+let progressRate = () => 1;
+function setProgressRate(fn) { progressRate = fn; }
 function growthAllowed(b) {
   const town = blocks.filter(x => x.type !== 'station');
-  const types = new Set(town.filter(x => x.stage === 3).map(x => x.type));
+  const types = new Set(town.filter(x => x.stage === DONE).map(x => x.type));
   if (b.level === 1) return town.length >= 3 && (b.type === 'res' ? (types.has('work') || types.has('shop')) : types.has('res'));
   if (b.level === 2) return town.length >= 6 && types.size === 3;
   return false;
 }
 function updateBlocks(dh) {
-  const dl = daylight();
   const day = dayOf(); if (day !== lastDay) { lastDay = day; for (const b of blocks) b.visitScore *= 0.5; }
   if (STATION.block) updateStation();
   for (const b of blocks) {
     if (b.type === 'station') continue;
-    if (b.stage < 3) {
-      b.stageT += dh * lerp(0.35, 1, dl);
-      if (b.type === 'res' && b.stage === 2 && !b.summoned && stageHours(b)[2] - b.stageT <= 2.5) { b.summoned = true; pendingSummoned += b.units.reduce((n, u) => n + unitCap(u), 0); }
-      if (b.stageT >= stageHours(b)[b.stage]) { b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === 3) toast(`${b.name} is finished`); }
+    if (b.stage < DONE) {
+      b.stageT += dh * progressRate(b);
+      if (b.type === 'res' && b.stage === DONE - 1 && !b.summoned) { b.summoned = true; pendingSummoned += b.units.reduce((n, u) => n + unitCap(u), 0); }
+      if (b.stageT >= stageHours(b)[b.stage]) { b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) toast(`${b.name} is finished`); }
       continue;
     }
+    if (b.renoT > 0) { b.renoT -= dh; if (b.renoT <= 0) { b.renoT = 0; for (const u of b.units) rebuildUnitMesh(u); } }
     let occ = 0;
     if (b.type === 'res') {
       let n = 0, capSum = 0;
@@ -470,7 +476,7 @@ function updateBlocks(dh) {
       const staff = b.units.reduce((s, u) => s + u.staff.length, 0); occ = (staff > 0 ? 0.5 : 0) + 0.5 * clamp(b.visitScore / (4 * b.level), 0, 1);
     }
     if (occ >= 0.6) b.occT += dh; else b.occT = Math.max(0, b.occT - dh * 0.5);
-    if (b.occT >= 20 && b.level < 3 && growthAllowed(b)) { b.level++; b.occT = 0; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} grew to level ${b.level}`); }
+    if (b.occT >= 20 && b.level < 3 && growthAllowed(b)) { b.level++; b.occT = 0; b.renoT = 2.5; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} is being extended`); }
   }
 }
 
@@ -501,4 +507,5 @@ function removeBlock(block) {
 onWorldChange(() => pathCache.clear());
 
 export { HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits,
-  updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident };
+  updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
+  roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, unitPos, setProgressRate, onTrain };

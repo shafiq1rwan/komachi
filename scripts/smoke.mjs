@@ -52,8 +52,8 @@ try {
   s = await page.evaluate(() => MT.blocks.length); check('cannot build on a road', s === 3);
 
   await page.evaluate(() => MT.fastForward(40));
-  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), jobs: MT.residents.filter(r => r.job).length }));
-  check('construction completes and newcomers fill every bed', s.stages.every(x => x === 3) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
+  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), jobs: MT.residents.filter(r => r.job).length }));
+  check('construction completes and newcomers fill every bed', s.stages.every(x => x === s.done) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
   check('a resident takes the shop job', s.jobs === 1);
 
   // hover: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
