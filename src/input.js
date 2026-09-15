@@ -21,6 +21,14 @@ document.querySelectorAll('#speed button').forEach(b => b.addEventListener('clic
 document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); });
 document.getElementById('btn-labels').addEventListener('click', e => { showTags = !showTags; e.currentTarget.classList.toggle('on', showTags); if (!showTags) ui.tags.innerHTML = ''; });
 document.getElementById('btn-center').addEventListener('click', () => { cam.target.set(0, 0, 0); cam.tView = 18; });
+// the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
+{
+  const hint = document.getElementById('hint'); let hintTimer = 0;
+  const fold = () => hint.classList.add('collapsed');
+  const unfold = (ms) => { hint.classList.remove('collapsed'); clearTimeout(hintTimer); hintTimer = setTimeout(fold, ms); };
+  hintTimer = setTimeout(fold, 5000);
+  document.getElementById('hint-toggle').addEventListener('click', () => { if (hint.classList.contains('collapsed')) unfold(8000); else { clearTimeout(hintTimer); fold(); } });
+}
 document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('res'); toast('Drag across up to 3 cells to zone a block of homes'); });
 
 function groundCell() {

@@ -6,6 +6,7 @@ import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } f
 import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, rebuildDecor, rebuildRoads } from './world.js';
 import { rebuildUnitMesh } from './buildings.js';
 import './island.js';
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock } from './sim.js';
 import { envUpdate } from './daynight.js';

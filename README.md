@@ -120,8 +120,8 @@ works from any static host or sub-folder.
 
 ## Tech
 
-Vanilla JavaScript, [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/). No
-framework, no assets: every building, tree, person, car and cat is generated from boxes,
+Vanilla JavaScript, [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/), with
+[Font Awesome](https://fontawesome.com/) for UI icons. No framework, no 3D assets: every building, tree, person, car and cat is generated from boxes,
 prisms and dodecahedra at runtime.
 
 ## License

@@ -20,6 +20,7 @@ All notable changes to Komachi are recorded here. The format follows
 - Ambient life: bird flocks over town, gulls over the shore, butterflies around flowers; trees,
   reeds and shrubs sway in the wind
 - Touch: pinch to zoom, two-finger twist to rotate, tap to inspect
+- Controls card folds into a round help icon after five seconds; click to unfold (Font Awesome, bundled)
 
 - Komachi Station: an underground entrance with benches, vending machines, planters and lamps at
   the centre of the island, placed at the start and ringed by road
