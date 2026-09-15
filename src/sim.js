@@ -492,11 +492,10 @@ function removeBlock(block) {
   }
   blocks.splice(blocks.indexOf(block), 1);
   for (const c of cells) if (c.type === 'road' && !lotAdjacent8(c)) { c.type = 'empty'; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
-  for (const w of wanderers) if (w.cell && w.cell.type !== 'road') w.dead = true;
   refreshWorld();
 }
 
-onWorldChange(() => pathCache.clear());
+onWorldChange(() => { pathCache.clear(); for (const w of wanderers) if (w.cell && w.cell.type !== 'road') w.dead = true; });   // a street built over sends its traffic away
 
 export { HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,

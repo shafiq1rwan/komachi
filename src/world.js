@@ -87,12 +87,12 @@ function rebuildRoads() {
     const open = nb.map((v, k) => v && !dbl[k]);
     // asphalt fills the cell (top 0.08); raised sidewalk bands (top 0.10) sit on the closed edges, with
     // corner squares so the pavement wraps around junction corners; an avenue edge has no pavement at all
-    g.push(box(1, 0.08, 1, asp, x, 0.04, z));
+    g.push(box(1, 0.08, 1, dbl.some(Boolean) ? PAL.asphalt : asp, x, 0.04, z));   // one shade across an avenue, no seam
     for (let k = 0; k < 4; k++) { const [di, dj] = DIR4[k]; if (!open[k] && !dbl[k]) g.push(box(di ? 0.19 : 1, 0.1, di ? 1 : 0.19, PAL.sidewalk, x + di * 0.405, 0.05, z + dj * 0.405)); }
     for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const kx = sx > 0 ? 1 : 3, kz = sz > 0 ? 2 : 0; if (!dbl[kx] && !dbl[kz]) g.push(box(0.19, 0.1, 0.19, PAL.sidewalk, x + sx * 0.405, 0.05, z + sz * 0.405)); }
     for (let k = 0; k < 4; k++) if (dbl[k]) {   // dashed centre line on the shared edge of an avenue, drawn once
       const [di, dj] = DIR4[k];
-      if (di + dj > 0) for (const o of [-0.3, 0.3]) g.push(box(di ? 0.004 : 0.18, 0.004, di ? 0.18 : 0.004, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
+      if (di + dj > 0) for (const o of [-0.25, 0.25]) g.push(box(di ? 0.03 : 0.22, 0.004, di ? 0.22 : 0.03, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
     }
     const deg = open.filter(Boolean).length, isDbl = dbl.some(Boolean);
     // centre line on straight two-way stretches
@@ -183,6 +183,13 @@ function makeUnit(block, c) {
     glowMat: glowMat.clone(), seed: hash(c.i, c.j) };
   c.type = 'lot'; c.block = block; c.tree = null; c.unit = u; block.units.push(u); units.set(u.id, u); return u;
 }
+// A cell can take a building if it is empty, or a street that is not the station's ring and would still have
+// a street (road or empty cell) on one side once the whole selection is built, so the door has somewhere to face.
+function placeable(c, sel = []) {
+  if (!c || (c.type !== 'empty' && c.type !== 'road')) return false;
+  if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
+  return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
+}
 function ringRoads(sel) {
   for (const c of sel) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
     const n = cell(c.i + di, c.j + dj); if (n && n.type === 'empty') { n.type = 'road'; n.tree = null; }
@@ -252,6 +259,6 @@ function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat,
+export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat };

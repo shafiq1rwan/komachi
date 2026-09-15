@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 12 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 13 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -40,7 +40,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - People are the box figures by default (user preference). The rigged GLB in `assets/characters/` is
   opt-in with `?rigged` via `src/characters.js`. `new THREE.Color(hex)` is already linear; never call
   `convertSRGBToLinear` on it. GLTFLoader renames `thigh.L` → `thighL`.
-- Cells: `water | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells.
+- Cells: `water | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
+  zoned over road cells (`placeable` in world.js), never over the station ring.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
 
@@ -52,6 +53,43 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   heredocs in this environment have mangled backslashes and quotes more than once.
 - Keep CHANGELOG.md (Unreleased section), README.md and docs/ in step with features.
 - Fictional names only (shops, station, people). Nothing punitive: no failure states.
+
+## Where things stand (handoff for a fresh session)
+
+Version 0.2 work, not yet committed (no git repo initialised as of 2026-09-15). Phases 1 and 2 are
+complete and verified (lint, build, `npm test`, screenshots). The user's original brief is long;
+its essence: observation-first cosy god game set in a Japanese suburb, and every system must show
+its effect through residents, buildings, vehicles or light, never only through numbers.
+"Everything is optional. Everything creates consequences you can see."
+
+Decisions already made (do not reopen without asking):
+- Box people are the default; the rigged GLB (`?rigged`, `src/characters.js`) exists but the user
+  prefers the boxes. The GLB is 1,632 tris per person with a baked-in bag.
+- Japan rules: cars keep left; walkers pick one sidewalk, hug corners (mitred offset) and cross at
+  the end of the trip; trucks stop on the road, not the pavement.
+- Everyone arrives by train. Nobody sleeps on a bench: last train 22:00, back at 06:00. Households
+  are booked when their home enters the finishing stage. Builders also come and go by train and
+  nothing is built without a crew on site (06:00–18:00).
+- Two blocks placed two cells apart form a two-lane avenue, not a doubled road. Cables only run along
+  streets between poles that share a row/column of road.
+- Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
+- HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
+  icon after 5 s; instant tooltips; progress pills float over sites under construction.
+- Docs stay full-length (the user reverted an attempt to compact README/CHANGELOG/ARCHITECTURE).
+
+Open threads the user has not decided:
+- The "Name tags" button is weak. Recommendation given: fold into Phase 3 (tag only pinned or
+  followed residents) and drop the button until then. Awaiting the user's choice.
+- Whether people should cross at zebra crossings instead of at trip end (Phase 3 routing).
+- If the rigged model is ever adopted: needs a low-poly LOD and a no-bag variant.
+
+Phase 3 plan as discussed with the user: households (people who live together), simple needs
+(hunger, rest, work, shopping, leisure, social) with utility-scored decisions at scheduled
+intervals rather than per frame, simulation LOD (near / visible-far / off-screen update rates;
+off-screen residents advance by schedule only), a follow-camera on a resident, richer resident and
+household inspect cards, and basic save/load (localStorage first) before the data model grows.
+Touch tap-to-inspect already works. Deliver in the same style: build, verify with screenshots,
+update CHANGELOG (Unreleased), README, docs.
 
 ## Roadmap (agreed with the user)
 

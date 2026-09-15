@@ -20,12 +20,15 @@ sits at least 0.8 units inside it. The same curve drives the land, beach terrace
 extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
 
 **Biome.** `biome.js` is data only: grass and sand colours, tree colour set, pine and blossom
-ratios, shoreline bias. Everything that draws vegetation or terrain reads from it. World coordinates are cell-centred: cell `(i, j)` sits at `(i − N/2 + 0.5, 0, j − N/2 + 0.5)`.
+ratios, shoreline bias. Everything that draws vegetation or terrain reads from it.
 
 **Block.** One drag places one block: 1–3 touching cells that share a zone type, a palette
 (roof, wall, awning), a family name, a construction stage (0–3) and a level (1–3). Roads are
-written into every empty cell in the block's 8-neighbourhood, so a block is always ringed by
-road and never has a road inside it.
+written into every empty cell in the block's 8-neighbourhood, so a block never has a road inside
+it. A block may be zoned over existing road cells (`placeable` in `world.js`): the cell becomes a
+lot, neighbouring roads stay, and `onWorldChange` clears route caches and ambient traffic on the
+lost cells. The station's ring road cannot be built over, and every cell needs a road or empty
+4-neighbour outside the selection so its door has a street to face.
 
 **Unit.** Each cell of a block is a unit: it owns a building mesh, its window material, a ground
 glow decal and the people currently inside it. Capacities depend on type and level

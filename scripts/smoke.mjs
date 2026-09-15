@@ -48,13 +48,16 @@ try {
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, types: MT.blocks.map(b => b.type), between: MT.cell(17, 22).type }));
   check('single click places a shop; road between blocks', s.blocks === 3 && s.types[2] === 'shop' && s.between === 'road', JSON.stringify(s));
 
-  await page.keyboard.press('Digit4'); const rp = await page.evaluate(() => MT.project(17, 22)); await page.mouse.click(rp.x, rp.y); await sleep(200);
-  s = await page.evaluate(() => MT.blocks.length); check('cannot build on a road', s === 3);
+  await page.keyboard.press('Digit4'); const rp = await page.evaluate(() => MT.project(20, 22)); await page.mouse.click(rp.x, rp.y); await sleep(200);
+  s = await page.evaluate(() => MT.blocks.length); check("cannot build on the station's ring road", s === 3);
+  const wp = await page.evaluate(() => MT.project(17, 22)); await page.mouse.click(wp.x, wp.y); await sleep(200);
+  s = await page.evaluate(() => ({ blocks: MT.blocks.length, cell: MT.cell(17, 22).type, side: MT.cell(16, 22).type }));
+  check('a street between blocks can be built over', s.blocks === 4 && s.cell === 'lot' && s.side === 'road', JSON.stringify(s));
 
   await page.evaluate(() => MT.fastForward(40));
-  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), jobs: MT.residents.filter(r => r.job).length }));
+  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), shopJob: MT.residents.some(r => r.job && r.job.block.type === 'shop') }));
   check('construction completes and newcomers fill every bed', s.stages.every(x => x === s.done) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
-  check('a resident takes the shop job', s.jobs === 1);
+  check('a resident takes the shop job', s.shopJob);
 
   // hover: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
   // accumulator, so slow software-rendered CI runners need a few seconds)
@@ -68,7 +71,7 @@ try {
 
   await page.keyboard.press('Digit5'); await page.mouse.click(sp.x, sp.y); await sleep(200);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, orphan: MT.cell(17, 24).type, kept: MT.cell(17, 21).type, residents: MT.residents.length }));
-  check('remove tool clears block and orphan roads', s.blocks === 2 && s.orphan === 'empty' && s.kept === 'road', JSON.stringify(s));
+  check('remove tool clears block and orphan roads', s.blocks === 3 && s.orphan === 'empty' && s.kept === 'road', JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(30));
 
   // ── demo town screenshots ──

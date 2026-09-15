@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor, DONE, stageHours } from './world.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable } from './world.js';
 import { residents, removeBlock } from './sim.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
@@ -39,7 +39,7 @@ function groundCell() {
 }
 function setNdc(e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); }
 function selectable(c, sel) {
-  if (!c || c.type !== 'empty' || sel.includes(c) || sel.length >= 3) return false;
+  if (!placeable(c, sel) || sel.includes(c) || sel.length >= 3) return false;
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);
 }
 canvas.addEventListener('pointerdown', e => {
@@ -51,7 +51,7 @@ canvas.addEventListener('pointerdown', e => {
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
-  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? 'Roads grow on their own around blocks' : 'That spot is already taken'); }
+  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? "Keep the station's ring road clear" : 'That spot is already taken'); }
   else { ptr.panning = true; document.body.classList.add('dragging'); }
   canvas.setPointerCapture(e.pointerId);
 });
@@ -70,7 +70,7 @@ canvas.addEventListener('pointermove', e => {
     const right = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)), up = new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
     cam.target.addScaledVector(right, -wx).addScaledVector(up, wy); clampTarget();
   } else if (ptr.sel) {
-    const c = groundCell(); if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && ptr.sel.length >= 3 && !ptr.sel.includes(c) && c.type === 'empty') { if (!ptr.warned) { toast('A block holds at most 3 buildings'); ptr.warned = true; } }
+    const c = groundCell(); if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && ptr.sel.length >= 3 && !ptr.sel.includes(c) && placeable(c, ptr.sel)) { if (!ptr.warned) { toast('A block holds at most 3 buildings'); ptr.warned = true; } }
   }
 });
 function endPointer(e) {
@@ -85,7 +85,7 @@ function endPointer(e) {
     }
     return;
   }
-  if (ptr.sel) { if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel); if (blocks.length === 1) toast('Roads appeared around your first block'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
+  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel); if (blocks.length === 1) toast('Roads appeared around your first block'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -117,7 +117,7 @@ function updatePreview() {
       for (const q of ring) show(q, prevMat.road);
     } else if (!ptr.sel) {
       const c = groundCell();
-      if (c) { show(c, c.type === 'empty' ? prevMat.ok : prevMat.bad); if (c.type === 'empty') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const q = cell(c.i + di, c.j + dj); if (q && q.type === 'empty' && q !== c) show(q, prevMat.road); } }
+      if (c) { show(c, placeable(c) ? prevMat.ok : prevMat.bad); if (placeable(c)) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const q = cell(c.i + di, c.j + dj); if (q && q.type === 'empty' && q !== c) show(q, prevMat.road); } }
     }
   }
   for (let k = n; k < prevPool.length; k++) prevPool[k].visible = false;

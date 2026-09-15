@@ -65,9 +65,10 @@ Some things worth knowing:
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are
   offices, workshops or studios. Streets get utility poles with cables, traffic mirrors, notice
   boards and bike racks.
-
 - Everything placed in one drag becomes **one block**. Roads form around the outside of the
-  block and never between the buildings inside it. Blocks are always separated by a road.
+  block and never between the buildings inside it. You can also zone on top of a street to fill a
+  gap between blocks: the road closes there and reforms around the new building. Only the
+  station's ring road stays clear, and every building keeps a street on at least one side.
 - **Builders come by train.** Zone a block and a crew rides in on the next train, walks to the
   site and works until 18:00. Nothing is built without them. Buildings pass through five visible
   stages (survey, foundations with a digger, frame, scaffolding, finishing) while kei trucks bring
@@ -82,10 +83,6 @@ Some things worth knowing:
 - Removing a block sends its residents back to the station and clears roads that no longer touch any block.
 
 ## Project layout
-
-An editable Blender resident and animated GLB export are available in
-[`assets/characters/`](assets/characters/README.md), with preview renders in `docs/characters/`.
-This character asset is not yet connected to the runtime resident system.
 
 ```
 index.html            page shell (UI markup)

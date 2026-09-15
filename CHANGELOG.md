@@ -69,6 +69,11 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Buildings can now be zoned on top of a street, so a two-cell gap between blocks can be filled in;
+  the road reforms around the new block. The station's ring road stays clear and every building must
+  keep a street on one side
+- Two-lane avenues (blocks placed two cells apart) now show a proper dashed centre line and use one
+  asphalt shade across both halves; the line was previously drawn too thin to see
 - Trains bring a household when its home enters the final construction stage, so newcomers wait an hour or so and watch the builders finish; free beds in finished homes still draw arrivals, and only the very first train carries a hopeful with nowhere to go
 - Nobody sleeps on a bench: anyone still waiting at 22:00 takes the last train to the city and comes back on the 06:00 train
 - Homes now take about one working day to build (2 + 3 + 4 daylight hours); shops and workspaces keep the longer schedule
