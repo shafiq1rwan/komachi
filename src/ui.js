@@ -1,6 +1,6 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
-import { blocks, unitCap, STAGE_HOURS, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
+import { blocks, unitCap, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt } from './sim.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'),
@@ -8,6 +8,7 @@ const ui = { time: document.getElementById('time'), day: document.getElementById
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function whereIs(r) {
+  if (r.state === 'away') return 'in the city for the night';
   if (r.state !== 'inside') return `${r.state === 'driving' ? 'driving' : 'walking'} · ${r.activity}`;
   if (!r.at) return 'somewhere';
   if (r.home && r.at === r.home) return `home · ${r.activity}`;
@@ -22,7 +23,7 @@ function renderStation(b) {
   html += `<div class="row"><span>Trains so far</span><b>${b.trains}</b></div>`;
   html += `<div class="row"><span>Waiting for a home</span><b>${waiting.length}</b></div>`;
   html += `<div class="divider"></div><ul>`;
-  for (const r of waiting) html += personLi(r, r.activity);
+  for (const r of waiting) html += personLi(r, r.state === 'away' ? 'staying in the city tonight' : r.activity);
   if (!waiting.length) html += `<li class="empty">Nobody is waiting right now</li>`;
   html += `</ul>`;
   const vacancies = blocks.filter(x => x.type === 'res' && x.stage === 3).reduce((s, x) => s + x.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length - u.incoming), 0), 0);
@@ -45,9 +46,9 @@ function renderInspect(target) {
     html += `<div class="kind" style="--k:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</div><h2>${esc(b.name)}</h2>`;
     html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < 3 ? ['Surveying the plot', 'Laying foundations', 'Raising the frame'][b.stage] : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
     if (b.stage < 3) {
-      const totalH = STAGE_HOURS.reduce((a, c) => a + c, 0), done = STAGE_HOURS.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT;
+      const SH = stageHours(b), totalH = SH.reduce((a, c) => a + c, 0), done = SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT;
       html += `<div class="row"><span>Construction</span><b>${Math.round(100 * done / totalH)}%</b></div><div class="bar"><i style="width:${100 * done / totalH}%"></i></div>`;
-      html += `<div class="empty">Builders work faster in daylight.</div>`;
+      html += `<div class="empty">${b.summoned ? 'The new household is on its way by train.' : 'Builders work faster in daylight.'}</div>`;
     } else {
       const inside = Array.from(u.inside);
       if (type === 'res') {

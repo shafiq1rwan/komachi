@@ -5,7 +5,7 @@ import { rand, pick, clamp, lerp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, STAGE_HOURS, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
+import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, stageHours, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
@@ -133,6 +133,8 @@ function spawnNewcomer() {
   else { r.state = 'inside'; r.activity = 'waiting for a home'; }
   return r;
 }
+/** next decision time for someone waiting at the station: never sleeps past the 22:00 last train */
+const waitNext = dt => { const t = S.T + dt, lastTrain = Math.floor(S.T / 24) * 24 + 22.02; return hourOf() < 22 ? Math.min(t, lastTrain) : t; };
 function freeSpot(r) { if (r.spot) { r.spot.taken = null; r.spot = null; } if (r.vendingAt) { r.vendingAt.taken = null; r.vendingAt = null; } }
 function takeSpot(r) {
   const spot = STATION.seats.find(s => !s.taken) || STATION.stands.find(s => !s.taken);
@@ -141,7 +143,7 @@ function takeSpot(r) {
 function sitDown(r) {
   const s = r.spot; if (!s) { r.state = 'inside'; r.next = S.T; return; }
   r.mesh.visible = true; r.mesh.position.copy(s.pos); r.mesh.rotation.y = s.rot;
-  r.state = 'inside'; r.trip = null; r.activity = s.kind === 'seat' ? 'waiting for a home' : 'waiting by the planters'; r.next = S.T + rand(0.3, 0.9);
+  r.state = 'inside'; r.trip = null; r.activity = s.kind === 'seat' ? 'waiting for a home' : 'waiting by the planters'; r.next = waitNext(rand(0.3, 0.9));
 }
 function freeSpots() { return STATION.seats.filter(s => !s.taken).length + STATION.stands.filter(s => !s.taken).length; }
 /** A short walk that ignores roads (inside the plaza, or across the grass), with a callback on arrival. */
@@ -152,6 +154,7 @@ function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
 }
 function waitDecide(r) {
   const h = hourOf();
+  if (h >= 22 || h < 5.5) { freeSpot(r); startDirectTrip(r, r.mesh.position, STATION.entrance, 'taking the last train to the city', () => leaveForCity(r)); return; }
   if (r.vendingAt) {   // finished at the machine: back to the seat
     r.vendingAt.taken = null; r.vendingAt = null;
     if (!r.spot) takeSpot(r);
@@ -163,11 +166,11 @@ function waitDecide(r) {
   const v = STATION.vending.find(x => !x.taken);
   if (v && h >= 6 && h < 23 && Math.random() < 0.28) {
     v.taken = r; r.vendingAt = v;
-    startDirectTrip(r, r.mesh.position, v.pos, 'going to the vending machine', () => { r.state = 'inside'; r.trip = null; r.mesh.rotation.y = v.rot; r.activity = pick(VEND_ACTS); r.next = S.T + rand(0.12, 0.2); });
+    startDirectTrip(r, r.mesh.position, v.pos, 'going to the vending machine', () => { r.state = 'inside'; r.trip = null; r.mesh.rotation.y = v.rot; r.activity = pick(VEND_ACTS); r.next = waitNext(rand(0.12, 0.2)); });
     return;
   }
-  r.activity = (h >= 23 || h < 5.5) ? pick(['dozing on the bench', 'sleeping under a coat', 'counting stars']) : pick(WAIT_ACTS);
-  r.next = S.T + rand(0.4, 1.0);
+  r.activity = pick(WAIT_ACTS);
+  r.next = waitNext(rand(0.4, 1.0));
 }
 function assignHome(r, u) {
   r.home = u; u.residents.push(r); u.incoming++; r.movingIn = true; r.jobSearchAt = S.T + rand(0.3, 1);
@@ -208,24 +211,43 @@ function removeResident(r) {
 
 // ── trains ──
 let nextTrain = 7.4;
-const arrivals = [];             // pending passenger arrival times
+const arrivals = [];             // pending arrivals: { t, r } (r = a resident returning from the city, else a newcomer)
+let pendingSummoned = 0;         // beds in homes about to finish; their households ride the next train
 const nextTrainAt = () => nextTrain;
 function updateStation() {
   if (S.T >= nextTrain) {
     const h = hourOf();
     if (h < 5.9) nextTrain = Math.floor(S.T / 24) * 24 + 6;
     else {
-      const vacancies = blocks.filter(b => b.type === 'res' && b.stage === 3).reduce((s, b) => s + b.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length), 0), 0);
-      const waiting = residents.filter(r => !r.home).length;
-      let n = vacancies > 0 ? 1 + Math.ceil(vacancies / 2) : (waiting < 3 ? 1 : 0);
-      n = Math.max(0, Math.min(3, n, freeSpots() - arrivals.length));
-      for (let k = 0; k < n; k++) arrivals.push(S.T + 0.03 + k * 0.07);
+      const beds = u => Math.max(0, unitCap(u) - u.residents.length - u.incoming);
+      const vacancies = blocks.filter(b => b.type === 'res' && b.stage === 3).reduce((s, b) => s + b.units.reduce((t, u) => t + beds(u), 0), 0);
+      const waiting = residents.filter(r => !r.home && r.state !== 'away').length;
+      const returning = h < 7 ? residents.filter(r => r.state === 'away') : [];   // night-trippers ride the first morning train only
+      let room = Math.max(0, freeSpots() - arrivals.length - returning.length);
+      let t = S.T + 0.03;
+      for (const r of returning) arrivals.push({ t: (t += 0.07), r });            // night-trippers come home first
+      const enRoute = arrivals.filter(a => !a.r).length;
+      let n = Math.max(0, vacancies + pendingSummoned - waiting - enRoute);       // people who will have a bed, minus those already here
+      if (STATION.block.trains === 0 && n === 0) n = 1;                          // one hopeful on the very first train
+      if (h >= 21.5) n = 0;                                                        // nobody arrives just to leave again at 22:00
+      n = Math.min(n, room, 4); if (n > 0 || h < 21.5) pendingSummoned = 0;
+      for (let k = 0; k < n; k++) arrivals.push({ t: (t += 0.07), r: null });
       STATION.block.trains++;
       if (n > 0 && STATION.block.trains <= 2) toast(n === 1 ? 'A train pulled in. Someone is looking for a home.' : `A train pulled in. ${n} newcomers are looking for homes.`);
       nextTrain = h >= 22 ? Math.floor(S.T / 24) * 24 + 30 : S.T + 1.5;
     }
   }
-  while (arrivals.length && S.T >= arrivals[0]) { arrivals.shift(); spawnNewcomer(); }
+  while (arrivals.length && S.T >= arrivals[0].t) { const a = arrivals.shift(); if (a.r) returnFromCity(a.r); else spawnNewcomer(); }
+}
+/** Late evening: nobody sleeps on a bench. Waiting newcomers take the last train to the city and are back at 06:00. */
+function leaveForCity(r) {
+  freeSpot(r); if (r.at) r.at.inside.delete(r); r.at = null;
+  r.trip = null; r.mesh.visible = false; r.state = 'away'; r.activity = 'staying in the city tonight'; r.next = S.T + 24;
+}
+function returnFromCity(r) {
+  r.state = 'inside'; r.at = STATION.anchor; STATION.anchor.inside.add(r); r.mesh.position.copy(STATION.entrance); r.mesh.visible = true;
+  if (takeSpot(r)) startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => sitDown(r));
+  else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
 }
 function waitingNewcomer() { return residents.find(r => !r.home && !r.movingIn && r.state === 'inside' && r.at === STATION.anchor); }
 const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === 3).flatMap(b => b.units);
@@ -335,6 +357,7 @@ function moveAlong(obj, tr, dist) {
 }
 function updateResidents(simDt, realT) {
   for (const r of residents) {
+    if (r.state === 'away') continue;
     if (r.state === 'inside') {
       if (S.T >= r.next) decide(r);
       if (r.home && !r.job && S.T >= r.jobSearchAt) { findJob(r); r.jobSearchAt = S.T + rand(1.5, 3); }
@@ -402,7 +425,8 @@ function updateBlocks(dh) {
     if (b.type === 'station') continue;
     if (b.stage < 3) {
       b.stageT += dh * lerp(0.35, 1, dl);
-      if (b.stageT >= STAGE_HOURS[b.stage]) { b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === 3) toast(`${b.name} is finished`); }
+      if (b.type === 'res' && b.stage === 2 && !b.summoned && stageHours(b)[2] - b.stageT <= 2.5) { b.summoned = true; pendingSummoned += b.units.reduce((n, u) => n + unitCap(u), 0); }
+      if (b.stageT >= stageHours(b)[b.stage]) { b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === 3) toast(`${b.name} is finished`); }
       continue;
     }
     let occ = 0;

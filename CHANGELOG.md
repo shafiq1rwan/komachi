@@ -31,6 +31,9 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Trains bring a household when its home enters the final construction stage, so newcomers wait an hour or so and watch the builders finish; free beds in finished homes still draw arrivals, and only the very first train carries a hopeful with nowhere to go
+- Nobody sleeps on a bench: anyone still waiting at 22:00 takes the last train to the city and comes back on the 06:00 train
+- Homes now take about one working day to build (2 + 3 + 4 daylight hours); shops and workspaces keep the longer schedule
 - People leave and enter buildings through the front door: doorstep, then kerb, then the sidewalk
 - People are 30 % smaller (a storey is now about one and a half people tall); cats 20 % smaller
 - Residents no longer spawn inside homes; population growth now depends on the train timetable

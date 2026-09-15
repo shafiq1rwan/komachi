@@ -56,8 +56,15 @@ try {
   check('construction completes and newcomers fill every bed', s.stages.every(x => x === 3) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
   check('a resident takes the shop job', s.jobs === 1);
 
-  await page.keyboard.press('Digit1'); const hp = await page.evaluate(() => MT.project(17, 19, 0.5)); await page.mouse.move(hp.x, hp.y); await sleep(500);
-  s = await page.evaluate(() => document.getElementById('inspect').innerText); check('hover opens inspect card', /Residents/.test(s) && /\d+ \/ \d+/.test(s), s.slice(0, 140).replace(/\n+/g, ' | '));
+  // hover: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
+  // accumulator, so slow software-rendered CI runners need a few seconds)
+  await page.keyboard.press('Digit1'); await page.evaluate(() => MT.setSpeed(0));
+  const hp = await page.evaluate(() => MT.project(17, 19, 0.5)); await page.mouse.move(hp.x - 2, hp.y - 2); await page.mouse.move(hp.x, hp.y);
+  let inspectText = '';
+  for (let k = 0; k < 40 && !(/Residents/.test(inspectText) && /d+ / d+/.test(inspectText)); k++) { await sleep(250); inspectText = await page.evaluate(() => document.getElementById('inspect').innerText); }
+  check('hover opens inspect card', /Residents/.test(inspectText) && /d+ / d+/.test(inspectText), inspectText.slice(0, 140).replace(/
++/g, ' | '));
+  await page.evaluate(() => MT.setSpeed(1));
 
   await page.keyboard.press('Digit5'); await page.mouse.click(sp.x, sp.y); await sleep(200);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, orphan: MT.cell(17, 24).type, kept: MT.cell(17, 21).type, residents: MT.residents.length }));

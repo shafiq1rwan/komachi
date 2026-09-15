@@ -150,7 +150,9 @@ function rebuildRoads() {
 // ───────────────────────────── blocks & units ─────────────────────────────
 const blocks = []; const units = new Map();
 const CAP = { res: [0, 2, 4, 6], work: [0, 4, 7, 10], shop: [0, 1, 2, 3] };
-const STAGE_HOURS = [3, 5, 6];
+const STAGE_HOURS = [3, 5, 6];            // shops, workspaces
+const RES_STAGE_HOURS = [2, 3, 4];        // homes: about one working day
+const stageHours = b => b.type === 'res' ? RES_STAGE_HOURS : STAGE_HOURS;
 const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', station: 'Station' };
 const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, station: PAL.roofSage };
 function unitCap(u) { return CAP[u.block.type][u.block.level] + (u.variant === 'apartment' ? 2 : 0); }
@@ -232,5 +234,5 @@ function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of world
 const isDecor = obj => obj === decorMesh;
 
 export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat,
-  blocks, units, CAP, STAGE_HOURS, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
+  blocks, units, CAP, STAGE_HOURS, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat };

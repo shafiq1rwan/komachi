@@ -49,9 +49,10 @@ Other scripts:
 Some things worth knowing:
 
 - **Everyone arrives by train.** Komachi Station sits at the centre of the island and cannot be
-  removed. A train pulls in every hour and a half between 6:00 and 23:30. Passengers wait on the
-  plaza until a finished home has a free bed, then walk there. Hover the station to see who is
-  waiting and when the next train is due.
+  removed. A train pulls in every hour and a half between 6:00 and 23:30. When a home is close to
+  finished, its future household rides the next train, waits on the plaza, and walks in when the
+  builders are done. Anyone still waiting at 22:00 takes the last train to the city and is back at
+  06:00. Hover the station to see who is waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
   cliffs, a pier and a boat. Zoom out to see all of it; nothing can be built in the water.
@@ -64,7 +65,8 @@ Some things worth knowing:
 - Everything placed in one drag becomes **one block**. Roads form around the outside of the
   block and never between the buildings inside it. Blocks are always separated by a road.
 - Buildings pass through **three construction stages** (plot, foundation, frame) before they
-  finish. Builders work faster in daylight.
+  finish. A home takes about one working day; shops and workspaces take longer. Builders work
+  faster in daylight.
 - Residents look for work at shops and workspaces they can reach by road, and follow a daily
   schedule with personal wake and finish times. About a third own cars. A home that is not
   connected to the station by road still gets residents (they cut across the grass to move in),
