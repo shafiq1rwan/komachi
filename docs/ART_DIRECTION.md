@@ -11,7 +11,7 @@ its content.
 | Palette | Cream stone, peach/dusty-orange trees, sage and mint greens, muted teal roof, powder-blue roof, dusty-rose roof, pale mint water | Fixed 24-swatch palette (`PAL` in index.html). Nothing outside it. |
 | Saturation | Everything ~25–45% saturation, no pure hues | All colours pre-desaturated; night tint shifts toward cool blue, never black |
 | Geometry | Chunky boxes with slightly rounded/bevelled silhouettes, thick roofs, oversized details (lamps, signs, awnings) | Buildings are stacked boxes + prism roofs; details are 1.5–2× "real" scale |
-| Proportion | Buildings ~1 cell wide, ~1–2 cells tall; people are ~1/4 building height | Cell = 1 unit; house 0.55 u per floor; person 0.42 u tall |
+| Proportion | Buildings ~1 cell wide, ~1–2 cells tall; people are ~1/4 building height | Cell = 1 unit; house 0.55 u per floor; person about 0.3 u tall (0.7 × the base model) |
 | Camera | Clean 3/4 orthographic view, ~35–40° elevation, 45° azimuth | Orthographic camera, pitch 38°, yaw 45°, smooth rotate/zoom |
 | Lighting | Soft top-left key, gentle warm shadows, no speculars | Matte materials (roughness 0.95, metalness 0), soft PCF shadows, hemisphere fill |
 | Ground | Cream sidewalk everywhere, grey asphalt inset, bushes filling gaps | Every road cell is a cream slab with an inset asphalt cross; empty cells grow bushes/trees |

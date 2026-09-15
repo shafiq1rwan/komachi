@@ -114,7 +114,7 @@ const STATION = {
   seats: [], stands: [], vending: [],
 };
 for (const side of [-1, 1]) for (const bx of [-0.25, 0.25]) for (const sx of [-0.11, 0.11])
-  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - 0.11, SZ + side * 1.3), rot: side < 0 ? 0 : Math.PI, taken: null });
+  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - 0.09, SZ + side * 1.3), rot: side < 0 ? 0 : Math.PI, taken: null });
 for (const [dx, dz] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]])
   STATION.stands.push({ kind: 'stand', pos: new THREE.Vector3(SX + dx * 0.6, 0.12, SZ + dz * 0.6), rot: Math.atan2(-dx, -dz), taken: null });
 for (const dz of [-0.22, 0.22]) STATION.vending.push({ pos: new THREE.Vector3(SX + 1.08, 0.12, SZ + dz), rot: Math.PI / 2, taken: null });

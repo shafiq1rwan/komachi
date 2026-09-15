@@ -16,6 +16,8 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- People leave and enter buildings through the front door: doorstep, then kerb, then the sidewalk
+- People are 30 % smaller (a storey is now about one and a half people tall); cats 20 % smaller
 - Residents no longer spawn inside homes; population growth now depends on the train timetable
 - Residential blocks are named after places (Sakura Terrace) instead of the first family, since
   residents keep their own surnames

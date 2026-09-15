@@ -10,6 +10,20 @@ function dims(type, level) {
   if (type === 'shop') return { w: 0.78, d: 0.66, H: 0.62 + (level >= 2 ? 0.5 : 0) };
   return { w: 0.8, d: 0.7, H: 0.95 + (level - 1) * 0.55 };
 }
+/** Where the front door is, in the unit's local space (front face is +z before the unit is rotated). */
+function doorLocal(type, level) {
+  const { d } = dims(type, level);
+  const x = type === 'res' ? -0.16 : type === 'shop' ? -0.24 : 0;
+  return { x, z: d / 2 + 0.02 };
+}
+/** World-space points for entering/leaving a unit: [doorstep, kerb]. The kerb sits just past the plinth on the sidewalk. */
+function unitDoorPoints(u) {
+  const ry = u.facing || 0, s = Math.sin(ry), c = Math.cos(ry);
+  const { x, z } = u.block.type === 'station' ? { x: 0, z: 0.5 } : doorLocal(u.block.type, u.block.level);
+  const px = cx(u.cell.i), pz = cz(u.cell.j);
+  const local = (lx, lz, y) => new THREE.Vector3(px + lx * c + lz * s, y, pz - lx * s + lz * c);
+  return [local(x, z, 0.12), local(x, 0.64, 0.08)];   // doorstep on the plinth, kerb on the sidewalk
+}
 function tiltBox(w, h, d, hex, x, y, z, rx) { const g = new THREE.BoxGeometry(w, h, d); g.rotateX(rx); g.translate(x, y, z); return colorize(g, hex); }
 const WIN_FRAME = '#8d8378', MULLION = '#9aa4aa', CHALK = '#5a504a';
 
@@ -182,4 +196,4 @@ function rebuildUnitMesh(u, pop = false) {
   if (pop) u.pop = 1;
 }
 
-export { dims, rebuildUnitMesh };
+export { dims, doorLocal, unitDoorPoints, rebuildUnitMesh };

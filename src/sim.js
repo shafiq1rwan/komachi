@@ -6,7 +6,7 @@ import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, STAGE_HOURS, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
-import { rebuildUnitMesh } from './buildings.js';
+import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
 // ───────────────────────────── time ─────────────────────────────
@@ -36,8 +36,14 @@ function routeUnits(a, b) {
   const p = routeCells(roadNeighbors(a.cell), roadNeighbors(b.cell)); pathCache.set(key, p); return p;
 }
 const unitPos = u => new THREE.Vector3(cx(u.cell.i), 0, cz(u.cell.j));
+const exitPts = u => unitDoorPoints(u);                 // doorstep → kerb
+const entryPts = u => unitDoorPoints(u).reverse();      // kerb → doorstep
+/** start / end may be a single point or an ordered list of points (e.g. doorstep then kerb). */
 function buildPoints(cellPath, start, end, side, y) {
-  const pts = [start.clone().setY(y)];
+  const sArr = Array.isArray(start) ? start : [start], eArr = Array.isArray(end) ? end : [end];
+  start = sArr[sArr.length - 1]; end = eArr[0];
+  const keepY = p => p.y > 0 ? p.clone() : p.clone().setY(y);   // door points carry their own height
+  const pts = sArr.map(keepY);
   const n = cellPath.length;
   for (let k = 0; k < n; k++) {
     const c = cellPath[k], p = new THREE.Vector3(cx(c.i), y, cz(c.j));
@@ -50,12 +56,13 @@ function buildPoints(cellPath, start, end, side, y) {
     p.x += -dz * side; p.z += dx * side;      // right-hand offset
     pts.push(p);
   }
-  pts.push(end.clone().setY(y));
+  for (const p of eArr) pts.push(keepY(p));
   return pts;
 }
 
 // ───────────────────────────── meshes: people, cars, cats ─────────────────────────────
 const carMeshes = [];
+const PERSON_SCALE = 0.7;   // a floor is ~0.55 units; people read as a bit over half a storey tall
 function makePerson(r) {
   const grp = new THREE.Group(); const g = [];
   g.push(box(0.15, 0.13, 0.11, r.pants, 0, 0.065, 0));
@@ -64,7 +71,7 @@ function makePerson(r) {
   const head = new THREE.SphereGeometry(0.085, 8, 6); head.translate(0, 0.42, 0); g.push(colorize(head, r.skin));
   if (r.hat) { g.push(cyl(0.11, 0.11, 0.03, r.hatColor, 0, 0.47, 0, 10)); g.push(cyl(0.07, 0.075, 0.07, r.hatColor, 0, 0.51, 0, 10)); }
   else { const hair = new THREE.SphereGeometry(0.09, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2); hair.translate(0, 0.43, 0); g.push(colorize(hair, r.hair)); }
-  const m = mergeMesh(g, false); m.castShadow = true; grp.add(m); grp.visible = false; grp.userData.res = r; peopleGroup.add(grp); return grp;
+  const m = mergeMesh(g, false); m.castShadow = true; m.scale.setScalar(PERSON_SCALE); grp.add(m); grp.visible = false; grp.userData.res = r; peopleGroup.add(grp); return grp;
 }
 function makeCar(color) {
   const grp = new THREE.Group(); const g = [];
@@ -83,7 +90,7 @@ function makeCat(color) {
   g.push(box(0.2, 0.09, 0.1, color, 0, 0.08, 0)); const hd = new THREE.SphereGeometry(0.06, 7, 5); hd.translate(0.12, 0.14, 0); g.push(colorize(hd, color));
   g.push(box(0.03, 0.04, 0.03, color, 0.14, 0.19, -0.03)); g.push(box(0.03, 0.04, 0.03, color, 0.14, 0.19, 0.03));
   g.push(box(0.12, 0.03, 0.03, color, -0.14, 0.13, 0, 0)); for (const [x, z] of [[-0.07, -0.03], [0.07, -0.03], [-0.07, 0.03], [0.07, 0.03]]) g.push(box(0.03, 0.05, 0.03, color, x, 0.025, z));
-  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; grp.add(inner);
+  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(0.8); grp.add(inner);
   const m = mergeMesh(g, false); inner.add(m); peopleGroup.add(grp); return grp;
 }
 
@@ -154,8 +161,8 @@ function assignHome(r, u) {
   freeSpot(r); if (r.at) r.at.inside.delete(r); r.at = null;
   const start = r.mesh.position.clone().setY(0);
   const path = routeCells(roadNeighbors(STATION.anchor.cell), roadNeighbors(u.cell));
-  if (path) startTrip(r, path, start, unitPos(u), u, 'moving into a new home');
-  else startDirectTrip(r, start, unitPos(u), 'moving in the long way round', () => enterUnit(r, u), 0.06);   // no road yet: cut across the grass
+  if (path) startTrip(r, path, start, entryPts(u), u, 'moving into a new home');
+  else startDirectTrip(r, start, exitPts(u)[0], 'moving in the long way round', () => enterUnit(r, u), 0.06);   // no road yet: cut across the grass
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false; if (r.car) r.car.visible = false;
@@ -227,6 +234,7 @@ function findShop(r, from) {
 }
 function startTrip(r, cellPath, start, end, destUnit, label) {
   const drive = r.hasCar && cellPath.length > 6 && destUnit && destUnit !== STATION.anchor && r.at !== STATION.anchor;
+  if (drive) { if (Array.isArray(start)) start = start[start.length - 1]; if (Array.isArray(end)) end = end[0]; }   // cars stop at the kerb
   const pts = buildPoints(cellPath, start, end, drive ? 0.17 : 0.34, drive ? 0.1 : 0.08);
   r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, speed: drive ? 2.6 : 0.9 * rand(0.85, 1.15), baseY: 0.08 };
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
@@ -236,10 +244,10 @@ function startTrip(r, cellPath, start, end, destUnit, label) {
 function go(r, dest, label) {
   const from = r.at; const path = routeUnits(from, dest);
   if (!path) { r.next = S.T + rand(0.4, 0.9); return false; }
-  const start = from === STATION.anchor ? r.mesh.position.clone().setY(0) : unitPos(from);
+  const start = from === STATION.anchor ? r.mesh.position.clone().setY(0) : exitPts(from);
   if (from === STATION.anchor) freeSpot(r);
   from.inside.delete(r); r.at = null;
-  startTrip(r, path, start, unitPos(dest), dest, label); return true;
+  startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label); return true;
 }
 function stroll(r) {
   const roads = cells.filter(c => c.type === 'road'); if (!roads.length) return false;
@@ -248,7 +256,7 @@ function stroll(r) {
   if (!path) return false;
   from.inside.delete(r); r.at = null; r.strollHome = true;
   const last = path[path.length - 1];
-  startTrip(r, path, unitPos(from), new THREE.Vector3(cx(last.i), 0, cz(last.j)), null, pick(['taking a walk', 'out for a stroll', 'walking the dog', 'going jogging']));
+  startTrip(r, path, exitPts(from), new THREE.Vector3(cx(last.i), 0, cz(last.j)), null, pick(['taking a walk', 'out for a stroll', 'walking the dog', 'going jogging']));
   return true;
 }
 function arrive(r) {
@@ -259,7 +267,7 @@ function arrive(r) {
   if (!tr.dest) {   // strolled to a road cell: turn around and head home
     if (!r.home) { returnToStation(r, endPos); return; }
     const c = cellAt(endPos); const path = c ? routeCells([c], roadNeighbors(r.home.cell)) : null;
-    if (path) startTrip(r, path, endPos.clone().setY(0), unitPos(r.home), r.home, 'heading home');
+    if (path) startTrip(r, path, endPos.clone().setY(0), entryPts(r.home), r.home, 'heading home');
     else { r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
     return;
   }
@@ -325,7 +333,7 @@ function updateResidents(simDt, realT) {
       if (done) arrive(r);
     } else {
       const done = moveAlong(r.mesh, tr, tr.speed * simDt);
-      r.mesh.position.y = tr.baseY + Math.abs(Math.sin(realT * 9 + r.phase)) * 0.025 * Math.min(1, S.speed);
+      r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
       if (done) arrive(r);
     }
   }

@@ -113,7 +113,7 @@ const tagV = new THREE.Vector3();
 function updateTags() {
   if (!showTags) return;
   let html = '', n = 0;
-  for (const r of residents) { if (r.state !== 'walking' || n > 40) continue; tagV.copy(r.mesh.position); tagV.y += 0.6; tagV.project(camera); if (tagV.z > 1) continue;
+  for (const r of residents) { if (r.state !== 'walking' || n > 40) continue; tagV.copy(r.mesh.position); tagV.y += 0.45; tagV.project(camera); if (tagV.z > 1) continue;
     html += `<div class="tag" style="left:${(tagV.x + 1) / 2 * innerWidth}px;top:${(1 - tagV.y) / 2 * innerHeight}px">${esc(r.name.split(' ')[0])}</div>`; n++; }
   ui.tags.innerHTML = html;
 }
