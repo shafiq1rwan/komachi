@@ -21,9 +21,11 @@ export function snapshot() {
     residents: residents.map(r => ({ ...pickKeys(r, RES_KEYS), hh: r.hh.id, home: ref(r.home), job: ref(r.job), state: r.state === 'away' ? 'away' : 'here' })),
   };
 }
-export function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); return true; } catch { return false; } }
+export function save() { if (resetting) return false; try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); return true; } catch { return false; } }
 export function loadData() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 ? d : null; } catch { return null; } }
-export function clearSave() { try { localStorage.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } }
+let resetting = false;   // set by clearSave so the leave-page autosave does not write the town straight back
+export function clearSave() { resetting = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } }
+export const isResetting = () => resetting;
 
 /** Rebuild the town from a snapshot. Call after placeStation() and before the first frame. Returns the block count. */
 export function restore(d) {

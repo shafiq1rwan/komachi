@@ -1,28 +1,24 @@
-# Komachi resident
+# Characters
 
-Blender-built character based on `docs/characters/human-resident-reference.png`.
+## Kenney Mini Characters (`kenney/`)
 
-- `komachi-resident.blend`: editable mesh, 16-bone skeleton, packed reference, studio and turnaround scenes.
-- `komachi-resident.glb`: skinned glTF binary, one mesh/material, vertex colors, 1,632 triangles. No external textures.
-- `komachi-resident.stats.json`: geometry and coordinate summary.
-- Preview renders: `docs/characters/komachi-resident-preview.png` and `komachi-resident-turnaround.png`.
+The rigged people used with `?rigged` come from Kenney's **Mini Characters** pack (https://kenney.nl,
+licence CC0 1.0, no attribution required). The folder holds the character GLBs
+(`character-<sex>-<letter>.glb`), the shared colour atlas `Textures/colormap.png`, and the pack's
+accessories, which the game ignores.
 
-## Animation and scale
+`src/characters.js` loads every `character-*.glb` once, skips any file without a skin and a `walk`
+clip, bakes the atlas into vertex colours and classifies each vertex as skin, hair, shirt or trousers
+(by colour ramp, bone weight and height). Each person gets a `SkeletonUtils.clone` of one variant,
+chosen by name hash, with those parts repainted from their look while the shading ramp is kept.
+Animations used: `idle`, `walk`, `sit` (blended by state). Builders get a hard hat on the `head` bone.
+Model height is ~0.67 units; the game scales it to 0.5.
 
-The rest pose is an A-pose. `Idle` and `Walk` are in-place animation clips; translation along the street belongs to the game simulation. In Blender, select the armature and choose the action in the Action Editor to preview; the stored NLA tracks are muted to keep the rest pose visible on opening.
+Note: in the copy checked in here the file names are shifted by one against their contents (for
+example `character-female-a.glb` holds a hearing-aid accessory and `wheelchair-power-deluxe.glb` is
+a PNG). The loader goes by contents, so this does no harm; re-extracting the pack would tidy it.
 
-The exported character is 0.35 game units tall, feet at the origin, +Y up and +Z forward. Blender source uses +Z up and -Y forward. Vertex groups named `region_*` retain editable palette regions in the source mesh. Continuous sleeves and trousers blend weights at the elbows and knees; the face and accessories use rigid weights.
+## Earlier custom model (`komachi-resident.glb`, `v1/`, `v2/`)
 
-The revised design follows the generated reference's wider face, swept hair, sloped shoulders, continuous clothing, smaller collar, and broad satchel strap. It is a hand-built interpretation of the image, not an exact reconstruction. The first model and its original generator are retained in `v1/` for comparison; run the current generator from `scripts/` to rebuild the revised model.
-
-The game loads this GLB in `src/characters.js`: GLTFLoader once, `SkeletonUtils.clone` per person, a cloned geometry with the palette regions recoloured from the resident's look, an AnimationMixer blending Idle and Walk from movement state, and a sitting pose made by rotating the thigh and shin bones. Note that GLTFLoader strips the dots from node names (`thigh.L` becomes `thighL`). If the file fails to load the game falls back to its original box people.
-
-## Rebuild
-
-Run Blender in background mode from the project root:
-
-```powershell
-& 'C:\Program Files\Blender Foundation\Blender 5.2\blender.exe' --background --factory-startup --python scripts/build-resident.py
-```
-
-The builder regenerates the files and preview renders. Verified with Blender 5.2.1 and the project's Three.js GLTFLoader; both animation clips load and sample with finite skeleton transforms.
+A Blender-built character from before the Kenney pack, kept for reference and no longer loaded.
+`build-resident.py` in `v1/` and `v2/` rebuilds the GLB from the .blend files.

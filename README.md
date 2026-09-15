@@ -115,8 +115,8 @@ src/
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
   construction.js     builders, crews riding the trains, material deliveries
-  characters.js       rigged resident model: loading, per-person recolour, animation, sit pose
-assets/characters/    Blender source and GLB for the resident character
+  characters.js       rigged people (Kenney Mini Characters): loading, per-person recolour, animation
+assets/characters/    Kenney Mini Characters (CC0) under kenney/, plus the earlier custom model
   sim.js              time, road routing, residents and schedules, ambient traffic, growth
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip
@@ -151,8 +151,8 @@ works from any static host or sub-folder.
 
 Vanilla JavaScript, [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/), with
 [Font Awesome](https://fontawesome.com/) for UI icons. No framework. Buildings, trees, vehicles and props are generated from boxes, prisms and dodecahedra
-at runtime, people included. A rigged glTF character (`assets/characters/`) can be switched on with
-`?rigged` for comparison.
+at runtime, people included. Rigged people from [Kenney's Mini Characters](https://kenney.nl) (CC0)
+can be switched on with `?rigged` for comparison.
 
 ## License
 

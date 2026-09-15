@@ -7,6 +7,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Rigged people from Kenney's Mini Characters (CC0) behind `?rigged`: eleven chibi variants, each person
+  recoloured from their look by baking the colour atlas into vertex colours and repainting skin, hair,
+  shirt and trousers with shading kept; idle, walk and sit animations; hard hats for builders. The box
+  people remain the default until the user decides
 - Building on the hill: the hill is now three cell-aligned terraces with retaining walls along cell
   edges. Every terrace cell is a flat plot at its own height, except wild wooded cells and the shrine
   summit. One slope road per terrace lip on the town side joins the terraces to the streets below and
@@ -94,6 +98,7 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Fixed: the start-over button reloaded into the same town because the leave-page autosave wrote it back
 - HUD: the jobs chip now counts open positions rather than all positions, and a new chip shows how
   many residents are looking for work; the help card mentions rotating buildings and following people
 - Fixed: newcomers with cars drove out of the station, and strollers found their car on a street corner.

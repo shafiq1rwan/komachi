@@ -1,65 +1,100 @@
-// Komachi — the rigged resident character (assets/characters/komachi-resident.glb).
-// Loaded once, cloned per person with a recoloured palette so everyone looks a little different,
-// animated with Idle/Walk, posed for sitting on benches. Falls back to the original box people if
-// the file is missing, so the game never depends on the asset being there.
+// Komachi — rigged people from Kenney's "Mini Characters" pack (CC0, assets/characters/kenney/).
+// Opt-in with ?rigged; the box people stay the default. Every character GLB in the folder is loaded once;
+// each person gets a clone of one variant, recoloured from their look (skin, shirt, trousers, hair) by
+// baking the shared colour atlas into vertex colours and repainting by body part. Animations: idle, walk,
+// sit. Falls back to the box people if nothing loads, so the game never depends on the files being there.
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
-import residentUrl from '../assets/characters/komachi-resident.glb?url';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { S } from './state.js';
 
-const SCALE = 0.82;                 // model is 0.35 tall; a person should be a bit under a door (0.3)
+const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
+const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); seats sit 0.09 above the group
+const ROLE = { none: 0, skin: 1, shirt: 2, pants: 3, hair: 4 };
 const chars = [];                   // every live character, for the per-frame mixer update
-const pendingSwap = [];             // groups that got a box person before the model arrived
-let base = null, clips = null, sitSign = -1;
+const pendingSwap = [];             // groups that got a box person before the models arrived
+const variants = [];                // { scene, clips, geoms: Map<name, { base, role, medL }> }
 
-// the model's palette in linear RGB (as stored in COLOR_0), classified by what it paints
-const lin = hex => new THREE.Color(hex);   // Color() already converts an sRGB hex to the linear working space
-const PALETTE = [
-  { key: 'skin', c: lin('#dba67c') }, { key: 'jacket', c: lin('#808c7b') }, { key: 'pants', c: lin('#626777') },
-  { key: 'shoes', c: lin('#51453d') }, { key: 'bag', c: lin('#b58a52') }, { key: 'bag', c: lin('#b08552') },
-  { key: 'shirt', c: lin('#efdfc8') }, { key: 'eyes', c: lin('#4a3e33') }, { key: 'hair', c: lin('#5f4941') },
-];
-const HAIR_BASE = lin('#5f4941');
-function classify(r, g, b) {
-  let best = null, bd = 1e9;
-  for (const p of PALETTE) { const d = (p.c.r - r) ** 2 + (p.c.g - g) ** 2 + (p.c.b - b) ** 2; if (d < bd) { bd = d; best = p.key; } }
-  return best;
+const urls = import.meta.glob('../assets/characters/kenney/character-*.glb', { eager: true, query: '?url', import: 'default' });
+import colormapUrl from '../assets/characters/kenney/Textures/colormap.png?url';
+// the GLBs reference the atlas by a relative path that hashed asset URLs break; point the loader at our copy
+const manager = new THREE.LoadingManager(); manager.setURLModifier(url => /colormap.png$/i.test(url) ? colormapUrl : url);
+
+/** the atlas as pixels, so vertex colours can be baked from UVs */
+function atlasPixels(texture) {
+  const img = texture.image; const c = document.createElement('canvas'); c.width = img.width; c.height = img.height;
+  const g = c.getContext('2d'); g.drawImage(img, 0, 0); return { w: c.width, h: c.height, data: g.getImageData(0, 0, c.width, c.height).data };
 }
-/** clone the geometry and repaint jacket / pants / hair / skin / bag from the person's look */
-function recolor(geom, look) {
-  const g = geom.clone(); const col = g.getAttribute('color'); const arr = col.array.slice(); const n = col.count, stride = col.itemSize;
-  const L = { jacket: lin(look.shirt), pants: lin(look.pants), skin: lin(look.skin), hair: lin(look.hair), bag: lin(look.bagColor || '#b58a52'), shirt: lin(look.under || '#efdfc8') };
+const hsl = { h: 0, s: 0, l: 0 };
+const isSkin = c => { c.getHSL(hsl); return hsl.h > 0.03 && hsl.h < 0.09 && hsl.s > 0.35 && hsl.l > 0.5; };   // the peach ramp of faces and hands
+/**
+ * Bake the atlas into COLOR, and decide what each vertex is: skin (peach ramp anywhere), hair (any other colour
+ * on the head that covers a real area; small patches are eyes and mouths), shirt (torso and sleeves), trousers
+ * (legs above the shoes). Shoes and small details keep their own colours.
+ */
+function bakeGeometry(mesh, px, jointNames) {
+  const g = mesh.geometry, pos = g.attributes.position, uv = g.attributes.uv, jt = g.attributes.skinIndex, wt = g.attributes.skinWeight, n = pos.count;
+  const col = new Float32Array(n * 3), role = new Uint8Array(n), c = new THREE.Color(), isHead = mesh.name === 'head-mesh';
+  const groups = new Map();
   for (let i = 0; i < n; i++) {
-    const r = arr[i * stride], gg = arr[i * stride + 1], b = arr[i * stride + 2];
-    const k = classify(r, gg, b); const t = L[k]; if (!t) continue;
-    if (k === 'hair') { arr[i * stride] = t.r * (r / HAIR_BASE.r); arr[i * stride + 1] = t.g * (gg / HAIR_BASE.g); arr[i * stride + 2] = t.b * (b / HAIR_BASE.b); }   // keep the facet shading
-    else { arr[i * stride] = t.r; arr[i * stride + 1] = t.g; arr[i * stride + 2] = t.b; }
+    const x = Math.min(px.w - 1, Math.floor(uv.getX(i) * px.w)), y = Math.min(px.h - 1, Math.floor(uv.getY(i) * px.h)), o = (y * px.w + x) * 4;
+    c.setRGB(px.data[o] / 255, px.data[o + 1] / 255, px.data[o + 2] / 255).convertSRGBToLinear();   // canvas pixels are sRGB
+    col[i * 3] = c.r; col[i * 3 + 1] = c.g; col[i * 3 + 2] = c.b;
+    const key = (px.data[o] << 16) | (px.data[o + 1] << 8) | px.data[o + 2]; groups.set(key, (groups.get(key) || 0) + 1);
   }
-  g.setAttribute('color', new THREE.BufferAttribute(arr, stride)); return g;
+  for (let i = 0; i < n; i++) {
+    c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2]);
+    let best = 0, bw = -1; for (let k = 0; k < 4; k++) { const w = wt.getComponent(i, k); if (w > bw) { bw = w; best = jt.getComponent(i, k); } }
+    const bone = jointNames[best] || '', yv = pos.getY(i);
+    if (isSkin(c)) { role[i] = ROLE.skin; continue; }
+    if (isHead) { const x = Math.min(px.w - 1, Math.floor(uv.getX(i) * px.w)), y = Math.min(px.h - 1, Math.floor(uv.getY(i) * px.h)), oo = (y * px.w + x) * 4; const cnt = groups.get((px.data[oo] << 16) | (px.data[oo + 1] << 8) | px.data[oo + 2]) || 0; role[i] = cnt >= 12 ? ROLE.hair : ROLE.none; continue; }
+    if (bone.startsWith('leg')) { role[i] = yv > 0.045 ? ROLE.pants : ROLE.none; continue; }
+    role[i] = ROLE.shirt;   // torso and sleeves
+  }
+  // median lightness per role, so repainting keeps the shading ramp
+  const medL = {}; for (const r of [ROLE.skin, ROLE.shirt, ROLE.pants, ROLE.hair]) { const ls = []; for (let i = 0; i < n; i++) if (role[i] === r) { c.setRGB(col[i * 3], col[i * 3 + 1], col[i * 3 + 2]); c.getHSL(hsl); ls.push(hsl.l); } ls.sort((a, b) => a - b); medL[r] = ls.length ? ls[Math.floor(ls.length / 2)] : 0.5; }
+  const base = g.clone(); base.setAttribute('color', new THREE.BufferAttribute(col, 3)); base.deleteAttribute('uv'); base.deleteAttribute('uv1'); base.deleteAttribute('tangent');
+  return { base, role, medL };
+}
+const target = new THREE.Color(), tmp = new THREE.Color(), tHsl = { h: 0, s: 0, l: 0 };
+/** a copy of a baked geometry with skin / shirt / trousers / hair repainted from the look, shading kept */
+function recolor(entry, look) {
+  const g = entry.base.clone(); const col = g.getAttribute('color'); const arr = col.array, n = col.count;
+  const paint = { [ROLE.skin]: look.skin, [ROLE.shirt]: look.shirt, [ROLE.pants]: look.pants, [ROLE.hair]: look.hat ? look.hatColor : look.hair };
+  for (let i = 0; i < n; i++) {
+    const r = entry.role[i]; if (!r) continue;
+    target.set(paint[r]); target.getHSL(tHsl);
+    tmp.setRGB(arr[i * 3], arr[i * 3 + 1], arr[i * 3 + 2]); tmp.getHSL(hsl);
+    const l = Math.min(0.95, Math.max(0.05, tHsl.l * (hsl.l / (entry.medL[r] || 0.5))));
+    tmp.setHSL(tHsl.h, tHsl.s, l); arr[i * 3] = tmp.r; arr[i * 3 + 1] = tmp.g; arr[i * 3 + 2] = tmp.b;
+  }
+  col.needsUpdate = true; return g;
 }
 
 const charMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
-// The box people are the default look; the rigged model is opt-in with ?rigged (kept for comparison).
-export const characterReady = !S.rigged ? Promise.resolve() : new GLTFLoader().loadAsync(residentUrl).then(gltf => {
-  base = gltf.scene; clips = gltf.animations;
-  base.traverse(o => { if (o.isMesh) { o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
-  // which way does a 90° turn about the thigh's local X swing the knee? pick the sign that moves it forward (+z)
-  const probe = SkeletonUtils.clone(base); probe.updateMatrixWorld(true);
-  const th = probe.getObjectByName('thighL'), sh = probe.getObjectByName('shinL');   // GLTFLoader strips the dots from node names
-  if (th && sh) {
-    const before = sh.getWorldPosition(new THREE.Vector3());
-    th.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), -Math.PI / 2)); probe.updateMatrixWorld(true);
-    const after = sh.getWorldPosition(new THREE.Vector3()); sitSign = after.z > before.z ? -1 : 1;
-  }
+async function loadVariant(url) {
+  const gltf = await new GLTFLoader(manager).loadAsync(url);
+  const walk = gltf.animations.find(a => a.name === 'walk'); let skinned = null;
+  gltf.scene.traverse(o => { if (o.isSkinnedMesh && !skinned) skinned = o; });
+  if (!walk || !skinned) return null;   // an accessory file, not a character
+  const tex = skinned.material.map; if (!tex || !tex.image) return null;
+  const px = atlasPixels(tex), jointNames = skinned.skeleton.bones.map(b => b.name);
+  const geoms = new Map();
+  gltf.scene.traverse(o => { if (o.isSkinnedMesh) { geoms.set(o.name, bakeGeometry(o, px, jointNames)); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
+  return { scene: gltf.scene, clips: gltf.animations, geoms };
+}
+// The box people are the default look; the rigged models are opt-in with ?rigged (kept for comparison).
+export const characterReady = !S.rigged ? Promise.resolve() : Promise.all(Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; }))).then(list => {
+  for (const v of list) if (v) variants.push(v);
+  if (!variants.length) { console.warn('Komachi: no rigged characters loaded, using box people'); return; }
   for (const { grp, look } of pendingSwap) { for (const c of grp.children.slice()) grp.remove(c); attachCharacter(grp, look); }
   pendingSwap.length = 0;
-}).catch(err => { console.warn('Komachi: resident model not available, using box people', err); });
+});
 
-export const characterAvailable = () => !!base;
+export const characterAvailable = () => variants.length > 0;
 
-/** the original box person, kept as the fallback */
+/** the original box person, kept as the fallback and the default */
 function boxPerson(look) {
   const rig = new THREE.Group(); rig.scale.setScalar(0.7);
   const legs = mergeMesh([box(0.15, 0.13, 0.11, look.pants, 0, -0.065, 0)], false); legs.position.y = 0.13; legs.castShadow = true; rig.add(legs);
@@ -71,26 +106,29 @@ function boxPerson(look) {
   return { rig, legs, upper };
 }
 
+const hashStr = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0; return h; };
 /**
- * Put a person's body into `grp` (a Group positioned at the feet). Uses the rigged model when it has
- * loaded, otherwise a box person that is swapped for the model later. `look` = { skin, shirt, pants,
- * hair, hat, hatColor, bagColor }.
+ * Put a person's body into `grp` (a Group positioned at the feet). Uses a rigged variant when loaded,
+ * otherwise a box person that is swapped later. `look` = { skin, shirt, pants, hair, hat, hatColor, bagColor, name? }.
  */
 export function attachCharacter(grp, look) {
-  if (!base) { const b = boxPerson(look); grp.add(b.rig); grp.userData.legs = b.legs; grp.userData.upper = b.upper; if (S.rigged) pendingSwap.push({ grp, look }); return null; }
-  const inst = SkeletonUtils.clone(base); inst.scale.setScalar(SCALE);
-  inst.traverse(o => { if (o.isSkinnedMesh) { o.geometry = recolor(o.geometry, look); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
+  if (!variants.length) { const b = boxPerson(look); grp.add(b.rig); grp.userData.legs = b.legs; grp.userData.upper = b.upper; if (S.rigged) pendingSwap.push({ grp, look }); return null; }
+  const v = variants[hashStr(look.name || look.shirt + look.hair) % variants.length];
+  const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE);
+  inst.traverse(o => { if (o.isSkinnedMesh) { const e = v.geoms.get(o.name); if (e) o.geometry = recolor(e, look); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
   const mixer = new THREE.AnimationMixer(inst);
-  const idle = mixer.clipAction(clips.find(c => c.name === 'Idle')), walk = mixer.clipAction(clips.find(c => c.name === 'Walk'));
-  idle.play(); walk.play(); walk.setEffectiveWeight(0); mixer.setTime(Math.random() * 2);
-  const bones = { head: inst.getObjectByName('head'), chest: inst.getObjectByName('chest'), hips: inst.getObjectByName('hips'),
-    thighL: inst.getObjectByName('thighL'), thighR: inst.getObjectByName('thighR'), shinL: inst.getObjectByName('shinL'), shinR: inst.getObjectByName('shinR') };
-  if (look.hat && bones.head) {   // a hard hat for builders, riding on the head bone
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.07, 0.082, 0.05, 10), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));
-    hat.position.set(0, 0.08, 0.004); bones.head.add(hat);
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.088, 0.088, 0.01, 12), hat.material); brim.position.set(0, 0.058, 0.012); bones.head.add(brim);
+  const act = name => { const c = v.clips.find(x => x.name === name); return c ? mixer.clipAction(c) : null; };
+  const idle = act('idle'), walk = act('walk'), sit = act('sit');
+  for (const a of [idle, walk, sit]) if (a) { a.play(); a.setEffectiveWeight(0); }
+  if (idle) idle.setEffectiveWeight(1); mixer.setTime(Math.random() * 2);
+  const head = inst.getObjectByName('head');
+  if (look.hat && head) {   // a hard hat for builders, riding on the head bone (model units: the head is ~0.3 wide)
+    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.11, 12), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));
+    hat.position.set(0, 0.35, 0); head.add(hat);   // the head is ~0.3 wide and its top ~0.33 above the bone
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.025, 14), hat.material); brim.position.set(0, 0.295, 0.025); head.add(brim);
   }
-  const char = { root: inst, mixer, idle, walk, bones, blend: 0, sitting: false, hammer: 0, grp };
+  const seated = !!(grp.userData.res && grp.userData.res.spot && grp.userData.res.spot.kind === 'seat');   // swapped in while already on a bench
+  const char = { root: inst, mixer, idle, walk, sit, head, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp };
   grp.add(inst); grp.userData.char = char; grp.userData.legs = null; grp.userData.upper = null; chars.push(char); return char;
 }
 export function detachCharacter(grp) {
@@ -98,22 +136,21 @@ export function detachCharacter(grp) {
   const p = pendingSwap.findIndex(x => x.grp === grp); if (p >= 0) pendingSwap.splice(p, 1);
 }
 
-const qSit = new THREE.Quaternion(), qKnee = new THREE.Quaternion(), X = new THREE.Vector3(1, 0, 0);
-/** advance every visible character's animation; blend Idle↔Walk from its owner's state; apply sit / hammer poses */
+const X = new THREE.Vector3(1, 0, 0), qNod = new THREE.Quaternion();
+/** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
 export function updateCharacters(simDt) {
   for (const c of chars) {
     const g = c.grp; if (!g.visible) continue;
     const owner = g.userData.res || g.userData.worker;
     const moving = owner ? (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
     c.blend += ((moving ? 1 : 0) - c.blend) * Math.min(1, simDt * 8);
-    c.walk.setEffectiveWeight(c.blend); c.idle.setEffectiveWeight(1 - c.blend);
-    c.walk.setEffectiveTimeScale(owner && owner.trip && owner.trip.speed ? owner.trip.speed / 0.9 * 1.15 : 1.15);
+    c.sitBlend += ((c.sitting ? 1 : 0) - c.sitBlend) * Math.min(1, simDt * 8);
+    const s = c.sit ? c.sitBlend : 0;
+    if (c.walk) { c.walk.setEffectiveWeight(c.blend * (1 - s)); c.walk.setEffectiveTimeScale(1.6 * (owner && owner.trip && owner.trip.speed ? owner.trip.speed / 0.9 : 1)); }
+    if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s));
+    if (c.sit) c.sit.setEffectiveWeight(s);
+    c.root.position.y = SIT_LIFT * s;
     c.mixer.update(simDt);
-    if (c.sitting && c.bones.thighL) {
-      qSit.setFromAxisAngle(X, sitSign * Math.PI / 2); qKnee.setFromAxisAngle(X, -sitSign * Math.PI / 2);
-      for (const t of [c.bones.thighL, c.bones.thighR]) t.quaternion.multiply(qSit);
-      for (const s of [c.bones.shinL, c.bones.shinR]) if (s) s.quaternion.multiply(qKnee);
-    }
-    if (c.hammer && c.bones.chest) c.bones.chest.quaternion.multiply(qKnee.setFromAxisAngle(X, c.hammer * 0.35));
+    if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));
   }
 }
