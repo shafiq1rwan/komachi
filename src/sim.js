@@ -1,6 +1,6 @@
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
-import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
+import { PAL, GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
 import { rand, pick, clamp, lerp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup } from './scene.js';
@@ -73,16 +73,29 @@ function makePerson(r) {
   else { const hair = new THREE.SphereGeometry(0.09, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2); hair.translate(0, 0.43, 0); g.push(colorize(hair, r.hair)); }
   const m = mergeMesh(g, false); m.castShadow = true; m.scale.setScalar(PERSON_SCALE); grp.add(m); grp.visible = false; grp.userData.res = r; peopleGroup.add(grp); return grp;
 }
-function makeCar(color) {
+function makeCar(color, kind = 'kei') {
   const grp = new THREE.Group(); const g = [];
-  g.push(box(0.5, 0.16, 0.28, color, 0, 0.14, 0));
-  g.push(box(0.28, 0.14, 0.24, color, -0.02, 0.29, 0));
-  g.push(box(0.29, 0.1, 0.22, '#d8e3e8', -0.02, 0.29, 0));
-  for (const [x, z] of [[-0.16, -0.13], [0.16, -0.13], [-0.16, 0.13], [0.16, 0.13]]) { const wgm = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 8); wgm.rotateX(Math.PI / 2); wgm.translate(x, 0.07, z); g.push(colorize(wgm, '#4a4340')); }
+  const dark = '#4a4340', glass = '#d8e3e8';
+  if (kind === 'van') {          // boxy delivery van
+    g.push(box(0.52, 0.3, 0.28, color, 0, 0.21, 0)); g.push(box(0.12, 0.12, 0.24, glass, 0.2, 0.28, 0)); g.push(box(0.26, 0.1, 0.29, glass, -0.08, 0.28, 0)); g.push(box(0.3, 0.04, 0.3, PAL.cream2, -0.06, 0.37, 0));
+  } else if (kind === 'truck') { // kei truck with a flat bed
+    g.push(box(0.16, 0.26, 0.26, color, 0.16, 0.2, 0)); g.push(box(0.1, 0.12, 0.22, glass, 0.21, 0.27, 0)); g.push(box(0.3, 0.06, 0.28, color, -0.09, 0.14, 0));
+    for (const zz of [-0.13, 0.13]) g.push(box(0.3, 0.08, 0.02, color, -0.09, 0.2, zz)); g.push(box(0.02, 0.08, 0.28, color, -0.23, 0.2, 0));
+    if (Math.random() < 0.6) g.push(box(0.14, 0.1, 0.14, PAL.wood2, -0.1, 0.22, 0));
+  } else if (kind === 'taxi') {  // pastel taxi with a roof sign
+    g.push(box(0.5, 0.15, 0.28, '#e8cf7a', 0, 0.135, 0)); g.push(box(0.28, 0.13, 0.24, '#e8cf7a', -0.02, 0.27, 0)); g.push(box(0.29, 0.09, 0.22, glass, -0.02, 0.27, 0)); g.push(box(0.08, 0.04, 0.12, PAL.roofRose, -0.02, 0.355, 0));
+  } else if (kind === 'hatch') { // compact hatchback
+    g.push(box(0.5, 0.16, 0.28, color, 0, 0.14, 0)); g.push(box(0.28, 0.14, 0.24, color, -0.02, 0.29, 0)); g.push(box(0.29, 0.1, 0.22, glass, -0.02, 0.29, 0));
+  } else {                       // kei car: short, tall, upright cabin
+    g.push(box(0.42, 0.16, 0.27, color, 0, 0.14, 0)); g.push(box(0.32, 0.16, 0.25, color, -0.03, 0.3, 0)); g.push(box(0.33, 0.1, 0.23, glass, -0.03, 0.31, 0)); g.push(box(0.04, 0.03, 0.2, dark, -0.2, 0.2, 0));
+  }
+  const wheelX = kind === 'kei' ? 0.13 : 0.16;
+  for (const [x, z] of [[-wheelX, -0.13], [wheelX, -0.13], [-wheelX, 0.13], [wheelX, 0.13]]) { const wgm = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 8); wgm.rotateX(Math.PI / 2); wgm.translate(x, 0.07, z); g.push(colorize(wgm, dark)); }
   const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; grp.add(inner);   // model faces +x; forward is +z
   const m = mergeMesh(g, false); inner.add(m);
-  const lights = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.24), new THREE.MeshStandardMaterial({ color: '#fff6dd', emissive: '#ffe2a8', emissiveIntensity: 0 })); lights.position.set(0.25, 0.13, 0); inner.add(lights); grp.userData.lights = lights;
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.22), new THREE.MeshStandardMaterial({ color: '#d98b7a', emissive: '#e07060', emissiveIntensity: 0 })); tail.position.set(-0.25, 0.13, 0); inner.add(tail); grp.userData.tail = tail;
+  const front = kind === 'kei' ? 0.21 : kind === 'van' || kind === 'truck' ? 0.26 : 0.25;
+  const lights = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.24), new THREE.MeshStandardMaterial({ color: '#fff6dd', emissive: '#ffe2a8', emissiveIntensity: 0 })); lights.position.set(front, 0.13, 0); inner.add(lights); grp.userData.lights = lights;
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.22), new THREE.MeshStandardMaterial({ color: '#d98b7a', emissive: '#e07060', emissiveIntensity: 0 })); tail.position.set(-front, 0.13, 0); inner.add(tail); grp.userData.tail = tail;
   carMeshes.push(grp); grp.visible = false; peopleGroup.add(grp); return grp;
 }
 function makeCat(color) {
@@ -110,7 +123,7 @@ function spawnNewcomer() {
     id: S.nextId++, name: `${pick(GIVEN)} ${pick(FAMILY)}`, home: null, job: null, at: null, state: 'inside', activity: 'arriving', next: S.T,
     wake: rand(6.5, 9), workEnd: rand(16.5, 18.5), hasCar: Math.random() < 0.35, lastWorkDay: -1, lastLeisureDay: -1, lunched: -1, returnTo: null, shopUntil: 0, jobSearchAt: S.T + rand(0.2, 1),
     skin: pick(SKIN), shirt: pick(SHIRTS), pants: pick(['#6b6f7a', '#8a7a6f', '#4a4340', '#9aa4aa', '#7f9b7a']), hair: pick(HAIR), hat: Math.random() < 0.3, hatColor: pick(SHIRTS),
-    trip: null, mesh: null, car: null, carColor: pick(CARS), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(),
+    trip: null, mesh: null, car: null, carColor: pick(CARS), carKind: pick(['kei', 'kei', 'kei', 'hatch', 'van']), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(),
   };
   r.mesh = makePerson(r); residents.push(r);
   const anchor = STATION.anchor; r.at = anchor; anchor.inside.add(r);
@@ -238,7 +251,7 @@ function startTrip(r, cellPath, start, end, destUnit, label) {
   const pts = buildPoints(cellPath, start, end, drive ? 0.17 : 0.34, drive ? 0.1 : 0.08);
   r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, speed: drive ? 2.6 : 0.9 * rand(0.85, 1.15), baseY: 0.08 };
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
-  if (drive) { if (!r.car) r.car = makeCar(r.carColor); r.car.visible = true; r.mesh.visible = false; r.car.position.copy(pts[0]); }
+  if (drive) { if (!r.car) r.car = makeCar(r.carColor, r.carKind); r.car.visible = true; r.mesh.visible = false; r.car.position.copy(pts[0]); }
   else { r.mesh.visible = true; r.mesh.position.copy(pts[0]); }
 }
 function go(r, dest, label) {
@@ -344,7 +357,7 @@ function roadCellsList() { return cells.filter(c => c.type === 'road'); }
 function spawnWanderer(kind) {
   const roads = roadCellsList(); if (!roads.length) return;
   const c = pick(roads);
-  const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS)) : makeCat(pick(['#e9d5b8', '#7a706a', '#f0b48b', '#4a4340', '#f7efe2'])), trip: null, pause: 0, dead: false };
+  const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch'])) : makeCat(pick(['#e9d5b8', '#7a706a', '#f0b48b', '#4a4340', '#f7efe2'])), trip: null, pause: 0, dead: false };
   w.mesh.visible = true; w.mesh.position.set(cx(c.i), kind === 'car' ? 0.1 : 0.08, cz(c.j)); wanderers.push(w);
 }
 function wanderPick(w) {

@@ -17,7 +17,8 @@ its content.
 | Ground | Cream sidewalk everywhere, grey asphalt inset, bushes filling gaps | Every road cell is a cream slab with an inset asphalt cross; empty cells grow bushes/trees |
 | Vegetation | Round peach "lollipop" trees, blob hedges, flower boxes | Flat-shaded dodecahedron canopies in peach/orange/sage; hedges as squashed spheres |
 | Details | Lamp posts, striped awnings, hanging signs, vending machine, benches, planters | Lamp posts at block corners, awnings on shops, rooftop units on offices, planters on plinths |
-| Setting | Island diorama on soft mint water | Rounded-rectangle land slab, cream sides, floating on mint |
+| Setting | Island diorama on soft mint water | Organic coastline from a seeded curve: sandy beaches, rocky lips, grassy cliffs, one pier; cream cliff sides floating on mint |
+| Neighbourhood | Compact Japanese suburb: narrow houses, exterior stairs, balconies, AC units, utility poles and cables, traffic mirrors, vending machines, bikes | All present as kit parts; every building is assembled from them so the street reads as one place |
 | Landmark | Sunken subway entrance with a curved sage roof, railings, bench, vending machine | Komachi Station: stairwell with arched sage roof, dark-green railings, two round lamps, benches facing the stairs, pastel vending machines |
 | Mood | Cosy, quiet, suburban Japan | Slow pacing, no failure states, ambient walkers, cats |
 

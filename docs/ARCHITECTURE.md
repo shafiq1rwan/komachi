@@ -13,8 +13,14 @@ toast (standalone, used by sim, input, main)
 
 ## Core concepts
 
-**Cell.** The island is an `N × N` grid (N = 34) of cells. Each cell is `empty`, `road` or
-`lot`. World coordinates are cell-centred: cell `(i, j)` sits at `(i − N/2 + 0.5, 0, j − N/2 + 0.5)`.
+**Cell.** The world is an `N × N` grid (N = 40) of cells. Each cell is `water`, `empty`, `road` or
+`lot`. Which cells are water comes from `island.js`: a seeded radial curve (base radius plus a few
+sine harmonics, squashed into a gentle ellipse) defines the coast, and a cell is land only if it
+sits at least 0.8 units inside it. The same curve drives the land, beach terrace and foam
+extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
+
+**Biome.** `biome.js` is data only: grass and sand colours, tree colour set, pine and blossom
+ratios, shoreline bias. Everything that draws vegetation or terrain reads from it. World coordinates are cell-centred: cell `(i, j)` sits at `(i − N/2 + 0.5, 0, j − N/2 + 0.5)`.
 
 **Block.** One drag places one block: 1–3 touching cells that share a zone type, a palette
 (roof, wall, awning), a family name, a construction stage (0–3) and a level (1–3). Roads are
@@ -49,6 +55,15 @@ cross-country move-in when no road connects yet.
 **Wanderer.** Ambient cars and cats with no home; they drive or stroll between random road cells
 to keep the streets alive.
 
+## Buildings
+
+`buildings.js` picks a generator from the block's type and the unit's `variant` (residential:
+detached / narrow / apartment) or the block's `kind` (shops: café, bakery, ramen, grocery,
+konbini, florist, books; workspaces: office, workshop, studio). Generators are built from the
+shared parts in `kit.js` and must set `u.door` so trips start and end at the right doorstep.
+Roof style (tile or metal) and wall colour are chosen per block; small details (bicycles,
+pots, signs) vary per unit from its seed.
+
 ## Rendering
 
 - Orthographic camera at 38° pitch, yaw in 45° steps, eased toward `cam.tView` / `cam.tYaw`.
@@ -57,6 +72,10 @@ to keep the streets alive.
   separate window mesh (per-unit emissive material) and a glow plane.
 - `mergeGeometries` requires all inputs to be either indexed or non-indexed, so `mergeMesh`
   converts everything to non-indexed first.
+- Vegetation and shoreline reeds use `swayMat`, a vertex-colour material whose vertex shader
+  offsets points above knee height by a time-based sine, so trees move in the wind for free.
+- Utility cables are one `LineSegments` mesh rebuilt with the roads; each pole links to its two
+  nearest neighbours with a sagging 8-segment curve.
 - Lighting: hemisphere fill + one shadow-casting directional light that moves along a sun arc by
   day and parks as a moon at night. Materials are matte (`roughness 0.95`).
 - "Pixel look" renders at half resolution with `image-rendering: pixelated` on the canvas.

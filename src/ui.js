@@ -1,6 +1,6 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
-import { blocks, unitCap, STAGE_HOURS, TYPE_LABEL, TYPE_COLOR, STATION } from './world.js';
+import { blocks, unitCap, STAGE_HOURS, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt } from './sim.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'),
@@ -43,7 +43,7 @@ function renderInspect(target) {
   else if (target.unit) {
     const u = target.unit, b = u.block, type = b.type;
     html += `<div class="kind" style="--k:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</div><h2>${esc(b.name)}</h2>`;
-    html += `<div class="sub">${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < 3 ? ['Surveying the plot', 'Laying foundations', 'Raising the frame'][b.stage] : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
+    html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < 3 ? ['Surveying the plot', 'Laying foundations', 'Raising the frame'][b.stage] : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
     if (b.stage < 3) {
       const totalH = STAGE_HOURS.reduce((a, c) => a + c, 0), done = STAGE_HOURS.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT;
       html += `<div class="row"><span>Construction</span><b>${Math.round(100 * done / totalH)}%</b></div><div class="bar"><i style="width:${100 * done / totalH}%"></i></div>`;

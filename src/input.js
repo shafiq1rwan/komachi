@@ -13,6 +13,8 @@ let tool = 'explore', pinned = null, hovered = null, showTags = false;
 const ptr = { x: 0, y: 0, ndc: new THREE.Vector2(), down: false, button: 0, panning: false, moved: 0, sel: null, last: { x: 0, y: 0 } };
 const raycaster = new THREE.Raycaster(); const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); const hitP = new THREE.Vector3();
 const keys = new Set();
+const touches = new Map();   // pointerId -> {x, y}
+let gesture = null;          // {dist, ang, view, yaw} while two fingers are down
 function setTool(t) { tool = t; ptr.sel = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
@@ -32,6 +34,12 @@ function selectable(c, sel) {
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);
 }
 canvas.addEventListener('pointerdown', e => {
+  touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (touches.size === 2) {   // second finger: cancel pan/selection, start a pinch gesture
+    const [a, b] = [...touches.values()]; gesture = { dist: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), view: cam.tView, yaw: cam.tYaw };
+    ptr.sel = null; ptr.panning = false; ptr.down = false; document.body.classList.remove('dragging'); canvas.setPointerCapture(e.pointerId); return;
+  }
+  if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
   if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? 'Roads grow on their own around blocks' : 'That spot is already taken'); }
@@ -39,6 +47,13 @@ canvas.addEventListener('pointerdown', e => {
   canvas.setPointerCapture(e.pointerId);
 });
 canvas.addEventListener('pointermove', e => {
+  if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
+  if (gesture && touches.size >= 2) {
+    const [a, b] = [...touches.values()]; const dist = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
+    cam.tView = clamp(gesture.view * (gesture.dist / Math.max(20, dist)), 7, 42);
+    let da = ang - gesture.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); cam.tYaw = gesture.yaw - da;
+    return;
+  }
   const dx = e.clientX - ptr.last.x, dy = e.clientY - ptr.last.y; ptr.last = { x: e.clientX, y: e.clientY }; setNdc(e);
   if (ptr.down) ptr.moved += Math.abs(dx) + Math.abs(dy);
   if (ptr.panning) {
@@ -50,12 +65,14 @@ canvas.addEventListener('pointermove', e => {
   }
 });
 function endPointer(e) {
+  touches.delete(e.pointerId);
+  if (gesture) { if (touches.size < 2) gesture = null; return; }
   if (!ptr.down) return; ptr.down = false; ptr.warned = false; document.body.classList.remove('dragging');
   if (ptr.panning) {
     ptr.panning = false;
     if (ptr.moved < 6 && ptr.button === 0) {
       if (tool === 'remove') { const c = groundCell(); if (c && c.block) { if (c.block.type === 'station') toast('The station is here to stay'); else { const n = c.block.name; removeBlock(c.block); toast(`${n} was removed`); } } }
-      else if (tool === 'explore') { pinned = hovered; }
+      else if (tool === 'explore') { updateHover(); pinned = hovered; }
     }
     return;
   }

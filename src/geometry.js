@@ -11,6 +11,20 @@ function mat(hex, flat = false) {
 }
 const vcMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
 const vcMatFlat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, flatShading: true });
+// vegetation material: vertices above knee height sway gently in the wind (merged geometry is in world space)
+const swayUniform = { value: 0 };
+const swayMat = vcMatFlat.clone();
+swayMat.onBeforeCompile = sh => {
+  sh.uniforms.uTime = swayUniform;
+  sh.vertexShader = sh.vertexShader
+    .replace('#include <common>', `#include <common>
+uniform float uTime;`)
+    .replace('#include <begin_vertex>', `#include <begin_vertex>
+ float swayH = max(0.0, transformed.y - 0.28);
+ transformed.x += sin(uTime * 1.4 + transformed.z * 0.6 + transformed.x * 0.4) * 0.045 * swayH;
+ transformed.z += cos(uTime * 1.1 + transformed.x * 0.5) * 0.03 * swayH;`);
+};
+function setSwayTime(t) { swayUniform.value = t; }
 function colorize(geom, hex) {
   const c = new THREE.Color(hex); const n = geom.attributes.position.count; const arr = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
@@ -63,4 +77,4 @@ const glowGeo = new THREE.PlaneGeometry(1, 1);
 function makeGlow(x, y, z, size) { const m = new THREE.Mesh(glowGeo, glowMat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.scale.setScalar(size); m.renderOrder = 5; return m; }
 const lampHeadMat = new THREE.MeshStandardMaterial({ color: '#fff3d6', emissive: PAL.lampGlow, emissiveIntensity: 0, roughness: 0.6 });
 
-export { mat, vcMat, vcMatFlat, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat };
+export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat };

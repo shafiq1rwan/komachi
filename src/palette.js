@@ -23,8 +23,20 @@ export const CARS = ['#e9b7b0', '#a9d3c4', '#c4b7d6', '#f3e6cf', '#8fb0c9', '#e9
 
 export const GIVEN = ['Aoi','Haru','Sora','Yui','Ren','Mei','Kai','Nao','Riku','Hina','Sōta','Rin','Yūto','Saki','Kaito','Mio','Hana','Taiga','Emi','Kenta','Akari','Daiki','Momo','Shun','Nana','Itsuki','Koharu','Ryo','Ayane','Tomo','Yuna','Hikaru','Fumi','Minato','Ichika','Asahi','Sana','Yamato','Kotone','Rei'];
 export const FAMILY = ['Sato','Suzuki','Takahashi','Tanaka','Watanabe','Ito','Yamamoto','Nakamura','Kobayashi','Kato','Yoshida','Yamada','Sasaki','Matsumoto','Inoue','Kimura','Hayashi','Shimizu','Mori','Ikeda','Hashimoto','Ishikawa','Ogawa','Fujita','Okada'];
-export const SHOP_NAMES = [['Momo','Bakery'],['Sora','Café'],['Yuzu','Books'],['Kumo','Florist'],['Hana','Tea House'],['Tsuki','Sweets'],['Nami','Ramen'],['Kiri','Grocer'],['Ume','Bento'],['Hoshi','Records'],['Mori','Plants'],['Koi','Sushi'],['Ao','Ceramics'],['Suzu','Coffee'],['Niji','Toys'],['Yama','Onigiri']];
-export const WORK_NAMES = [['Kumo','Studio'],['Hikari','Labs'],['Tanaka','Design'],['Sakura','Press'],['Umi','Logistics'],['Aozora','Architects'],['Minato','Software'],['Kaze','Textiles'],['Hoshizora','Animation'],['Tsubame','Engineering'],['Midori','Clinic'],['Kawa','Accounting'],['Sora','Post Office'],['Yume','Games'],['Take','Workshop']];
+export const SHOP_NAMES = {
+  cafe: [['Sora','Café'],['Suzu','Coffee'],['Hana','Tea House'],['Kumo','Kissaten'],['Niji','Café']],
+  bakery: [['Momo','Bakery'],['Tsuki','Sweets'],['Ume','Bread'],['Kaede','Bakery']],
+  ramen: [['Nami','Ramen'],['Koi','Noodles'],['Yama','Ramen'],['Tora','Ramen']],
+  grocery: [['Kiri','Grocer'],['Mori','Greens'],['Oka','Market'],['Yasai','Ya']],
+  konbini: [['Nico','Mart'],['Hoshi','Store'],['Yoru','Mart'],['Poko','Mart']],
+  florist: [['Kumo','Florist'],['Sumire','Flowers'],['Hana','Hana']],
+  books: [['Yuzu','Books'],['Hoshi','Records'],['Ao','Books'],['Fune','Bookshop']],
+};
+export const WORK_NAMES = {
+  office: [['Hikari','Labs'],['Tanaka','Design'],['Sakura','Press'],['Umi','Logistics'],['Aozora','Architects'],['Minato','Software'],['Midori','Clinic'],['Kawa','Accounting'],['Sora','Post Office']],
+  workshop: [['Take','Workshop'],['Kaze','Textiles'],['Tetsu','Works'],['Tsubame','Engineering'],['Kiba','Joinery']],
+  studio: [['Kumo','Studio'],['Hoshizora','Animation'],['Yume','Games'],['Ao','Pottery'],['Niwa','Studio']],
+};
 export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];
 export const PLACE = ['Sakura','Momiji','Sumire','Tsubaki','Ajisai','Fuji','Kaede','Yanagi','Botan','Kiku','Ume','Matsu','Hinode','Kawa','Oka','Hoshi'];
 export const usedNames = new Set();

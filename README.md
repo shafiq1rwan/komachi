@@ -12,6 +12,7 @@ There is nothing to lose and nothing to optimise. The pleasure is in watching.
 ![Komachi by day](docs/screenshot-day.png)
 ![Komachi by night](docs/screenshot-night.png)
 ![Komachi Station at night](docs/screenshot-station.png)
+![The whole island](docs/screenshot-island.png)
 
 ## Quick start
 
@@ -20,7 +21,8 @@ npm install
 npm run dev        # opens http://localhost:5173
 ```
 
-Add `?demo` to the URL to start with a small pre-built town.
+URL options: `?demo` starts with a small pre-built town, `?seed=123` fixes the island shape,
+`?biome=sakura` or `?biome=coastal` picks an island theme (default `suburban`).
 
 Other scripts:
 
@@ -51,6 +53,13 @@ Some things worth knowing:
   plaza until a finished home has a free bed, then walk there. Hover the station to see who is
   waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
+- **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
+  cliffs, a pier and a boat. Zoom out to see all of it; nothing can be built in the water.
+- **Buildings vary.** Homes come as detached houses (tile or metal roofs), narrow two-storey
+  houses with exterior stairs, or small apartment blocks with balconies. Shops become cafés,
+  bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are
+  offices, workshops or studios. Streets get utility poles with cables, traffic mirrors, notice
+  boards and bike racks.
 
 - Everything placed in one drag becomes **one block**. Roads form around the outside of the
   block and never between the buildings inside it. Blocks are always separated by a road.
@@ -76,7 +85,11 @@ src/
   geometry.js         vertex-coloured primitives merged into few draw calls
   scene.js            renderer, orthographic camera, lights, the island
   world.js            grid cells, automatic roads, vegetation, lamps, block/unit records
-  buildings.js        procedural buildings per zone type, level and construction stage
+  buildings.js        procedural buildings per zone type, variant, level and construction stage
+  kit.js              shared building parts: balconies, stairs, AC units, bikes, awnings, signs
+  island.js           organic coastline, beach terrace, rocks, pier; land/water test
+  biome.js            island themes (colours, vegetation mix, shoreline character)
+  ambient.js          bird flocks, gulls, butterflies
   sim.js              time, road routing, residents and schedules, ambient traffic, growth
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip

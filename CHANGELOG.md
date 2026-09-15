@@ -7,6 +7,20 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Organic island: seeded coastline with beaches, rocky stretches and grassy cliffs, a pier and a
+  boat; cells outside the coast are water and cannot be built on; `?seed=` fixes the shape
+- Biomes as data (`?biome=suburban|sakura|coastal`): colours, tree mix, blossom, pines, shore bias
+- Modular building kit: detached houses with tile or metal roofs, narrow two-storey houses with
+  exterior stairs and balconies, small apartment blocks; seven shop kinds (café, bakery, ramen,
+  grocery, convenience store, florist, bookshop) and three workspace kinds (office, workshop,
+  studio), each with its own signage, props and door position; rear and side windows everywhere
+- Street props: utility poles with sagging cables and perching birds, convex traffic mirrors at
+  junctions, neighbourhood notice boards, bike racks with parked bicycles, potted plants, fences
+- Vehicles: kei cars, hatchbacks, delivery vans, kei trucks and taxis
+- Ambient life: bird flocks over town, gulls over the shore, butterflies around flowers; trees,
+  reeds and shrubs sway in the wind
+- Touch: pinch to zoom, two-finger twist to rotate, tap to inspect
+
 - Komachi Station: an underground entrance with benches, vending machines, planters and lamps at
   the centre of the island, placed at the start and ringed by road
 - Newcomers arrive by train (every 1½ game hours, 6:00–23:30), wait on the plaza, buy drinks from
