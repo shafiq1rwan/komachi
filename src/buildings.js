@@ -23,7 +23,7 @@ function unitDoorPoints(u) {
   const { x, z } = u.door || (u.block.type === 'station' ? { x: 0, z: 0.5 } : doorLocal(u.block.type, u.block.level));
   const px = cx(u.cell.i), pz = cz(u.cell.j);
   const local = (lx, lz, y) => new THREE.Vector3(px + lx * c + lz * s, y, pz - lx * s + lz * c);
-  return [local(x, z, 0.12), local(x, 0.64, 0.08)];   // doorstep on the plinth, kerb on the sidewalk
+  return [local(x, z, 0.12), local(x, 0.64, 0.1)];    // doorstep on the plinth, kerb on the sidewalk
 }
 
 // ── residential ──

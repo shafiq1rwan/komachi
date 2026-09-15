@@ -75,18 +75,33 @@ function rebuildRoads() {
   for (const c of cells) {
     if (c.type !== 'road') continue;
     const x = cx(c.i), z = cz(c.j), h = hash(c.i, c.j);
-    g.push(box(1, 0.08, 1, PAL.sidewalk, x, 0.04, z));
     const asp = h < 0.5 ? PAL.asphalt : PAL.asphalt2;
-    g.push(box(0.62, 0.1, 0.62, asp, x, 0.05, z));
     const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; });
-    if (nb[0]) g.push(box(0.62, 0.1, 0.2, asp, x, 0.05, z - 0.41));
-    if (nb[2]) g.push(box(0.62, 0.1, 0.2, asp, x, 0.05, z + 0.41));
-    if (nb[1]) g.push(box(0.2, 0.1, 0.62, asp, x + 0.41, 0.05, z));
-    if (nb[3]) g.push(box(0.2, 0.1, 0.62, asp, x - 0.41, 0.05, z));
-    const deg = nb.filter(Boolean).length;
-    if (deg === 2 && h > 0.7) g.push(cyl(0.09, 0.09, 0.02, '#858a8e', x + (h - 0.85) * 0.5, 0.105, z + (h - 0.8) * 0.5, 8));
-    // lamp posts near lots, a few crosswalk stripes at junctions
-    if (deg >= 3 && h > 0.4) { for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.012, 0.3, PAL.cream2, x + k * 0.16, 0.105, z + (nb[0] ? -0.6 : 0.6) * 0.62)); }
+    // a road cell whose neighbour is a parallel road (two blocks placed two cells apart) is one half of a
+    // two-lane avenue: asphalt runs straight across the shared edge with a dashed centre line on it
+    const road = q => q && q.type === 'road';
+    const dbl = DIR4.map(([di, dj], k) => {
+      if (!nb[k]) return false; const n = cell(c.i + di, c.j + dj), pi = di ? 0 : 1, pj = di ? 1 : 0;
+      return (road(cell(c.i + pi, c.j + pj)) && road(cell(n.i + pi, n.j + pj))) || (road(cell(c.i - pi, c.j - pj)) && road(cell(n.i - pi, n.j - pj)));
+    });
+    const open = nb.map((v, k) => v && !dbl[k]);
+    // asphalt fills the cell (top 0.08); raised sidewalk bands (top 0.10) sit on the closed edges, with
+    // corner squares so the pavement wraps around junction corners; an avenue edge has no pavement at all
+    g.push(box(1, 0.08, 1, asp, x, 0.04, z));
+    for (let k = 0; k < 4; k++) { const [di, dj] = DIR4[k]; if (!open[k] && !dbl[k]) g.push(box(di ? 0.19 : 1, 0.1, di ? 1 : 0.19, PAL.sidewalk, x + di * 0.405, 0.05, z + dj * 0.405)); }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const kx = sx > 0 ? 1 : 3, kz = sz > 0 ? 2 : 0; if (!dbl[kx] && !dbl[kz]) g.push(box(0.19, 0.1, 0.19, PAL.sidewalk, x + sx * 0.405, 0.05, z + sz * 0.405)); }
+    for (let k = 0; k < 4; k++) if (dbl[k]) {   // dashed centre line on the shared edge of an avenue, drawn once
+      const [di, dj] = DIR4[k];
+      if (di + dj > 0) for (const o of [-0.3, 0.3]) g.push(box(di ? 0.004 : 0.18, 0.004, di ? 0.18 : 0.004, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
+    }
+    const deg = open.filter(Boolean).length, isDbl = dbl.some(Boolean);
+    // centre line on straight two-way stretches
+    if (!isDbl && deg === 2 && open[0] && open[2]) for (const dz of [-0.24, 0.24]) g.push(box(0.025, 0.004, 0.18, PAL.cream2, x, 0.082, z + dz));
+    if (!isDbl && deg === 2 && open[1] && open[3]) for (const dx of [-0.24, 0.24]) g.push(box(0.18, 0.004, 0.025, PAL.cream2, x + dx, 0.082, z));
+    if (deg === 2 && h > 0.7) g.push(cyl(0.09, 0.09, 0.012, '#858a8e', x + (h - 0.85) * 0.4, 0.083, z + (h - 0.8) * 0.4, 8));
+    // zebra crossing across one arm of a real junction
+    if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
+    for (let k = 0; k < 4; k++) if (open[k] && !isDbl) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 + dj * 0.32, 0.105, z + dj * 0.41 - di * 0.32)); g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 - dj * 0.32, 0.105, z + dj * 0.41 + di * 0.32)); }
     // utility poles on the corner opposite the lamp; cables are strung between neighbours below
     if (h > 0.2 && h < 0.5 && lotAdjacent4(c)) {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
@@ -119,10 +134,10 @@ function rebuildRoads() {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
       const px = x + d[0] * 0.4 + d[1] * 0.35, pz = z + d[1] * 0.4 - d[0] * 0.35;
       lg.push(cyl(0.025, 0.035, 0.95, PAL.lamp, px, 0.55, pz, 6));
-      lg.push(box(0.12, 0.05, 0.12, PAL.lamp, px, 0.09, pz));
+      lg.push(box(0.12, 0.05, 0.12, PAL.lamp, px, 0.115, pz));
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.13), lampHeadMat); head.position.set(px, 1.08, pz); head.castShadow = false; scene.add(head); lampHeads.push(head);
       lg.push(box(0.17, 0.03, 0.17, PAL.lamp, px, 1.15, pz));
-      const gl = makeGlow(px, 0.115, pz, 2.6); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
+      const gl = makeGlow(px, 0.125, pz, 2.6); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
     }
   }
   // cables: each pole links to its two nearest neighbours within reach; a few birds perch mid-span

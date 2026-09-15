@@ -8,14 +8,15 @@ import { cells, onWorldChange } from './world.js';
 import { coastPoint } from './island.js';
 
 const flocks = [], butterflies = [];
-const wingGeo = new THREE.BoxGeometry(0.11, 0.008, 0.04);
-const bodyGeo = new THREE.BoxGeometry(0.06, 0.02, 0.025);
+const wingL = new THREE.BoxGeometry(0.1, 0.006, 0.035); wingL.translate(-0.06, 0, -0.005);   // pivot at the shoulder
+const wingR = new THREE.BoxGeometry(0.1, 0.006, 0.035); wingR.translate(0.06, 0, -0.005);
+const bodyGeo = new THREE.BoxGeometry(0.03, 0.02, 0.09); const headGeo = new THREE.BoxGeometry(0.022, 0.02, 0.025); headGeo.translate(0, 0.008, 0.055);
 const birdMats = { dark: new THREE.MeshStandardMaterial({ color: '#4a4340', roughness: 1 }), gull: new THREE.MeshStandardMaterial({ color: '#f7efe2', roughness: 1 }) };
 
 function makeBird(matKey) {
   const g = new THREE.Group(); const m = birdMats[matKey];
-  const L = new THREE.Mesh(wingGeo, m), R = new THREE.Mesh(wingGeo, m), B = new THREE.Mesh(bodyGeo, m);
-  L.position.x = -0.06; R.position.x = 0.06; g.add(L, R, B); g.userData = { L, R, phase: rand(0, 6.28) };
+  const L = new THREE.Mesh(wingL, m), R = new THREE.Mesh(wingR, m), B = new THREE.Mesh(bodyGeo, m), H = new THREE.Mesh(headGeo, m);
+  g.add(L, R, B, H); g.userData = { L, R, phase: rand(0, 6.28) }; g.scale.setScalar(matKey === 'gull' ? 1.15 : 0.85);
   scene.add(g); return g;
 }
 function makeFlock(cxw, czw, radius, height, n, matKey, speed) {
@@ -50,8 +51,9 @@ function updateAmbient(dt, realT, night) {
     for (const b of f.birds) {
       const a = f.t - b.off, r = f.radius + b.dr;
       const x = f.cx + Math.cos(a) * r, z = f.cz + Math.sin(a) * r, y = f.height + b.dh + Math.sin(realT * 0.7 + b.off) * 0.15;
-      b.mesh.position.set(x, y, z); b.mesh.rotation.y = -a - Math.PI / 2;
-      const flap = Math.sin(realT * 9 + b.mesh.userData.phase) * 0.6; b.mesh.userData.L.rotation.z = flap; b.mesh.userData.R.rotation.z = -flap;
+      b.mesh.position.set(x, y, z); b.mesh.rotation.y = -a;   // nose along the circle's tangent
+      b.mesh.rotation.z = 0.25;                                // bank into the turn
+      const flap = Math.sin(realT * 7 + b.mesh.userData.phase) * 0.55; b.mesh.userData.L.rotation.z = flap; b.mesh.userData.R.rotation.z = -flap;
       b.mesh.visible = night < 0.85;
     }
   }
@@ -64,4 +66,4 @@ function updateAmbient(dt, realT, night) {
     b.visible = night < 0.5;
   }
 }
-export { updateAmbient };
+export { updateAmbient, flocks };

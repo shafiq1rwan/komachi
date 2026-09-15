@@ -31,30 +31,47 @@ function routeCells(srcs, dsts) {
   }
   return null;
 }
+/** The road cell a unit's door opens onto (falls back to any adjacent road). Trips begin and end there. */
+function frontRoad(u) {
+  if (u.block.type === 'station') return roadNeighbors(u.cell);
+  const ry = u.facing || 0, c = cell(u.cell.i + Math.round(Math.sin(ry)), u.cell.j + Math.round(Math.cos(ry)));
+  return c && c.type === 'road' ? [c] : roadNeighbors(u.cell);
+}
 function routeUnits(a, b) {
   const key = a.id + '>' + b.id; if (pathCache.has(key)) return pathCache.get(key);
-  const p = routeCells(roadNeighbors(a.cell), roadNeighbors(b.cell)); pathCache.set(key, p); return p;
+  const p = routeCells(frontRoad(a), frontRoad(b)); pathCache.set(key, p); return p;
 }
 const unitPos = u => new THREE.Vector3(cx(u.cell.i), 0, cz(u.cell.j));
 const exitPts = u => unitDoorPoints(u);                 // doorstep → kerb
 const entryPts = u => unitDoorPoints(u).reverse();      // kerb → doorstep
-/** start / end may be a single point or an ordered list of points (e.g. doorstep then kerb). */
-function buildPoints(cellPath, start, end, side, y) {
+/**
+ * Turn a cell path into world points that follow one side of the road.
+ * start / end may be a point or an ordered list (doorstep, kerb). `side` is the lateral offset.
+ * lane: +1 keeps to the right of travel, -1 to the left (Japan drives on the left); null = pedestrian:
+ * pick the sidewalk nearest the start, stay on it, and cross perpendicularly in the last cell if the
+ * destination is on the other side. Corners use a mitre so walkers hug the kerb instead of cutting it.
+ */
+function buildPoints(cellPath, start, end, side, y, lane = null) {
   const sArr = Array.isArray(start) ? start : [start], eArr = Array.isArray(end) ? end : [end];
-  start = sArr[sArr.length - 1]; end = eArr[0];
-  const keepY = p => p.y > 0 ? p.clone() : p.clone().setY(y);   // door points carry their own height
+  const keepY = p => p.y > 0 ? p.clone() : p.clone().setY(y);
   const pts = sArr.map(keepY);
-  const n = cellPath.length;
+  const n = cellPath.length, C = cellPath.map(c => new THREE.Vector3(cx(c.i), y, cz(c.j)));
+  const dirs = [];
+  for (let k = 0; k < n - 1; k++) dirs.push(C[k + 1].clone().sub(C[k]).setY(0).normalize());
+  if (!dirs.length) { const d = eArr[0].clone().sub(sArr[sArr.length - 1]).setY(0); dirs.push(d.lengthSq() ? d.normalize() : new THREE.Vector3(0, 0, 1)); }
+  const rightOf = d => new THREE.Vector3(-d.z, 0, d.x);
+  const kerbS = sArr[sArr.length - 1], kerbE = eArr[0];
+  const r0 = rightOf(dirs[0]);
+  const laneSign = lane !== null ? lane : (Math.sign(r0.dot(kerbS.clone().sub(C[0]).setY(0))) || 1);
   for (let k = 0; k < n; k++) {
-    const c = cellPath[k], p = new THREE.Vector3(cx(c.i), y, cz(c.j));
-    const prev = k > 0 ? cellPath[k - 1] : null, next = k < n - 1 ? cellPath[k + 1] : null;
-    let dx = 0, dz = 0;
-    if (prev) { dx += c.i - prev.i; dz += c.j - prev.j; }
-    if (next) { dx += next.i - c.i; dz += next.j - c.j; }
-    if (!prev && !next) { dx = end.x - start.x; dz = end.z - start.z; }
-    const len = Math.hypot(dx, dz) || 1; dx /= len; dz /= len;
-    p.x += -dz * side; p.z += dx * side;      // right-hand offset
-    pts.push(p);
+    const n1 = rightOf(k > 0 ? dirs[k - 1] : dirs[0]), n2 = rightOf(k < n - 1 ? dirs[k] : dirs[dirs.length - 1]);
+    const dot = n1.dot(n2);
+    const off = dot > 0.99 ? n1 : n1.clone().add(n2).multiplyScalar(1 / (1 + dot));   // mitre offset
+    pts.push(C[k].clone().addScaledVector(off, side * laneSign));
+  }
+  if (lane === null && n > 0) {
+    const rL = rightOf(dirs[dirs.length - 1]), endSide = Math.sign(rL.dot(kerbE.clone().sub(C[n - 1]).setY(0))) || laneSign;
+    if (endSide !== laneSign) pts.push(C[n - 1].clone().addScaledVector(rL, side * endSide));   // cross the road here
   }
   for (const p of eArr) pts.push(keepY(p));
   return pts;
@@ -64,14 +81,23 @@ function buildPoints(cellPath, start, end, side, y) {
 const carMeshes = [];
 const PERSON_SCALE = 0.7;   // a floor is ~0.55 units; people read as a bit over half a storey tall
 function makePerson(r) {
-  const grp = new THREE.Group(); const g = [];
-  g.push(box(0.15, 0.13, 0.11, r.pants, 0, 0.065, 0));
+  const grp = new THREE.Group(), rig = new THREE.Group(); rig.scale.setScalar(PERSON_SCALE); grp.add(rig);
+  // legs hang from a hip pivot so they can swing forward when sitting
+  const legs = mergeMesh([box(0.15, 0.13, 0.11, r.pants, 0, -0.065, 0)], false); legs.position.y = 0.13; legs.castShadow = true; rig.add(legs);
+  const g = [];
   g.push(box(0.17, 0.2, 0.12, r.shirt, 0, 0.23, 0));
   g.push(box(0.05, 0.16, 0.05, r.shirt, -0.11, 0.24, 0)); g.push(box(0.05, 0.16, 0.05, r.shirt, 0.11, 0.24, 0));
   const head = new THREE.SphereGeometry(0.085, 8, 6); head.translate(0, 0.42, 0); g.push(colorize(head, r.skin));
   if (r.hat) { g.push(cyl(0.11, 0.11, 0.03, r.hatColor, 0, 0.47, 0, 10)); g.push(cyl(0.07, 0.075, 0.07, r.hatColor, 0, 0.51, 0, 10)); }
   else { const hair = new THREE.SphereGeometry(0.09, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2); hair.translate(0, 0.43, 0); g.push(colorize(hair, r.hair)); }
-  const m = mergeMesh(g, false); m.castShadow = true; m.scale.setScalar(PERSON_SCALE); grp.add(m); grp.visible = false; grp.userData.res = r; peopleGroup.add(grp); return grp;
+  if (r.bag) g.push(box(0.06, 0.1, 0.05, r.bagColor, -0.15, 0.2, 0.0));
+  const upper = mergeMesh(g, false); upper.castShadow = true; rig.add(upper);
+  grp.userData = { res: r, legs, upper }; grp.visible = false; peopleGroup.add(grp); return grp;
+}
+/** sitting: legs swing forward from the hip, torso leans back a touch */
+function setPose(r, sitting) {
+  const d = r.mesh && r.mesh.userData; if (!d || !d.legs) return;
+  d.legs.rotation.x = sitting ? -Math.PI / 2 : 0; d.upper.rotation.x = sitting ? -0.08 : 0;
 }
 function makeCar(color, kind = 'kei') {
   const grp = new THREE.Group(); const g = [];
@@ -122,7 +148,7 @@ function spawnNewcomer() {
   const r = {
     id: S.nextId++, name: `${pick(GIVEN)} ${pick(FAMILY)}`, home: null, job: null, at: null, state: 'inside', activity: 'arriving', next: S.T,
     wake: rand(6.5, 9), workEnd: rand(16.5, 18.5), hasCar: Math.random() < 0.35, lastWorkDay: -1, lastLeisureDay: -1, lunched: -1, returnTo: null, shopUntil: 0, jobSearchAt: S.T + rand(0.2, 1),
-    skin: pick(SKIN), shirt: pick(SHIRTS), pants: pick(['#6b6f7a', '#8a7a6f', '#4a4340', '#9aa4aa', '#7f9b7a']), hair: pick(HAIR), hat: Math.random() < 0.3, hatColor: pick(SHIRTS),
+    skin: pick(SKIN), shirt: pick(SHIRTS), pants: pick(['#6b6f7a', '#8a7a6f', '#4a4340', '#9aa4aa', '#7f9b7a']), hair: pick(HAIR), hat: Math.random() < 0.3, hatColor: pick(SHIRTS), bag: Math.random() < 0.45, bagColor: pick(['#4a4340', '#a3764a', '#d98b7a', '#6f9a96']),
     trip: null, mesh: null, car: null, carColor: pick(CARS), carKind: pick(['kei', 'kei', 'kei', 'hatch', 'van']), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(),
   };
   r.mesh = makePerson(r); residents.push(r);
@@ -142,7 +168,7 @@ function takeSpot(r) {
 }
 function sitDown(r) {
   const s = r.spot; if (!s) { r.state = 'inside'; r.next = S.T; return; }
-  r.mesh.visible = true; r.mesh.position.copy(s.pos); r.mesh.rotation.y = s.rot;
+  r.mesh.visible = true; r.mesh.position.copy(s.pos); r.mesh.rotation.y = s.rot; setPose(r, s.kind === 'seat');
   r.state = 'inside'; r.trip = null; r.activity = s.kind === 'seat' ? 'waiting for a home' : 'waiting by the planters'; r.next = waitNext(rand(0.3, 0.9));
 }
 function freeSpots() { return STATION.seats.filter(s => !s.taken).length + STATION.stands.filter(s => !s.taken).length; }
@@ -150,7 +176,7 @@ function freeSpots() { return STATION.seats.filter(s => !s.taken).length + STATI
 function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
   const pts = [from.clone().setY(y), to.clone().setY(y)];
   r.trip = { pts, i: 0, t: 0, dest: null, drive: false, speed: 0.85 * rand(0.9, 1.1), baseY: y, onArrive };
-  r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]);
+  r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]); setPose(r, false);
 }
 function waitDecide(r) {
   const h = hourOf();
@@ -176,7 +202,7 @@ function assignHome(r, u) {
   r.home = u; u.residents.push(r); u.incoming++; r.movingIn = true; r.jobSearchAt = S.T + rand(0.3, 1);
   freeSpot(r); if (r.at) r.at.inside.delete(r); r.at = null;
   const start = r.mesh.position.clone().setY(0);
-  const path = routeCells(roadNeighbors(STATION.anchor.cell), roadNeighbors(u.cell));
+  const path = routeCells(roadNeighbors(STATION.anchor.cell), frontRoad(u));
   if (path) startTrip(r, path, start, entryPts(u), u, 'moving into a new home');
   else startDirectTrip(r, start, exitPts(u)[0], 'moving in the long way round', () => enterUnit(r, u), 0.06);   // no road yet: cut across the grass
 }
@@ -270,8 +296,9 @@ function findShop(r, from) {
 function startTrip(r, cellPath, start, end, destUnit, label) {
   const drive = r.hasCar && cellPath.length > 6 && destUnit && destUnit !== STATION.anchor && r.at !== STATION.anchor;
   if (drive) { if (Array.isArray(start)) start = start[start.length - 1]; if (Array.isArray(end)) end = end[0]; }   // cars stop at the kerb
-  const pts = buildPoints(cellPath, start, end, drive ? 0.17 : 0.34, drive ? 0.1 : 0.08);
-  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, speed: drive ? 2.6 : 0.9 * rand(0.85, 1.15), baseY: 0.08 };
+  const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : buildPoints(cellPath, start, end, 0.34, 0.1);
+  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, speed: drive ? 2.6 : 0.9 * rand(0.85, 1.15), baseY: drive ? 0.08 : 0.1 };
+  if (!drive) setPose(r, false);
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
   if (drive) { if (!r.car) r.car = makeCar(r.carColor, r.carKind); r.car.visible = true; r.mesh.visible = false; r.car.position.copy(pts[0]); }
   else { r.mesh.visible = true; r.mesh.position.copy(pts[0]); }
@@ -287,7 +314,7 @@ function go(r, dest, label) {
 function stroll(r) {
   const roads = cells.filter(c => c.type === 'road'); if (!roads.length) return false;
   const from = r.at; let path = null;
-  for (let k = 0; k < 5 && !path; k++) { const t = pick(roads); path = routeCells(roadNeighbors(from.cell), [t]); if (path && path.length < 3) path = null; }
+  for (let k = 0; k < 5 && !path; k++) { const t = pick(roads); path = routeCells(frontRoad(from), [t]); if (path && path.length < 3) path = null; }
   if (!path) return false;
   from.inside.delete(r); r.at = null; r.strollHome = true;
   const last = path[path.length - 1];
@@ -301,7 +328,7 @@ function arrive(r) {
   const endPos = tr.pts[tr.pts.length - 1];
   if (!tr.dest) {   // strolled to a road cell: turn around and head home
     if (!r.home) { returnToStation(r, endPos); return; }
-    const c = cellAt(endPos); const path = c ? routeCells([c], roadNeighbors(r.home.cell)) : null;
+    const c = cellAt(endPos); const path = c ? routeCells([c], frontRoad(r.home)) : null;
     if (path) startTrip(r, path, endPos.clone().setY(0), entryPts(r.home), r.home, 'heading home');
     else { r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
     return;
@@ -381,13 +408,13 @@ function spawnWanderer(kind) {
   const roads = roadCellsList(); if (!roads.length) return;
   const c = pick(roads);
   const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch'])) : makeCat(pick(['#e9d5b8', '#7a706a', '#f0b48b', '#4a4340', '#f7efe2'])), trip: null, pause: 0, dead: false };
-  w.mesh.visible = true; w.mesh.position.set(cx(c.i), kind === 'car' ? 0.1 : 0.08, cz(c.j)); wanderers.push(w);
+  w.mesh.visible = true; w.mesh.position.set(cx(c.i), kind === 'car' ? 0.08 : 0.1, cz(c.j)); wanderers.push(w);
 }
 function wanderPick(w) {
   const roads = roadCellsList(); for (let k = 0; k < 6; k++) {
     const t = pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
-    const y = w.kind === 'car' ? 0.1 : 0.08, side = w.kind === 'car' ? 0.17 : 0.36;
-    const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y); pts.pop();
+    const y = w.kind === 'car' ? 0.08 : 0.1, side = w.kind === 'car' ? 0.17 : 0.36;
+    const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y, w.kind === 'car' ? -1 : (w.lane || (w.lane = Math.random() < 0.5 ? 1 : -1))); pts.pop();
     w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : rand(0.35, 0.6), last: t }; return;
   }
   w.pause = rand(1, 4);
@@ -404,7 +431,7 @@ function updateWanderers(simDt) {
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
     if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt)) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : rand(0.2, 1.5); }
-    if (w.kind === 'cat') w.mesh.position.y = 0.08 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.01;
+    if (w.kind === 'cat') w.mesh.position.y = 0.1 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.01;
   }
 }
 
@@ -461,7 +488,7 @@ function removeBlock(block) {
       else if (r.trip && r.trip.dest === u) { /* arrive() notices u.removed */ }
       else r.movingIn = false;
     }
-    for (const r of Array.from(u.inside)) { if (r.at === u) { u.inside.delete(r); r.at = null; if (r.home) { const roads = roadNeighbors(u.cell); const path = roads.length ? routeCells(roads, roadNeighbors(r.home.cell)) : null; if (path) startTrip(r, path, new THREE.Vector3(cx(roads[0].i), 0, cz(roads[0].j)), unitPos(r.home), r.home, 'heading home'); else { r.at = r.home; r.home.inside.add(r); } } else returnToStation(r, unitPos(u)); } }
+    for (const r of Array.from(u.inside)) { if (r.at === u) { u.inside.delete(r); r.at = null; if (r.home) { const roads = roadNeighbors(u.cell); const path = roads.length ? routeCells(roads, frontRoad(r.home)) : null; if (path) startTrip(r, path, new THREE.Vector3(cx(roads[0].i), 0, cz(roads[0].j)), unitPos(r.home), r.home, 'heading home'); else { r.at = r.home; r.home.inside.add(r); } } else returnToStation(r, unitPos(u)); } }
     if (u.mesh) { townGroup.remove(u.mesh); disposeGroup(u.mesh); }
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }

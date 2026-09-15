@@ -47,8 +47,10 @@ machine, and are claimed by `assignHome()` when a finished home has room. Losing
 
 **Resident.** Belongs to a home unit, may hold a job at a shop or workspace, and is either
 `inside` a unit or on a trip. Decisions are made by `decide()` in `sim.js` when the resident's
-`next` time arrives. Trips are lists of world points along road cells with a right-hand offset
-(0.34 for walkers on the sidewalk, 0.17 for cars on the asphalt). Trips to or from a building begin and end at its front door: `unitDoorPoints()` in `buildings.js` returns the doorstep (on the plinth) and the kerb (on the sidewalk), rotated by the unit's facing. Cars stop at the kerb. A trip may instead carry an
+`next` time arrives. Trips are lists of world points along road cells (`buildPoints`): routes begin and end on the road
+cell in front of the door (`frontRoad`); walkers pick the sidewalk nearest their start (offset 0.34),
+follow it with mitred corners, and cross perpendicularly in the last cell if the destination is on
+the other side; cars keep left (offset 0.17, lane −1). Trips to or from a building begin and end at its front door: `unitDoorPoints()` in `buildings.js` returns the doorstep (on the plinth) and the kerb (on the sidewalk), rotated by the unit's facing. Cars stop at the kerb. A trip may instead carry an
 `onArrive` callback and two points (`startDirectTrip`) for short walks inside the plaza or a
 cross-country move-in when no road connects yet.
 

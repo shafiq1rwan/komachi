@@ -5,12 +5,12 @@ import { S } from './state.js';
 import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
 import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, rebuildDecor, rebuildRoads } from './world.js';
 import { rebuildUnitMesh } from './buildings.js';
-import './island.js';
+import { updateWater } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock } from './sim.js';
 import { envUpdate } from './daynight.js';
-import { updateAmbient } from './ambient.js';
+import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
 import { renderInspect, updateStats } from './ui.js';
 import { keys, setTool, updatePreview, updateHover, updateTags, inspectTarget, clampTarget } from './input.js';
@@ -30,7 +30,7 @@ function frame(now) {
   if (keys.has('KeyD') || keys.has('ArrowRight')) cam.target.addScaledVector(right, mv);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags();
+  setSwayTime(realT); updateWater(dt); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget()); updateStats(); }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
@@ -54,7 +54,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, cell, cam, fastForward, demoTown, setTool, STATION,
+  placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, cell, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; },
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },

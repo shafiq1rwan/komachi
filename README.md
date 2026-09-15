@@ -56,6 +56,9 @@ Some things worth knowing:
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
   cliffs, a pier and a boat. Zoom out to see all of it; nothing can be built in the water.
+- **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
+  junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
+  Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.
 - **Buildings vary.** Homes come as detached houses (tile or metal roofs), narrow two-storey
   houses with exterior stairs, or small apartment blocks with balconies. Shops become cafés,
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are

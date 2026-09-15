@@ -14,34 +14,34 @@
 <canvas id="c"></canvas>
 <div id="loading">Raising the island…</div>
 
-<div id="brand" class="card">
-  <h1><i></i><span>Komachi</span></h1>
-  <small>a cosy little god game</small>
-  <div id="stats">
-    <div><b id="s-pop">0</b><span>people</span></div>
-    <div><b id="s-homes">0</b><span>homes</span></div>
-    <div><b id="s-jobs">0</b><span>jobs</span></div>
-    <div><b id="s-shops">0</b><span>shops</span></div>
-    <div><b id="s-wait">0</b><span>waiting</span></div>
+<header id="hud">
+  <div id="brand" class="card">
+    <h1><i></i><span>Komachi</span></h1>
+    <div id="stats">
+      <span class="stat" title="People living here"><i class="fa-solid fa-user"></i><b id="s-pop">0</b></span>
+      <span class="stat" title="Finished homes"><i class="fa-solid fa-house"></i><b id="s-homes">0</b></span>
+      <span class="stat" title="Jobs available"><i class="fa-solid fa-briefcase"></i><b id="s-jobs">0</b></span>
+      <span class="stat" title="Shops open"><i class="fa-solid fa-store"></i><b id="s-shops">0</b></span>
+      <span class="stat" title="Waiting at the station"><i class="fa-solid fa-train-subway"></i><b id="s-wait">0</b></span>
+    </div>
   </div>
-</div>
-
-<div id="clock" class="card">
-  <div id="sun"></div>
-  <div><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
-  <div class="seg" id="speed">
-    <button data-s="0" title="Pause">II</button>
-    <button data-s="1" class="on">1×</button>
-    <button data-s="2">2×</button>
-    <button data-s="4">4×</button>
+  <div id="clock" class="card">
+    <div id="sun"></div>
+    <div id="clock-text"><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
+    <div class="seg" id="speed">
+      <button data-s="0" title="Pause (Space)"><i class="fa-solid fa-pause"></i></button>
+      <button data-s="1" class="on" title="Normal speed">1×</button>
+      <button data-s="2" title="Double speed">2×</button>
+      <button data-s="4" title="Fast">4×</button>
+    </div>
+    <div class="divider-v"></div>
+    <div id="settings">
+      <button class="icon-btn on" id="btn-pixel" title="Pixel look: render at half resolution"><i class="fa-solid fa-border-all"></i></button>
+      <button class="icon-btn" id="btn-labels" title="Name tags above walkers"><i class="fa-solid fa-tag"></i></button>
+      <button class="icon-btn" id="btn-center" title="Centre the camera on the station"><i class="fa-solid fa-crosshairs"></i></button>
+    </div>
   </div>
-</div>
-
-<div id="settings" class="card">
-  <button class="chip on" id="btn-pixel" title="Render at half resolution with chunky pixels">Pixel look</button>
-  <button class="chip" id="btn-labels" title="Show name tags above people">Name tags</button>
-  <button class="chip" id="btn-center" title="Center the camera on town">Center</button>
-</div>
+</header>
 
 <div id="tools" class="card">
   <button class="tool explore on" data-tool="explore"><div class="sw"></div>Explore<kbd>1</kbd></button>

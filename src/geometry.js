@@ -21,8 +21,9 @@ swayMat.onBeforeCompile = sh => {
 uniform float uTime;`)
     .replace('#include <begin_vertex>', `#include <begin_vertex>
  float swayH = max(0.0, transformed.y - 0.28);
- transformed.x += sin(uTime * 1.4 + transformed.z * 0.6 + transformed.x * 0.4) * 0.045 * swayH;
- transformed.z += cos(uTime * 1.1 + transformed.x * 0.5) * 0.03 * swayH;`);
+ float gust = 0.55 + 0.45 * sin(uTime * 0.37 + transformed.x * 0.06 + transformed.z * 0.04);
+ transformed.x += (sin(uTime * 1.5 + transformed.z * 0.6 + transformed.x * 0.4) * 0.07 + 0.03) * swayH * gust;
+ transformed.z += cos(uTime * 1.15 + transformed.x * 0.5) * 0.045 * swayH * gust;`);
 };
 function setSwayTime(t) { swayUniform.value = t; }
 function colorize(geom, hex) {

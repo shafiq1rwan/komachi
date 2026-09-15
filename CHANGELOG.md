@@ -21,6 +21,16 @@ All notable changes to Komachi are recorded here. The format follows
   reeds and shrubs sway in the wind
 - Touch: pinch to zoom, two-finger twist to rotate, tap to inspect
 - Controls card folds into a round help icon after five seconds; click to unfold (Font Awesome, bundled)
+- Streets: raised sidewalk bands with a kerb lip, asphalt sunk below them, dashed centre lines on
+  straight two-way stretches, zebra crossings only at real junctions; two blocks placed two cells apart
+  now form a tidy two-lane avenue instead of a doubled road covered in crossings
+- Pedestrian routing: trips start and end on the road cell in front of the door, walkers keep to one
+  sidewalk with mitred corners and cross the street perpendicularly at the end; cars keep left
+- People have a hip joint and actually sit on the station benches; some carry bags
+- Top HUD redesigned: one slim bar with icon stat chips on the left and clock, speed and view
+  toggles on the right
+- Birds fly nose-first with wings hinged at the shoulder; gulls are larger
+- Stronger wind sway with slow gusts; two drifting ripple layers on the water
 
 - Komachi Station: an underground entrance with benches, vending machines, planters and lamps at
   the centre of the island, placed at the start and ringed by road

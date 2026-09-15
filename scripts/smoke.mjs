@@ -61,9 +61,9 @@ try {
   await page.keyboard.press('Digit1'); await page.evaluate(() => MT.setSpeed(0));
   const hp = await page.evaluate(() => MT.project(17, 19, 0.5)); await page.mouse.move(hp.x - 2, hp.y - 2); await page.mouse.move(hp.x, hp.y);
   let inspectText = '';
-  for (let k = 0; k < 40 && !(/Residents/.test(inspectText) && /d+ / d+/.test(inspectText)); k++) { await sleep(250); inspectText = await page.evaluate(() => document.getElementById('inspect').innerText); }
-  check('hover opens inspect card', /Residents/.test(inspectText) && /d+ / d+/.test(inspectText), inspectText.slice(0, 140).replace(/
-+/g, ' | '));
+  const cardOk = t => /Residents/.test(t) && /\d+ \/ \d+/.test(t);
+  for (let k = 0; k < 40 && !cardOk(inspectText); k++) { await sleep(250); inspectText = await page.evaluate(() => document.getElementById('inspect').innerText); }
+  check('hover opens inspect card', cardOk(inspectText), inspectText.slice(0, 140).replace(/\n+/g, ' | '));
   await page.evaluate(() => MT.setSpeed(1));
 
   await page.keyboard.press('Digit5'); await page.mouse.click(sp.x, sp.y); await sleep(200);

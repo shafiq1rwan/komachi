@@ -31,6 +31,10 @@ function polygon(extra, n = 180) {
   s.closePath(); return s;
 }
 
+const rippleLayers = [];
+/** drift the ripple textures a little each frame */
+function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.speed[0] * dt; l.t.offset.y += l.speed[1] * dt; } }
+
 // ── land, beach terrace, foam, water ──
 {
   const land = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(0), { depth: 1.5, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 2 }), [mat(biome.grass), mat(PAL.landSide)]);
@@ -41,6 +45,15 @@ function polygon(extra, n = 180) {
   foam.rotation.x = Math.PI / 2; foam.position.y = -0.7; scene.add(foam);
   const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 1 }));
   water.rotation.x = -Math.PI / 2; water.position.y = -0.78; water.receiveShadow = true; scene.add(water);
+  // soft ripple layers: a canvas of blurry lighter blobs, tiled and slowly drifted in two directions
+  const rc = document.createElement('canvas'); rc.width = rc.height = 256; const ctx = rc.getContext('2d');
+  for (let k = 0; k < 34; k++) { const rx = rng() * 256, rz = rng() * 256, rr = 10 + rng() * 26; const grd = ctx.createRadialGradient(rx, rz, 0, rx, rz, rr); grd.addColorStop(0, 'rgba(232,246,240,0.55)'); grd.addColorStop(1, 'rgba(232,246,240,0)'); ctx.fillStyle = grd; ctx.beginPath(); ctx.ellipse(rx, rz, rr * 1.6, rr * 0.7, rng() * 3, 0, 6.29); ctx.fill(); }
+  const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace;
+  for (const [rep, y, op] of [[18, -0.776, 0.38], [11, -0.774, 0.22]]) {
+    const t = rt.clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
+    const m = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: op, depthWrite: false }));
+    m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); rippleLayers.push({ t, speed: rep === 14 ? [0.004, 0.0025] : [-0.002, 0.0035] });
+  }
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
@@ -80,4 +93,4 @@ function polygon(extra, n = 180) {
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
 
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng };
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater };
