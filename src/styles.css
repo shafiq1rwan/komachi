@@ -31,10 +31,27 @@
   .seg button.on{background:#fff;color:var(--teal2);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .seg button:hover{color:var(--ink)}
   .divider-v{width:1px;height:28px;background:var(--cream2)}
-  #settings{display:flex;gap:4px}
+  #settings{display:flex;gap:4px;overflow:hidden;max-width:120px;transition:max-width .28s ease,opacity .2s ease}
+  #settings.collapsed{max-width:0;opacity:0;pointer-events:none}
+  #btn-settings.on{background:var(--cream2);color:var(--ink)}
   .icon-btn{border:0;background:transparent;width:32px;height:32px;border-radius:10px;color:var(--ink2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .icon-btn:hover{background:var(--cream2);color:var(--ink)}
   .icon-btn.on{background:var(--teal);color:#fff}
+  /* instant tooltips for HUD chips and buttons */
+  [data-tip]{position:relative}
+  [data-tip]::after{content:attr(data-tip);position:absolute;left:50%;top:calc(100% + 8px);transform:translateX(-50%) translateY(-4px);background:var(--ink);color:#fff;font-size:11px;font-weight:700;line-height:1.2;padding:5px 9px;border-radius:8px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .12s ease,transform .12s ease;z-index:20}
+  [data-tip]::before{content:"";position:absolute;left:50%;top:calc(100% + 3px);transform:translateX(-50%);border:5px solid transparent;border-bottom-color:var(--ink);opacity:0;pointer-events:none;transition:opacity .12s ease;z-index:20}
+  [data-tip]:hover::after,[data-tip]:focus-visible::after{opacity:1;transform:translateX(-50%) translateY(0)}
+  [data-tip]:hover::before,[data-tip]:focus-visible::before{opacity:1}
+  #clock [data-tip]::after{left:auto;right:0;transform:translateX(0) translateY(-4px)}
+  #clock [data-tip]:hover::after{transform:translateX(0) translateY(0)}
+  #clock [data-tip]::before{left:auto;right:12px;transform:none}
+  /* floating progress pills over buildings under construction */
+  .pbar{position:fixed;transform:translate(-50%,-100%);width:54px;padding:3px 4px 4px;background:rgba(251,246,238,.94);border-radius:8px;box-shadow:0 1px 4px rgba(0,0,0,.12);pointer-events:none;display:flex;flex-direction:column;gap:2px;align-items:center}
+  .pbar i{display:block;width:100%;height:5px;border-radius:3px;background:var(--cream2);overflow:hidden}
+  .pbar i b{display:block;height:100%;background:var(--teal);border-radius:3px}
+  .pbar span{font-size:9px;font-weight:800;color:var(--ink2);line-height:1}
+  .pbar.reno i b{background:var(--rose)}
   @media (max-width:980px){#stats .stat{padding:6px 8px}#brand h1 span{display:none}#brand h1{gap:0}#brand h1 i{margin-right:32px}}
   #tools{left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:6px;padding:8px}
   .tool{border:0;background:transparent;font:inherit;display:flex;flex-direction:column;align-items:center;gap:5px;padding:10px 14px 8px;border-radius:14px;cursor:pointer;min-width:92px;color:var(--ink2);font-weight:800;font-size:12px;position:relative}

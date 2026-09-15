@@ -71,8 +71,9 @@ pots, signs) vary per unit from its seed.
 Blocks carry `stage` (0–4 building, `DONE` = 5) and `stageT` crew-hours into the stage. `sim.js`
 advances `stageT` by `progressRate(b)` each game hour; `construction.js` installs that rule (0 with
 no builders on site, 0.8 with one, 1.2 with three) and owns the builders and trucks. Builders are
-not residents: they ride in on `onTrain`, walk to fixed spots around the unit, hammer (a small
-torso rotation), leave at 18:00 and come back on the first morning train; when the site finishes
+not residents: they ride in on `onTrain`, walk to the site and then loop through stage-specific
+tasks (`planTask` / `runTask`: steps of walk-to → take tool → do a motion for a while), each
+nudged by their crew slot so three builders spread out; they leave at 18:00 and come back on the first morning train; when the site finishes
 they walk to the station and are removed. Trucks are plain meshes driven along `buildPoints`
 routes from the station road to the site kerb and back. Households are summoned when a home
 enters the finishing stage. `renoT` puts a scaffold overlay on a finished building after a level-up.

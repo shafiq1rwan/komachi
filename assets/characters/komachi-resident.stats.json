@@ -1,0 +1,13 @@
+{
+  "height": 0.35,
+  "vertices": 891,
+  "triangles": 1632,
+  "bones": 16,
+  "materials": 1,
+  "animations": [
+    "Idle",
+    "Walk"
+  ],
+  "export_forward": "+Z",
+  "export_up": "+Y"
+}

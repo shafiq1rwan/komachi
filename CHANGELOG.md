@@ -7,6 +7,21 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Optional rigged resident character (`assets/characters/komachi-resident.glb`, enable with `?rigged`): loaded
+  once, cloned per person with jacket, trousers, hair, skin and bag recoloured from the resident's
+  look, Idle/Walk clips blended from movement, legs bent at hip and knee when seated on a bench,
+  a hard hat on the head bone for builders. The box people stay the default look
+- Station bins moved behind the benches so nobody walks through them
+- Builders do real jobs: per stage they measure with a level and check a clipboard, drive stakes,
+  dig with shovels and push a wheelbarrow, carry planks from the pallet, saw at a sawhorse, hammer
+  beams, climb the scaffold to drill and fix the roof frame, mix cement, and paint with rollers or
+  fetch buckets at the finish. Each tool is a little mesh in the hand with its own motion
+
+- Blender human resident asset and GLB export with a 16-bone skeleton, idle/walk clips,
+  preview renders and a reproducible Blender build script (runtime integration pending).
+- Revised resident proportions, swept hair, connected clothing and studio lighting to
+  more closely match the generated character reference.
+
 - Construction crews: three builders in vests and helmets ride the next train after a block is
   zoned, walk to the site, work until 18:00, go home down the stairs and return on the first
   morning train. A site only progresses while builders are on it; more builders build faster
@@ -16,6 +31,9 @@ All notable changes to Komachi are recorded here. The format follows
 - Kei trucks deliver materials from the station at the start of each stage and drive back
 - Growing to the next level puts scaffolding and paint pots on the building for a couple of hours
 - Inspect cards show the stage name, crew status, and builders can be hovered like residents
+- Instant tooltips on the HUD stat chips, speed buttons and view toggles
+- View toggles (pixel look, name tags, centre) fold behind a sliders button in the clock card
+- Small floating progress pills above buildings under construction or being extended
 
 - Organic island: seeded coastline with beaches, rocky stretches and grassy cliffs, a pier and a
   boat; cells outside the coast are water and cannot be built on; `?seed=` fixes the shape

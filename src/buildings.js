@@ -267,6 +267,7 @@ function pallet(g, x, z, kind) {
   else if (kind === 'timber') for (let k = 0; k < 5; k++) g.push(box(0.05, 0.05, 0.4, PAL.wood2, x - 0.08 + (k % 3) * 0.06 + (k > 2 ? 0.03 : 0), 0.175 + Math.floor(k / 3) * 0.05, z));
   else for (let k = 0; k < 3; k++) g.push(cyl(0.035, 0.035, 0.07, [PAL.roofRose, PAL.cream2, PAL.roofBlue][k], x - 0.06 + k * 0.06, 0.185, z, 8));
 }
+function sawhorse(g, x, z) { for (const dx of [-0.12, 0.12]) for (const dz of [-0.03, 0.03]) { const leg = new THREE.BoxGeometry(0.015, 0.16, 0.015); leg.rotateX(dz > 0 ? 0.35 : -0.35); leg.translate(x + dx, 0.2, z + dz); g.push(colorize(leg, PAL.wood2)); } g.push(box(0.34, 0.025, 0.03, PAL.wood, x, 0.28, z)); g.push(box(0.2, 0.02, 0.06, PAL.wood2, x - 0.02, 0.3, z)); }
 function cones(g, pts) { for (const [x, z] of pts) { g.push(cyl(0.012, 0.04, 0.1, CONE, x, 0.17, z, 6)); g.push(box(0.09, 0.012, 0.09, CONE, x, 0.126, z)); } }
 function siteSign(g, x, z) { g.push(cyl(0.015, 0.015, 0.36, PAL.wood2, x, 0.3, z, 4)); g.push(box(0.26, 0.16, 0.02, PAL.cream2, x, 0.5, z)); g.push(box(0.2, 0.03, 0.025, CONE, x, 0.53, z + 0.005)); g.push(box(0.16, 0.02, 0.025, K.chalk, x, 0.47, z + 0.005)); }
 function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : genWork)(b, u, g, wg); }
@@ -289,14 +290,14 @@ function genConstruction(b, u, g, wg) {
     for (const [x, z] of [[-w / 2, d / 2], [w / 2, d / 2], [-w / 2, -d / 2], [w / 2, -d / 2]]) g.push(box(0.05, H + 0.15, 0.05, PAL.wood, x, y0 + (H + 0.15) / 2, z));
     g.push(box(w + 0.05, 0.05, 0.05, PAL.wood, 0, y0 + H + 0.12, d / 2)); g.push(box(w + 0.05, 0.05, 0.05, PAL.wood, 0, y0 + H + 0.12, -d / 2)); g.push(box(0.05, 0.05, d + 0.05, PAL.wood, w / 2, y0 + H + 0.12, 0)); g.push(box(0.05, 0.05, d + 0.05, PAL.wood, -w / 2, y0 + H + 0.12, 0));
     for (let k = 0; k < 3; k++) g.push(box(0.03, H, 0.03, PAL.wood2, -w / 2 + 0.15 + k * 0.2, y0 + H / 2, -d / 2 - 0.02));
-    pallet(g, 0.36, 0.42, 'timber'); g.push(box(0.14, 0.14, 0.14, PAL.wood2, -0.36, y0 + 0.07, 0.4)); siteSign(g, 0.44, -0.1);
+    pallet(g, 0.36, 0.42, 'timber'); sawhorse(g, -0.1, 0.46); g.push(box(0.14, 0.14, 0.14, PAL.wood2, -0.38, y0 + 0.07, 0.4)); siteSign(g, 0.44, -0.1);
   } else if (st === 3) {   // scaffolding: full-height raw walls, roof frame, scaffold on two faces, a tarp
     g.push(box(w, H, d, PAL.raw, 0, y0 + H / 2, 0));
     g.push(box(w + 0.1, 0.03, 0.03, PAL.wood, 0, y0 + H + 0.3, 0));
     for (const sz of [-1, 1]) { const r = new THREE.BoxGeometry(w + 0.1, 0.025, Math.hypot(d / 2 + 0.05, 0.3)); r.rotateX(-sz * Math.atan2(0.3, d / 2 + 0.05)); r.translate(0, y0 + H + 0.15, sz * (d / 4 + 0.03)); g.push(colorize(r, PAL.wood)); }
     scaffold(g, w, d, H, 'xz');
     g.push(box(0.02, H * 0.75, d * 0.8, TARP, w / 2 + 0.24, y0 + H * 0.45, 0));
-    pallet(g, -0.38, 0.44, 'paint'); g.push(cyl(0.08, 0.06, 0.16, '#8fb0c9', 0.4, y0 + 0.1, 0.42, 8)); siteSign(g, -0.44, -0.2);
+    pallet(g, -0.38, 0.44, 'timber'); sawhorse(g, 0.02, 0.48); g.push(cyl(0.08, 0.06, 0.16, '#8fb0c9', 0.4, y0 + 0.1, 0.42, 8)); siteSign(g, -0.44, -0.2);
   } else {                 // finishing: the real building, still with scaffold on one side, wet-paint sign, cones
     finalGen(b, u, g, wg);
     scaffold(g, w, d, H, 'x'); pallet(g, -0.4, 0.44, 'paint'); cones(g, [[0.44, 0.46]]);
@@ -355,7 +356,7 @@ function genStation(b, u, g, wg) {
   if (di === 0) {   // north / south edges: benches facing the entrance, a bin, a planter
     const rot = dj < 0 ? 0 : Math.PI;
     bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot);
-    g.push(cyl(0.07, 0.06, 0.2, RAIL, 0.46, y0 + 0.1, -dj * 0.35, 8));
+    g.push(cyl(0.07, 0.06, 0.2, RAIL, 0.46, y0 + 0.1, dj * 0.42, 8));
     g.push(box(0.2, 0.1, 0.2, PAL.wood, -0.42, y0 + 0.05, -dj * 0.38)); g.push(blob(0.1, PAL.bush2, -0.42, y0 + 0.16, -dj * 0.38, 0, 0.8)); g.push(blob(0.04, PAL.flower, -0.38, y0 + 0.22, -dj * 0.34, 0, 1));
     for (const tx of [-0.3, 0.1]) g.push(box(0.3, 0.005, 0.3, PAL.cream2, tx, y0 + 0.003, -dj * 0.1));
     return;

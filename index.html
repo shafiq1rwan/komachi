@@ -18,27 +18,28 @@
   <div id="brand" class="card">
     <h1><i></i><span>Komachi</span></h1>
     <div id="stats">
-      <span class="stat" title="People living here"><i class="fa-solid fa-user"></i><b id="s-pop">0</b></span>
-      <span class="stat" title="Finished homes"><i class="fa-solid fa-house"></i><b id="s-homes">0</b></span>
-      <span class="stat" title="Jobs available"><i class="fa-solid fa-briefcase"></i><b id="s-jobs">0</b></span>
-      <span class="stat" title="Shops open"><i class="fa-solid fa-store"></i><b id="s-shops">0</b></span>
-      <span class="stat" title="Waiting at the station"><i class="fa-solid fa-train-subway"></i><b id="s-wait">0</b></span>
+      <span class="stat" data-tip="People living here"><i class="fa-solid fa-user"></i><b id="s-pop">0</b></span>
+      <span class="stat" data-tip="Finished homes"><i class="fa-solid fa-house"></i><b id="s-homes">0</b></span>
+      <span class="stat" data-tip="Jobs available"><i class="fa-solid fa-briefcase"></i><b id="s-jobs">0</b></span>
+      <span class="stat" data-tip="Shops open"><i class="fa-solid fa-store"></i><b id="s-shops">0</b></span>
+      <span class="stat" data-tip="Waiting at the station"><i class="fa-solid fa-train-subway"></i><b id="s-wait">0</b></span>
     </div>
   </div>
   <div id="clock" class="card">
     <div id="sun"></div>
     <div id="clock-text"><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
     <div class="seg" id="speed">
-      <button data-s="0" title="Pause (Space)"><i class="fa-solid fa-pause"></i></button>
-      <button data-s="1" class="on" title="Normal speed">1×</button>
-      <button data-s="2" title="Double speed">2×</button>
-      <button data-s="4" title="Fast">4×</button>
+      <button data-s="0" data-tip="Pause (Space)"><i class="fa-solid fa-pause"></i></button>
+      <button data-s="1" class="on" data-tip="Normal speed">1×</button>
+      <button data-s="2" data-tip="Double speed">2×</button>
+      <button data-s="4" data-tip="Fast">4×</button>
     </div>
     <div class="divider-v"></div>
-    <div id="settings">
-      <button class="icon-btn on" id="btn-pixel" title="Pixel look: render at half resolution"><i class="fa-solid fa-border-all"></i></button>
-      <button class="icon-btn" id="btn-labels" title="Name tags above walkers"><i class="fa-solid fa-tag"></i></button>
-      <button class="icon-btn" id="btn-center" title="Centre the camera on the station"><i class="fa-solid fa-crosshairs"></i></button>
+    <button class="icon-btn" id="btn-settings" data-tip="View options" aria-expanded="false"><i class="fa-solid fa-sliders"></i></button>
+    <div id="settings" class="collapsed">
+      <button class="icon-btn on" id="btn-pixel" data-tip="Pixel look: render at half resolution"><i class="fa-solid fa-border-all"></i></button>
+      <button class="icon-btn" id="btn-labels" data-tip="Name tags above walkers"><i class="fa-solid fa-tag"></i></button>
+      <button class="icon-btn" id="btn-center" data-tip="Centre the camera on the station"><i class="fa-solid fa-crosshairs"></i></button>
     </div>
   </div>
 </header>
@@ -62,6 +63,7 @@
 <div id="inspect" class="card"></div>
 <div id="toast"></div>
 <div id="tags"></div>
+<div id="bars"></div>
 
 <div id="intro" class="card">
   <h2>Welcome to Komachi</h2>

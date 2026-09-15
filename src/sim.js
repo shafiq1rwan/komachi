@@ -4,7 +4,8 @@ import { PAL, GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
 import { rand, pick, clamp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup } from './scene.js';
-import { box, cyl, colorize, mergeMesh } from './geometry.js';
+import { box, colorize, mergeMesh } from './geometry.js';
+import { attachCharacter, detachCharacter } from './characters.js';
 import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
@@ -79,25 +80,16 @@ function buildPoints(cellPath, start, end, side, y, lane = null) {
 
 // ───────────────────────────── meshes: people, cars, cats ─────────────────────────────
 const carMeshes = [];
-const PERSON_SCALE = 0.7;   // a floor is ~0.55 units; people read as a bit over half a storey tall
 function makePerson(r) {
-  const grp = new THREE.Group(), rig = new THREE.Group(); rig.scale.setScalar(PERSON_SCALE); grp.add(rig);
-  // legs hang from a hip pivot so they can swing forward when sitting
-  const legs = mergeMesh([box(0.15, 0.13, 0.11, r.pants, 0, -0.065, 0)], false); legs.position.y = 0.13; legs.castShadow = true; rig.add(legs);
-  const g = [];
-  g.push(box(0.17, 0.2, 0.12, r.shirt, 0, 0.23, 0));
-  g.push(box(0.05, 0.16, 0.05, r.shirt, -0.11, 0.24, 0)); g.push(box(0.05, 0.16, 0.05, r.shirt, 0.11, 0.24, 0));
-  const head = new THREE.SphereGeometry(0.085, 8, 6); head.translate(0, 0.42, 0); g.push(colorize(head, r.skin));
-  if (r.hat) { g.push(cyl(0.11, 0.11, 0.03, r.hatColor, 0, 0.47, 0, 10)); g.push(cyl(0.07, 0.075, 0.07, r.hatColor, 0, 0.51, 0, 10)); }
-  else { const hair = new THREE.SphereGeometry(0.09, 8, 6, 0, Math.PI * 2, 0, Math.PI / 2); hair.translate(0, 0.43, 0); g.push(colorize(hair, r.hair)); }
-  if (r.bag) g.push(box(0.06, 0.1, 0.05, r.bagColor, -0.15, 0.2, 0.0));
-  const upper = mergeMesh(g, false); upper.castShadow = true; rig.add(upper);
-  grp.userData = { res: r, legs, upper }; grp.visible = false; peopleGroup.add(grp); return grp;
+  const grp = new THREE.Group(); grp.userData = { res: r }; grp.visible = false; peopleGroup.add(grp);
+  attachCharacter(grp, r);   // rigged model when loaded, box person otherwise
+  return grp;
 }
-/** sitting: legs swing forward from the hip, torso leans back a touch */
+/** sitting: the rigged model bends at the hips and knees; the box fallback swings its legs forward */
 function setPose(r, sitting) {
-  const d = r.mesh && r.mesh.userData; if (!d || !d.legs) return;
-  d.legs.rotation.x = sitting ? -Math.PI / 2 : 0; d.upper.rotation.x = sitting ? -0.08 : 0;
+  const d = r.mesh && r.mesh.userData; if (!d) return;
+  if (d.char) { d.char.sitting = sitting; return; }
+  if (d.legs) { d.legs.rotation.x = sitting ? -Math.PI / 2 : 0; d.upper.rotation.x = sitting ? -0.08 : 0; }
 }
 function makeCar(color, kind = 'kei') {
   const grp = new THREE.Group(); const g = [];
@@ -231,7 +223,7 @@ function removeResident(r) {
   freeSpot(r); if (r.at) r.at.inside.delete(r);
   if (r.job) { r.job.staff.splice(r.job.staff.indexOf(r), 1); }
   if (r.home) r.home.residents.splice(r.home.residents.indexOf(r), 1);
-  peopleGroup.remove(r.mesh); disposeGroup(r.mesh); if (r.car) { peopleGroup.remove(r.car); disposeGroup(r.car); const ci = carMeshes.indexOf(r.car); if (ci >= 0) carMeshes.splice(ci, 1); }
+  detachCharacter(r.mesh); peopleGroup.remove(r.mesh); disposeGroup(r.mesh); if (r.car) { peopleGroup.remove(r.car); disposeGroup(r.car); const ci = carMeshes.indexOf(r.car); if (ci >= 0) carMeshes.splice(ci, 1); }
   residents.splice(residents.indexOf(r), 1);
 }
 
@@ -399,7 +391,7 @@ function updateResidents(simDt, realT) {
       if (done) arrive(r);
     } else {
       const done = moveAlong(r.mesh, tr, tr.speed * simDt);
-      r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
+      if (!r.mesh.userData.char) r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
       if (done) arrive(r);
     }
   }

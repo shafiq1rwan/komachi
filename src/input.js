@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor } from './world.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours } from './world.js';
 import { residents, removeBlock } from './sim.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
@@ -20,6 +20,7 @@ document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () =
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
 document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); });
 document.getElementById('btn-labels').addEventListener('click', e => { showTags = !showTags; e.currentTarget.classList.toggle('on', showTags); if (!showTags) ui.tags.innerHTML = ''; });
+document.getElementById('btn-settings').addEventListener('click', e => { const s = document.getElementById('settings'); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
 document.getElementById('btn-center').addEventListener('click', () => { cam.target.set(0, 0, 0); cam.tView = 18; });
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {
@@ -143,5 +144,21 @@ function updateTags() {
   ui.tags.innerHTML = html;
 }
 
+const barV = new THREE.Vector3();
+/** small progress pills above blocks that are being built or extended */
+function updateBars() {
+  if (cam.view > 30) { ui.bars.innerHTML = ''; return; }
+  let html = '';
+  for (const b of blocks) {
+    if (b.type === 'station') continue;
+    const building = b.stage < DONE, reno = !building && b.renoT > 0; if (!building && !reno) continue;
+    const SH = stageHours(b), total = SH.reduce((a, c) => a + c, 0);
+    const p = building ? (SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT) / total : 1 - b.renoT / 2.5;
+    const cxm = b.cells.reduce((s, c) => s + cx(c.i), 0) / b.cells.length, czm = b.cells.reduce((s, c) => s + cz(c.j), 0) / b.cells.length;
+    barV.set(cxm, 1.35, czm).project(camera); if (barV.z > 1) continue;
+    html += `<div class="pbar${reno ? ' reno' : ''}" style="left:${(barV.x + 1) / 2 * innerWidth}px;top:${(1 - barV.y) / 2 * innerHeight}px"><i><b style="width:${Math.round(p * 100)}%"></b></i><span>${reno ? 'extending' : Math.round(p * 100) + '%'}</span></div>`;
+  }
+  ui.bars.innerHTML = html;
+}
 const inspectTarget = () => pinned || hovered;
-export { keys, setTool, updatePreview, updateHover, updateTags, inspectTarget, clampTarget };
+export { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget };

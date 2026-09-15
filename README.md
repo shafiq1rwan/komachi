@@ -83,6 +83,10 @@ Some things worth knowing:
 
 ## Project layout
 
+An editable Blender resident and animated GLB export are available in
+[`assets/characters/`](assets/characters/README.md), with preview renders in `docs/characters/`.
+This character asset is not yet connected to the runtime resident system.
+
 ```
 index.html            page shell (UI markup)
 src/
@@ -99,6 +103,8 @@ src/
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
   construction.js     builders, crews riding the trains, material deliveries
+  characters.js       rigged resident model: loading, per-person recolour, animation, sit pose
+assets/characters/    Blender source and GLB for the resident character
   sim.js              time, road routing, residents and schedules, ambient traffic, growth
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip
@@ -130,8 +136,9 @@ works from any static host or sub-folder.
 ## Tech
 
 Vanilla JavaScript, [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/), with
-[Font Awesome](https://fontawesome.com/) for UI icons. No framework, no 3D assets: every building, tree, person, car and cat is generated from boxes,
-prisms and dodecahedra at runtime.
+[Font Awesome](https://fontawesome.com/) for UI icons. No framework. Buildings, trees, vehicles and props are generated from boxes, prisms and dodecahedra
+at runtime, people included. A rigged glTF character (`assets/characters/`) can be switched on with
+`?rigged` for comparison.
 
 ## License
 
