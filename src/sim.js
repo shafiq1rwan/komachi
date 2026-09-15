@@ -6,7 +6,7 @@ import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
 import { box, colorize, mergeMesh } from './geometry.js';
 import { attachCharacter, detachCharacter } from './characters.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION } from './world.js';
+import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
@@ -109,7 +109,7 @@ function makeCar(color, kind = 'kei') {
   }
   const wheelX = kind === 'kei' ? 0.13 : 0.16;
   for (const [x, z] of [[-wheelX, -0.13], [wheelX, -0.13], [-wheelX, 0.13], [wheelX, 0.13]]) { const wgm = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 8); wgm.rotateX(Math.PI / 2); wgm.translate(x, 0.07, z); g.push(colorize(wgm, dark)); }
-  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; grp.add(inner);   // model faces +x; forward is +z
+  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(0.8); grp.add(inner);   // model faces +x; forward is +z; a touch smaller than the boxes suggest
   const m = mergeMesh(g, false); inner.add(m);
   const front = kind === 'kei' ? 0.21 : kind === 'van' || kind === 'truck' ? 0.26 : 0.25;
   const lights = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.24), new THREE.MeshStandardMaterial({ color: '#fff6dd', emissive: '#ffe2a8', emissiveIntensity: 0 })); lights.position.set(front, 0.13, 0); inner.add(lights); grp.userData.lights = lights;
@@ -196,7 +196,7 @@ function baseResident(name, hh) {
   return {
     id: S.nextId++, name, hh, home: null, job: null, at: null, state: 'inside', activity: 'arriving', next: S.T, plan: '',
     wake, workStart: clamp(wake + rand(0.5, 1.5), 7, 10.5), workEnd: rand(16.5, 18.5), hasCar: Math.random() < 0.35, lastWorkDay: -1, lunched: -1, returnTo: null, until: 0, purpose: null, jobSearchAt: S.T + rand(0.2, 1),
-    needs: freshNeeds(), needsT: S.T, actKind: 'wait', far: false, lodDist: 0,
+    needs: freshNeeds(), needsT: S.T, actKind: 'wait', far: false, lodDist: 0, carAt: null,
     skin: pick(SKIN), shirt: pick(SHIRTS), pants: pick(['#6b6f7a', '#8a7a6f', '#4a4340', '#9aa4aa', '#7f9b7a']), hair: pick(HAIR), hat: Math.random() < 0.3, hatColor: pick(SHIRTS), bag: Math.random() < 0.45, bagColor: pick(['#4a4340', '#a3764a', '#d98b7a', '#6f9a96']),
     trip: null, mesh: null, car: null, carColor: pick(CARS), carKind: pick(['kei', 'kei', 'kei', 'hatch', 'van']), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(), arrivedT: S.T,
   };
@@ -284,11 +284,11 @@ function enterUnit(r, u) {
   else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); }
   else if (u === r.job) r.actKind = 'work';
   else if (u === r.home) r.actKind = 'home';
-  if (r.movingIn && u === r.home) { r.movingIn = false; u.incoming = Math.max(0, u.incoming - 1); r.activity = 'unpacking boxes'; r.actKind = 'home'; r.next = S.T + rand(0.5, 1); }
+  if (r.movingIn && u === r.home) { r.movingIn = false; u.incoming = Math.max(0, u.incoming - 1); r.activity = 'unpacking boxes'; r.actKind = 'home'; r.next = S.T + rand(0.5, 1); if (r.hasCar) r.carAt = u; }   // the car arrives with the household
 }
 /** Lost their home (or their destination vanished): head back to the station and wait again. */
 function returnToStation(r, fromPos) {
-  r.home = null; r.movingIn = false; r.returnTo = null; r.until = 0; r.purpose = null; if (r.hh) r.hh.home = null;
+  r.home = null; r.movingIn = false; r.returnTo = null; r.until = 0; r.purpose = null; r.carAt = null; if (r.hh) r.hh.home = null;
   if (r.job) { r.job.staff.splice(r.job.staff.indexOf(r), 1); r.job = null; }
   const c = cellAt(fromPos); let start = fromPos.clone().setY(0), path = null;
   if (c) { const roads = c.type === 'road' ? [c] : roadNeighbors(c); if (roads.length) { start = new THREE.Vector3(cx(roads[0].i), 0, cz(roads[0].j)); path = routeCells(roads, roadNeighbors(STATION.anchor.cell)); } }
@@ -315,7 +315,7 @@ function restoreResident(d, hh, home, job) {
   r.mesh = makePerson(r); residents.push(r); hh.members.push(r);
   if (job && job.staff.length < unitCap(job)) { r.job = job; job.staff.push(r); }
   if (home) {
-    r.home = home; home.residents.push(r); r.at = home; home.inside.add(r); r.state = 'inside'; r.actKind = hourOf() >= 22 || hourOf() < 5 ? 'sleep' : 'home'; r.activity = r.actKind === 'sleep' ? 'sleeping' : 'settling back in';
+    r.home = home; home.residents.push(r); r.at = home; home.inside.add(r); r.state = 'inside'; if (r.hasCar) r.carAt = home; r.actKind = hourOf() >= 22 || hourOf() < 5 ? 'sleep' : 'home'; r.activity = r.actKind === 'sleep' ? 'sleeping' : 'settling back in';
     r.mesh.visible = false; r.mesh.position.copy(unitPos(home));
   } else if (d.state === 'away') { r.state = 'away'; r.activity = 'staying in the city tonight'; r.mesh.visible = false; }
   else { r.at = STATION.anchor; STATION.anchor.inside.add(r); r.state = 'inside'; r.mesh.position.copy(STATION.entrance); if (takeSpot(r)) sitDown(r); else { r.mesh.visible = true; r.activity = 'waiting for a home'; } }
@@ -391,8 +391,9 @@ function findJob(r) {
   }
   if (best) { r.job = best; best.staff.push(r); }
 }
-function startTrip(r, cellPath, start, end, destUnit, label) {
-  const drive = r.hasCar && cellPath.length > 6 && destUnit && destUnit !== STATION.anchor && r.at !== STATION.anchor;
+function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
+  const drive = r.hasCar && cellPath.length > 6 && destUnit && destUnit !== STATION.anchor && from && from === r.carAt;
+  if (drive) r.carAt = destUnit;   // the car will be parked at the destination
   if (drive) { if (Array.isArray(start)) start = start[start.length - 1]; if (Array.isArray(end)) end = end[0]; }   // cars stop at the kerb
   const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : buildPoints(cellPath, start, end, 0.34, 0.1);
   r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, speed: drive ? 2.6 : 0.9 * rand(0.85, 1.15), baseY: drive ? 0.08 : 0.1 };
@@ -407,7 +408,7 @@ function go(r, dest, label, purpose = null) {
   const start = from === STATION.anchor ? [r.mesh.position.clone().setY(0.12), ...plazaDetour(r.mesh.position, new THREE.Vector3(cx(path[0].i), 0, cz(path[0].j)))] : exitPts(from);
   if (from === STATION.anchor) freeSpot(r);
   from.inside.delete(r); r.at = null; r.purpose = purpose; r.until = 0; r.actKind = 'travel'; r.plan = label;
-  startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label); return true;
+  startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label, from); return true;
 }
 function stroll(r) {
   const roads = cells.filter(c => c.type === 'road'); if (!roads.length) return false;
@@ -502,9 +503,10 @@ function moveAlong(obj, tr, dist) {
     const a = pts[tr.i], b = pts[tr.i + 1], segLen = a.distanceTo(b) || 0.0001, remain = segLen - tr.t;
     if (dist < remain) { tr.t += dist; dist = 0; } else { dist -= remain; tr.i++; tr.t = 0; }
   }
-  if (tr.i >= pts.length - 1) { obj.position.copy(pts[pts.length - 1]); return true; }
+  // trip points carry a height above the ground (kerb, doorstep); the ground itself comes from the terrain
+  if (tr.i >= pts.length - 1) { const e = pts[pts.length - 1]; obj.position.set(e.x, e.y + terrainY(e.x, e.z), e.z); return true; }
   const a = pts[tr.i], b = pts[tr.i + 1], k = tr.t / (a.distanceTo(b) || 1);
-  obj.position.lerpVectors(a, b, k);
+  obj.position.lerpVectors(a, b, k); obj.position.y += terrainY(obj.position.x, obj.position.z);
   const ang = Math.atan2(b.x - a.x, b.z - a.z); let d = ang - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * 0.35;
   return false;
 }
@@ -563,7 +565,7 @@ function updateWanderers(simDt) {
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
     if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt)) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : rand(0.2, 1.5); }
-    if (w.kind === 'cat') w.mesh.position.y = 0.1 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.01;
+    if (w.kind === 'cat') w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.01;
   }
 }
 
@@ -624,18 +626,18 @@ function removeBlock(block) {
     for (const r of u.staff.slice()) { r.job = null; r.returnTo = null; }
     // residents lose their home and go back to the station to wait; anyone else inside just leaves
     for (const r of u.residents.slice()) {
-      u.residents.splice(u.residents.indexOf(r), 1); r.home = null; r.hh.home = null; r.until = 0; r.purpose = null;
+      u.residents.splice(u.residents.indexOf(r), 1); r.home = null; r.hh.home = null; r.until = 0; r.purpose = null; r.carAt = null;
       if (r.at === u) { u.inside.delete(r); r.at = null; returnToStation(r, unitPos(u)); }
       else if (r.state === 'inside' && r.at) r.next = S.T;           // decide() will send them to the station
       else if (r.trip && r.trip.dest === u) { /* arrive() notices u.removed */ }
       else r.movingIn = false;
     }
-    for (const r of Array.from(u.inside)) { if (r.at === u) { u.inside.delete(r); r.at = null; if (r.home) { const roads = roadNeighbors(u.cell); const path = roads.length ? routeCells(roads, frontRoad(r.home)) : null; if (path) startTrip(r, path, new THREE.Vector3(cx(roads[0].i), 0, cz(roads[0].j)), unitPos(r.home), r.home, 'heading home'); else { r.at = r.home; r.home.inside.add(r); } } else returnToStation(r, unitPos(u)); } }
+    for (const r of Array.from(u.inside)) { if (r.carAt === u) r.carAt = r.home; if (r.at === u) { u.inside.delete(r); r.at = null; if (r.home) { const roads = roadNeighbors(u.cell); const path = roads.length ? routeCells(roads, frontRoad(r.home)) : null; if (path) startTrip(r, path, new THREE.Vector3(cx(roads[0].i), 0, cz(roads[0].j)), unitPos(r.home), r.home, 'heading home'); else { r.at = r.home; r.home.inside.add(r); } } else returnToStation(r, unitPos(u)); } }
     if (u.mesh) { townGroup.remove(u.mesh); disposeGroup(u.mesh); }
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }
   blocks.splice(blocks.indexOf(block), 1);
-  for (const c of cells) if (c.type === 'road' && !lotAdjacent8(c)) { c.type = 'empty'; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
+  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
   refreshWorld();
 }
 

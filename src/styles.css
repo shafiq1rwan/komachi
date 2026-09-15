@@ -31,8 +31,8 @@
   .seg button.on{background:#fff;color:var(--teal2);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .seg button:hover{color:var(--ink)}
   .divider-v{width:1px;height:28px;background:var(--cream2)}
-  #settings{display:flex;gap:4px;overflow:hidden;max-width:120px;transition:max-width .28s ease,opacity .2s ease}
-  #settings.collapsed{max-width:0;opacity:0;pointer-events:none}
+  #settings{display:flex;gap:4px;max-width:120px;transition:max-width .28s ease,opacity .2s ease}   /* overflow stays visible so tooltips can hang below */
+  #settings.collapsed{max-width:0;opacity:0;pointer-events:none;overflow:hidden}
   #btn-settings.on{background:var(--cream2);color:var(--ink)}
   .icon-btn{border:0;background:transparent;width:32px;height:32px;border-radius:10px;color:var(--ink2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .icon-btn:hover{background:var(--cream2);color:var(--ink)}
@@ -86,6 +86,9 @@
   #inspect .bar i{display:block;height:100%;background:var(--teal);border-radius:3px;transition:width .3s}
   #inspect ul{list-style:none;margin:2px 0 0;padding:0;display:flex;flex-direction:column;gap:5px;max-height:220px;overflow:auto}
   #inspect li{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:700}
+  #inspect li[data-res]{cursor:pointer;border-radius:7px;padding:2px 4px;margin:-2px -4px}
+  #inspect li[data-res]:hover{background:#fff}
+  #inspect li[data-res]:hover b{color:var(--teal2)}
   #inspect li i{width:10px;height:10px;border-radius:3px;background:var(--p);flex:none;box-shadow:0 -6px 0 -2px var(--h)}
   #inspect li b{white-space:nowrap;font-weight:700}
   #inspect li span{color:var(--ink2);font-weight:600;margin-left:auto;text-align:right;font-size:11px;line-height:1.25}
@@ -94,8 +97,16 @@
   #inspect .hh{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;margin-top:2px}
   #inspect .hh span{color:var(--ink2);font-weight:600;font-size:11px}
   #inspect .cta{border:0;background:var(--teal);color:#fff;font:inherit;font-weight:800;font-size:12px;padding:7px 12px;border-radius:10px;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px}
+  #inspect .small{font-size:11px;color:var(--ink2);font-weight:600}
+  #inspect.person{width:236px;gap:6px;padding:12px 14px 10px}
+  #inspect.person h2{font-size:16px}
+  #inspect.person .row{font-size:11.5px}
+  #inspect.person .row b{text-align:right;max-width:150px}
+  #inspect.person .cta{padding:5px 10px;font-size:11px;margin-top:2px}
   #inspect .cta:hover{background:var(--teal2)}
   #inspect .cta.off{background:var(--cream2);color:var(--ink)}
+  #inspect .cta.ghost{background:transparent;color:var(--teal2);border:1.5px solid var(--cream2);padding:6px 10px}
+  #inspect .cta.ghost:hover{background:#fff}
   .tag.follow{background:var(--teal);color:#fff}
   #toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:12px;font-weight:700;font-size:13px;opacity:0;transition:all .25s;pointer-events:none}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}

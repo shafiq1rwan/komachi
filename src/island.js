@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { S } from './state.js';
 import { mat, blob, cyl, box, mergeMesh, swayMat, colorize } from './geometry.js';
-import { scene, HALF } from './scene.js';
+import { scene, HALF, N, cx, cz } from './scene.js';
 import { biome } from './biome.js';
 
 function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
@@ -95,46 +95,81 @@ let pierTheta = null;
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
 
-// ── the hill: three grassy terraces opposite the pier, wooded, with a small shrine on top ──
-// hillFrac() is the normalised distance from the hill centre (1 = foot of the lowest terrace);
-// hillLevel() gives the terrace (0 = flat ground). Cells on or just around the hill are type 'hill'.
-const TERRACE = 0.55, HILL_STEPS = [1, 0.72, 0.42];
+// ── the hill: cell-aligned terraces opposite the pier. Each hill cell sits wholly on one terrace, so every
+//    terrace cell is a flat plot at its own height; retaining walls run along cell edges. Some cells stay wild
+//    and wooded, the summit keeps its shrine, and one slope road per lip on the town side joins the terraces. ──
+const TERRACE = 0.55, HILL_STEPS = [1, 0.64, 0.3];
 const hillTheta = pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
-const [HX, HZ] = coastPoint(hillTheta, -0.4 * radius(hillTheta));
-const HR = 3.6, hillPhase = [rng() * TAU, rng() * TAU];
+const [HX, HZ] = coastPoint(hillTheta, -0.42 * radius(hillTheta));
+const HR = 5.4, hillPhase = [rng() * TAU, rng() * TAU];
 const hct = Math.cos(hillTheta), hst = Math.sin(hillTheta);
-function hillOutline(a) { return HR * (1 + 0.16 * Math.sin(2 * a + hillPhase[0]) + 0.09 * Math.sin(3 * a + hillPhase[1])); }
+function hillOutline(a) { return HR * (1 + 0.12 * Math.sin(2 * a + hillPhase[0]) + 0.07 * Math.sin(3 * a + hillPhase[1])); }
 function hillFrac(x, z) {
-  const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / 0.85, v = (-dx * hst + dz * hct) / 1.25;   // squashed radially, stretched along the shore
+  const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / 0.9, v = (-dx * hst + dz * hct) / 1.3;   // squashed radially, stretched along the shore
   return Math.hypot(u, v) / hillOutline(Math.atan2(v, u));
 }
 function hillLevel(x, z) { const f = hillFrac(x, z); return f < HILL_STEPS[2] ? 3 : f < HILL_STEPS[1] ? 2 : f < HILL_STEPS[0] ? 1 : 0; }
-const onHill = (x, z) => hillFrac(x, z) < 1.12;
-function hillPoint(a, f) { const r = f * hillOutline(a), u = Math.cos(a) * r * 0.85, v = Math.sin(a) * r * 1.25; return [HX + u * hct - v * hst, HZ + u * hst + v * hct]; }
+const onHill = (x, z) => hillLevel(x, z) > 0;
 const hillTop = TERRACE * 3;
+const cellHash = (i, j) => { const v = Math.sin(i * 12.9898 + j * 78.233 + S.seed) * 43758.5453; return v - Math.floor(v); };
+
+// ramps: along the grid axis that points from the hill centre toward the town, find each lip and make the
+// three cells L (low, flat) → R (slope) → H (high, flat) permanent roads
+const ramps = [];
 {
-  for (let k = 0; k < 3; k++) {
-    const s = new THREE.Shape();
-    for (let n = 0; n < 72; n++) { const [x, z] = hillPoint(n / 72 * TAU, HILL_STEPS[k]); if (n === 0) s.moveTo(x, z); else s.lineTo(x, z); }
-    s.closePath();
-    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: TERRACE + 0.3, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.14, bevelSegments: 2 }), [mat(biome.grass), mat(PAL.landSide)]);
-    m.rotation.x = Math.PI / 2; m.position.y = TERRACE * (k + 1) - 0.12; m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  const dir = Math.abs(hct) >= Math.abs(hst) ? [-Math.sign(hct) || -1, 0] : [0, -Math.sign(hst) || -1];
+  const ci0 = Math.round(HX + HALF - 0.5), cj0 = Math.round(HZ + HALF - 0.5);
+  const at = t => ({ i: ci0 + dir[0] * t, j: cj0 + dir[1] * t });
+  const lvl = t => { const c = at(t); return c.i < 0 || c.j < 0 || c.i >= N || c.j >= N ? 0 : hillLevel(cx(c.i), cz(c.j)); };
+  for (const k of [1, 0]) {
+    let pick = -1;
+    for (let t = 1; t < 16 && pick < 0; t++) if (lvl(t - 1) === k + 1 && lvl(t) === k && lvl(t + 1) === k) pick = t;
+    if (pick < 0) for (let t = 1; t < 16 && pick < 0; t++) if (lvl(t - 1) === k + 1 && lvl(t) === k) pick = t;
+    if (pick < 0) continue;
+    ramps.push({ R: at(pick), H: at(pick - 1), L: at(pick + 1), di: -dir[0], dj: -dir[1], h0: k * TERRACE, h1: (k + 1) * TERRACE, level: k });
   }
+}
+/** what the grid should make of cell (i, j): null off the hill, else { level, ramp, keep, wild } */
+function terraceInfo(i, j) {
+  for (const r of ramps) {
+    if (r.R.i === i && r.R.j === j) return { level: r.level, ramp: r, keep: true, wild: false };
+    if (r.H.i === i && r.H.j === j) return { level: r.level + 1, ramp: null, keep: true, wild: false };
+    if (r.L.i === i && r.L.j === j) return { level: r.level, ramp: null, keep: true, wild: false };
+  }
+  const level = hillLevel(cx(i), cz(j)); if (!level) return null;
+  return { level, ramp: null, keep: false, wild: level === 3 || cellHash(i, j) < 0.38 };
+}
+const buildableTerrace = info => !!info && !info.keep && !info.wild;
+{
+  // terraces: a box per cell (earth sides, grass cap) so tops are flush and walls fall on cell edges; a wedge under each ramp
   const g = [];
-  // woods: denser than the flat land, more pines, no trees on the terrace lips or the summit clearing
-  for (let n = 0; n < 160; n++) {
-    const a = rng() * TAU, f = Math.sqrt(rng()) * 0.96; const [x, z] = hillPoint(a, f);
-    if (HILL_STEPS.some(s => Math.abs(f - s) < 0.08) || f < 0.3) continue;
-    const y = TERRACE * hillLevel(x, z), s = 0.75 + rng() * 0.45, r = rng();
-    if (r < 0.45) { g.push(cyl(0.05 * s, 0.07 * s, 0.45 * s, PAL.wood2, x, y + 0.22 * s, z, 5)); g.push(cyl(0.001, 0.34 * s, 0.7 * s, '#7f9b7a', x, y + 0.72 * s, z, 6)); g.push(cyl(0.001, 0.24 * s, 0.5 * s, '#8fae78', x, y + 1.05 * s, z, 6)); }
-    else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(rng() * tc.length)]; g.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); g.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
-    else g.push(blob(0.2 * s, rng() < 0.5 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const info = terraceInfo(i, j); if (!info || !info.level) continue;
+    const h = info.level * TERRACE, x = cx(i), z = cz(j);
+    g.push(box(1, h + 0.05, 1, PAL.landSide, x, (h - 0.15) / 2, z)); g.push(box(1, 0.05, 1, biome.grass, x, h - 0.025, z));
+    if (info.ramp) {
+      const r = info.ramp, dh = r.h1 - r.h0; const sh = new THREE.Shape(); sh.moveTo(-0.5, 0); sh.lineTo(0.5, 0); sh.lineTo(0.5, dh); sh.closePath();
+      const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-r.dj, r.di)); w.translate(x, h, z); g.push(colorize(w, PAL.landSide));
+    }
   }
-  // a small shrine on the summit, its torii facing the town, stone lanterns, and steps down the town side
-  const fx = -hct, fz = -hst;                      // toward the station
-  const rx = -fz, rz = fx;                         // right-hand side
-  const ang = Math.atan2(fx, fz), y0 = hillTop;
-  const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); g.push(geo); };
+  const tm = mergeMesh(g, true); if (tm) { tm.receiveShadow = true; scene.add(tm); }
+  // woods on the wild cells, denser than the flat land and heavier on pines
+  const wg = [];
+  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
+    const info = terraceInfo(i, j); if (!info || !info.wild) continue;
+    const y = info.level * TERRACE, x0 = cx(i), z0 = cz(j), n = 2 + (cellHash(i + 7, j + 3) < 0.5 ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      const x = x0 + (cellHash(i + k * 5, j + 11) - 0.5) * 0.7, z = z0 + (cellHash(i + 17, j + k * 3) - 0.5) * 0.7;
+      if (Math.hypot(x - HX, z - HZ) < 1.1) continue;   // the summit clearing
+      const s = 0.7 + cellHash(i * 3 + k, j) * 0.5, r = cellHash(i, j * 7 + k);
+      if (r < 0.45) { wg.push(cyl(0.05 * s, 0.07 * s, 0.45 * s, PAL.wood2, x, y + 0.22 * s, z, 5)); wg.push(cyl(0.001, 0.34 * s, 0.7 * s, '#7f9b7a', x, y + 0.72 * s, z, 6)); wg.push(cyl(0.001, 0.24 * s, 0.5 * s, '#8fae78', x, y + 1.05 * s, z, 6)); }
+      else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(cellHash(i + 1, j + 1 + k) * tc.length)]; wg.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); wg.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
+      else wg.push(blob(0.2 * s, r < 0.92 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
+    }
+  }
+  // a small shrine on the summit, its torii facing the town, with stone lanterns
+  const fx = -hct, fz = -hst, rx = -fz, rz = fx, ang = Math.atan2(fx, fz), y0 = hillTop;
+  const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); wg.push(geo); };
   const rot = geo => { geo.rotateY(ang); return geo; };
   put(rot(box(0.56, 0.36, 0.44, PAL.cream2)), -0.55, 0, y0 + 0.18); put(rot(box(0.72, 0.1, 0.58, PAL.roofSage)), -0.55, 0, y0 + 0.4); put(rot(box(0.46, 0.1, 0.36, PAL.roofSage)), -0.55, 0, y0 + 0.5);
   put(rot(box(0.6, 0.03, 0.6, PAL.concrete)), -0.55, 0, y0 + 0.015);
@@ -142,11 +177,7 @@ const hillTop = TERRACE * 3;
   put(rot(box(0.76, 0.06, 0.07, PAL.roofRose)), 0.35, 0, y0 + 0.58); put(rot(box(0.6, 0.045, 0.06, PAL.roofRose)), 0.35, 0, y0 + 0.46);
   for (const side of [-0.5, 0.5]) { put(cyl(0.035, 0.045, 0.28, PAL.concrete, 0, 0, 0, 6), 0.1, side, y0 + 0.14); put(rot(box(0.14, 0.1, 0.14, PAL.concrete)), 0.1, side, y0 + 0.32); put(rot(box(0.18, 0.03, 0.18, PAL.concrete)), 0.1, side, y0 + 0.38); }
   put(rot(box(0.5, 0.02, 1.0, PAL.concrete)), 0.05, 0, y0 + 0.01);
-  for (const [lvl, f] of [[3, HILL_STEPS[2]], [2, HILL_STEPS[1]]]) {   // a = π is the town side in hill-local coordinates
-    const [ex, ez] = hillPoint(Math.PI, f);
-    for (let k = 0; k < 6; k++) { const t = k / 6, y = TERRACE * (lvl - 1) + TERRACE * (1 - t); g.push(box(0.5, 0.06, 0.16, PAL.concrete, ex + fx * (0.5 - t * 0.9), y - 0.03, ez + fz * (0.5 - t * 0.9), ang)); }
-  }
-  const hm = mergeMesh(g, true); if (hm) scene.add(hm);
+  const hm = mergeMesh(wg, true); if (hm) scene.add(hm);
 }
 
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel };
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE };

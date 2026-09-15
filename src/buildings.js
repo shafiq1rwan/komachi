@@ -390,8 +390,12 @@ function rebuildUnitMesh(u, pop = false) {
   const grp = new THREE.Group();
   const body = mergeMesh(g, false); grp.add(body);
   if (wg.length) { const wm = mergeMesh(wg, false, false); wm.material = u.winMat; wm.castShadow = false; grp.add(wm); }
-  const gl = makeGlow(0, 0.13, 0.15, 2.6); gl.material = u.glowMat; grp.add(gl); u.glow = gl;
-  grp.position.set(cx(u.cell.i), 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;
+  if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
+  else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
+    const spots = u.di && u.dj ? [[-u.di * 0.32, -u.dj * 0.32, 1.5]] : (!u.di && !u.dj) ? [[-0.2, 0.47, 0.9], [0.2, 0.47, 0.9]] : [];
+    for (const [gx, gz, gs] of spots) { const gl = makeGlow(gx, 0.135, gz, gs); gl.material = u.glowMat; grp.add(gl); if (!u.glow) u.glow = gl; }
+  }
+  grp.position.set(cx(u.cell.i), u.cell.h || 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;
   grp.userData.unit = u; u.mesh = grp; townGroup.add(grp);
   if (pop) u.pop = 1;
 }

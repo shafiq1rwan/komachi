@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 16 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 17 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -35,13 +35,17 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `mergeGeometries` needs all-indexed or all-non-indexed; `mergeMesh` converts to non-indexed.
 - Building generators must set `u.door` so trips start on the doorstep. Front is local +z.
 - `DONE` (5) in world.js is the finished stage; never compare against a literal stage number.
-- Heights: asphalt top 0.08, sidewalk 0.10, plinth 0.12. Cars keep left; walkers pick one sidewalk.
+- Heights: asphalt top 0.08, sidewalk 0.10, plinth 0.12, all relative to the cell's ground `c.h`
+  (0 on the flat, `level × 0.55` on hill terraces). Trip points hold height above ground; `moveAlong`
+  adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
+  Cars keep left; walkers pick one sidewalk.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
 - People are the box figures by default (user preference). The rigged GLB in `assets/characters/` is
   opt-in with `?rigged` via `src/characters.js`. `new THREE.Color(hex)` is already linear; never call
   `convertSRGBToLinear` on it. GLTFLoader renames `thigh.L` → `thighL`.
 - Cells: `water | hill | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
-  zoned over road cells (`placeable` in world.js), never over the station ring.
+  zoned over road cells (`placeable` in world.js), never over the station ring, ramp roads (`c.keep`)
+  or across two terraces. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
 
@@ -85,8 +89,7 @@ Decisions already made (do not reopen without asking):
 
 Open threads the user has not decided:
 - Whether people should cross at zebra crossings instead of at trip end (carried to Phase 4).
-- Buildable hill terraces (optional Phase 3.5 in docs/ROADMAP.md), deferred until after save/load; the
-  save format would need a ground height per block.
+- Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.
 - If the rigged model is ever adopted: needs a low-poly LOD and a no-bag variant.
 
 Next up is Phase 4 (station commuting, persistent bikes, taxis) when the user says go; its scope is in
@@ -103,9 +106,11 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 1. ✅ Island, Japanese identity, building kit, street props, ambient life, touch basics
 2. ✅ Construction stages, crews by train, deliveries, renovation
 3. ✅ Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
-   3.5 (optional, after save/load) buildable hill terraces; the hill is wild until then
-4. Station commuting, persistent bikes and taxis
-5. Economy and dynamic business selection
+   3.5 ✅ buildable hill terraces with slope roads
+4. Station commuting, persistent bikes and taxis (starts with the hill unlock at ~60 residents)
+   4.5 (optional) canal with bridges
+5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
+   5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism
 7. Farming and fishing
 8. Mobile quality levels, PWA

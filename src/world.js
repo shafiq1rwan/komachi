@@ -4,14 +4,21 @@ import { PAL, ROOFS, WALLS, SHOP_WALLS, WORK_WALLS, AWNINGS, FAMILY, HOME_SUFFIX
 import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
-import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat } from './geometry.js';
-import { isLand, coastDist, onHill } from './island.js';
+import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
+import { TERRACE } from './island.js';
+import { isLand, coastDist, terraceInfo } from './island.js';
 import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
 
 const cells = [];
-for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null });
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false });
 const cell = (i, j) => (i < 0 || j < 0 || i >= N || j >= N) ? null : cells[j * N + i];
+/** ground height under a world point: terrace height, or a slope across a ramp cell */
+function terrainY(x, z) {
+  const c = cell(Math.floor(x + HALF), Math.floor(z + HALF)); if (!c) return 0;
+  if (c.ramp) { const { di, dj, h0, h1 } = c.ramp; const s = Math.max(0, Math.min(1, (x - cx(c.i)) * di + (z - cz(c.j)) * dj + 0.5)); return h0 + (h1 - h0) * s; }
+  return c.h || 0;
+}
 const DIR4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 function treeSpec(i, j) {
   const r = hash(j * 3 + 1, i * 5 + 2), r2 = hash(i + 11, j + 7), near = coastDist(cx(i), cz(j)) < 2.6;
@@ -22,12 +29,18 @@ function treeSpec(i, j) {
 }
 for (const c of cells) {   // water outside the coast; sparse, gently clustered vegetation on land
   if (!isLand(cx(c.i), cz(c.j))) { c.type = 'water'; continue; }
-  if (onHill(cx(c.i), cz(c.j))) { c.type = 'hill'; continue; }   // the wooded hill is left wild
+  const ti = terraceInfo(c.i, c.j);
+  if (ti) {   // the hill: flat terrace cells are plots at their terrace height; ramps and their ends are permanent roads; the rest is wild
+    c.h = ti.level * TERRACE;
+    if (ti.ramp) { c.type = 'road'; c.ramp = ti.ramp; c.keep = true; continue; }
+    if (ti.keep) { c.type = 'road'; c.keep = true; continue; }
+    if (ti.wild) { c.type = 'hill'; continue; }
+  }
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
   if (h < (0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
 }
 
-let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null; const lampHeads = [], lampGlows = [];
+let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMesh = null; const lampHeads = [], lampGlows = [];
 const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: true, opacity: 0.8 });
 const lampGlowMat = glowMat.clone();
 
@@ -36,6 +49,7 @@ function rebuildDecor() {
   const g = [];
   for (const c of cells) {
     if (c.type !== 'empty' || !c.tree) continue;
+    const g0 = g.length;
     const t = c.tree, x = cx(c.i) + t.ox, z = cz(c.j) + t.oz;
     if (t.kind === 'tree') {
       const tc = biome.treeColors, col = tc[Math.min(tc.length - 1, Math.floor(t.c * tc.length))];
@@ -59,6 +73,7 @@ function rebuildDecor() {
       g.push(blob(0.16 * t.s, PAL.bush2, x, 0.09 * t.s, z, 0, 0.55));
       for (let k = 0; k < 3; k++) g.push(blob(0.045, k % 2 ? PAL.flower : PAL.cream2, x + Math.cos(k * 2.1) * 0.1, 0.17 * t.s, z + Math.sin(k * 2.1) * 0.1, 0, 1));
     }
+    if (c.h) for (let k = g0; k < g.length; k++) g[k].translate(0, c.h, 0);
   }
   decorMesh = mergeMesh(g, true); if (decorMesh) { decorMesh.material = swayMat; townGroup.add(decorMesh); }
 }
@@ -69,6 +84,8 @@ function lotAdjacent8(c) { for (let dj = -1; dj <= 1; dj++) for (let di = -1; di
 function rebuildRoads() {
   if (roadMesh) { scene.remove(roadMesh); roadMesh.geometry.dispose(); }
   if (lampMesh) { scene.remove(lampMesh); lampMesh.geometry.dispose(); }
+  if (coneMesh) { scene.remove(coneMesh); coneMesh.geometry.dispose(); coneMesh = null; }
+  const cones = [];
   if (wireMesh) { scene.remove(wireMesh); wireMesh.geometry.dispose(); wireMesh = null; }
   const poles = [];
   for (const h of lampHeads) scene.remove(h); for (const g of lampGlows) scene.remove(g); lampHeads.length = 0; lampGlows.length = 0;
@@ -77,6 +94,15 @@ function rebuildRoads() {
     if (c.type !== 'road') continue;
     const x = cx(c.i), z = cz(c.j), h = hash(c.i, c.j);
     const asp = h < 0.5 ? PAL.asphalt : PAL.asphalt2;
+    if (c.ramp) {   // a slope road up to the next terrace: tilted asphalt with a pavement band each side
+      const { di, dj, h0, h1 } = c.ramp, dh = h1 - h0, L = Math.hypot(1, dh), ang = Math.atan2(dh, 1), ry = Math.atan2(di, dj);
+      const tilt = geo => { geo.rotateX(-ang); geo.rotateY(ry); return geo; };
+      const a = tilt(new THREE.BoxGeometry(1, 0.08, L)); a.translate(x, h0 + dh / 2 + 0.04, z); g.push(colorize(a, PAL.asphalt));
+      for (const sgn of [-1, 1]) { const b = tilt(new THREE.BoxGeometry(0.19, 0.1, L)); b.translate(x + dj * 0.405 * sgn, h0 + dh / 2 + 0.05, z - di * 0.405 * sgn); g.push(colorize(b, PAL.sidewalk)); }
+      for (const o of [-0.25, 0.25]) { const d = tilt(new THREE.BoxGeometry(0.03, 0.004, 0.22)); d.translate(x + di * o, h0 + dh / 2 + dh * o + 0.082, z + dj * o); g.push(colorize(d, PAL.cream2)); }
+      continue;
+    }
+    const gy = c.h || 0, g0 = g.length, lg0 = lg.length, hd0 = lampHeads.length, gl0 = lampGlows.length, cn0 = cones.length, po0 = poles.length;
     const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; });
     // a road cell whose neighbour is a parallel road (two blocks placed two cells apart) is one half of a
     // two-lane avenue: asphalt runs straight across the shared edge with a dashed centre line on it
@@ -133,12 +159,27 @@ function rebuildRoads() {
     }
     if (h > 0.62 && lotAdjacent4(c)) {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
+      // street lamp: a pole on the sidewalk corner, an arm reaching over the road, a housing lit from
+      // underneath, a soft beam fading to the ground, and a pool of light on the asphalt
       const px = x + d[0] * 0.4 + d[1] * 0.35, pz = z + d[1] * 0.4 - d[0] * 0.35;
-      lg.push(cyl(0.025, 0.035, 0.95, PAL.lamp, px, 0.55, pz, 6));
-      lg.push(box(0.12, 0.05, 0.12, PAL.lamp, px, 0.115, pz));
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.11, 0.13), lampHeadMat); head.position.set(px, 1.08, pz); head.castShadow = false; scene.add(head); lampHeads.push(head);
-      lg.push(box(0.17, 0.03, 0.17, PAL.lamp, px, 1.15, pz));
-      const gl = makeGlow(px, 0.125, pz, 2.6); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
+      const ax = -d[0], az = -d[1], ry = Math.atan2(ax, az), top = 1.42;   // arm points away from the lot, over the road
+      lg.push(cyl(0.02, 0.032, top - 0.1, PAL.lamp, px, 0.1 + (top - 0.1) / 2, pz, 6));
+      lg.push(box(0.12, 0.05, 0.12, PAL.lamp, px, 0.125, pz));
+      lg.push(cyl(0.034, 0.034, 0.05, PAL.lamp, px, 0.9, pz, 6));
+      const arm = new THREE.BoxGeometry(0.03, 0.03, 0.4); arm.rotateX(-0.3); arm.rotateY(ry); arm.translate(px + ax * 0.19, top + 0.06, pz + az * 0.19); lg.push(colorize(arm, PAL.lamp));
+      const hx = px + ax * 0.4, hz = pz + az * 0.4, hy = top + 0.12;
+      const housing = new THREE.BoxGeometry(0.13, 0.05, 0.24); housing.rotateY(ry); housing.translate(hx, hy, hz); lg.push(colorize(housing, PAL.lamp));
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.2), lampHeadMat); head.rotation.y = ry; head.position.set(hx, hy - 0.03, hz); head.castShadow = false; scene.add(head); lampHeads.push(head);
+      cones.push(lightCone(hx, hy - 0.03, hz, 0.07, 0.62, PAL.lampGlow));
+      const gl = makeGlow(hx, 0.125, hz, 2.0); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
+    }
+    if (gy) {   // lift everything this cell added to its terrace
+      for (let k = g0; k < g.length; k++) g[k].translate(0, gy, 0);
+      for (let k = lg0; k < lg.length; k++) lg[k].translate(0, gy, 0);
+      for (let k = hd0; k < lampHeads.length; k++) lampHeads[k].position.y += gy;
+      for (let k = gl0; k < lampGlows.length; k++) lampGlows[k].position.y += gy;
+      for (let k = cn0; k < cones.length; k++) cones[k].translate(0, gy, 0);
+      for (let k = po0; k < poles.length; k++) poles[k].p.y += gy;
     }
   }
   // cables: each pole links to its two nearest neighbours within reach; a few birds perch mid-span
@@ -161,6 +202,7 @@ function rebuildRoads() {
   if (pos.length) { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); wireMesh = new THREE.LineSegments(wg, wireMat); scene.add(wireMesh); }
   roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; scene.add(roadMesh); }
   lampMesh = mergeMesh(lg, false, true); if (lampMesh) scene.add(lampMesh);
+  if (cones.length) { coneMesh = mergeMesh(cones, false, false); coneMesh.material = coneMat; coneMesh.receiveShadow = false; coneMesh.renderOrder = 6; scene.add(coneMesh); }
 }
 
 // ───────────────────────────── blocks & units ─────────────────────────────
@@ -187,7 +229,8 @@ function makeUnit(block, c) {
 // A cell can take a building if it is empty, or a street that is not the station's ring and would still have
 // a street (road or empty cell) on one side once the whole selection is built, so the door has somewhere to face.
 function placeable(c, sel = []) {
-  if (!c || (c.type !== 'empty' && c.type !== 'road')) return false;
+  if (!c || (c.type !== 'empty' && c.type !== 'road') || c.keep) return false;
+  if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
   return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
 }
@@ -251,16 +294,22 @@ function placeBlock(type, sel, preset = null) {
   refreshWorld(); for (const u of block.units) rebuildUnitMesh(u);
   return block;
 }
-function pickFacing(u) {
-  const order = [[0, 1, 0], [1, 0, Math.PI / 2], [0, -1, Math.PI], [-1, 0, -Math.PI / 2]];
-  for (const [di, dj, ry] of order) { const n = cell(u.cell.i + di, u.cell.j + dj); if (n && n.type === 'road') return ry; }
-  return 0;
+const FACINGS = [[0, 1, 0], [1, 0, Math.PI / 2], [0, -1, Math.PI], [-1, 0, -Math.PI / 2]];
+/** the sides of a unit that face a street (a door must open onto one) */
+function facingOptions(u) { return FACINGS.filter(([di, dj]) => { const n = cell(u.cell.i + di, u.cell.j + dj); return n && n.type === 'road'; }).map(f => f[2]); }
+function pickFacing(u) { const o = facingOptions(u); return o.length ? o[0] : 0; }
+/** turn a building to face the next street around it; returns false if only one side has a street */
+function rotateUnit(u) {
+  const o = facingOptions(u); if (o.length < 2) return false;
+  const k = o.indexOf(u.facing || 0); u.facing = o[(k + 1) % o.length];
+  rebuildUnitMesh(u); for (const fn of worldListeners) fn();   // routes start at the door, so cached paths are stale
+  return true;
 }
 const worldListeners = [];
 function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable,
+export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
-  STATION, placeStation, KIND_LABEL, wireMat };
+  STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };

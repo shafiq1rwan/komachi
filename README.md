@@ -44,7 +44,8 @@ Other scripts:
 | Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Remove |
 | Zone a block | Pick a zone, then click and drag across one to three touching cells |
 | Inspect | Hover any building or person. In Explore mode, click to pin the card |
-| Follow | Pin a resident and press Follow on their card. Pan, zoom, a key or another tool lets go |
+| Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
+| Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons in the clock card, or Space to pause |
 | Look | "Pixel look" toggles the half-resolution chunky render; the sliders button also holds Centre and Start over |
 
@@ -57,8 +58,12 @@ Some things worth knowing:
   06:00. Hover the station to see who is waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
-  cliffs, a pier and a boat, and a wooded hill with a shrine on the far side from the pier. Zoom out to
-  see all of it; nothing can be built in the water or on the hill.
+  cliffs, a pier and a boat, and a terraced hill with a shrine on the far side from the pier. Zoom out
+  to see all of it; nothing can be built in the water.
+- **Build up the hill.** The hill rises in three terraces. Each terrace cell is a plot at its own
+  height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. Two
+  slope roads on the town side climb from terrace to terrace; zone next to their feet and your streets
+  join up, and residents walk and drive up the slopes to hillside homes with a view.
 - **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
   junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
   Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.

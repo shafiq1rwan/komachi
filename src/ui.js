@@ -1,11 +1,11 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
 import { S } from './state.js';
-import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
+import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
-  pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
+  pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), seek: document.getElementById('s-seek'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function whereIs(r) {
@@ -37,7 +37,7 @@ function growthRow(b) {
   if (p >= 1 && !growthAllowed(b)) return `<div class="empty">Ready to grow once the town is bigger${b.level === 1 ? ' (3+ blocks, with homes and jobs)' : ' (6+ blocks of every kind)'}</div>`;
   return `<div class="row"><span>Growing</span><b>${Math.round(100 * p)}%</b></div><div class="bar"><i style="width:${100 * p}%"></i></div>`;
 }
-function personLi(r, detail) { return `<li style="--p:${r.shirt};--h:${r.hat ? r.hatColor : r.hair}"><i></i><b>${esc(r.name)}</b><span>${esc(detail)}</span></li>`; }
+function personLi(r, detail) { return `<li data-res="${r.id}" title="Follow ${esc(r.name.split(' ')[0])}" style="--p:${r.shirt};--h:${r.hat ? r.hatColor : r.hair}"><i></i><b>${esc(r.name)}</b><span>${esc(detail)}</span></li>`; }
 function renderInspect(target, follow = null) {
   if (!target) { ui.inspect.classList.remove('show'); return; }
   let html = '';
@@ -82,6 +82,7 @@ function renderInspect(target, follow = null) {
         else if (type === 'shop') html += `<div class="empty">No customers right now</div>`;
       }
     }
+    if (facingOptions(u).length > 1) html += `<button class="cta ghost" data-rotate title="Turn the door to the next street (R)"><i class="fa-solid fa-rotate"></i> Rotate to face the other street</button>`;
   } else if (target.worker) {
     const k = target.worker;
     html += `<div class="kind" style="--k:#e9a25a">Construction crew</div><h2>${esc(k.name)}</h2><div class="sub">${esc(k.activity)}</div><div class="divider"></div>`;
@@ -91,24 +92,24 @@ function renderInspect(target, follow = null) {
   } else if (target.res) {
     const r = target.res;
     html += `<div class="kind" style="--k:${r.shirt}">${r.home ? 'Resident' : 'Newcomer'}</div><h2>${esc(r.name)}</h2><div class="sub">${esc(r.state === 'inside' ? whereIs(r) : `${r.state} · ${r.activity}`)}</div><div class="divider"></div>`;
+    // compact: five short rows at most; wake time and transport live in the small print
     const others = r.hh.members.filter(m => m !== r);
-    html += `<div class="row"><span>Household</span><b>${esc(r.hh.kind === 'solo' ? 'lives alone' : hhLabel(r.hh).toLowerCase())}</b></div>`;
-    if (others.length) html += `<div class="row"><span>Lives with</span><b>${esc(others.map(m => m.name.split(' ')[0]).join(', '))}</b></div>`;
-    html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : r.hh.home ? `${esc(r.hh.home.block.name)} (soon)` : 'none yet'}</b></div>`;
-    if (!r.home) html += `<div class="row"><span>Arrived</span><b>Day ${r.arrivedDay} by train</b></div>`;
-    html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.home ? 'looking for work' : '–'}</b></div>`;
+    const who = r.hh.kind === 'solo' ? 'lives alone' : `${hhLabel(r.hh).toLowerCase()}${others.length ? ` · with ${others.map(m => m.name.split(' ')[0]).join(', ')}` : ''}`;
+    html += `<div class="row"><span>Household</span><b>${esc(who)}</b></div>`;
+    html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : r.hh.home ? `${esc(r.hh.home.block.name)} (soon)` : `none yet · arrived day ${r.arrivedDay}`}</b></div>`;
+    if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : 'looking for work'}</b></div>`;
     html += `<div class="row"><span>Feeling</span><b>${esc(moodWords(r))}</b></div>`;
     if (r.trip && r.trip.dest) html += `<div class="row"><span>Heading to</span><b>${esc(r.trip.dest.block.name)}</b></div>`;
-    html += `<div class="row"><span>Wakes at</span><b>${fmtHour(r.wake)}</b></div>`;
-    html += `<div class="row"><span>Gets around</span><b>${r.hasCar ? 'by car' : 'on foot'}</b></div>`;
+    html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : 'on foot'}</div>`;
     if (r.state !== 'away') html += follow === r ? `<button class="cta off" data-follow="stop"><i class="fa-solid fa-video-slash"></i> Stop following</button>` : `<button class="cta" data-follow="start"><i class="fa-solid fa-video"></i> Follow</button>`;
   }
-  ui.inspect.innerHTML = html; ui.inspect.classList.add('show');
+  ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker));
 }
 function updateStats() {
   ui.pop.textContent = residents.length;
   ui.homes.textContent = blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
-  ui.jobs.textContent = jobUnits().reduce((s, u) => s + unitCap(u), 0);
+  ui.jobs.textContent = jobUnits().reduce((s, u) => s + Math.max(0, unitCap(u) - u.staff.length), 0);   // open positions, not total
+  ui.seek.textContent = residents.filter(r => r.home && !r.job).length;
   ui.shops.textContent = blocks.filter(b => b.type === 'shop' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
   ui.wait.textContent = residents.filter(r => !r.home).length;
 }

@@ -62,22 +62,32 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Save/load: one localStorage slot, autosaved, versioned (`v: 1`); start-over button; `?new`
 - Still open, carried to Phase 4: walkers crossing at zebra crossings instead of at trip end
 
-## ⬜ Phase 3.5 (optional) — Building on the hill
+## ✅ Phase 3.5 — Building on the hill
 
-Deferred until save/load exists, since it adds a ground height to the data model.
-
-- Terrace cells become buildable when a whole block sits on one terrace level; the block and its
-  ring road are raised to that height
-- Cells on a terrace lip stay unbuildable; the summit stays reserved for the shrine
-- Walkers use the stone steps between terraces; roads, kerbs, lamps, doorsteps, cars and trucks read
-  a per-cell ground height instead of assuming zero
+- Cell-aligned terraces: every hill cell is flat at its terrace height; retaining walls on cell edges
+- Terrace cells are plots (a block sits on one terrace); wild wooded cells and the shrine summit stay
+- Two permanent slope roads on the town side join the terraces to the town; walkers and vehicles use them
+- Ground height is a cell property (`c.h`) plus a continuous `terrainY`; all movement follows it
+- Chosen over the earlier "stone steps" idea: slope roads let cars and trucks reach the terraces too
 
 ## ⬜ Phase 4 — Station commuting, bikes and taxis
 
+- **Hill unlock** (small, first): the hill stays wild until the town reaches about 60 residents (tune
+  after play). The unlock is an event to watch, not a message: a crew builds the two slope roads over a
+  day, lanterns light along the torii path, a toast says the hill is open. Manual terrace zoning from
+  Phase 3.5 remains available after the unlock until the plot market (Phase 5) replaces it
 - Some residents commute to the city by train each morning and return in the evening
 - Persistent bicycles: owned by residents, parked at racks, ridden to work and shops
 - Taxis that wait at the station rank and carry arrivals with luggage to their new home
+- Persistent cars: a resident's car stays parked at the kerb or in a small carpark while they are
+  indoors instead of vanishing; carpark as a zone or kerbside bays
 - Station busier at rush hour: platform sounds implied by movement, crowds on the plaza
+
+## ⬜ Phase 4.5 (optional) — Canal
+
+A seeded canal from shore to shore, stone-edged, with reeds and a heron. Canal cells are water;
+roads that cross become bridge cells with railings so the town never splits in two. Footbridges for
+walkers. Sets up fishing in Phase 7.
 
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
@@ -86,6 +96,21 @@ Deferred until save/load exists, since it adds a ground height to the data model
 - Shop kind chosen from what the neighbourhood lacks rather than at random
 - Household spending seen as shopping bags, deliveries and small purchases
 - No bankruptcies or fail states; a business that struggles simply becomes something else
+- **Hill plot market**: terrace plots are not zoned by the player but taken up by the town on demand:
+  a well-off household builds a villa with a view, a tea house or lookout café appears once enough
+  people stroll up, and later a ryokan or small hotel (Phase 6 tourism). Starts as demand-driven
+  auto-build; money attaches once the economy exists
+
+## ⬜ Phase 5.5 — Civic zone: utilities
+
+A fourth zone. Nothing is gated on it (no blackouts, no failure states); each facility shows its
+effect through the town instead.
+
+- **Power substation**: transformers behind a fence, cables joining the utility poles; nearby lamps
+  and windows glow a little warmer and steadier
+- **Water works**: a tank and pipes; nearby homes keep greener gardens and residents water them
+- **Recycling centre**: sorting bins and a kei truck that does a morning round; residents carry
+  bags to the bins outside their homes on collection day
 
 ## ⬜ Phase 6 — Weather, events, festivals, tourism
 
@@ -93,6 +118,7 @@ Deferred until save/load exists, since it adds a ground height to the data model
 - Seasons for the trees and the sakura biome
 - Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
 - Tourists arriving by train for festivals and the shore, staying a day
+- A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
 
 ## ⬜ Phase 7 — Farming and fishing
 

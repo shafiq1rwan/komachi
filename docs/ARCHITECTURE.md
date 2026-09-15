@@ -19,10 +19,18 @@ sine harmonics, squashed into a gentle ellipse) defines the coast, and a cell is
 sits at least 0.8 units inside it. The same curve drives the land, beach terrace and foam
 extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
 
-**Hill.** `island.js` also places a terraced hill opposite the pier: a noisy ellipse (`hillFrac`,
-`hillLevel`) gives three stepped extrusions 0.55 apart, static woods, a shrine on the summit and steps
-down the town side. Cells inside the outline (with a small margin, `onHill`) are type `hill`: they are
-never `empty`, so roads do not grow through them and `placeable` rejects them.
+**Hill and ground height.** `island.js` places a terraced hill opposite the pier. A noisy ellipse
+(`hillFrac`, `hillLevel`) assigns each cell a terrace level 0–3 by its centre; terraces are drawn as one
+box per cell (earth sides, grass cap) so walls fall on cell edges and every hill cell is flat at
+`level × TERRACE` (0.55). `terraceInfo(i, j)` decides what a cell is: a plot (type `empty`, `c.h` set),
+wild woods (type `hill`: the summit and about 38 % of cells by hash), or part of a ramp. Ramps are found
+along the grid axis from the hill centre toward the town: for each lip, three permanent road cells
+(`c.keep`) L → R → H, with `c.ramp = { h0, h1, di, dj }` on R and a wedge under the tilted asphalt.
+`terrainY(x, z)` in `world.js` returns the ground under any point (terrace height, or a linear slope
+across a ramp). Trip points carry only their height above the ground; `moveAlong` adds `terrainY`
+every frame, so walkers, cars, trucks and builders climb the slopes for free. Everything static that a
+road cell adds (asphalt, pavements, lamps, poles, cones) is translated by `c.h` after it is built, and
+unit groups sit at `c.h`. `placeable` requires one terrace per block and refuses ramp cells.
 
 **Biome.** `biome.js` is data only: grass and sand colours, tree colour set, pine and blossom
 ratios, shoreline bias. Everything that draws vegetation or terrain reads from it.

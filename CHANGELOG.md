@@ -7,6 +7,13 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Building on the hill: the hill is now three cell-aligned terraces with retaining walls along cell
+  edges. Every terrace cell is a flat plot at its own height, except wild wooded cells and the shrine
+  summit. One slope road per terrace lip on the town side joins the terraces to the streets below and
+  is permanent; a block must sit on a single terrace. Roads, lamps, cables, buildings, walkers, cars,
+  builders, trucks, cats and butterflies all follow the ground height, and walkers climb the slopes
+- Buildings can be turned: hover one and press R, or press Rotate on its card, and the door swings to
+  the next side that faces a street. Buildings with a street on one side only stay as they are
 - Households: people who live together arrive on the same train, sit together on the plaza and move
   in together. Couples and families share a surname; flatmates keep their own. A household that waits
   too long for a home big enough splits up. Home cards group residents by household
@@ -87,6 +94,22 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- HUD: the jobs chip now counts open positions rather than all positions, and a new chip shows how
+  many residents are looking for work; the help card mentions rotating buildings and following people
+- Fixed: newcomers with cars drove out of the station, and strollers found their car on a street corner.
+  A car now lives somewhere (it arrives with the household at their home) and can only be driven from
+  where it was last parked
+- Vehicles are a fifth smaller
+- Resident cards are more compact: household and housemates share a row, wake time and transport
+  sit in the small print, narrower card and slimmer Follow button
+- Fixed: tooltips on the view-option buttons were clipped by the folding panel; the pixel-look choice is
+  now remembered between visits
+- Easier to pick people: hovering snaps to the nearest walker within a few pixels and prefers people
+  over buildings; every name on a building or station card can be clicked to pin and follow that person
+- Night lighting reworked: the station plaza is lit by its lamps instead of a glow per cell (it used
+  to blow out to white), glows are softer, the night ambient is warmer and darker, and street lamps
+  are now poles with an arm over the road, a housing lit from underneath, a faint beam and a pool of
+  light on the asphalt
 - The "Name tags" toggle is gone; tags now mark only the followed or pinned resident
 - Hovering the station highlights all nine plaza cells, not just three
 - Plaza walks (entrance to bench, bench to the street, vending machines) detour around the stair house

@@ -4,9 +4,10 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION } from './world.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit } from './world.js';
 import { clearSave } from './save.js';
-import { removeBlock } from './sim.js';
+import { removeBlock, residents } from './sim.js';
+import { workers } from './construction.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
 
@@ -19,10 +20,20 @@ let gesture = null;          // {dist, ang, view, yaw} while two fingers are dow
 function setTool(t) { tool = t; ptr.sel = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
-document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); });
+document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); try { localStorage.setItem('komachi.pixelLook', S.pixelLook ? '1' : '0'); } catch { /* storage unavailable */ } });
+document.getElementById('btn-pixel').classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook);   // apply the remembered choice
 document.getElementById('btn-reset').addEventListener('click', () => { if (confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; } });
 // the inspect card's follow button
+/** turn the hovered or pinned building to face its next street */
+function rotateTarget() {
+  const t = pinned || hovered; const u = t && t.unit; if (!u || u.block.type === 'station') return;
+  if (!rotateUnit(u)) toast('Only one side of this building faces a street');
+}
 ui.inspect.addEventListener('click', e => {
+  if (e.target.closest('[data-rotate]')) { rotateTarget(); return; }
+  // a name on any card pins and follows that resident
+  const li = e.target.closest('li[data-res]');
+  if (li) { const r = residents.find(x => x.id === +li.dataset.res); if (r && r.state !== 'away') setFollow(r); return; }
   const b = e.target.closest('[data-follow]'); if (!b) return;
   if (b.dataset.follow === 'stop') { setFollow(null); return; }
   const t = pinned || hovered || (follow ? { res: follow } : null); if (t && t.res) { follow = t.res; pinned = t; }
@@ -58,7 +69,7 @@ canvas.addEventListener('pointerdown', e => {
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
-  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'The hill is left wild' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
+  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.keep ? 'The hill road stays open' : c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
   else { ptr.panning = true; document.body.classList.add('dragging'); }
   canvas.setPointerCapture(e.pointerId);
 });
@@ -102,6 +113,7 @@ addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return; keys.add(e.code);
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('remove');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
+  if (e.code === 'KeyR') rotateTarget();
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
   if (e.code === 'Escape') { setTool('explore'); pinned = null; follow = null; }
 });
@@ -116,7 +128,7 @@ const ringMat = new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true
 const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 1.06), ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
 function updatePreview() {
   let n = 0;
-  const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.x = cx(c.i); p.position.z = cz(c.j); };
+  const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
   if (zone && !ptr.panning) {
     const sel = ptr.sel && ptr.sel.length ? ptr.sel : null;
@@ -131,16 +143,33 @@ function updatePreview() {
   }
   for (let k = n; k < prevPool.length; k++) prevPool[k].visible = false;
 }
+const pickV = new THREE.Vector3();
+/** people are small and keep moving, so the hover snaps to the nearest walker within a few screen pixels */
+function nearestPerson() {
+  const R = 18; let best = null, bd = R * R;
+  const test = (p, data) => {
+    pickV.copy(p); pickV.y += 0.2; pickV.project(camera); if (pickV.z > 1) return;
+    const dx = (pickV.x + 1) / 2 * innerWidth - ptr.x, dy = (1 - pickV.y) / 2 * innerHeight - ptr.y, d = dx * dx + dy * dy;
+    if (d < bd) { bd = d; best = data; }
+  };
+  for (const r of residents) { if (r.state === 'away' || (r.state === 'inside' && !r.mesh.visible)) continue; test(r.state === 'driving' && r.car ? r.car.position : r.mesh.position, { res: r }); }
+  for (const k of workers) if (k.mesh && k.mesh.visible) test(k.mesh.position, { worker: k });
+  return best;
+}
 function updateHover() {
   hovered = null;
   if (!ptr.panning && !ptr.sel) {
+    hovered = nearestPerson(); if (hovered) return finishHover();
     raycaster.setFromCamera(ptr.ndc, camera);
     const hits = raycaster.intersectObjects([townGroup, peopleGroup], true);
     for (const h of hits) { let o = h.object; while (o && !o.userData.unit && !o.userData.res && !o.userData.worker) o = o.parent; if (o && (o.userData.unit || o.userData.res || o.userData.worker)) { hovered = o.userData; break; } if (isDecor(h.object)) break; }
   }
+  finishHover();
+}
+function finishHover() {
   const target = pinned || hovered;
   const hu = target && target.unit ? target.unit : null;
-  hoverRings.forEach((m, k) => { const u = hu ? hu.block.units[k] : null; m.visible = !!u && hu.block.stage >= 0; if (u) { m.position.x = cx(u.cell.i); m.position.z = cz(u.cell.j); } });
+  hoverRings.forEach((m, k) => { const u = hu ? hu.block.units[k] : null; m.visible = !!u && hu.block.stage >= 0; if (u) m.position.set(cx(u.cell.i), 0.135 + (u.cell.h || 0), cz(u.cell.j)); });
   if (tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station') ringMat.color.set(PAL.roofRose); else ringMat.color.set(PAL.mint);
   canvas.style.cursor = tool !== 'explore' ? 'crosshair' : (hovered ? 'pointer' : (ptr.panning ? 'grabbing' : 'grab'));
 }
@@ -169,7 +198,7 @@ function updateBars() {
     const SH = stageHours(b), total = SH.reduce((a, c) => a + c, 0);
     const p = building ? (SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT) / total : 1 - b.renoT / 2.5;
     const cxm = b.cells.reduce((s, c) => s + cx(c.i), 0) / b.cells.length, czm = b.cells.reduce((s, c) => s + cz(c.j), 0) / b.cells.length;
-    barV.set(cxm, 1.35, czm).project(camera); if (barV.z > 1) continue;
+    barV.set(cxm, 1.35 + (b.cells[0].h || 0), czm).project(camera); if (barV.z > 1) continue;
     html += `<div class="pbar${reno ? ' reno' : ''}" style="left:${(barV.x + 1) / 2 * innerWidth}px;top:${(1 - barV.y) / 2 * innerHeight}px"><i><b style="width:${Math.round(p * 100)}%"></b></i><span>${reno ? 'extending' : Math.round(p * 100) + '%'}</span></div>`;
   }
   ui.bars.innerHTML = html;

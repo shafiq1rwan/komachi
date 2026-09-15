@@ -6,7 +6,7 @@ import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR, CARS } from './palette.js';
 import { peopleGroup, disposeGroup } from './scene.js';
 import { detachCharacter } from './characters.js';
-import { blocks, STATION, DONE } from './world.js';
+import { blocks, STATION, DONE, terrainY } from './world.js';
 import { unitLocal, dims } from './buildings.js';
 import * as THREE from 'three';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
@@ -83,7 +83,7 @@ function runTask(k, dh, simDt, realT) {
   const t = k.task, s = t.steps[t.i], up = k.mesh.userData.upper;
   if (t.phase === 'go') {
     const dest = stepTarget(k, s);
-    if (!k.trip) { const from = k.mesh.position.clone(); if (from.distanceTo(dest) < 0.02) { t.phase = 'do'; } else { k.trip = { pts: [from, dest], i: 0, t: 0, speed: k.toolName === 'barrow' ? 0.5 : 0.7 }; } }
+    if (!k.trip) { const from = k.mesh.position.clone(); from.y -= terrainY(from.x, from.z); if (from.distanceTo(dest) < 0.02) { t.phase = 'do'; } else { k.trip = { pts: [from, dest], i: 0, t: 0, speed: k.toolName === 'barrow' ? 0.5 : 0.7 }; } }
     if (k.trip) {
       if (moveAlong(k.mesh, k.trip, k.trip.speed * simDt)) { k.trip = null; t.phase = 'do'; }
       else if (up) { up.rotation.x = 0; k.mesh.position.y += Math.abs(Math.sin(realT * 9 + k.phase)) * 0.012; }
@@ -109,7 +109,7 @@ function runTask(k, dh, simDt, realT) {
   if (k.mesh.userData.char) k.mesh.userData.char.hammer = s.motion === 'hammer' || s.motion === 'hammerLow' ? Math.max(0, Math.sin(ph * 7)) : 0;
   if (S.T >= t.until) {
     t.i++;
-    if (t.i >= t.steps.length) { giveTool(k, null); k.task = null; if (up) up.rotation.set(0, 0, 0); k.mesh.position.y = 0.12; k.pause = S.T + rand(0.03, 0.12); }
+    if (t.i >= t.steps.length) { giveTool(k, null); k.task = null; if (up) up.rotation.set(0, 0, 0); k.mesh.position.y = 0.12 + terrainY(k.mesh.position.x, k.mesh.position.z); k.pause = S.T + rand(0.03, 0.12); }
     else { t.phase = 'go'; const ns = t.steps[t.i]; if (ns.tool !== s.tool) giveTool(k, ns.tool); k.activity = ns.label; }
   }
 }
@@ -182,10 +182,10 @@ function updateConstruction(dh, simDt, realT) {
     if (!blocks.includes(k.site)) { removeWorker(k); continue; }
     if (k.state === 'toSite' || k.state === 'toStation') {
       if (moveAlong(k.mesh, k.trip, k.trip.speed * simDt)) {
-        if (k.state === 'toSite') { k.state = 'working'; k.mesh.position.copy(k.spotPos).setY(0.12); k.task = null; k.pause = 0; k.activity = 'arriving on site'; }
+        if (k.state === 'toSite') { k.state = 'working'; k.mesh.position.copy(k.spotPos).setY(0.12 + terrainY(k.spotPos.x, k.spotPos.z)); k.task = null; k.pause = 0; k.activity = 'arriving on site'; }
         else if (k.site.stage >= DONE) removeWorker(k);
         else { k.state = 'away'; k.mesh.visible = false; k.activity = 'gone home for the night'; }
-      } else if (!k.mesh.userData.char) k.mesh.position.y = 0.1 + Math.abs(Math.sin(realT * 9 + k.phase)) * 0.018;
+      } else if (!k.mesh.userData.char) k.mesh.position.y = terrainY(k.mesh.position.x, k.mesh.position.z) + 0.1 + Math.abs(Math.sin(realT * 9 + k.phase)) * 0.018;
       continue;
     }
     if (k.state === 'working') {

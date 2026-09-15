@@ -54,7 +54,15 @@ try {
   const hc = await page.evaluate(() => { const c = MT.cells.find(c => c.type === 'hill'); return c ? MT.project(c.i, c.j) : null; });
   if (hc) { await page.mouse.click(hc.x, hc.y); await sleep(200); }
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, hills: MT.cells.filter(c => c.type === 'hill').length }));
-  check('the hill exists and cannot be built on', s.blocks === 3 && s.hills >= 20, JSON.stringify(s));
+  check('the steep parts of the hill cannot be built on', s.blocks === 3 && s.hills >= 12, JSON.stringify(s));
+  s = await page.evaluate(() => {
+    const plot = MT.cells.find(c => c.type === 'empty' && c.h > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(c.i + di, c.j + dj); return n && n.type === 'empty' && n.h === c.h; }));
+    if (!plot) return null;
+    const b = MT.placeBlock('res', [plot]); const u = b.units[0];
+    return { h: plot.h, meshY: u.mesh.position.y, ground: MT.terrainY(plot.i - 20 + 0.5, plot.j - 20 + 0.5), ramps: MT.cells.filter(c => c.ramp).length, ring: [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(plot.i + di, plot.j + dj); return n && n.type === 'road'; }) };
+  });
+  check('a home can be built on a hill terrace at its height', !!s && s.meshY === s.h && s.ground === s.h && s.ramps >= 1 && s.ring, JSON.stringify(s));
+  await page.evaluate(() => { const b = MT.blocks[MT.blocks.length - 1]; if (b.cells[0].h > 0) MT.removeBlock(b); });
   await page.evaluate(() => { MT.cam.view = MT.cam.tView = 18; }); await sleep(300);
   const wp = await page.evaluate(() => MT.project(17, 22)); await page.mouse.click(wp.x, wp.y); await sleep(200);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, cell: MT.cell(17, 22).type, side: MT.cell(16, 22).type }));

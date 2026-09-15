@@ -31,17 +31,17 @@ makeFlock(rand(-8, 8), rand(-8, 8), rand(5, 8), 4.2, 3, 'dark', 0.28);
 
 const wingA = new THREE.BoxGeometry(0.05, 0.004, 0.045);
 const wingMats = [PAL.flower, PAL.roofPeach, '#f7efe2', PAL.lilac, '#e8cf7a'].map(c => new THREE.MeshStandardMaterial({ color: c, roughness: 1, side: THREE.DoubleSide }));
-function makeButterfly(x, z) {
+function makeButterfly(x, z, gy = 0) {
   const g = new THREE.Group(); const m = pick(wingMats);
   const L = new THREE.Mesh(wingA, m), R = new THREE.Mesh(wingA, m); L.position.x = -0.026; R.position.x = 0.026; g.add(L, R);
-  g.position.set(x, 0.45, z); g.userData = { L, R, home: new THREE.Vector3(x, 0.45, z), target: new THREE.Vector3(x, 0.45, z), phase: rand(0, 6.28), speed: rand(0.6, 1.1) };
+  g.position.set(x, 0.45 + gy, z); g.userData = { L, R, home: new THREE.Vector3(x, 0.45 + gy, z), target: new THREE.Vector3(x, 0.45 + gy, z), phase: rand(0, 6.28), speed: rand(0.6, 1.1) };
   scene.add(g); butterflies.push(g); return g;
 }
 function flowerCells() { return cells.filter(c => c.type === 'empty' && c.tree && (c.tree.kind === 'flowers' || c.tree.kind === 'bush')); }
 function placeButterflies() {
   const fc = flowerCells(); if (!fc.length) return;
-  while (butterflies.length < 7) { const c = pick(fc); makeButterfly(cx(c.i) + rand(-0.3, 0.3), cz(c.j) + rand(-0.3, 0.3)); }
-  for (const b of butterflies) { const c = pick(fc); b.userData.home.set(cx(c.i), 0.45, cz(c.j)); }
+  while (butterflies.length < 7) { const c = pick(fc); makeButterfly(cx(c.i) + rand(-0.3, 0.3), cz(c.j) + rand(-0.3, 0.3), c.h || 0); }
+  for (const b of butterflies) { const c = pick(fc); b.userData.home.set(cx(c.i), 0.45 + (c.h || 0), cz(c.j)); }
 }
 placeButterflies(); onWorldChange(placeButterflies);
 
@@ -59,7 +59,7 @@ function updateAmbient(dt, realT, night) {
   }
   for (const b of butterflies) {
     const u = b.userData;
-    if (b.position.distanceTo(u.target) < 0.05 || Math.random() < dt * 0.6) u.target.set(u.home.x + rand(-0.55, 0.55), 0.3 + rand(0, 0.35), u.home.z + rand(-0.55, 0.55));
+    if (b.position.distanceTo(u.target) < 0.05 || Math.random() < dt * 0.6) u.target.set(u.home.x + rand(-0.55, 0.55), u.home.y - 0.15 + rand(0, 0.35), u.home.z + rand(-0.55, 0.55));
     const step = Math.min(1, dt * u.speed); b.position.lerp(u.target, step); b.position.y += Math.sin(realT * 6 + u.phase) * 0.002;
     const flap = Math.sin(realT * 14 + u.phase) * 0.9; u.L.rotation.z = flap; u.R.rotation.z = -flap;
     b.rotation.y = Math.atan2(u.target.x - b.position.x, u.target.z - b.position.z);

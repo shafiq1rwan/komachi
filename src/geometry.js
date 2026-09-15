@@ -70,12 +70,20 @@ function mergeMesh(geoms, flat = false, shadows = true) {
 // soft radial glow texture (for lamps / windows at night)
 const glowTex = (() => {
   const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
-  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64); grd.addColorStop(0, 'rgba(255,200,130,0.85)'); grd.addColorStop(0.4, 'rgba(255,190,120,0.35)'); grd.addColorStop(1, 'rgba(255,180,110,0)');
+  const grd = g.createRadialGradient(64, 64, 4, 64, 64, 64); grd.addColorStop(0, 'rgba(255,196,120,0.6)'); grd.addColorStop(0.35, 'rgba(255,184,105,0.26)'); grd.addColorStop(0.7, 'rgba(255,176,100,0.07)'); grd.addColorStop(1, 'rgba(255,170,95,0)');
   g.fillStyle = grd; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
 })();
 const glowMat = new THREE.MeshBasicMaterial({ map: glowTex, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0 });
 const glowGeo = new THREE.PlaneGeometry(1, 1);
 function makeGlow(x, y, z, size) { const m = new THREE.Mesh(glowGeo, glowMat); m.rotation.x = -Math.PI / 2; m.position.set(x, y, z); m.scale.setScalar(size); m.renderOrder = 5; return m; }
 const lampHeadMat = new THREE.MeshStandardMaterial({ color: '#fff3d6', emissive: PAL.lampGlow, emissiveIntensity: 0, roughness: 0.6 });
+// light cones under street lamps: additive, vertex-coloured so the beam fades toward the ground
+const coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: true, blending: THREE.AdditiveBlending, depthWrite: false, opacity: 0, side: THREE.DoubleSide, fog: false });
+function lightCone(x, yTop, z, rTop, rBottom, hex) {
+  const g = new THREE.CylinderGeometry(rTop, rBottom, yTop - 0.1, 14, 1, true).toNonIndexed();
+  const c = new THREE.Color(hex), pos = g.attributes.position, col = new Float32Array(pos.count * 3), h = yTop - 0.1;
+  for (let k = 0; k < pos.count; k++) { const t = Math.max(0, Math.min(1, (pos.getY(k) + h / 2) / h)); const f = 0.02 + 0.6 * t * t * t; col[k * 3] = c.r * f; col[k * 3 + 1] = c.g * f; col[k * 3 + 2] = c.b * f; }
+  g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.translate(x, 0.1 + h / 2, z); return g;
+}
 
-export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat };
+export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };
