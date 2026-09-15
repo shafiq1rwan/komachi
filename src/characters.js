@@ -12,6 +12,10 @@ import { S } from './state.js';
 const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
 const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); seats sit 0.09 above the group
 const ROLE = { none: 0, skin: 1, shirt: 2, pants: 3, hair: 4 };
+// work poses for builders: which clip plays while they stand and do something
+const POSE_CLIPS = { swing: 'attack-melee-right', hold: 'holding-right', holdBoth: 'holding-both', pickup: 'pick-up', crouch: 'crouch' };
+// where a tool sits in the right hand (bone units): the arm hangs from the shoulder, the hand is ~0.17 down
+const HAND = { pos: [0, -0.17, 0.03], rot: [-Math.PI / 2, 0, 0] };
 const chars = [];                   // every live character, for the per-frame mixer update
 const pendingSwap = [];             // groups that got a box person before the models arrived
 const variants = [];                // { scene, clips, geoms: Map<name, { base, role, medL }> }
@@ -61,7 +65,7 @@ const target = new THREE.Color(), tmp = new THREE.Color(), tHsl = { h: 0, s: 0, 
 /** a copy of a baked geometry with skin / shirt / trousers / hair repainted from the look, shading kept */
 function recolor(entry, look) {
   const g = entry.base.clone(); const col = g.getAttribute('color'); const arr = col.array, n = col.count;
-  const paint = { [ROLE.skin]: look.skin, [ROLE.shirt]: look.shirt, [ROLE.pants]: look.pants, [ROLE.hair]: look.hat ? look.hatColor : look.hair };
+  const paint = { [ROLE.skin]: look.skin, [ROLE.shirt]: look.shirt, [ROLE.pants]: look.pants, [ROLE.hair]: look.hair };
   for (let i = 0; i < n; i++) {
     const r = entry.role[i]; if (!r) continue;
     target.set(paint[r]); target.getHSL(tHsl);
@@ -82,7 +86,8 @@ async function loadVariant(url) {
   const px = atlasPixels(tex), jointNames = skinned.skeleton.bones.map(b => b.name);
   const geoms = new Map();
   gltf.scene.traverse(o => { if (o.isSkinnedMesh) { geoms.set(o.name, bakeGeometry(o, px, jointNames)); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
-  return { scene: gltf.scene, clips: gltf.animations, geoms };
+  let headTop = 0.67; gltf.scene.traverse(o => { if (o.isSkinnedMesh && o.name === 'head-mesh') { o.geometry.computeBoundingBox(); headTop = o.geometry.boundingBox.max.y; } });
+  return { scene: gltf.scene, clips: gltf.animations, geoms, headTop };
 }
 // The box people are the default look; the rigged models are opt-in with ?rigged (kept for comparison).
 export const characterReady = !S.rigged ? Promise.resolve() : Promise.all(Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; }))).then(list => {
@@ -113,7 +118,8 @@ const hashStr = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31
  */
 export function attachCharacter(grp, look) {
   if (!variants.length) { const b = boxPerson(look); grp.add(b.rig); grp.userData.legs = b.legs; grp.userData.upper = b.upper; if (S.rigged) pendingSwap.push({ grp, look }); return null; }
-  const v = variants[hashStr(look.name || look.shirt + look.hair) % variants.length];
+  const pool = look.hat ? (variants.filter(v => v.headTop <= 0.7).length ? variants.filter(v => v.headTop <= 0.7) : variants) : variants;   // hats need short hair
+  const v = pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
   const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE);
   inst.traverse(o => { if (o.isSkinnedMesh) { const e = v.geoms.get(o.name); if (e) o.geometry = recolor(e, look); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
   const mixer = new THREE.AnimationMixer(inst);
@@ -121,15 +127,22 @@ export function attachCharacter(grp, look) {
   const idle = act('idle'), walk = act('walk'), sit = act('sit');
   for (const a of [idle, walk, sit]) if (a) { a.play(); a.setEffectiveWeight(0); }
   if (idle) idle.setEffectiveWeight(1); mixer.setTime(Math.random() * 2);
-  const head = inst.getObjectByName('head');
+  const head = inst.getObjectByName('head'), armR = inst.getObjectByName('arm-right');
   if (look.hat && head) {   // a hard hat for builders, riding on the head bone (model units: the head is ~0.3 wide)
-    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.2, 0.27, 0.11, 12), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));
-    hat.position.set(0, 0.35, 0); head.add(hat);   // the head is ~0.3 wide and its top ~0.33 above the bone
-    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.025, 14), hat.material); brim.position.set(0, 0.295, 0.025); head.add(brim);
+    const top = v.headTop - 0.343;   // the head bone sits ~0.343 up the model; the head is ~0.3 wide
+    // a chibi head is the whole figure seen from above, so the helmet perches small on top rather than covering it
+    const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 0.1, 12), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));
+    hat.position.set(0, top + 0.04, 0.02); hat.rotation.x = -0.12; head.add(hat);
+    const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 14), hat.material); brim.position.set(0, top - 0.005, 0.04); brim.rotation.x = -0.12; head.add(brim);
   }
   const seated = !!(grp.userData.res && grp.userData.res.spot && grp.userData.res.spot.kind === 'seat');   // swapped in while already on a bench
-  const char = { root: inst, mixer, idle, walk, sit, head, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp };
+  const char = { root: inst, mixer, idle, walk, sit, head, armR, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
   grp.add(inst); grp.userData.char = char; grp.userData.legs = null; grp.userData.upper = null; chars.push(char); return char;
+}
+/** put a tool mesh (built for the box people, world scale) into the character's right hand */
+export function holdTool(char, mesh) {
+  if (!char.armR) { char.root.add(mesh); return; }
+  mesh.scale.setScalar(1.5 / SCALE); mesh.position.set(...HAND.pos); mesh.rotation.set(...HAND.rot); char.armR.add(mesh);   // tools read better a little oversized in chibi hands
 }
 export function detachCharacter(grp) {
   const c = grp.userData.char; if (c) { c.mixer.stopAllAction(); const i = chars.indexOf(c); if (i >= 0) chars.splice(i, 1); }
@@ -149,6 +162,12 @@ export function updateCharacters(simDt) {
     if (c.walk) { c.walk.setEffectiveWeight(c.blend * (1 - s)); c.walk.setEffectiveTimeScale(1.6 * (owner && owner.trip && owner.trip.speed ? owner.trip.speed / 0.9 : 1)); }
     if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s));
     if (c.sit) c.sit.setEffectiveWeight(s);
+    // builders: a work pose replaces idle while standing with a job in hand
+    const want = moving ? null : c.pose;
+    if (want !== c.poseName) { if (c.poseAct) c.poseAct.fadeOut(0.2); c.poseName = want; c.poseAct = want && POSE_CLIPS[want] ? c.act(POSE_CLIPS[want]) : null; if (c.poseAct) { c.poseAct.reset().setEffectiveWeight(1).play(); c.poseAct.setEffectiveTimeScale(want === 'swing' ? 1.3 : 1); } }
+    c.poseBlend += ((c.poseAct ? 1 : 0) - c.poseBlend) * Math.min(1, simDt * 8);
+    if (c.poseAct) c.poseAct.setEffectiveWeight(c.poseBlend);
+    if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s) * (1 - c.poseBlend));
     c.root.position.y = SIT_LIFT * s;
     c.mixer.update(simDt);
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));

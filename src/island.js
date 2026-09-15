@@ -100,8 +100,8 @@ let pierTheta = null;
 //    and wooded, the summit keeps its shrine, and one slope road per lip on the town side joins the terraces. ──
 const TERRACE = 0.55, HILL_STEPS = [1, 0.64, 0.3];
 const hillTheta = pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
-const [HX, HZ] = coastPoint(hillTheta, -0.42 * radius(hillTheta));
-const HR = 5.4, hillPhase = [rng() * TAU, rng() * TAU];
+const [HX, HZ] = coastPoint(hillTheta, -0.34 * radius(hillTheta));   // far enough out that the town around the station stays flat
+const HR = 4.7, hillPhase = [rng() * TAU, rng() * TAU];
 const hct = Math.cos(hillTheta), hst = Math.sin(hillTheta);
 function hillOutline(a) { return HR * (1 + 0.12 * Math.sin(2 * a + hillPhase[0]) + 0.07 * Math.sin(3 * a + hillPhase[1])); }
 function hillFrac(x, z) {
@@ -153,31 +153,30 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
     }
   }
   const tm = mergeMesh(g, true); if (tm) { tm.receiveShadow = true; scene.add(tm); }
-  // woods on the wild cells, denser than the flat land and heavier on pines
   const wg = [];
-  for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const info = terraceInfo(i, j); if (!info || !info.wild) continue;
-    const y = info.level * TERRACE, x0 = cx(i), z0 = cz(j), n = 2 + (cellHash(i + 7, j + 3) < 0.5 ? 1 : 0);
-    for (let k = 0; k < n; k++) {
-      const x = x0 + (cellHash(i + k * 5, j + 11) - 0.5) * 0.7, z = z0 + (cellHash(i + 17, j + k * 3) - 0.5) * 0.7;
-      if (Math.hypot(x - HX, z - HZ) < 1.1) continue;   // the summit clearing
-      const s = 0.7 + cellHash(i * 3 + k, j) * 0.5, r = cellHash(i, j * 7 + k);
-      if (r < 0.45) { wg.push(cyl(0.05 * s, 0.07 * s, 0.45 * s, PAL.wood2, x, y + 0.22 * s, z, 5)); wg.push(cyl(0.001, 0.34 * s, 0.7 * s, '#7f9b7a', x, y + 0.72 * s, z, 6)); wg.push(cyl(0.001, 0.24 * s, 0.5 * s, '#8fae78', x, y + 1.05 * s, z, 6)); }
-      else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(cellHash(i + 1, j + 1 + k) * tc.length)]; wg.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); wg.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
-      else wg.push(blob(0.2 * s, r < 0.92 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
-    }
-  }
-  // a small shrine on the summit, its torii facing the town, with stone lanterns
+  // the summit shrine: stone platform, a hall with red pillars under a stepped roof, a torii with upturned
+  // beam ends facing the town, stone lanterns and an offering box on a flagged path
   const fx = -hct, fz = -hst, rx = -fz, rz = fx, ang = Math.atan2(fx, fz), y0 = hillTop;
   const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); wg.push(geo); };
   const rot = geo => { geo.rotateY(ang); return geo; };
-  put(rot(box(0.56, 0.36, 0.44, PAL.cream2)), -0.55, 0, y0 + 0.18); put(rot(box(0.72, 0.1, 0.58, PAL.roofSage)), -0.55, 0, y0 + 0.4); put(rot(box(0.46, 0.1, 0.36, PAL.roofSage)), -0.55, 0, y0 + 0.5);
-  put(rot(box(0.6, 0.03, 0.6, PAL.concrete)), -0.55, 0, y0 + 0.015);
-  for (const side of [-0.24, 0.24]) put(cyl(0.035, 0.04, 0.56, PAL.roofRose, 0, 0, 0, 6), 0.35, side, y0 + 0.28);
-  put(rot(box(0.76, 0.06, 0.07, PAL.roofRose)), 0.35, 0, y0 + 0.58); put(rot(box(0.6, 0.045, 0.06, PAL.roofRose)), 0.35, 0, y0 + 0.46);
-  for (const side of [-0.5, 0.5]) { put(cyl(0.035, 0.045, 0.28, PAL.concrete, 0, 0, 0, 6), 0.1, side, y0 + 0.14); put(rot(box(0.14, 0.1, 0.14, PAL.concrete)), 0.1, side, y0 + 0.32); put(rot(box(0.18, 0.03, 0.18, PAL.concrete)), 0.1, side, y0 + 0.38); }
-  put(rot(box(0.5, 0.02, 1.0, PAL.concrete)), 0.05, 0, y0 + 0.01);
+  put(rot(box(1.4, 0.08, 1.1, PAL.concrete)), -0.7, 0, y0 + 0.04);                       // platform
+  put(rot(box(0.72, 0.42, 0.56, PAL.cream2)), -0.75, 0, y0 + 0.08 + 0.21);               // hall
+  for (const sx of [-0.36, 0.36]) for (const fz2 of [-0.28, 0.28]) put(cyl(0.03, 0.03, 0.44, PAL.roofRose, 0, 0, 0, 6), -0.75 + fz2, sx, y0 + 0.08 + 0.22);
+  put(rot(box(0.24, 0.3, 0.04, PAL.wood2)), -0.46, 0, y0 + 0.08 + 0.15);                 // doors
+  put(rot(box(1.02, 0.06, 0.86, PAL.roofSage)), -0.75, 0, y0 + 0.53);                    // stepped roof
+  put(rot(box(0.84, 0.1, 0.7, PAL.roofSage)), -0.75, 0, y0 + 0.6);
+  put(rot(box(0.6, 0.1, 0.5, PAL.roofSage)), -0.75, 0, y0 + 0.69);
+  put(rot(box(0.7, 0.05, 0.07, PAL.wood2)), -0.75, 0, y0 + 0.77);                        // ridge beam
+  for (const side of [-0.4, 0.4]) put(cyl(0.045, 0.05, 0.78, PAL.roofRose, 0, 0, 0, 8), 0.55, side, y0 + 0.39);   // torii pillars
+  put(rot(box(1.12, 0.08, 0.1, PAL.roofRose)), 0.55, 0, y0 + 0.81);                       // kasagi
+  for (const side of [-0.56, 0.56]) { const cap = new THREE.BoxGeometry(0.14, 0.08, 0.1); cap.rotateZ(side > 0 ? 0.35 : -0.35); put(rot(colorize(cap, PAL.roofRose)), 0.55, side, y0 + 0.84); }
+  put(rot(box(0.95, 0.05, 0.08, PAL.roofRose)), 0.55, 0, y0 + 0.64);                      // nuki
+  put(rot(box(0.1, 0.14, 0.04, PAL.cream2)), 0.55, 0, y0 + 0.72);                         // plaque
+  put(rot(box(0.46, 0.02, 1.5, PAL.concrete)), 0.0, 0, y0 + 0.01);                        // flagged path
+  for (const side of [-0.55, 0.55]) { put(cyl(0.04, 0.05, 0.3, PAL.concrete, 0, 0, 0, 6), 0.15, side, y0 + 0.15); put(rot(box(0.16, 0.12, 0.16, PAL.concrete)), 0.15, side, y0 + 0.36); put(rot(box(0.22, 0.03, 0.22, PAL.concrete)), 0.15, side, y0 + 0.43); }
+  put(rot(box(0.22, 0.12, 0.16, PAL.wood)), -0.28, 0, y0 + 0.14);                         // offering box
   const hm = mergeMesh(wg, true); if (hm) scene.add(hm);
 }
 
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE };
+const hillCentre = { x: HX, z: HZ };
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash };

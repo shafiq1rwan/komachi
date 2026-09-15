@@ -26,6 +26,13 @@ box per cell (earth sides, grass cap) so walls fall on cell edges and every hill
 wild woods (type `hill`: the summit and about 38 % of cells by hash), or part of a ramp. Ramps are found
 along the grid axis from the hill centre toward the town: for each lip, three permanent road cells
 (`c.keep`) L → R → H, with `c.ramp = { h0, h1, di, dj }` on R and a wedge under the tilted asphalt.
+`ringRoads` only writes roads on the block's own terrace. `connectHillRoads` (called from `placeBlock` and
+`removeBlock`) then floods each terrace street network; one with no way down gets a town-built slope
+(`c.dyn`) at the free edge nearest the station, walking over free or wooded cells of that terrace if the
+street itself has no edge, and every slope's ends are linked to the nearest street or slope end on their
+level. Town-built slopes and links are ordinary roads and go with the orphans. Hill woods are drawn in
+`rebuildDecor` per wild cell (a still mesh, since the sway shader keys on absolute height), so a wild cell
+turned road loses its trees.
 `terrainY(x, z)` in `world.js` returns the ground under any point (terrace height, or a linear slope
 across a ramp). Trip points carry only their height above the ground; `moveAlong` adds `terrainY`
 every frame, so walkers, cars, trucks and builders climb the slopes for free. Everything static that a

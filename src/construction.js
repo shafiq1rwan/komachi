@@ -5,7 +5,7 @@ import { S } from './state.js';
 import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR, CARS } from './palette.js';
 import { peopleGroup, disposeGroup } from './scene.js';
-import { detachCharacter } from './characters.js';
+import { detachCharacter, holdTool } from './characters.js';
 import { blocks, STATION, DONE, terrainY } from './world.js';
 import { unitLocal, dims } from './buildings.js';
 import * as THREE from 'three';
@@ -38,10 +38,14 @@ const TOOL_POSE = {   // where each tool sits relative to the builder's feet ori
   roller: [0.08, 0.14, 0.1, 0, 0, 0], bucket: [0.11, 0.1, 0.02, 0, 0, 0], saw: [0.09, 0.15, 0.06, 0.2, 0, 0], level: [0, 0.2, 0.1, 0, 0, 0], barrow: [0, 0, 0, 0, 0, 0], clipboard: [0.06, 0.19, 0.08, -0.3, 0, 0],
 };
 function giveTool(k, name) {
-  if (k.tool) { k.mesh.remove(k.tool); disposeGroup(k.tool); k.tool = null; k.toolName = null; }
+  if (k.tool) { if (k.tool.parent) k.tool.parent.remove(k.tool); disposeGroup(k.tool); k.tool = null; k.toolName = null; }
+  if (k.mesh.userData.char) k.mesh.userData.char.pose = null;
   if (!name) return;
   const m = makeTool(name); const p = TOOL_POSE[name]; m.position.set(p[0], p[1], p[2]); m.rotation.set(p[3], p[4], p[5]);
-  k.mesh.add(m); k.tool = m; k.toolName = name; k.toolBase = { y: p[1], z: p[2], rx: p[3] };
+  const ch = k.mesh.userData.char;
+  if (ch) { if (name === 'barrow') { m.position.set(0, 0, 0); k.mesh.add(m); } else holdTool(ch, m); }   // the barrow stays on the ground in front
+  else k.mesh.add(m);
+  k.tool = m; k.toolName = name; k.toolBase = { y: p[1], z: p[2], rx: p[3] };
 }
 
 // ── tasks per stage: sequences of steps [where (local x, z, y), face (local x, z), tool, how long, motion] ──
@@ -85,6 +89,7 @@ function runTask(k, dh, simDt, realT) {
     const dest = stepTarget(k, s);
     if (!k.trip) { const from = k.mesh.position.clone(); from.y -= terrainY(from.x, from.z); if (from.distanceTo(dest) < 0.02) { t.phase = 'do'; } else { k.trip = { pts: [from, dest], i: 0, t: 0, speed: k.toolName === 'barrow' ? 0.5 : 0.7 }; } }
     if (k.trip) {
+      if (k.mesh.userData.char) k.mesh.userData.char.pose = null;
       if (moveAlong(k.mesh, k.trip, k.trip.speed * simDt)) { k.trip = null; t.phase = 'do'; }
       else if (up) { up.rotation.x = 0; k.mesh.position.y += Math.abs(Math.sin(realT * 9 + k.phase)) * 0.012; }
       if (k.trip) return;
@@ -94,7 +99,8 @@ function runTask(k, dh, simDt, realT) {
     k.mesh.rotation.y = Math.atan2(f.x - p.x, f.z - p.z); giveTool(k, s.tool); t.until = S.T + s.dur; k.activity = s.label;
   }
   // doing
-  const tool = k.tool, tb = k.toolBase, ph = realT * 1 + k.phase;
+  const ch = k.mesh.userData.char, tool = ch ? null : k.tool, tb = k.toolBase, ph = realT * 1 + k.phase;   // rigged people animate the tool through the arm
+  if (ch) ch.pose = { hammer: 'swing', hammerLow: 'swing', drill: 'swing', saw: 'swing', dig: 'swing', mix: 'swing', paint: 'swing', look: k.toolName ? 'hold' : 'crouch' }[s.motion] || (k.toolName === 'barrow' ? 'holdBoth' : k.toolName ? 'hold' : null);
   if (up) up.rotation.set(0, 0, 0);
   switch (s.motion) {
     case 'hammer': case 'hammerLow': { const sw = Math.max(0, Math.sin(ph * 7)); if (up) up.rotation.x = 0.1 + sw * 0.35; if (tool) { tool.rotation.x = (s.motion === 'hammerLow' ? 0.6 : -0.2) - sw * 1.2 + (tb.rx || 0); tool.position.y = tb.y + (s.motion === 'hammerLow' ? -0.06 : 0); } break; }
@@ -106,7 +112,7 @@ function runTask(k, dh, simDt, realT) {
     case 'look': { if (up) { up.rotation.y = Math.sin(ph * 1.2) * 0.35; up.rotation.x = 0.05; } break; }
     default: break;
   }
-  if (k.mesh.userData.char) k.mesh.userData.char.hammer = s.motion === 'hammer' || s.motion === 'hammerLow' ? Math.max(0, Math.sin(ph * 7)) : 0;
+  if (ch) ch.hammer = 0;
   if (S.T >= t.until) {
     t.i++;
     if (t.i >= t.steps.length) { giveTool(k, null); k.task = null; if (up) up.rotation.set(0, 0, 0); k.mesh.position.y = 0.12 + terrainY(k.mesh.position.x, k.mesh.position.z); k.pause = S.T + rand(0.03, 0.12); }

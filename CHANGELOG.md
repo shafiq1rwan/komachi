@@ -98,6 +98,18 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Hill streets: a block's ring road now forms only on its own terrace, so a house against a retaining wall
+  gets its street in front and nothing on the terraces above or below. A terrace street with no way down
+  gets a slope road built by the town at the nearest edge toward the station (walking through the woods
+  to reach one if it must), and every slope's ends link to the nearest street. Town-built slopes dissolve
+  with the block that needed them. Hill woods are now drawn per wild cell, so a cell that becomes a road
+  loses its trees
+- Hill: roads on a terrace now find their own way to the slope road, and the slope's foot links to the
+  nearest street below, so a hillside home is never cut off (links are cleared and rebuilt when blocks
+  go); the summit shrine is a proper hall with a stepped roof, red pillars, a torii with upturned beam
+  ends, lanterns and a flagged path; cars and trucks pitch nose-up when climbing a slope
+- Rigged builders (Kenney people) hold their tools in the right hand and use the pack's own poses
+  (swing, hold, pick up, crouch) instead of the box-people motions; smaller helmets that perch on the head
 - Fixed: the start-over button reloaded into the same town because the leave-page autosave wrote it back
 - HUD: the jobs chip now counts open positions rather than all positions, and a new chip shows how
   many residents are looking for work; the help card mentions rotating buildings and following people

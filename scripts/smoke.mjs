@@ -29,7 +29,7 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   // ── interaction on an empty island ──
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);
+  await page.goto(`http://localhost:${PORT}/?seed=7`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);   // a fixed island keeps the checks deterministic
   let s = await page.evaluate(() => ({ blocks: MT.blocks.length, type: MT.blocks[0]?.type, centre: MT.cell(20, 20).type, ring: MT.cell(20, 22).type }));
   check('station is placed at the centre with a ring road', s.blocks === 1 && s.type === 'station' && s.centre === 'lot' && s.ring === 'road', JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(6));
@@ -98,7 +98,7 @@ try {
   await page.evaluate(() => MT.clearSave());
 
   // ── demo town screenshots ──
-  await page.goto(`http://localhost:${PORT}/?demo`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
+  await page.goto(`http://localhost:${PORT}/?demo&seed=7`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
   await page.screenshot({ path: 'scripts/out/day.png' });
   await page.evaluate(() => MT.setHour(21.5)); await sleep(1000);
   await page.screenshot({ path: 'scripts/out/night.png' });

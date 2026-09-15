@@ -6,7 +6,7 @@ import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
 import { box, colorize, mergeMesh } from './geometry.js';
 import { attachCharacter, detachCharacter } from './characters.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY } from './world.js';
+import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
@@ -507,6 +507,11 @@ function moveAlong(obj, tr, dist) {
   if (tr.i >= pts.length - 1) { const e = pts[pts.length - 1]; obj.position.set(e.x, e.y + terrainY(e.x, e.z), e.z); return true; }
   const a = pts[tr.i], b = pts[tr.i + 1], k = tr.t / (a.distanceTo(b) || 1);
   obj.position.lerpVectors(a, b, k); obj.position.y += terrainY(obj.position.x, obj.position.z);
+  if (obj.userData.lights) {   // vehicles pitch nose-up on a slope (walkers stay upright)
+    const dx = b.x - a.x, dz = b.z - a.z, L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L;
+    const yA = terrainY(obj.position.x - ux * 0.15, obj.position.z - uz * 0.15), yB = terrainY(obj.position.x + ux * 0.15, obj.position.z + uz * 0.15);
+    obj.rotation.order = 'YXZ'; obj.rotation.x += (-Math.atan2(yB - yA, 0.3) - obj.rotation.x) * 0.3;
+  }
   const ang = Math.atan2(b.x - a.x, b.z - a.z); let d = ang - obj.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d)); obj.rotation.y += d * 0.35;
   return false;
 }
@@ -637,7 +642,8 @@ function removeBlock(block) {
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }
   blocks.splice(blocks.indexOf(block), 1);
-  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
+  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
+  connectHillRoads();   // hill links were cleared with the orphans; rebuild them for the blocks that remain
   refreshWorld();
 }
 

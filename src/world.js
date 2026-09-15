@@ -5,7 +5,7 @@ import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
 import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
-import { TERRACE } from './island.js';
+import { TERRACE, hillCentre, cellHash } from './island.js';
 import { isLand, coastDist, terraceInfo } from './island.js';
 import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
@@ -44,9 +44,24 @@ let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMes
 const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: true, opacity: 0.8 });
 const lampGlowMat = glowMat.clone();
 
+let hillDecorMesh = null;
 function rebuildDecor() {
   if (decorMesh) { townGroup.remove(decorMesh); decorMesh.geometry.dispose(); }
-  const g = [];
+  if (hillDecorMesh) { townGroup.remove(hillDecorMesh); hillDecorMesh.geometry.dispose(); hillDecorMesh = null; }
+  const g = [], gh = [];
+  // woods on the wild hill cells: denser than the flat land, heavier on pines, kept off the summit clearing
+  for (const c of cells) {
+    if (c.type !== 'hill' || !(c.h > 0)) continue;
+    const { i, j } = c, y = c.h, x0 = cx(i), z0 = cz(j), n = 2 + (cellHash(i + 7, j + 3) < 0.5 ? 1 : 0);
+    for (let k = 0; k < n; k++) {
+      const x = x0 + (cellHash(i + k * 5, j + 11) - 0.5) * 0.7, z = z0 + (cellHash(i + 17, j + k * 3) - 0.5) * 0.7;
+      if (Math.hypot(x - hillCentre.x, z - hillCentre.z) < 1.5) continue;
+      const s = 0.7 + cellHash(i * 3 + k, j) * 0.5, r = cellHash(i, j * 7 + k);
+      if (r < 0.45) { gh.push(cyl(0.05 * s, 0.07 * s, 0.45 * s, PAL.wood2, x, y + 0.22 * s, z, 5)); gh.push(cyl(0.001, 0.34 * s, 0.7 * s, '#7f9b7a', x, y + 0.72 * s, z, 6)); gh.push(cyl(0.001, 0.24 * s, 0.5 * s, '#8fae78', x, y + 1.05 * s, z, 6)); }
+      else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(cellHash(i + 1, j + 1 + k) * tc.length)]; gh.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); gh.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
+      else gh.push(blob(0.2 * s, r < 0.92 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
+    }
+  }
   for (const c of cells) {
     if (c.type !== 'empty' || !c.tree) continue;
     const g0 = g.length;
@@ -73,9 +88,10 @@ function rebuildDecor() {
       g.push(blob(0.16 * t.s, PAL.bush2, x, 0.09 * t.s, z, 0, 0.55));
       for (let k = 0; k < 3; k++) g.push(blob(0.045, k % 2 ? PAL.flower : PAL.cream2, x + Math.cos(k * 2.1) * 0.1, 0.17 * t.s, z + Math.sin(k * 2.1) * 0.1, 0, 1));
     }
-    if (c.h) for (let k = g0; k < g.length; k++) g[k].translate(0, c.h, 0);
+    if (c.h) { for (let k = g0; k < g.length; k++) { g[k].translate(0, c.h, 0); gh.push(g[k]); } g.length = g0; }   // raised plots do not sway
   }
   decorMesh = mergeMesh(g, true); if (decorMesh) { decorMesh.material = swayMat; townGroup.add(decorMesh); }
+  hillDecorMesh = mergeMesh(gh, true); if (hillDecorMesh) townGroup.add(hillDecorMesh);
 }
 
 function lotAdjacent4(c) { return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; }); }
@@ -100,6 +116,10 @@ function rebuildRoads() {
       const a = tilt(new THREE.BoxGeometry(1, 0.08, L)); a.translate(x, h0 + dh / 2 + 0.04, z); g.push(colorize(a, PAL.asphalt));
       for (const sgn of [-1, 1]) { const b = tilt(new THREE.BoxGeometry(0.19, 0.1, L)); b.translate(x + dj * 0.405 * sgn, h0 + dh / 2 + 0.05, z - di * 0.405 * sgn); g.push(colorize(b, PAL.sidewalk)); }
       for (const o of [-0.25, 0.25]) { const d = tilt(new THREE.BoxGeometry(0.03, 0.004, 0.22)); d.translate(x + di * o, h0 + dh / 2 + dh * o + 0.082, z + dj * o); g.push(colorize(d, PAL.cream2)); }
+      if (c.dyn) {   // a slope the town built: it needs the earth wedge the island gives its own slopes
+        const sh = new THREE.Shape(); sh.moveTo(-0.5, 0); sh.lineTo(0.5, 0); sh.lineTo(0.5, dh); sh.closePath();
+        const wedge = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); wedge.translate(0, 0, -0.5); wedge.rotateY(Math.atan2(-dj, di)); wedge.translate(x, h0, z); g.push(colorize(wedge, PAL.landSide));
+      }
       continue;
     }
     const gy = c.h || 0, g0 = g.length, lg0 = lg.length, hd0 = lampHeads.length, gl0 = lampGlows.length, cn0 = cones.length, po0 = poles.length;
@@ -229,14 +249,14 @@ function makeUnit(block, c) {
 // A cell can take a building if it is empty, or a street that is not the station's ring and would still have
 // a street (road or empty cell) on one side once the whole selection is built, so the door has somewhere to face.
 function placeable(c, sel = []) {
-  if (!c || (c.type !== 'empty' && c.type !== 'road') || c.keep) return false;
+  if (!c || (c.type !== 'empty' && c.type !== 'road') || c.keep || c.ramp) return false;
   if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
   return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
 }
 function ringRoads(sel) {
   for (const c of sel) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
-    const n = cell(c.i + di, c.j + dj); if (n && n.type === 'empty') { n.type = 'road'; n.tree = null; }
+    const n = cell(c.i + di, c.j + dj); if (n && n.type === 'empty' && (n.h || 0) === (c.h || 0)) { n.type = 'road'; n.tree = null; }   // a street only on the block's own terrace
   }
 }
 
@@ -272,6 +292,69 @@ function placeStation() {
   return block;
 }
 
+/**
+ * Roads on the hill find their own way. A terrace street with no way down gets a slope road built at its
+ * edge (the lower cell becomes the slope, the next one its foot), placed on the side nearest the town.
+ * Then every slope road's ends are linked to the nearest street, or another slope road's end, on their
+ * own level. Slope roads and links made here are ordinary roads: they are cleared with the orphans when a
+ * block goes, and removeBlock calls this again to rebuild what is still needed.
+ */
+function connectHillRoads() {
+  const passable = (n, h) => n && (n.type === 'empty' || n.type === 'road' || n.type === 'hill') && (n.h || 0) === h && !n.ramp;   // links may cut through the woods
+  const free = n => n.type === 'empty' || n.type === 'hill';
+  const sameLevelPath = (start, h, isGoal) => {
+    const prev = new Map([[start, null]]); const q = [start];
+    while (q.length) {
+      const c = q.shift(); if (c !== start && isGoal(c)) { const path = []; for (let p = c; p; p = prev.get(p)) path.push(p); return path; }
+      for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (!n || prev.has(n) || !passable(n, h)) continue; prev.set(n, c); q.push(n); }
+    }
+    return null;
+  };
+  if (!cells.some(c => c.type === 'lot' && (c.h || 0) > 0)) return;   // nothing to link until someone builds up there
+  // 1. slope roads for terrace streets that cannot get down
+  const flood = start => { const h = start.h || 0, seen = new Set([start]), q = [start]; while (q.length) { const c = q.shift(); for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && !seen.has(n) && n.type === 'road' && !n.ramp && (n.h || 0) === h) { seen.add(n); q.push(n); } } } return seen; };
+  for (let pass = 0; pass < 3; pass++) {
+    let added = false; const seen = new Set();
+    for (const c of cells) {
+      if (c.type !== 'road' || !(c.h > 0) || c.ramp || seen.has(c)) continue;
+      const net = flood(c); for (const n of net) seen.add(n);
+      const wayDown = [...net].some(n => n.keep || DIR4.some(([di, dj]) => { const m = cell(n.i + di, n.j + dj); return m && m.ramp && Math.abs(m.ramp.h1 - (n.h || 0)) < 1e-6; }));
+      if (wayDown) continue;
+      // where could a slope go? from a cell n on this terrace, straight over an empty lower cell R to a free cell L
+      const slopeAt = n => { let best = null, bd = 1e9; for (const [di, dj] of DIR4) {
+        const R = cell(n.i + di, n.j + dj), L = cell(n.i + 2 * di, n.j + 2 * dj), hl = (n.h || 0) - TERRACE;
+        if (!R || !L || Math.abs((R.h || 0) - hl) > 1e-6 || Math.abs((L.h || 0) - hl) > 1e-6) continue;
+        if (!free(R) || !(free(L) || (L.type === 'road' && !L.ramp))) continue;
+        const d = Math.hypot(cx(L.i), cz(L.j)); if (d < bd) { bd = d; best = { R, L, di, dj }; } } return best; };
+      let best = null, bd = 1e9;
+      for (const n of net) { const s = slopeAt(n); if (s && Math.hypot(cx(s.L.i), cz(s.L.j)) < bd) { bd = Math.hypot(cx(s.L.i), cz(s.L.j)); best = s; } }
+      if (!best) {   // no edge on the street itself: walk over free cells of this terrace to the nearest place a slope fits
+        const h = c.h || 0, prev = new Map(); const q = [];
+        for (const n of net) { prev.set(n, null); q.push(n); }
+        let found = null;
+        while (q.length && !found) { const n = q.shift(); if (!net.has(n) && slopeAt(n)) { found = n; break; } for (const [di, dj] of DIR4) { const m = cell(n.i + di, n.j + dj); if (!m || prev.has(m) || !passable(m, h)) continue; prev.set(m, n); q.push(m); } }
+        if (!found) continue;
+        for (let p = found; p; p = prev.get(p)) if (free(p)) { p.type = 'road'; p.tree = null; }
+        best = slopeAt(found);
+      }
+      const { R, L, di, dj } = best;
+      R.type = 'road'; R.tree = null; R.dyn = true; R.ramp = { di: -di, dj: -dj, h0: R.h || 0, h1: (R.h || 0) + TERRACE };
+      if (free(L)) { L.type = 'road'; L.tree = null; } L.dyn = true; added = true;
+    }
+    if (!added) break;
+  }
+  // 2. link every slope road's ends to a street on its level
+  const goal = c => c.type === 'road' && !c.ramp && ((c.keep || c.dyn) || lotAdjacent8(c));
+  for (const R of cells) {
+    if (!R.ramp) continue;
+    const { di, dj, h0, h1 } = R.ramp, H = cell(R.i + di, R.j + dj), L = cell(R.i - di, R.j - dj);
+    for (const [end, h] of [[H, h1], [L, h0]]) {
+      if (!end) continue;
+      const path = sameLevelPath(end, h, goal); if (!path) continue;
+      for (const c of path) if (free(c)) { c.type = 'road'; c.tree = null; }
+    }
+  }
+}
 function placeBlock(type, sel, preset = null) {
   const seed = Math.random();
   const family = pick(FAMILY);
@@ -288,7 +371,7 @@ function placeBlock(type, sel, preset = null) {
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
   for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
-  ringRoads(sel);
+  ringRoads(sel); connectHillRoads();
   blocks.push(block);
   for (const u of block.units) u.facing = pickFacing(u);
   refreshWorld(); for (const u of block.units) rebuildUnitMesh(u);
@@ -310,6 +393,6 @@ function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY,
+export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };

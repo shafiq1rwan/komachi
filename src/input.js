@@ -69,7 +69,7 @@ canvas.addEventListener('pointerdown', e => {
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
-  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.keep ? 'The hill road stays open' : c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
+  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.keep || c.ramp ? 'The hill road stays open' : c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
   else { ptr.panning = true; document.body.classList.add('dragging'); }
   canvas.setPointerCapture(e.pointerId);
 });
