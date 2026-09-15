@@ -35,8 +35,8 @@ glow decal and the people currently inside it. Capacities depend on type and lev
 (`CAP` in `world.js`).
 
 **Station.** A fixed 3×3 block of type `station` placed at the grid centre on start-up
-(`placeStation` in `world.js`). The centre cell is the stair entrance; the eight plaza cells hold
-benches, vending machines, planters and lamps (`genStation` in `buildings.js`). `STATION` in
+(`placeStation` in `world.js`). The centre cell is the stair entrance; the plaza cells hold two
+benches on the north edge (the south, in front of the stairs, is kept clear), vending machines, planters and lamps (`genStation` in `buildings.js`). `STATION` in
 `world.js` holds the world-space seat, standing and vending spots. Trips to and from the station
 use the south-edge unit as their routing anchor (`STATION.anchor`), since only edge cells touch
 the ring road.

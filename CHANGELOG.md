@@ -69,6 +69,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Plaza walks (entrance to bench, bench to the street, vending machines) detour around the stair house
+  instead of passing through it; vending machines are a head taller than a person, as they should be
+- Station benches shrunk to hip height so people actually sit on them, and the pair in front of the
+  stairs removed to keep the entrance clear (four seats on the north edge plus standing spots)
 - Buildings can now be zoned on top of a street, so a two-cell gap between blocks can be filled in;
   the road reforms around the new block. The station's ring road stays clear and every building must
   keep a street on one side

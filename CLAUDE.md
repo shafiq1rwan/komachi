@@ -93,6 +93,9 @@ update CHANGELOG (Unreleased), README, docs.
 
 ## Roadmap (agreed with the user)
 
+Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase is ticked.
+
+
 1. ✅ Island, Japanese identity, building kit, street props, ambient life, touch basics
 2. ✅ Construction stages, crews by train, deliveries, renovation
 3. Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load

@@ -314,14 +314,16 @@ function unitLocal(u, lx, lz, y = 0) { const ry = u.facing || 0, s = Math.sin(ry
 const RAIL = '#4f6b66', PIT = '#3f3a38';
 function bench(g, x, z, rot) {   // faces local +z before rotation
   const parts = [];
-  parts.push(box(0.44, 0.05, 0.16, PAL.wood, 0, 0.12 + 0.28, 0));
-  parts.push(box(0.44, 0.15, 0.03, PAL.wood, 0, 0.12 + 0.4, -0.08));
-  for (const lx of [-0.18, 0.18]) parts.push(box(0.04, 0.28, 0.14, PAL.lamp, lx, 0.12 + 0.14, 0));
+  // people are ~0.36 tall with hips at 0.09, so the seat sits at hip height (top 0.10 above the plinth)
+  parts.push(box(0.34, 0.03, 0.12, PAL.wood, 0, 0.12 + 0.085, 0));
+  parts.push(box(0.34, 0.09, 0.02, PAL.wood, 0, 0.12 + 0.16, -0.055));
+  for (const lx of [-0.14, 0.14]) parts.push(box(0.03, 0.07, 0.1, PAL.lamp, lx, 0.12 + 0.035, 0));
   for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); }
 }
 function vendingMachine(g, wg, x, z, rot, color) {   // front faces local +z before rotation
-  const parts = [box(0.2, 0.36, 0.16, color, 0, 0.12 + 0.18, 0), box(0.22, 0.03, 0.18, PAL.concrete, 0, 0.12 + 0.015, 0), box(0.16, 0.06, 0.02, PAL.cream2, 0, 0.12 + 0.08, 0.085)];
-  const win = box(0.14, 0.18, 0.02, PAL.window, -0.01, 0.12 + 0.24, 0.085);
+  // a real machine stands a head taller than a person: ~0.42 against a 0.36 walker
+  const parts = [box(0.23, 0.42, 0.18, color, 0, 0.12 + 0.21, 0), box(0.25, 0.03, 0.2, PAL.concrete, 0, 0.12 + 0.015, 0), box(0.18, 0.07, 0.02, PAL.cream2, 0, 0.12 + 0.09, 0.095)];
+  const win = box(0.16, 0.2, 0.02, PAL.window, -0.01, 0.12 + 0.28, 0.095);
   for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); }
   win.rotateY(rot); win.translate(x, 0, z); wg.push(win);
 }
@@ -353,9 +355,9 @@ function genStation(b, u, g, wg) {
     g.push(box(0.46, 0.12, 0.03, PAL.cream2, 0, y0 + 0.82, 0.3)); g.push(box(0.3, 0.04, 0.035, b.roof, 0, y0 + 0.82, 0.31));
     return;
   }
-  if (di === 0) {   // north / south edges: benches facing the entrance, a bin, a planter
+  if (di === 0) {   // north edge: benches facing the entrance; south edge (in front of the stairs) stays open; a bin and planter on both
     const rot = dj < 0 ? 0 : Math.PI;
-    bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot);
+    if (dj < 0) { bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot); }
     g.push(cyl(0.07, 0.06, 0.2, RAIL, 0.46, y0 + 0.1, dj * 0.42, 8));
     g.push(box(0.2, 0.1, 0.2, PAL.wood, -0.42, y0 + 0.05, -dj * 0.38)); g.push(blob(0.1, PAL.bush2, -0.42, y0 + 0.16, -dj * 0.38, 0, 0.8)); g.push(blob(0.04, PAL.flower, -0.38, y0 + 0.22, -dj * 0.34, 0, 1));
     for (const tx of [-0.3, 0.1]) g.push(box(0.3, 0.005, 0.3, PAL.cream2, tx, y0 + 0.003, -dj * 0.1));

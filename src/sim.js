@@ -165,8 +165,20 @@ function sitDown(r) {
 }
 function freeSpots() { return STATION.seats.filter(s => !s.taken).length + STATION.stands.filter(s => !s.taken).length; }
 /** A short walk that ignores roads (inside the plaza, or across the grass), with a callback on arrival. */
+// Walks across the plaza go round the stair house in the centre cell instead of through it: if the straight
+// line crosses the centre cell, detour along the side nearer the walker, past the cell's front and back corners.
+const PLAZA_C = { x: STATION.entrance.x, z: STATION.entrance.z - 0.9 };
+function plazaDetour(from, to) {
+  const hx = 0.56, hz = 0.64; let hit = false;
+  for (let t = 0; t <= 1 && !hit; t += 0.04) { const x = from.x + (to.x - from.x) * t, z = from.z + (to.z - from.z) * t; hit = Math.abs(x - PLAZA_C.x) < hx && Math.abs(z - PLAZA_C.z) < hz; }
+  if (!hit) return [];
+  const side = Math.sign(from.x + to.x - 2 * PLAZA_C.x) || 1, sx = PLAZA_C.x + side * hx;
+  const z1 = PLAZA_C.z + (Math.sign(from.z - PLAZA_C.z) || 1) * 0.6, z2 = PLAZA_C.z + (Math.sign(to.z - PLAZA_C.z) || 1) * 0.6;
+  const pts = [new THREE.Vector3(sx, 0.12, z1)]; if (Math.abs(z2 - z1) > 0.01) pts.push(new THREE.Vector3(sx, 0.12, z2));
+  return pts;
+}
 function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
-  const pts = [from.clone().setY(y), to.clone().setY(y)];
+  const pts = [from.clone().setY(y), ...plazaDetour(from, to).map(p => p.setY(y)), to.clone().setY(y)];
   r.trip = { pts, i: 0, t: 0, dest: null, drive: false, speed: 0.85 * rand(0.9, 1.1), baseY: y, onArrive };
   r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]); setPose(r, false);
 }
@@ -301,7 +313,7 @@ function startTrip(r, cellPath, start, end, destUnit, label) {
 function go(r, dest, label) {
   const from = r.at; const path = routeUnits(from, dest);
   if (!path) { r.next = S.T + rand(0.4, 0.9); return false; }
-  const start = from === STATION.anchor ? r.mesh.position.clone().setY(0) : exitPts(from);
+  const start = from === STATION.anchor ? [r.mesh.position.clone().setY(0.12), ...plazaDetour(r.mesh.position, new THREE.Vector3(cx(path[0].i), 0, cz(path[0].j)))] : exitPts(from);
   if (from === STATION.anchor) freeSpot(r);
   from.inside.delete(r); r.at = null;
   startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label); return true;

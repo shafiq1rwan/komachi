@@ -112,8 +112,9 @@ scripts/smoke.mjs     headless browser test
 docs/                 art direction, architecture notes, reference image, screenshots
 ```
 
-See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together and
-[docs/ART_DIRECTION.md](docs/ART_DIRECTION.md) for the visual rules.
+See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together,
+[docs/ART_DIRECTION.md](docs/ART_DIRECTION.md) for the visual rules and [docs/ROADMAP.md](docs/ROADMAP.md)
+for what is done and what comes next.
 
 ## Testing
 

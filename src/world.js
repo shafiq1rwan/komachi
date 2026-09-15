@@ -201,14 +201,14 @@ function ringRoads(sel) {
 // until a home has room. Positions below are world coordinates (cell (17,17) is centred on (0.5, 0.5)).
 const SC = { i: HALF, j: HALF };                 // centre cell index
 const SX = cx(SC.i), SZ = cz(SC.j);
-const BENCH_Y = 0.12 + 0.28;                     // seat top
+const BENCH_Y = 0.12 + 0.10;                     // seat top, hip height for a box person
 const STATION = {
   block: null, anchor: null,                     // anchor = the south-edge unit; its cell touches the ring road
   entrance: new THREE.Vector3(SX, 0.12, SZ + 0.9),
   seats: [], stands: [], vending: [],
 };
-for (const side of [-1, 1]) for (const bx of [-0.25, 0.25]) for (const sx of [-0.11, 0.11])
-  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - 0.09, SZ + side * 1.3), rot: side < 0 ? 0 : Math.PI, taken: null });
+for (const bx of [-0.25, 0.25]) for (const sx of [-0.09, 0.09])   // two benches on the north edge only; the entrance side is kept clear
+  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - 0.09, SZ - 1.3), rot: 0, taken: null });
 for (const [dx, dz] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]])
   STATION.stands.push({ kind: 'stand', pos: new THREE.Vector3(SX + dx * 0.6, 0.12, SZ + dz * 0.6), rot: Math.atan2(-dx, -dz), taken: null });
 for (const dz of [-0.22, 0.22]) STATION.vending.push({ pos: new THREE.Vector3(SX + 1.08, 0.12, SZ + dz), rot: Math.PI / 2, taken: null });
