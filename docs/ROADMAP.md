@@ -45,6 +45,7 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Benches at hip height, entrance side of the plaza kept clear, plaza walks detour round the stairs
 - Vending machines a head taller than a person
 - Box people kept as the default; rigged GLB available with `?rigged`
+- A terraced, wooded hill with a shrine opposite the pier (unbuildable)
 
 ---
 
@@ -66,6 +67,16 @@ Goal: residents feel like people with lives, and the town stays smooth as it gro
 - Open decisions to settle at the start of this phase:
   - Name tags: fold into "tag the followed or pinned resident only" and drop the toggle
   - Whether walkers cross at zebra crossings instead of at the end of the trip
+
+## ⬜ Phase 3.5 (optional) — Building on the hill
+
+Deferred until save/load exists, since it adds a ground height to the data model.
+
+- Terrace cells become buildable when a whole block sits on one terrace level; the block and its
+  ring road are raised to that height
+- Cells on a terrace lip stay unbuildable; the summit stays reserved for the shrine
+- Walkers use the stone steps between terraces; roads, kerbs, lamps, doorsteps, cars and trucks read
+  a per-cell ground height instead of assuming zero
 
 ## ⬜ Phase 4 — Station commuting, bikes and taxis
 

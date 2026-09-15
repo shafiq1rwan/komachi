@@ -1,5 +1,6 @@
 // Komachi — the island: an organic coastline from a seeded radial noise curve, with beach terrace,
-// rocky stretches, grassy cliff edges, a small pier and a boat. Also answers "is this cell land?".
+// rocky stretches, grassy cliff edges, a small pier and a boat, a terraced hill with a shrine opposite
+// the pier. Also answers "is this cell land?" and "is it hill?".
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { S } from './state.js';
@@ -57,9 +58,10 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
+let pierTheta = null;
 {
   const solid = [], veg = [];
-  let pierTheta = null;
+  pierTheta = null;
   for (let t = 0; t < TAU; t += 0.045) {
     const kind = shoreKind(t), r = rng();
     if (kind === 'rock') {
@@ -93,4 +95,58 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
 
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater };
+// ── the hill: three grassy terraces opposite the pier, wooded, with a small shrine on top ──
+// hillFrac() is the normalised distance from the hill centre (1 = foot of the lowest terrace);
+// hillLevel() gives the terrace (0 = flat ground). Cells on or just around the hill are type 'hill'.
+const TERRACE = 0.55, HILL_STEPS = [1, 0.72, 0.42];
+const hillTheta = pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
+const [HX, HZ] = coastPoint(hillTheta, -0.4 * radius(hillTheta));
+const HR = 3.6, hillPhase = [rng() * TAU, rng() * TAU];
+const hct = Math.cos(hillTheta), hst = Math.sin(hillTheta);
+function hillOutline(a) { return HR * (1 + 0.16 * Math.sin(2 * a + hillPhase[0]) + 0.09 * Math.sin(3 * a + hillPhase[1])); }
+function hillFrac(x, z) {
+  const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / 0.85, v = (-dx * hst + dz * hct) / 1.25;   // squashed radially, stretched along the shore
+  return Math.hypot(u, v) / hillOutline(Math.atan2(v, u));
+}
+function hillLevel(x, z) { const f = hillFrac(x, z); return f < HILL_STEPS[2] ? 3 : f < HILL_STEPS[1] ? 2 : f < HILL_STEPS[0] ? 1 : 0; }
+const onHill = (x, z) => hillFrac(x, z) < 1.12;
+function hillPoint(a, f) { const r = f * hillOutline(a), u = Math.cos(a) * r * 0.85, v = Math.sin(a) * r * 1.25; return [HX + u * hct - v * hst, HZ + u * hst + v * hct]; }
+const hillTop = TERRACE * 3;
+{
+  for (let k = 0; k < 3; k++) {
+    const s = new THREE.Shape();
+    for (let n = 0; n < 72; n++) { const [x, z] = hillPoint(n / 72 * TAU, HILL_STEPS[k]); if (n === 0) s.moveTo(x, z); else s.lineTo(x, z); }
+    s.closePath();
+    const m = new THREE.Mesh(new THREE.ExtrudeGeometry(s, { depth: TERRACE + 0.3, bevelEnabled: true, bevelThickness: 0.12, bevelSize: 0.14, bevelSegments: 2 }), [mat(biome.grass), mat(PAL.landSide)]);
+    m.rotation.x = Math.PI / 2; m.position.y = TERRACE * (k + 1) - 0.12; m.castShadow = true; m.receiveShadow = true; scene.add(m);
+  }
+  const g = [];
+  // woods: denser than the flat land, more pines, no trees on the terrace lips or the summit clearing
+  for (let n = 0; n < 160; n++) {
+    const a = rng() * TAU, f = Math.sqrt(rng()) * 0.96; const [x, z] = hillPoint(a, f);
+    if (HILL_STEPS.some(s => Math.abs(f - s) < 0.08) || f < 0.3) continue;
+    const y = TERRACE * hillLevel(x, z), s = 0.75 + rng() * 0.45, r = rng();
+    if (r < 0.45) { g.push(cyl(0.05 * s, 0.07 * s, 0.45 * s, PAL.wood2, x, y + 0.22 * s, z, 5)); g.push(cyl(0.001, 0.34 * s, 0.7 * s, '#7f9b7a', x, y + 0.72 * s, z, 6)); g.push(cyl(0.001, 0.24 * s, 0.5 * s, '#8fae78', x, y + 1.05 * s, z, 6)); }
+    else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(rng() * tc.length)]; g.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); g.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
+    else g.push(blob(0.2 * s, rng() < 0.5 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
+  }
+  // a small shrine on the summit, its torii facing the town, stone lanterns, and steps down the town side
+  const fx = -hct, fz = -hst;                      // toward the station
+  const rx = -fz, rz = fx;                         // right-hand side
+  const ang = Math.atan2(fx, fz), y0 = hillTop;
+  const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); g.push(geo); };
+  const rot = geo => { geo.rotateY(ang); return geo; };
+  put(rot(box(0.56, 0.36, 0.44, PAL.cream2)), -0.55, 0, y0 + 0.18); put(rot(box(0.72, 0.1, 0.58, PAL.roofSage)), -0.55, 0, y0 + 0.4); put(rot(box(0.46, 0.1, 0.36, PAL.roofSage)), -0.55, 0, y0 + 0.5);
+  put(rot(box(0.6, 0.03, 0.6, PAL.concrete)), -0.55, 0, y0 + 0.015);
+  for (const side of [-0.24, 0.24]) put(cyl(0.035, 0.04, 0.56, PAL.roofRose, 0, 0, 0, 6), 0.35, side, y0 + 0.28);
+  put(rot(box(0.76, 0.06, 0.07, PAL.roofRose)), 0.35, 0, y0 + 0.58); put(rot(box(0.6, 0.045, 0.06, PAL.roofRose)), 0.35, 0, y0 + 0.46);
+  for (const side of [-0.5, 0.5]) { put(cyl(0.035, 0.045, 0.28, PAL.concrete, 0, 0, 0, 6), 0.1, side, y0 + 0.14); put(rot(box(0.14, 0.1, 0.14, PAL.concrete)), 0.1, side, y0 + 0.32); put(rot(box(0.18, 0.03, 0.18, PAL.concrete)), 0.1, side, y0 + 0.38); }
+  put(rot(box(0.5, 0.02, 1.0, PAL.concrete)), 0.05, 0, y0 + 0.01);
+  for (const [lvl, f] of [[3, HILL_STEPS[2]], [2, HILL_STEPS[1]]]) {   // a = π is the town side in hill-local coordinates
+    const [ex, ez] = hillPoint(Math.PI, f);
+    for (let k = 0; k < 6; k++) { const t = k / 6, y = TERRACE * (lvl - 1) + TERRACE * (1 - t); g.push(box(0.5, 0.06, 0.16, PAL.concrete, ex + fx * (0.5 - t * 0.9), y - 0.03, ez + fz * (0.5 - t * 0.9), ang)); }
+  }
+  const hm = mergeMesh(g, true); if (hm) scene.add(hm);
+}
+
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel };

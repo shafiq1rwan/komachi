@@ -7,6 +7,9 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- A wooded hill opposite the pier: three grassy terraces with pines and broadleaf trees, a small
+  shrine with a torii on the summit facing the town, stone lanterns and steps. Hill cells are left wild
+  and cannot be built on
 - Optional rigged resident character (`assets/characters/komachi-resident.glb`, enable with `?rigged`): loaded
   once, cloned per person with jacket, trousers, hair, skin and bag recoloured from the resident's
   look, Idle/Walk clips blended from movement, legs bent at hip and knee when seated on a bench,
@@ -69,6 +72,7 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Hovering the station highlights all nine plaza cells, not just three
 - Plaza walks (entrance to bench, bench to the street, vending machines) detour around the stair house
   instead of passing through it; vending machines are a head taller than a person, as they should be
 - Station benches shrunk to hip height so people actually sit on them, and the pair in front of the

@@ -13,11 +13,16 @@ toast (standalone, used by sim, input, main)
 
 ## Core concepts
 
-**Cell.** The world is an `N × N` grid (N = 40) of cells. Each cell is `water`, `empty`, `road` or
+**Cell.** The world is an `N × N` grid (N = 40) of cells. Each cell is `water`, `hill`, `empty`, `road` or
 `lot`. Which cells are water comes from `island.js`: a seeded radial curve (base radius plus a few
 sine harmonics, squashed into a gentle ellipse) defines the coast, and a cell is land only if it
 sits at least 0.8 units inside it. The same curve drives the land, beach terrace and foam
 extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
+
+**Hill.** `island.js` also places a terraced hill opposite the pier: a noisy ellipse (`hillFrac`,
+`hillLevel`) gives three stepped extrusions 0.55 apart, static woods, a shrine on the summit and steps
+down the town side. Cells inside the outline (with a small margin, `onHill`) are type `hill`: they are
+never `empty`, so roads do not grow through them and `placeable` rejects them.
 
 **Biome.** `biome.js` is data only: grass and sand colours, tree colour set, pine and blossom
 ratios, shoreline bias. Everything that draws vegetation or terrain reads from it.

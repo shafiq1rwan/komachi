@@ -51,7 +51,7 @@ canvas.addEventListener('pointerdown', e => {
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
-  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? "Keep the station's ring road clear" : 'That spot is already taken'); }
+  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'The hill is left wild' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
   else { ptr.panning = true; document.body.classList.add('dragging'); }
   canvas.setPointerCapture(e.pointerId);
 });
@@ -104,7 +104,8 @@ function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2)
 const prevMat = { ok: new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.55, depthWrite: false }), bad: new THREE.MeshBasicMaterial({ color: PAL.roofRose, transparent: true, opacity: 0.5, depthWrite: false }), road: new THREE.MeshBasicMaterial({ color: PAL.cream2, transparent: true, opacity: 0.45, depthWrite: false }) };
 const prevPool = []; for (let k = 0; k < 20; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.04, 0.92), prevMat.ok); m.visible = false; m.position.y = 0.16; scene.add(m); prevPool.push(m); }
 const ringMat = new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.7, depthWrite: false });
-const hoverRings = []; for (let k = 0; k < 3; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 1.06), ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
+// one ring per cell: blocks hold up to 3, the station 9
+const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 1.06), ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
 function updatePreview() {
   let n = 0;
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.x = cx(c.i); p.position.z = cz(c.j); };

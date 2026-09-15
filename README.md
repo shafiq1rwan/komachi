@@ -56,7 +56,8 @@ Some things worth knowing:
   06:00. Hover the station to see who is waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
-  cliffs, a pier and a boat. Zoom out to see all of it; nothing can be built in the water.
+  cliffs, a pier and a boat, and a wooded hill with a shrine on the far side from the pier. Zoom out to
+  see all of it; nothing can be built in the water or on the hill.
 - **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
   junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
   Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.

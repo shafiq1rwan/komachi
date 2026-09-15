@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 13 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 14 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -40,7 +40,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - People are the box figures by default (user preference). The rigged GLB in `assets/characters/` is
   opt-in with `?rigged` via `src/characters.js`. `new THREE.Color(hex)` is already linear; never call
   `convertSRGBToLinear` on it. GLTFLoader renames `thigh.L` → `thighL`.
-- Cells: `water | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
+- Cells: `water | hill | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
   zoned over road cells (`placeable` in world.js), never over the station ring.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
@@ -99,6 +99,7 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 1. ✅ Island, Japanese identity, building kit, street props, ambient life, touch basics
 2. ✅ Construction stages, crews by train, deliveries, renovation
 3. Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
+   3.5 (optional, after save/load) buildable hill terraces; the hill is wild until then
 4. Station commuting, persistent bikes and taxis
 5. Economy and dynamic business selection
 6. Weather, gentle events, festivals, tourism

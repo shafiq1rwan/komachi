@@ -50,6 +50,12 @@ try {
 
   await page.keyboard.press('Digit4'); const rp = await page.evaluate(() => MT.project(20, 22)); await page.mouse.click(rp.x, rp.y); await sleep(200);
   s = await page.evaluate(() => MT.blocks.length); check("cannot build on the station's ring road", s === 3);
+  await page.evaluate(() => { MT.cam.view = MT.cam.tView = 42; }); await sleep(300);
+  const hc = await page.evaluate(() => { const c = MT.cells.find(c => c.type === 'hill'); return c ? MT.project(c.i, c.j) : null; });
+  if (hc) { await page.mouse.click(hc.x, hc.y); await sleep(200); }
+  s = await page.evaluate(() => ({ blocks: MT.blocks.length, hills: MT.cells.filter(c => c.type === 'hill').length }));
+  check('the hill exists and cannot be built on', s.blocks === 3 && s.hills >= 20, JSON.stringify(s));
+  await page.evaluate(() => { MT.cam.view = MT.cam.tView = 18; }); await sleep(300);
   const wp = await page.evaluate(() => MT.project(17, 22)); await page.mouse.click(wp.x, wp.y); await sleep(200);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, cell: MT.cell(17, 22).type, side: MT.cell(16, 22).type }));
   check('a street between blocks can be built over', s.blocks === 4 && s.cell === 'lot' && s.side === 'road', JSON.stringify(s));

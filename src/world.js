@@ -5,7 +5,7 @@ import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
 import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat } from './geometry.js';
-import { isLand, coastDist } from './island.js';
+import { isLand, coastDist, onHill } from './island.js';
 import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
 
@@ -22,6 +22,7 @@ function treeSpec(i, j) {
 }
 for (const c of cells) {   // water outside the coast; sparse, gently clustered vegetation on land
   if (!isLand(cx(c.i), cz(c.j))) { c.type = 'water'; continue; }
+  if (onHill(cx(c.i), cz(c.j))) { c.type = 'hill'; continue; }   // the wooded hill is left wild
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
   if (h < (0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
 }
