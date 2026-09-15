@@ -44,8 +44,9 @@ Other scripts:
 | Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Remove |
 | Zone a block | Pick a zone, then click and drag across one to three touching cells |
 | Inspect | Hover any building or person. In Explore mode, click to pin the card |
+| Follow | Pin a resident and press Follow on their card. Pan, zoom, a key or another tool lets go |
 | Time | Speed buttons in the clock card, or Space to pause |
-| Look | "Pixel look" toggles the half-resolution chunky render. "Name tags" labels walkers |
+| Look | "Pixel look" toggles the half-resolution chunky render; the sliders button also holds Centre and Start over |
 
 Some things worth knowing:
 
@@ -75,6 +76,11 @@ Some things worth knowing:
   stages (survey, foundations with a digger, frame, scaffolding, finishing) while kei trucks bring
   materials from the station. A home takes about one working day; shops and workspaces a little
   more. Growing a level puts the scaffolding back up for a while.
+- **People live in households.** Couples, small families and flatmates arrive on the same train,
+  wait together and move in together. Each person has needs (energy, food, fun, company, groceries)
+  that drain through the day; at scheduled moments they weigh what would help most against the hour
+  and the distance, so you see breakfast at home, a lunch break at the ramen shop, a grocery run, a
+  stroll, a visit to a friend, and bed when tired. Hover anyone to read how they feel, in words.
 - Residents look for work at shops and workspaces they can reach by road, and follow a daily
   schedule with personal wake and finish times. About a third own cars. A home that is not
   connected to the station by road still gets residents (they cut across the grass to move in),
@@ -82,6 +88,9 @@ Some things worth knowing:
 - Buildings **grow to level 3** once they stay occupied and the town is big enough: three or
   more blocks with both homes and jobs for level 2, six or more blocks of every kind for level 3.
 - Removing a block sends its residents back to the station and clears roads that no longer touch any block.
+- **The town saves itself** in your browser every half game hour and when you leave, and is back on
+  your next visit. The rotate-left button behind the sliders starts a new island; `?new` in the URL
+  ignores the save for one session.
 
 ## Project layout
 
@@ -107,6 +116,7 @@ assets/characters/    Blender source and GLB for the resident character
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip
   input.js            pointer/keyboard, tools, drag selection, preview, hover picking
+  save.js             one-slot localStorage save and restore
   toast.js            the message pill
   styles.css          all UI styling
 scripts/smoke.mjs     headless browser test

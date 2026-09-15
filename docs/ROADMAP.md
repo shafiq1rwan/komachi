@@ -49,24 +49,18 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 
 ---
 
-## ⬜ Phase 3 — Resident depth
+## ✅ Phase 3 — Resident depth
 
-Goal: residents feel like people with lives, and the town stays smooth as it grows.
-
-- **Households**: people who live together share a home, a surname or a relationship, and a
-  rhythm (leave together, eat together, one stays home)
-- **Needs**: hunger, rest, work, shopping, leisure, social. Each decays over the day
-- **Utility-scored decisions** at scheduled intervals (not every frame): pick the activity that
-  best satisfies the strongest need, given what is reachable by road and open right now
-- **Simulation LOD**: near residents animate fully; visible-far residents update less often;
-  off-screen residents advance by schedule only and reappear in the right place
-- **Follow camera**: pick a resident and the camera tracks them until you move it
-- **Richer inspect cards**: household card (members, who is home, what they are doing), resident
-  card with needs shown as words and gestures, not bars
-- **Save / load**: localStorage first, with a versioned data model, before the model grows further
-- Open decisions to settle at the start of this phase:
-  - Name tags: fold into "tag the followed or pinned resident only" and drop the toggle
-  - Whether walkers cross at zebra crossings instead of at the end of the trip
+- Households: couples, families and flatmates booked per home, arriving and moving in together;
+  long waits split a household to fit smaller homes
+- Needs (energy, food, fun, company, groceries) with utility-scored decisions at scheduled moments:
+  meals at home and out, lunch breaks, grocery runs, strolls, visits, sleep
+- Simulation LOD: off-screen and far walkers move in banked steps every sixth frame (the stronger
+  "advance by schedule only" form was not needed at this town size; revisit if towns grow past ~200 people)
+- Follow camera with a name tag; the Name-tags toggle was dropped in its favour
+- Resident cards: household, who they live with, feeling in words, plan; home cards grouped by household
+- Save/load: one localStorage slot, autosaved, versioned (`v: 1`); start-over button; `?new`
+- Still open, carried to Phase 4: walkers crossing at zebra crossings instead of at trip end
 
 ## ⬜ Phase 3.5 (optional) — Building on the hill
 

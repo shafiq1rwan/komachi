@@ -15,9 +15,13 @@ import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
 import { renderInspect, updateStats } from './ui.js';
-import { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget } from './input.js';
+import { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget, followTarget, setFollow } from './input.js';
+import { households } from './sim.js';
+import { save, loadData, restore, clearSave } from './save.js';
+import { toast } from './toast.js';
 
-let last = performance.now(), realT = 0, uiAcc = 0;
+let last = performance.now(), realT = 0, uiAcc = 0, lastSave = 0;
+const followV = new THREE.Vector3();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
@@ -26,6 +30,9 @@ function frame(now) {
   const k = 1 - Math.exp(-dt * 9); cam.view = lerp(cam.view, cam.tView, k); cam.yaw = lerp(cam.yaw, cam.tYaw, k);
   const mv = dt * cam.view * 0.9;
   const right = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)), up = new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
+  if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(c => keys.has(c))) setFollow(null);
+  const f = followTarget();
+  if (f) { if (f.state === 'away') setFollow(null); else { const p = f.state === 'driving' && f.car ? f.car.position : f.mesh.position; followV.set(p.x, 0, p.z); cam.target.lerp(followV, 1 - Math.exp(-dt * 5)); } }
   if (keys.has('KeyW') || keys.has('ArrowUp')) cam.target.addScaledVector(up, mv);
   if (keys.has('KeyS') || keys.has('ArrowDown')) cam.target.addScaledVector(up, -mv);
   if (keys.has('KeyA') || keys.has('ArrowLeft')) cam.target.addScaledVector(right, -mv);
@@ -34,7 +41,8 @@ function frame(now) {
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
   setSwayTime(realT); updateWater(dt); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBars();
-  uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget()); updateStats(); }
+  uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
+  if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
   renderer.render(scene, camera);
   requestAnimationFrame(frame);
 }
@@ -58,13 +66,18 @@ function demoTown() {
 }
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
-  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; },
+  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };
 
 resize(); rebuildDecor(); rebuildRoads();
 placeStation();
-if (new URLSearchParams(location.search).has('demo')) demoTown();
+{
+  const saved = !S.fresh && loadData();
+  if (saved && saved.seed === S.seed && saved.biome === S.biome) { const n = restore(saved); lastSave = S.T; if (n) toast('Welcome back to Komachi'); document.getElementById('intro')?.remove(); setTool('explore'); }
+  else if (new URLSearchParams(location.search).has('demo')) demoTown();
+}
+addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
 document.getElementById('loading').classList.add('gone');
 requestAnimationFrame(frame);

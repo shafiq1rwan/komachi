@@ -2,7 +2,7 @@
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL } from './world.js';
-import { jobUnits, residents, growthAllowed, nextTrainAt } from './sim.js';
+import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
   pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
@@ -38,7 +38,7 @@ function growthRow(b) {
   return `<div class="row"><span>Growing</span><b>${Math.round(100 * p)}%</b></div><div class="bar"><i style="width:${100 * p}%"></i></div>`;
 }
 function personLi(r, detail) { return `<li style="--p:${r.shirt};--h:${r.hat ? r.hatColor : r.hair}"><i></i><b>${esc(r.name)}</b><span>${esc(detail)}</span></li>`; }
-function renderInspect(target) {
+function renderInspect(target, follow = null) {
   if (!target) { ui.inspect.classList.remove('show'); return; }
   let html = '';
   if (target.unit && target.unit.block.type === 'station') html = renderStation(target.unit.block);
@@ -57,12 +57,15 @@ function renderInspect(target) {
       if (type === 'res') {
         html += `<div class="row"><span>Residents</span><b>${u.residents.length} / ${unitCap(u)}</b></div>`;
         html += growthRow(b);
-        html += `<div class="divider"></div><ul>`;
-        const home = u.residents.filter(r => r.at === u), away = u.residents.filter(r => r.at !== u);
-        for (const r of home) html += personLi(r, r.activity);
-        for (const r of away) html += personLi(r, whereIs(r));
-        if (!u.residents.length) html += `<li class="empty">Nobody has moved in yet</li>`;
-        html += `</ul>`;
+        // residents grouped by household: who is home, who is out and what they are up to
+        const groups = new Map(); for (const r of u.residents) { if (!groups.has(r.hh)) groups.set(r.hh, []); groups.get(r.hh).push(r); }
+        for (const [hh, members] of groups) {
+          html += `<div class="divider"></div><div class="hh">${esc(hhName(hh))}<span>${esc(hhLabel(hh))}</span></div><ul>`;
+          for (const r of members.filter(r => r.at === u)) html += personLi(r, r.activity);
+          for (const r of members.filter(r => r.at !== u)) html += personLi(r, whereIs(r));
+          html += `</ul>`;
+        }
+        if (!u.residents.length) html += `<div class="divider"></div><ul><li class="empty">${b.summoned || u.incoming ? 'The household is on its way' : 'Nobody has moved in yet'}</li></ul>`;
         const guests = inside.filter(r => r.home !== u); if (guests.length) { html += `<div class="divider"></div><ul>`; for (const r of guests) html += personLi(r, 'visiting'); html += `</ul>`; }
       } else {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
@@ -88,12 +91,17 @@ function renderInspect(target) {
   } else if (target.res) {
     const r = target.res;
     html += `<div class="kind" style="--k:${r.shirt}">${r.home ? 'Resident' : 'Newcomer'}</div><h2>${esc(r.name)}</h2><div class="sub">${esc(r.state === 'inside' ? whereIs(r) : `${r.state} · ${r.activity}`)}</div><div class="divider"></div>`;
-    html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : 'none yet'}</b></div>`;
+    const others = r.hh.members.filter(m => m !== r);
+    html += `<div class="row"><span>Household</span><b>${esc(r.hh.kind === 'solo' ? 'lives alone' : hhLabel(r.hh).toLowerCase())}</b></div>`;
+    if (others.length) html += `<div class="row"><span>Lives with</span><b>${esc(others.map(m => m.name.split(' ')[0]).join(', '))}</b></div>`;
+    html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : r.hh.home ? `${esc(r.hh.home.block.name)} (soon)` : 'none yet'}</b></div>`;
     if (!r.home) html += `<div class="row"><span>Arrived</span><b>Day ${r.arrivedDay} by train</b></div>`;
-    html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : 'looking for work'}</b></div>`;
+    html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.home ? 'looking for work' : '–'}</b></div>`;
+    html += `<div class="row"><span>Feeling</span><b>${esc(moodWords(r))}</b></div>`;
     if (r.trip && r.trip.dest) html += `<div class="row"><span>Heading to</span><b>${esc(r.trip.dest.block.name)}</b></div>`;
-    html += `<div class="row"><span>Wakes at</span><b>${String(Math.floor(r.wake)).padStart(2, '0')}:${String(Math.floor((r.wake % 1) * 60)).padStart(2, '0')}</b></div>`;
+    html += `<div class="row"><span>Wakes at</span><b>${fmtHour(r.wake)}</b></div>`;
     html += `<div class="row"><span>Gets around</span><b>${r.hasCar ? 'by car' : 'on foot'}</b></div>`;
+    if (r.state !== 'away') html += follow === r ? `<button class="cta off" data-follow="stop"><i class="fa-solid fa-video-slash"></i> Stop following</button>` : `<button class="cta" data-follow="start"><i class="fa-solid fa-video"></i> Follow</button>`;
   }
   ui.inspect.innerHTML = html; ui.inspect.classList.add('show');
 }

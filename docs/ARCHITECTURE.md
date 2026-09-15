@@ -53,14 +53,39 @@ seat (a "direct trip" that ignores roads), idle with `waitDecide()`, sometimes v
 machine, and are claimed by `assignHome()` when a finished home has room. Losing a home calls
 `returnToStation()`.
 
-**Resident.** Belongs to a home unit, may hold a job at a shop or workspace, and is either
-`inside` a unit or on a trip. Decisions are made by `decide()` in `sim.js` when the resident's
-`next` time arrives. Trips are lists of world points along road cells (`buildPoints`): routes begin and end on the road
+**Resident.** Belongs to a household and a home unit, may hold a job at a shop or workspace, and
+is either `inside` a unit or on a trip. Decisions are made by `decide()` in `sim.js` when the
+resident's `next` time arrives (see Needs and decisions below). Trips are lists of world points along road cells (`buildPoints`): routes begin and end on the road
 cell in front of the door (`frontRoad`); walkers pick the sidewalk nearest their start (offset 0.34),
 follow it with mitred corners, and cross perpendicularly in the last cell if the destination is on
 the other side; cars keep left (offset 0.17, lane −1). Trips to or from a building begin and end at its front door: `unitDoorPoints()` in `buildings.js` returns the doorstep (on the plinth) and the kerb (on the sidewalk), rotated by the unit's facing. Cars stop at the kerb. A trip may instead carry an
 `onArrive` callback and two points (`startDirectTrip`) for short walks inside the plaza or a
 cross-country move-in when no road connects yet.
+
+**Household.** People who live together (`households` in `sim.js`): `{ kind: solo | couple | family |
+flatmates, size, surname, members, home }`. When a home enters its finishing stage, `splitHouseholds`
+breaks its beds into households and books them (`bookings`); the next train carries each booked
+household whole, and `updateBlocks` moves the household booked for a unit in as one. Singles arriving
+for free beds are grouped the same way. A household that has waited more than three hours for a home
+big enough may `splitOff` members into a household of their own.
+
+**Needs and decisions.** Each resident has `needs` (energy, food, fun, social, supplies) in 0–1.
+`tickNeeds` drains them by elapsed game time and refills them according to `actKind` (sleep, home,
+work, eat, shop, visit, stroll, wait). `decide()` runs only when `r.next` arrives: it builds a list of
+options (sleep, work, lunch break, meal at home, meal out, groceries, stroll, visit, potter at home),
+scores each by how much it answers the strongest need plus how well the hour suits it and a little
+noise, sorts, and runs the first that succeeds. Trips carry a `purpose`; `enterUnit` turns it into an
+activity with an `until` time. `moodWords` turns needs into words for the cards.
+
+**Simulation LOD.** `updateResidents` projects each walker every twentieth frame; those off screen or
+seen from beyond `cam.view` 34 are `far` and bank their distance, moving in one step every sixth frame
+with no bob. Decisions were already interval-based, so nothing thinks per frame.
+
+**Save.** `save.js` writes one snapshot to localStorage (`komachi.save`) every half game hour and on
+`pagehide`: blocks with palette/stage/level and per-unit variant and facing, households, residents
+with needs and references to home and job. `restore()` re-places blocks through `placeBlock(type,
+sel, preset)`, then rebuilds households and residents; nobody is restored mid-trip. `state.js` reads
+the saved seed and biome before the island is built, unless `?seed=`, `?new` or `?demo` is present.
 
 **Wanderer.** Ambient cars and cats with no home; they drive or stroll between random road cells
 to keep the streets alive.
@@ -126,5 +151,6 @@ the game headlessly. `?demo` in the URL builds a small town and fast-forwards a 
 
 - **A new building detail:** edit `genResidential`, `genShop` or `genWork` in `buildings.js`.
   Push vertex-coloured geometry into `g` (body) or `wg` (windows, lit at night).
-- **A new activity:** add to the `*_ACTS` lists in `sim.js`; `decide()` picks from them.
+- **A new activity:** add an option in `decide()` in `sim.js` with a score built from a need, give it an
+  `actKind` that `tickNeeds` refills, and labels in the `*_ACTS` lists.
 - **A new colour:** add it to `PAL` in `palette.js` and nowhere else. Keep saturation low.

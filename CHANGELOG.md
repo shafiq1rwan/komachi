@@ -7,6 +7,21 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Households: people who live together arrive on the same train, sit together on the plaza and move
+  in together. Couples and families share a surname; flatmates keep their own. A household that waits
+  too long for a home big enough splits up. Home cards group residents by household
+- Needs: energy, food, fun, company and groceries drain through the day and refill through what people
+  do. Decisions are scored against needs, the hour and distance at scheduled moments, never per frame:
+  meals at home or out (breakfast, lunch, dinner), lunch breaks from work, grocery runs, strolls, visits
+  to friends' homes, and sleep when tired. The card shows how someone feels in words, never numbers
+- Follow camera: the resident card has a Follow button; the camera tracks that person until you pan,
+  zoom, press a key or choose another tool. A name tag floats over the followed and pinned resident
+- Save and load: the town saves itself to the browser every half game hour and when the page is left,
+  and comes back on the next visit (same island, same time of day, everyone at home or on the plaza).
+  A "start a new island" button sits behind the view-options sliders; `?new` ignores the save
+- Simulation level of detail: walkers off screen or seen from far away move in larger, less frequent
+  steps without the walking bob
+- Resident cards show household, who they live with, how they feel and what they are heading to do
 - A wooded hill opposite the pier: three grassy terraces with pines and broadleaf trees, a small
   shrine with a torii on the summit facing the town, stone lanterns and steps. Hill cells are left wild
   and cannot be built on
@@ -72,6 +87,7 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- The "Name tags" toggle is gone; tags now mark only the followed or pinned resident
 - Hovering the station highlights all nine plaza cells, not just three
 - Plaza walks (entrance to bench, bench to the street, vending machines) detour around the stair house
   instead of passing through it; vending machines are a head taller than a person, as they should be

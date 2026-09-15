@@ -229,7 +229,7 @@ function placeStation() {
   return block;
 }
 
-function placeBlock(type, sel) {
+function placeBlock(type, sel, preset = null) {
   const seed = Math.random();
   const family = pick(FAMILY);
   const block = {
@@ -243,7 +243,8 @@ function placeBlock(type, sel) {
     roofStyle: seed < 0.6 ? 'tile' : 'metal',
   };
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
-  for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
+  if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
+  for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
   ringRoads(sel);
   blocks.push(block);
   for (const u of block.units) u.facing = pickFacing(u);

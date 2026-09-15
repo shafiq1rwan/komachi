@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 14 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 16 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -56,8 +56,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Where things stand (handoff for a fresh session)
 
-Version 0.2 work, not yet committed (no git repo initialised as of 2026-09-15). Phases 1 and 2 are
-complete and verified (lint, build, `npm test`, screenshots). The user's original brief is long;
+Version 0.2 work, not yet committed (no git repo initialised as of 2026-09-15). Phases 1, 2 and 3 are
+complete and verified (lint, build, `npm test`, screenshots). Between phases the user asked for and got:
+zoning over streets, visible avenue lines, hip-height benches, a clear station entrance, plaza detours,
+taller vending machines, a nine-cell station highlight, and a wooded hill with a shrine (the mountain
+range that came with it was removed at the user's request). The user's original brief is long;
 its essence: observation-first cosy god game set in a Japanese suburb, and every system must show
 its effect through residents, buildings, vehicles or light, never only through numbers.
 "Everything is optional. Everything creates consequences you can see."
@@ -76,20 +79,21 @@ Decisions already made (do not reopen without asking):
 - HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
   icon after 5 s; instant tooltips; progress pills float over sites under construction.
 - Docs stay full-length (the user reverted an attempt to compact README/CHANGELOG/ARCHITECTURE).
+- Phase 3 model: households (`hh` on every resident), needs 0–1 shown only as words, `decide()` scores
+  options at `r.next`, trips carry a `purpose`, save slot `komachi.save` (v1) via `src/save.js`;
+  `state.js` reads the saved seed before island.js runs. Name-tags toggle removed; tags follow/pin only.
 
 Open threads the user has not decided:
-- The "Name tags" button is weak. Recommendation given: fold into Phase 3 (tag only pinned or
-  followed residents) and drop the button until then. Awaiting the user's choice.
-- Whether people should cross at zebra crossings instead of at trip end (Phase 3 routing).
+- Whether people should cross at zebra crossings instead of at trip end (carried to Phase 4).
+- Buildable hill terraces (optional Phase 3.5 in docs/ROADMAP.md), deferred until after save/load; the
+  save format would need a ground height per block.
 - If the rigged model is ever adopted: needs a low-poly LOD and a no-bag variant.
 
-Phase 3 plan as discussed with the user: households (people who live together), simple needs
-(hunger, rest, work, shopping, leisure, social) with utility-scored decisions at scheduled
-intervals rather than per frame, simulation LOD (near / visible-far / off-screen update rates;
-off-screen residents advance by schedule only), a follow-camera on a resident, richer resident and
-household inspect cards, and basic save/load (localStorage first) before the data model grows.
-Touch tap-to-inspect already works. Deliver in the same style: build, verify with screenshots,
-update CHANGELOG (Unreleased), README, docs.
+Next up is Phase 4 (station commuting, persistent bikes, taxis) when the user says go; its scope is in
+docs/ROADMAP.md. Deliver in the same style: build, verify with screenshots and headless traces (see the
+scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
+Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
+shape changes incompatibly).
 
 ## Roadmap (agreed with the user)
 
@@ -98,7 +102,7 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 
 1. ✅ Island, Japanese identity, building kit, street props, ambient life, touch basics
 2. ✅ Construction stages, crews by train, deliveries, renovation
-3. Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
+3. ✅ Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
    3.5 (optional, after save/load) buildable hill terraces; the hill is wild until then
 4. Station commuting, persistent bikes and taxis
 5. Economy and dynamic business selection

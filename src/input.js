@@ -4,24 +4,31 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable } from './world.js';
-import { residents, removeBlock } from './sim.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION } from './world.js';
+import { clearSave } from './save.js';
+import { removeBlock } from './sim.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
 
-let tool = 'explore', pinned = null, hovered = null, showTags = false;
+let tool = 'explore', pinned = null, hovered = null, follow = null;
 const ptr = { x: 0, y: 0, ndc: new THREE.Vector2(), down: false, button: 0, panning: false, moved: 0, sel: null, last: { x: 0, y: 0 } };
 const raycaster = new THREE.Raycaster(); const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); const hitP = new THREE.Vector3();
 const keys = new Set();
 const touches = new Map();   // pointerId -> {x, y}
 let gesture = null;          // {dist, ang, view, yaw} while two fingers are down
-function setTool(t) { tool = t; ptr.sel = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
+function setTool(t) { tool = t; ptr.sel = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
 document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); });
-document.getElementById('btn-labels').addEventListener('click', e => { showTags = !showTags; e.currentTarget.classList.toggle('on', showTags); if (!showTags) ui.tags.innerHTML = ''; });
+document.getElementById('btn-reset').addEventListener('click', () => { if (confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; } });
+// the inspect card's follow button
+ui.inspect.addEventListener('click', e => {
+  const b = e.target.closest('[data-follow]'); if (!b) return;
+  if (b.dataset.follow === 'stop') { setFollow(null); return; }
+  const t = pinned || hovered || (follow ? { res: follow } : null); if (t && t.res) { follow = t.res; pinned = t; }
+});
 document.getElementById('btn-settings').addEventListener('click', e => { const s = document.getElementById('settings'); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
-document.getElementById('btn-center').addEventListener('click', () => { cam.target.set(0, 0, 0); cam.tView = 18; });
+document.getElementById('btn-center').addEventListener('click', () => { follow = null; cam.target.set(0, 0, 0); cam.tView = 18; });
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {
   const hint = document.getElementById('hint'); let hintTimer = 0;
@@ -45,7 +52,7 @@ function selectable(c, sel) {
 canvas.addEventListener('pointerdown', e => {
   touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (touches.size === 2) {   // second finger: cancel pan/selection, start a pinch gesture
-    const [a, b] = [...touches.values()]; gesture = { dist: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), view: cam.tView, yaw: cam.tYaw };
+    const [a, b] = [...touches.values()]; gesture = { dist: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), view: cam.tView, yaw: cam.tYaw }; follow = null;
     ptr.sel = null; ptr.panning = false; ptr.down = false; document.body.classList.remove('dragging'); canvas.setPointerCapture(e.pointerId); return;
   }
   if (touches.size > 2) return;
@@ -66,6 +73,7 @@ canvas.addEventListener('pointermove', e => {
   const dx = e.clientX - ptr.last.x, dy = e.clientY - ptr.last.y; ptr.last = { x: e.clientX, y: e.clientY }; setNdc(e);
   if (ptr.down) ptr.moved += Math.abs(dx) + Math.abs(dy);
   if (ptr.panning) {
+    if (ptr.moved > 6) follow = null;
     const aspect = innerWidth / innerHeight, wx = dx / innerWidth * cam.view * aspect, wy = dy / innerHeight * cam.view / Math.sin(cam.pitch);
     const right = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)), up = new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
     cam.target.addScaledVector(right, -wx).addScaledVector(up, wy); clampTarget();
@@ -95,7 +103,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('remove');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
-  if (e.code === 'Escape') { setTool('explore'); pinned = null; }
+  if (e.code === 'Escape') { setTool('explore'); pinned = null; follow = null; }
 });
 addEventListener('keyup', e => keys.delete(e.code));
 function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2); cam.target.z = clamp(cam.target.z, -HALF - 2, HALF + 2); }
@@ -137,12 +145,17 @@ function updateHover() {
   canvas.style.cursor = tool !== 'explore' ? 'crosshair' : (hovered ? 'pointer' : (ptr.panning ? 'grabbing' : 'grab'));
 }
 const tagV = new THREE.Vector3();
+/** a name tag floats over the followed resident and the pinned one, so they are easy to find in a crowd */
 function updateTags() {
-  if (!showTags) return;
-  let html = '', n = 0;
-  for (const r of residents) { if (r.state !== 'walking' || n > 40) continue; tagV.copy(r.mesh.position); tagV.y += 0.45; tagV.project(camera); if (tagV.z > 1) continue;
-    html += `<div class="tag" style="left:${(tagV.x + 1) / 2 * innerWidth}px;top:${(1 - tagV.y) / 2 * innerHeight}px">${esc(r.name.split(' ')[0])}</div>`; n++; }
-  ui.tags.innerHTML = html;
+  let html = '';
+  const tagged = new Set(); if (follow) tagged.add(follow); if (pinned && pinned.res) tagged.add(pinned.res);
+  for (const r of tagged) {
+    if (r.state === 'away' || (r.state === 'inside' && r.at && r.at !== STATION.anchor)) continue;
+    const p = r.state === 'driving' && r.car ? r.car.position : r.mesh.position;
+    tagV.copy(p); tagV.y += 0.45; tagV.project(camera); if (tagV.z > 1) continue;
+    html += `<div class="tag${r === follow ? ' follow' : ''}" style="left:${(tagV.x + 1) / 2 * innerWidth}px;top:${(1 - tagV.y) / 2 * innerHeight}px">${esc(r.name.split(' ')[0])}</div>`;
+  }
+  if (html || ui.tags.innerHTML) ui.tags.innerHTML = html;
 }
 
 const barV = new THREE.Vector3();
@@ -161,5 +174,7 @@ function updateBars() {
   }
   ui.bars.innerHTML = html;
 }
-const inspectTarget = () => pinned || hovered;
-export { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget };
+const inspectTarget = () => pinned || hovered || (follow ? { res: follow } : null);
+const followTarget = () => follow;
+function setFollow(r) { if (!r && follow && pinned && pinned.res === follow) pinned = null; follow = r; if (r) pinned = { res: r }; }
+export { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget, followTarget, setFollow };

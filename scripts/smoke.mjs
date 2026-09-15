@@ -64,6 +64,8 @@ try {
   s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), shopJob: MT.residents.some(r => r.job && r.job.block.type === 'shop') }));
   check('construction completes and newcomers fill every bed', s.stages.every(x => x === s.done) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
   check('a resident takes the shop job', s.shopJob);
+  s = await page.evaluate(() => { const seen = new Set(); for (let k = 0; k < 96; k++) { MT.fastForward(0.25); for (const r of MT.residents) seen.add(r.actKind); } return { kinds: [...seen], hh: MT.households.filter(h => h.members.length).length, moods: MT.residents.map(r => Object.values(r.needs).every(v => v >= 0 && v <= 1)).every(Boolean) }; });
+  check('residents live by their needs (sleep, meals, errands) in households', s.kinds.includes('sleep') && s.kinds.includes('eat') && (s.kinds.includes('shop') || s.kinds.includes('stroll') || s.kinds.includes('visit')) && s.hh >= 1 && s.moods, JSON.stringify(s));
 
   // hover: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
   // accumulator, so slow software-rendered CI runners need a few seconds)
@@ -79,6 +81,13 @@ try {
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, orphan: MT.cell(17, 24).type, kept: MT.cell(17, 21).type, residents: MT.residents.length }));
   check('remove tool clears block and orphan roads', s.blocks === 3 && s.orphan === 'empty' && s.kept === 'road', JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(30));
+
+  // ── save and load: the town survives a reload ──
+  const before = await page.evaluate(() => { MT.save(); return { blocks: MT.blocks.length, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, hh: MT.households.filter(h => h.members.length).length, T: Math.floor(MT.T) }; });
+  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);
+  s = await page.evaluate(() => ({ blocks: MT.blocks.length, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, hh: MT.households.filter(h => h.members.length).length, T: Math.floor(MT.T) }));
+  check('save and load restores the town', s.blocks === before.blocks && s.residents === before.residents && s.housed === before.housed && s.hh === before.hh && s.T === before.T, JSON.stringify({ before, after: s }));
+  await page.evaluate(() => MT.clearSave());
 
   // ── demo town screenshots ──
   await page.goto(`http://localhost:${PORT}/?demo`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);

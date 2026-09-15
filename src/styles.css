@@ -91,6 +91,12 @@
   #inspect li span{color:var(--ink2);font-weight:600;margin-left:auto;text-align:right;font-size:11px;line-height:1.25}
   #inspect .empty{font-size:12px;color:#b9afa6;font-weight:700;font-style:italic}
   #inspect .divider{height:1px;background:var(--cream2);margin:2px 0}
+  #inspect .hh{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;font-weight:800;margin-top:2px}
+  #inspect .hh span{color:var(--ink2);font-weight:600;font-size:11px}
+  #inspect .cta{border:0;background:var(--teal);color:#fff;font:inherit;font-weight:800;font-size:12px;padding:7px 12px;border-radius:10px;cursor:pointer;margin-top:4px;display:flex;align-items:center;justify-content:center;gap:7px}
+  #inspect .cta:hover{background:var(--teal2)}
+  #inspect .cta.off{background:var(--cream2);color:var(--ink)}
+  .tag.follow{background:var(--teal);color:#fff}
   #toast{position:fixed;left:50%;bottom:110px;transform:translateX(-50%) translateY(10px);background:var(--ink);color:#fff;padding:9px 16px;border-radius:12px;font-weight:700;font-size:13px;opacity:0;transition:all .25s;pointer-events:none}
   #toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #intro{left:50%;top:50%;transform:translate(-50%,-50%);width:360px;text-align:center;padding:26px 26px 20px}
