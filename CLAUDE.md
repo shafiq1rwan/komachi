@@ -114,7 +114,9 @@ shape changes incompatibly).
 
 ## Roadmap (agreed with the user)
 
-Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase is ticked.
+Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase is ticked. The roadmap also
+carries per-phase landmark notes and a cross-cutting "sense of achievement" note (milestones that change the
+world, a town chronicle, residents who remember, visible growth, small ceremonies).
 
 
 1. ✅ Island, Japanese identity, building kit, street props, ambient life, touch basics
@@ -130,4 +132,4 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 6. Weather, gentle events, festivals, tourism
 7. Farming and fishing
 8. Mobile quality levels, PWA, Electron desktop app
-9. Menus, saves UI, photo album
+9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)

@@ -74,6 +74,10 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: landmarks noted per phase (observation deck, civic buildings, lighthouse and arched bridge, fish
+  market and paddies) and a cross-cutting note on sense of achievement (world-changing milestones, a town
+  chronicle, residents who remember, visible growth, small ceremonies)
+- Roadmap: Phase 9 gains an opening cinematic (newcomers on the train, then an iris wipe onto the island)
 - Notices (a train pulling in, a crew arriving, the hill opening) now appear as a small cream card with a bell that
   slides in under the town figures at the top left and stays a little longer, instead of a dark pill over the town centre
 - Komachi Station is remodelled in a Japanese style: an open pavilion with a hipped kawara roof and deep eaves over

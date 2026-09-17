@@ -123,6 +123,9 @@ All of it is set dressing and ambient behaviour; nothing is gated or scored.
   people stroll up, and later a ryokan or small hotel (Phase 6 tourism). Starts as demand-driven
   auto-build; money attaches once the economy exists
 
+- **Landmarks**: a summit observation deck beside the shrine once the hill opens; the tea house and ryokan on the
+  terraces are landmarks in their own right
+
 ## ⬜ Phase 5.5 — Civic zone: utilities
 
 A fourth zone. Nothing is gated on it (no blackouts, no failure states); each facility shows its
@@ -134,6 +137,9 @@ effect through the town instead.
 - **Recycling centre**: sorting bins and a kei truck that does a morning round; residents carry
   bags to the bins outside their homes on collection day
 
+- **Landmarks**: town hall or community centre, a small clinic, a fire station with a red kei truck, a public
+  bath house with its chimney; residents visit them, so the effect shows on the street
+
 ## ⬜ Phase 6 — Weather, events, festivals, tourism
 
 - Weather: soft rain with umbrellas and puddles, overcast light, snow that whitens roofs
@@ -142,10 +148,16 @@ effect through the town instead.
 - Tourists arriving by train for festivals and the shore, staying a day
 - A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
 
+- **Landmarks**: a lighthouse on the rocky headland, a red arched bridge as a special canal crossing, festival
+  lanterns along the shrine path, a park pavilion under cherry trees (sakura biome); tourists arriving by train
+  walk out to see them
+
 ## ⬜ Phase 7 — Farming and fishing
 
 - Farm plots as a zone: fields that change with the season, a farmhouse, a small truck to market
 - Fishing from the pier and small boats; the catch appears at the grocery and ramen shop
+
+- **Landmarks**: a fish market by the pier, rice paddies with a water wheel on the canal, a greenhouse
 
 ## ⬜ Phase 8 — Mobile quality and PWA
 
@@ -159,8 +171,28 @@ effect through the town instead.
 
 - Title screen and pause menu, multiple named saves, island seed and biome pickers
 - Photo mode: hide the HUD, frame a shot, save to an in-game album
+- **Opening cinematic** (idea from 2026-09-17): a short scene of newcomers chatting on a train, then an iris
+  wipe, the picture shrinking to a black circle and reopening from a point over the island. Built from the
+  existing Kenney characters and a clip-path overlay; skippable, replayable from the menu
 
 ---
+
+## Sense of achievement (cross-cutting, agreed 2026-09-17)
+
+Nothing is scored or punitive, so achievement has to be felt through the town itself. Ideas to weave into
+the phases above, roughly in order of payoff:
+
+- **Milestones that change the world**: the hill opening at 60 residents is the model. Add more of them:
+  the station gains a second platform canopy and an express service at 100, the coast road gets lamps and
+  a promenade at 150, the town name goes up on a plaque at the station once ten households live here.
+- **A town chronicle**: a card that lists what happened and when, in the residents' words. First family,
+  first shop, first festival, the day the hill opened. Photo mode (Phase 9) saves a picture with each entry.
+- **Residents who remember**: long-time residents mention how the town used to be, and the first household's
+  home gets a small memorial plaque. Children born here (Phase 6) grow up and take jobs.
+- **Visible growth on the street**: shops that are popular get bigger signs and queues, homes that have been
+  lived in for a long time gain gardens, wind chimes and extra pots. Nothing is unlocked, it accumulates.
+- **Small ceremonies**: the first train of the day gets a station announcement toast, a finished landmark gets
+  a ribbon-cutting with residents gathered, the New Year festival returns every 12 game days.
 
 ## How a phase is delivered
 
