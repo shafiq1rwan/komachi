@@ -91,6 +91,8 @@ Decisions already made (do not reopen without asking):
 - Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
 - HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
   icon after 5 s; instant tooltips; progress pills float over sites under construction.
+- Pixel look is off by default (user request 2026-09-17); `S.pixelLook` reads `komachi.pixelLook === '1'` and the
+  toggle is remembered once used. `index.html` ships without the `pixel` body class.
 - Docs stay full-length (the user reverted an attempt to compact README/CHANGELOG/ARCHITECTURE).
 - Phase 3 model: households (`hh` on every resident), needs 0–1 shown only as words, `decide()` scores
   options at `r.next`, trips carry a `purpose`, save slot `komachi.save` (v1) via `src/save.js`;

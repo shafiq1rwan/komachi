@@ -58,6 +58,7 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Pixel look is off by default; the toggle is still remembered once you use it
 - Roadmap: a Phase 4.8 Japanese identity pass (roofs and walls, signage, street details, greenery,
   balcony life) now comes before the economy phase
 - Vehicles are a third larger (a sedan is about two people long); traffic keeps a longer gap to match

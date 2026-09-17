@@ -47,7 +47,7 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons behind the sliders button in the clock card, or Space to pause |
-| Look | "Pixel look" toggles the half-resolution chunky render; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
+| Look | "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
 
 Some things worth knowing:
 
