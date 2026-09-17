@@ -325,8 +325,12 @@ function rebuildRoads() {
       }
     }
     let byStation = false; for (let dj = -1; dj <= 1 && !byStation; dj++) for (let di = -1; di <= 1 && !byStation; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'station') byStation = true; }   // the whole ring road around the plaza
-    if (h > 0.62 && lotAdjacent4(c) && !byStation) {   // the plaza has its own lamps; none on the ring road around it
-      const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
+    // a lamp wherever a street passes a building (most cells), and every third cell along any other street, so ring
+    // roads, avenues, the coast road and hill streets are lit too; the plaza has its own lamps, bridges and slopes none
+    const lampHere = !byStation && !c.bridge && !c.ramp && ((h > 0.5 && lotAdjacent4(c)) || ((c.i * 2 + c.j) % 3 === 0 && deg <= 2 && !isDbl));
+    if (lampHere) {
+      const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; }) || DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type !== 'road' && n.type !== 'water' && n.type !== 'canal'; }) || DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type !== 'road'; });
+      if (!d) { /* a street with roads on all four sides: no kerb to stand on */ } else {
       // street lamp: a pole on the sidewalk corner, an arm reaching over the road, a housing lit from
       // underneath, a soft beam fading to the ground, and a pool of light on the asphalt
       const px = x + d[0] * 0.4 + d[1] * 0.35, pz = z + d[1] * 0.4 - d[0] * 0.35;
@@ -340,6 +344,7 @@ function rebuildRoads() {
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.2), lampHeadMat); head.rotation.y = ry; head.position.set(hx, hy - 0.03, hz); head.castShadow = false; scene.add(head); lampHeads.push(head);
       cones.push(lightCone(hx, hy - 0.03, hz, 0.07, 0.62, PAL.lampGlow));
       const gl = makeGlow(hx, 0.125, hz, 2.0); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
+      }
     }
     if (gy) {   // lift everything this cell added to its terrace
       for (let k = g0; k < g.length; k++) g[k].translate(0, gy, 0);

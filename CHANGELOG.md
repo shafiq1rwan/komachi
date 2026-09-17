@@ -154,6 +154,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- Street lamps stand along every street: on most cells that pass a building and every third cell elsewhere,
+  so ring roads, avenues, the coast road and hill streets are lit at night (they used to be dark)
 - Parked cars no longer overlap their homes: a car waits at the kerb of the street in front, half on the
   pavement with the home on the driver's left, two bays per street cell; bikes still park on the plot
 - Every hill now has both island slope roads: when the middle terrace was only one cell deep, the lower ramp
