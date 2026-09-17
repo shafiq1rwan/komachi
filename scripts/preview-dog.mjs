@@ -1,0 +1,17 @@
+import {createServer} from 'vite';import puppeteer from 'puppeteer-core';import {existsSync,mkdirSync} from 'node:fs';
+const executablePath=[process.env.BROWSER_PATH,'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Microsoft/Edge/Application/msedge.exe','C:/Program Files/Google/Chrome/Application/chrome.exe','/usr/bin/chromium','/usr/bin/google-chrome'].filter(Boolean).find(existsSync);
+const server=await createServer({server:{open:false,port:4187,strictPort:true}});await server.listen();let browser;
+try{browser=await puppeteer.launch({executablePath,headless:true,args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});const page=await browser.newPage();await page.setViewport({width:1400,height:950,deviceScaleFactor:1});const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await page.goto('http://localhost:4187/docs/dog-preview.html',{waitUntil:'networkidle0'});await page.waitForFunction(()=>window.dogPreview);mkdirSync('docs/characters',{recursive:true});await page.screenshot({path:'docs/characters/komachi-shiba-preview.png'});
+const asset=await page.evaluate(async()=>{const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');const {Box3,AnimationMixer}=await import('/node_modules/three/build/three.module.js');const gltf=await new GLTFLoader().loadAsync('/assets/characters/dog/komachi-shiba.glb'),bounds=new Box3().setFromObject(gltf.scene),mixer=new AnimationMixer(gltf.scene);mixer.clipAction(gltf.animations.find(c=>c.name==='walk')).play();mixer.update(.18);return{clips:gltf.animations.map(c=>c.name),height:bounds.max.y-bounds.min.y,leg:gltf.scene.getObjectByName('Leg_0').rotation.x};});
+const parity=await page.evaluate(async()=>{
+ const {GLTFLoader}=await import('/node_modules/three/examples/jsm/loaders/GLTFLoader.js');const {AnimationMixer,LoopOnce}=await import('/node_modules/three/build/three.module.js');const {createDog,updateDog}=await import('/src/dogs.js');
+ const gltf=await new GLTFLoader().loadAsync('/assets/characters/dog/komachi-shiba.glb');
+ for(const mode of ['walk','idle','sit','sniff']){const mixer=new AnimationMixer(gltf.scene),a=mixer.clipAction(gltf.animations.find(c=>c.name===mode));if(mode==='sit'){a.setLoop(LoopOnce,1);a.clampWhenFinished=true;}a.play();const game=createDog();
+  for(let i=0;i<180;i++){mixer.update(1/60);updateDog(game,1/60,mode==='walk',mode==='sit',mode==='sniff');for(const name of ['Body','Head','Tail','Leg_0','Leg_1','Leg_2','Leg_3']){const x=game.getObjectByName(name),y=gltf.scene.getObjectByName(name);if(x.position.distanceTo(y.position)>1e-5||x.quaternion.angleTo(y.quaternion)>1e-3||x.scale.distanceTo(y.scale)>1e-5)throw new Error(`GLB/game mismatch: ${mode}/${name}`);}}
+  mixer.stopAllAction();mixer.uncacheRoot(gltf.scene);
+ }return true;
+});
+for(const pose of ['walk','sit','sniff']){await page.select('#motion',pose);await page.evaluate(()=>window.dogPreview.mixer.update(.6));await page.screenshot({path:`docs/characters/komachi-shiba-${pose}.png`});}
+if(!parity)throw new Error('GLB parity check failed');
+if(errors.length||!['walk','idle','sit','sniff'].every(c=>asset.clips.includes(c))||asset.height<.25||Math.abs(asset.leg)<.2)throw new Error(JSON.stringify({errors,asset}));console.log('Shiba preview and animated GLB passed:',JSON.stringify(asset));}finally{await browser?.close();await server.close();}

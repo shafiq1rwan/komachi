@@ -22,18 +22,37 @@ export function dressBuilder(gltf) {
       c.getHSL(hsl);
       const skin = hsl.h > .03 && hsl.h < .09 && hsl.s > .35 && hsl.l > .5;
       if (skin) skinVertices.push(i);
-      if (o.name === 'body-mesh' && !skin) {
+      if (o.name === 'body-mesh') {
         let weight = -1, joint = 0;
         for (let k = 0; k < 4; k++) if (g.attributes.skinWeight.getComponent(i, k) > weight) { weight = g.attributes.skinWeight.getComponent(i, k); joint = g.attributes.skinIndex.getComponent(i, k); }
         const bone = o.skeleton.bones[joint].name;
         const shade = Math.min(1.12, Math.max(.75, hsl.l / .4));
-        c.set(bone.startsWith('leg') ? (pos.getY(i) < .045 ? '#4a4340' : '#626778') : bone.startsWith('arm') ? '#626778' : '#e9a25a');
-        c.multiplyScalar(shade);
+        // This source's hand atlas column is distinct from its sleeve column. The
+        // original skin is dark, so the residents' light-skin heuristic misses it.
+        const hand = bone.startsWith('arm') && uv.getX(i) > .8 && uv.getX(i) < .88;
+        if (hand) {
+          const side = Math.sign(pos.getX(i)), dx = side * pos.getX(i) - .2095, dz = pos.getZ(i) + .012;
+          const along = dx * .902 + dz * .432, across = -dx * .432 + dz * .902;
+          // A compact mitten silhouette, retaining the source skin weights.
+          pos.setXYZ(i, side * (.2095 + along * .8 * .902 - across * .86 * .432), .2875 + (pos.getY(i) - .2875) * .86, -.012 + along * .8 * .432 + across * .86 * .902);
+          c.set('#d9c3a1');
+        } else if (!skin) {
+          c.set(bone.startsWith('leg') ? (pos.getY(i) < .045 ? '#4a4340' : '#626778') : bone.startsWith('arm') ? '#626778' : '#e9a25a');
+          c.multiplyScalar(shade);
+        }
       }
       colors.push(c.r, c.g, c.b);
     }
     g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); g.deleteAttribute('uv'); g.deleteAttribute('uv1'); g.deleteAttribute('tangent');
-    o.geometry = g; o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95 });
+    // Tuck the upper hairstyle inside the faceted shell; leave the fringe and face intact.
+    if (o.name === 'head-mesh') for (let i = 0; i < pos.count; i++) {
+      const y = pos.getY(i); if (y <= .59) continue;
+      const x = pos.getX(i), z = pos.getZ(i) + .005;
+      const radius = Math.sqrt((x / .255) ** 2 + (z / .205) ** 2);
+      const limit = .92 * Math.sqrt(Math.max(0, 1 - ((y - .595) / .165) ** 2));
+      if (radius > limit) { pos.setX(i, x * limit / radius); pos.setZ(i, z * limit / radius - .005); }
+    }
+    g.computeVertexNormals(); o.geometry = g; o.material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .95 });
     o.userData.skinVertices = skinVertices;
     o.castShadow = true; o.frustumCulled = false;
   });
@@ -48,6 +67,15 @@ export function dressBuilder(gltf) {
     // Author in model coordinates, then place on the animated bone.
     const local = parent.worldToLocal(new THREE.Vector3(...position)); m.position.copy(local);
     m.castShadow = true; m.receiveShadow = true; parent.add(m); return m;
+  }
+  const leather = new THREE.MeshStandardMaterial({ color: '#d9c3a1', roughness: .96, flatShading: true });
+  const cuffMat = new THREE.MeshStandardMaterial({ color: '#a3764a', roughness: .96 });
+  for (const side of [-1, 1]) {
+    const arm = root.getObjectByName(side > 0 ? 'arm-left' : 'arm-right');
+    const cuff = new RoundedBoxGeometry(.035, .11, .102, 1, .009); cuff.rotateY(-side * .447);
+    attach(arm, `Glove_Cuff_${side}`, cuff, cuffMat, [side * .213, .2875, -.01]);
+    const thumb = new RoundedBoxGeometry(.061, .051, .052, 1, .016); thumb.rotateY(-side * .8);
+    attach(arm, `Glove_Thumb_${side}`, thumb, leather, [side * .238, .276, .048]);
   }
   const dome = new THREE.SphereGeometry(1, 20, 8, 0, Math.PI * 2, 0, Math.PI / 2);
   dome.scale(.255, .165, .205);

@@ -19,9 +19,11 @@ const HAND = { pos: [0, -0.17, 0.03], rot: [-Math.PI / 2, 0, 0] };
 const chars = [];                   // every live character, for the per-frame mixer update
 const pendingSwap = [];             // groups that got a box person before the models arrived
 const variants = [];                // { scene, clips, geoms: Map<name, { base, role, medL }> }
+let builderVariant = null;
 
 const urls = import.meta.glob('../assets/characters/kenney/character-*.glb', { eager: true, query: '?url', import: 'default' });
 import colormapUrl from '../assets/characters/kenney/Textures/colormap.png?url';
+import builderUrl from '../assets/characters/builder/komachi-builder.glb?url';
 // the GLBs reference the atlas by a relative path that hashed asset URLs break; point the loader at our copy
 const manager = new THREE.LoadingManager(); manager.setURLModifier(url => /colormap.png$/i.test(url) ? colormapUrl : url);
 
@@ -77,11 +79,16 @@ function recolor(entry, look) {
 }
 
 const charMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
-async function loadVariant(url) {
+async function loadVariant(url, builder = false) {
   const gltf = await new GLTFLoader(manager).loadAsync(url);
   const walk = gltf.animations.find(a => a.name === 'walk'); let skinned = null;
   gltf.scene.traverse(o => { if (o.isSkinnedMesh && !skinned) skinned = o; });
   if (!walk || !skinned) return null;   // an accessory file, not a character
+  if (builder) {
+    if (!gltf.scene.getObjectByName('Builder_HardHat')) throw new Error('Builder asset has no hard hat');
+    gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; } });
+    return { scene: gltf.scene, clips: gltf.animations, geoms: new Map(), builder: true };
+  }
   const tex = skinned.material.map; if (!tex || !tex.image) return null;
   const px = atlasPixels(tex), jointNames = skinned.skeleton.bones.map(b => b.name);
   const geoms = new Map();
@@ -90,8 +97,11 @@ async function loadVariant(url) {
   return { scene: gltf.scene, clips: gltf.animations, geoms, headTop };
 }
 // The rigged people are the default; ?boxes keeps the original box people (and any load failure falls back to them).
-export const characterReady = !S.rigged ? Promise.resolve() : Promise.all(Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; }))).then(list => {
-  for (const v of list) if (v) variants.push(v);
+export const characterReady = !S.rigged ? Promise.resolve() : Promise.all([
+  ...Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; })),
+  loadVariant(builderUrl, true).catch(err => { console.warn('Komachi: builder file skipped', err); return null; }),
+]).then(list => {
+  for (const v of list) if (v) { if (v.builder) builderVariant = v; else variants.push(v); }
   if (!variants.length) { console.warn('Komachi: no rigged characters loaded, using box people'); return; }
   for (const { grp, look } of pendingSwap) { for (const c of grp.children.slice()) grp.remove(c); attachCharacter(grp, look); }
   pendingSwap.length = 0;
@@ -119,16 +129,20 @@ const hashStr = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31
 export function attachCharacter(grp, look) {
   if (!variants.length) { const b = boxPerson(look); grp.add(b.rig); grp.userData.legs = b.legs; grp.userData.upper = b.upper; if (S.rigged) pendingSwap.push({ grp, look }); return null; }
   const pool = look.hat ? (variants.filter(v => v.headTop <= 0.7).length ? variants.filter(v => v.headTop <= 0.7) : variants) : variants;   // hats need short hair
-  const v = pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
+  const v = look.hat && builderVariant ? builderVariant : pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
   const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE);
-  inst.traverse(o => { if (o.isSkinnedMesh) { const e = v.geoms.get(o.name); if (e) o.geometry = recolor(e, look); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
+  inst.traverse(o => {
+    if (v.builder && o.isMesh) { o.geometry = o.geometry.clone(); o.material = o.material.clone(); }
+    else if (o.isSkinnedMesh) { const e = v.geoms.get(o.name); if (e) o.geometry = recolor(e, look); o.material = charMat; }
+    if (o.isMesh) { o.castShadow = true; o.frustumCulled = false; }
+  });
   const mixer = new THREE.AnimationMixer(inst);
   const act = name => { const c = v.clips.find(x => x.name === name); return c ? mixer.clipAction(c) : null; };
   const idle = act('idle'), walk = act('walk'), sit = act('sit');
   for (const a of [idle, walk, sit]) if (a) { a.play(); a.setEffectiveWeight(0); }
   if (idle) idle.setEffectiveWeight(1); mixer.setTime(Math.random() * 2);
   const head = inst.getObjectByName('head'), armR = inst.getObjectByName('arm-right');
-  if (look.hat && head) {   // a hard hat for builders, riding on the head bone (model units: the head is ~0.3 wide)
+  if (look.hat && head && !v.builder) {   // fallback only, if the dedicated builder asset failed to load
     const top = v.headTop - 0.343;   // the head bone sits ~0.343 up the model; the head is ~0.3 wide
     // a chibi head is the whole figure seen from above, so the helmet perches small on top rather than covering it
     const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 0.1, 12), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));

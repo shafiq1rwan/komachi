@@ -44,7 +44,7 @@ const fill = new THREE.DirectionalLight('#cfe3f5', 0.35); fill.position.set(-30,
 
 // scene graph roots for things that change at runtime
 const townGroup = new THREE.Group(); scene.add(townGroup);       // building unit groups + vegetation
-const peopleGroup = new THREE.Group(); scene.add(peopleGroup);   // walkers, cars, cats
+const peopleGroup = new THREE.Group(); scene.add(peopleGroup);   // walkers, cars, cats and dogs
 function disposeGroup(g) { g.traverse(o => { if (o.geometry && o.geometry !== glowGeo) o.geometry.dispose(); }); }
 
 export { canvas, renderer, scene, N, HALF, cx, cz, cam, camera, updateCamera, resize, hemi, sun, fill, townGroup, peopleGroup, disposeGroup };

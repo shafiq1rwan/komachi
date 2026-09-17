@@ -82,7 +82,8 @@ function rebuildDecor() {
   const g = [], gh = [];
   // woods on the wild hill cells: denser than the flat land, heavier on pines, kept off the summit clearing
   for (const c of cells) {
-    if (c.type !== 'hill' || !(c.h > 0)) continue;
+    if (c.type !== 'hill' || c.keep) continue;   // the island's future roads and slopes stay clear
+    if (!(c.h > 0)) continue;
     const { i, j } = c, y = c.h, x0 = cx(i), z0 = cz(j), n = 2 + (cellHash(i + 7, j + 3) < 0.5 ? 1 : 0);
     for (let k = 0; k < n; k++) {
       const x = x0 + (cellHash(i + k * 5, j + 11) - 0.5) * 0.7, z = z0 + (cellHash(i + 17, j + k * 3) - 0.5) * 0.7;
@@ -92,6 +93,15 @@ function rebuildDecor() {
       else if (r < 0.85) { const tc = biome.treeColors, col = tc[Math.floor(cellHash(i + 1, j + 1 + k) * tc.length)]; gh.push(cyl(0.05 * s, 0.07 * s, 0.5 * s, PAL.wood2, x, y + 0.25 * s, z, 5)); gh.push(blob(0.34 * s, col, x, y + 0.6 * s, z, 0, 0.95)); }
       else gh.push(blob(0.2 * s, r < 0.92 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
     }
+  }
+  // a closed hill: a striped barrier and a no-entry sign at the foot of every slope road, so the wooded hill reads as shut, not unfinished
+  if (!hill.open) for (const c of cells) {
+    if (!c.pendingRamp || c.type !== 'hill') continue;
+    const { di, dj, h0, h1 } = c.pendingRamp, low = h0 <= h1 ? -1 : 1, x = cx(c.i) + low * di * 0.36, z = cz(c.j) + low * dj * 0.36, y = Math.min(h0, h1), px = -dj, pz = di;
+    for (const s of [-1, 1]) for (const t of [-0.05, 0.05]) { const leg = new THREE.BoxGeometry(0.025, 0.3, 0.025); leg.rotateX(dj ? 0 : t * 5); leg.rotateZ(di ? 0 : t * 5); leg.translate(x + px * s * 0.28 + di * t * 1.4, y + 0.15, z + pz * s * 0.28 + dj * t * 1.4); gh.push(colorize(leg, '#4a4340')); }
+    for (let k = 0; k < 6; k++) { const o = -0.3 + 0.05 + k * 0.1; gh.push(box(di ? 0.03 : 0.1, 0.06, di ? 0.1 : 0.03, k % 2 ? '#4a4340' : '#e6c25c', x + px * o, y + 0.24, z + pz * o)); }
+    gh.push(box(di ? 0.02 : 0.16, 0.16, di ? 0.16 : 0.02, PAL.cream2, x, y + 0.42, z)); gh.push(box(di ? 0.025 : 0.13, 0.13, di ? 0.13 : 0.025, '#c9564b', x, y + 0.42, z)); gh.push(box(di ? 0.03 : 0.1, 0.03, di ? 0.1 : 0.03, PAL.cream2, x, y + 0.42, z));   // no-entry disc
+    gh.push(box(0.02, 0.32, 0.02, '#4a4340', x, y + 0.5 - 0.16 + 0.0, z));
   }
   // pocket parks: a gravel pad with a swing, a slide, a bench and a hedge on some empty cells beside a street near homes
   parkCells.clear();
@@ -115,18 +125,19 @@ function rebuildDecor() {
     if (c.type !== 'empty' || !c.tree || parkCells.has(c)) continue;
     const g0 = g.length;
     const t = c.tree, x = cx(c.i) + t.ox, z = cz(c.j) + t.oz;
-    if (t.kind === 'matsu') {   // a pruned pine: a leaning trunk carrying flat pads of needles
+    let kind = t.kind; if (kind === 'bamboo') { for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road') kind = 'tree'; } }   // tall culms beside a street looked as if they stood on it
+    if (kind === 'matsu') {   // a pruned pine: a leaning trunk carrying flat pads of needles
       const lean = 0.22, dir = t.c * 6.28;
       const trunk = new THREE.CylinderGeometry(0.035 * t.s, 0.055 * t.s, 0.62 * t.s, 5); trunk.rotateZ(lean); trunk.rotateY(dir); trunk.translate(x, 0.3 * t.s, z); g.push(colorize(trunk, PAL.wood2));
       for (let k = 0; k < 3; k++) { const hy = (0.4 + k * 0.16) * t.s, off = Math.sin(lean) * hy; const px = x - Math.cos(dir) * off * (k === 2 ? 1 : 1) + Math.cos(dir + k * 2.1) * 0.08 * t.s, pz = z + Math.sin(dir) * off + Math.sin(dir + k * 2.1) * 0.08 * t.s; g.push(blob((0.24 - k * 0.05) * t.s, k % 2 ? '#6f8f6a' : '#7f9b7a', px, hy + 0.06 * t.s, pz, 0, 0.32)); }
-    } else if (t.kind === 'bamboo') {   // a grove: tall thin culms with pale nodes and a few leaves at the top
+    } else if (kind === 'bamboo') {   // a grove: tall thin culms with pale nodes and a few leaves at the top
       for (let k = 0; k < 6; k++) {
         const bx = x + (hash(c.i + k, c.j * 2) - 0.5) * 0.36, bz = z + (hash(c.j + k * 3, c.i) - 0.5) * 0.36, bh = (0.9 + hash(k, c.i + c.j) * 0.45) * t.s;
         g.push(cyl(0.012, 0.016, bh, '#9db87f', bx, bh / 2, bz, 5));
         for (let n = 1; n * 0.24 < bh; n++) g.push(cyl(0.018, 0.018, 0.012, '#cfd7a8', bx, n * 0.24, bz, 5));
         g.push(blob(0.07, '#a9c08a', bx + 0.03, bh - 0.05, bz, 0, 0.3)); if (k % 2) g.push(blob(0.05, '#8fae78', bx - 0.04, bh - 0.16, bz + 0.03, 0, 0.3));
       }
-    } else if (t.kind === 'tree') {
+    } else if (kind === 'tree') {
       const tc = biome.treeColors, col = tc[Math.min(tc.length - 1, Math.floor(t.c * tc.length))];
       g.push(cyl(0.05 * t.s, 0.07 * t.s, 0.5 * t.s, PAL.wood2, x, 0.25 * t.s, z, 5));
       g.push(blob(0.36 * t.s, col, x, 0.62 * t.s, z, 0, 0.95));

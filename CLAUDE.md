@@ -11,11 +11,11 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 19 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 20 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
-`npm test` needs Edge or Chrome (`BROWSER_PATH` overrides). CI (`.github/workflows/ci.yml`) runs
+`npm test` needs Edge or Chrome (`BROWSER_PATH` overrides; a Playwright Chromium under `%LOCALAPPDATA%/ms-playwright` is picked up too, useful when Edge headless breaks, as it did on 2026-09-17). CI (`.github/workflows/ci.yml`) runs
 the same on Ubuntu; it is slow (software GL), so tests must poll, never sleep for a fixed time.
 
 ## Layout

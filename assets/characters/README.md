@@ -1,5 +1,18 @@
 # Characters
 
+## Komachi Shiba Inu (`dog/`)
+
+An original low-poly neighbourhood dog with a curled tail, four coat colours and
+`walk`, `idle`, `sit` and `sniff` animation clips. It appears as an occasional ambient
+walker once a town has enough streets. See [`dog/README.md`](dog/README.md).
+
+## Komachi builder (`builder/`)
+
+Construction crews use a separate Kenney character derivative with a fitted domed hard
+hat, brim, centre ridge, side vents and reflective workwear. The original Kenney file is
+preserved; the builder retains all 32 animation clips and existing hand-tool support.
+See [`builder/README.md`](builder/README.md) for source, export and preview instructions.
+
 ## Komachi dolphin (`dolphin/`)
 
 An original low-poly dolphin with a blue coat, pale belly and animated tail and flippers.
@@ -24,7 +37,8 @@ accessories and wheelchairs were left out.
 clip, bakes the atlas into vertex colours and classifies each vertex as skin, hair, shirt or trousers
 (by colour ramp, bone weight and height). Each person gets a `SkeletonUtils.clone` of one variant,
 chosen by name hash, with those parts repainted from their look while the shading ramp is kept.
-Animations used: `idle`, `walk`, `sit` (blended by state). Builders get a hard hat on the `head` bone.
+Animations used: `idle`, `walk`, `sit` (blended by state). Builders use the dedicated derivative above;
+the old procedural hat is retained only as an asset-load fallback.
 Model height is ~0.67 units; the game scales it to 0.5.
 
 Note: the pack's file names were shifted against their contents when extracted (the file named

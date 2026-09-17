@@ -361,25 +361,47 @@ function genStation(b, u, g, wg) {
       g.push(box(0.06, 0.28, 0.8, PAL.cream2, sx, y0 + 0.14, 0.05)); g.push(box(0.03, 0.03, 0.8, RAIL, sx, y0 + 0.34, 0.05));
       for (const rz of [-0.3, 0.05, 0.4]) g.push(box(0.025, 0.1, 0.025, RAIL, sx, y0 + 0.29, rz));
     }
-    // arched roof with a cream back wall and two round lamps at the front
-    const arch = new THREE.CylinderGeometry(0.43, 0.43, 0.9, 14, 1, true, -Math.PI / 2, Math.PI); arch.rotateX(-Math.PI / 2); arch.translate(0, y0 + 0.3, 0.05); g.push(colorize(arch, b.roof));
-    const rim = new THREE.CylinderGeometry(0.46, 0.46, 0.06, 14, 1, true, -Math.PI / 2, Math.PI); rim.rotateX(-Math.PI / 2); rim.translate(0, y0 + 0.3, 0.47); g.push(colorize(rim, b.roof));
-    const cap = new THREE.CircleGeometry(0.43, 14, -Math.PI / 2, Math.PI); cap.rotateX(-Math.PI / 2); cap.rotateY(Math.PI); cap.translate(0, y0 + 0.3, -0.4); g.push(colorize(cap, PAL.cream2));
-    for (const px of [-0.28, 0.28]) g.push(box(0.06, 0.32, 0.06, PAL.cream2, px, y0 + 0.16, -0.38));
-    for (const lx of [-0.2, 0.2]) { const l = new THREE.SphereGeometry(0.06, 8, 6); l.translate(lx, y0 + 0.5, 0.47); wg.push(colorize(l, PAL.window)); }
-    g.push(box(0.46, 0.12, 0.03, PAL.cream2, 0, y0 + 0.82, 0.3)); g.push(box(0.3, 0.04, 0.035, b.roof, 0, y0 + 0.82, 0.31));
+    // an open pavilion over the stairwell: four square pillars, a cream back wall with a window band, and a hipped
+    // kawara roof with deep eaves; the station name board hangs on the front eave, with a clock and two paper lamps
+    const H = 0.6, dark = '#4a4340';
+    for (const px of [-0.42, 0.42]) for (const pz of [-0.4, 0.42]) { g.push(box(0.08, H, 0.08, PAL.cream2, px, y0 + H / 2, pz)); g.push(box(0.1, 0.04, 0.1, PAL.concrete, px, y0 + 0.02, pz)); }
+    g.push(box(0.86, H - 0.04, 0.05, PAL.cream2, 0, y0 + (H - 0.04) / 2, -0.42));                                   // back wall
+    g.push(box(0.7, 0.16, 0.02, K.frame, 0, y0 + 0.42, -0.4)); wg.push(box(0.66, 0.12, 0.03, PAL.window, 0, y0 + 0.42, -0.395));   // window band, lit at night
+    for (const px of [-0.42, 0.42]) g.push(box(0.05, H - 0.04, 0.82, PAL.cream2, px, y0 + (H - 0.04) / 2, 0));       // low side screens along the stairwell
+    kawaraRoof(g, 0.86, 0.86, H + 0.06, y0, PAL.kawara, true);                                                       // hip-and-gable tiled roof
+    g.push(box(0.9, 0.05, 0.9, PAL.cream2, 0, y0 + H + 0.02, 0));                                                    // ceiling board under the eaves
+    // station name board on the front eave: white with a dark frame, a sage band and glyph blocks; lit from inside after dark
+    g.push(box(0.64, 0.19, 0.02, dark, 0, y0 + H - 0.1, 0.5)); wg.push(box(0.6, 0.15, 0.03, PAL.window, 0, y0 + H - 0.1, 0.505));
+    g.push(box(0.6, 0.035, 0.035, PAL.roofSage, 0, y0 + H - 0.17, 0.51)); for (let k = 0; k < 3; k++) g.push(box(0.07, 0.07, 0.01, dark, -0.16 + k * 0.16, y0 + H - 0.08, 0.525));
+    const clock = new THREE.CylinderGeometry(0.07, 0.07, 0.02, 14); clock.rotateX(Math.PI / 2); clock.translate(0.3, y0 + 0.36, 0.44); g.push(colorize(clock, PAL.cream2));
+    const rim = new THREE.TorusGeometry(0.07, 0.008, 6, 14); rim.translate(0.3, y0 + 0.36, 0.45); g.push(colorize(rim, dark));
+    g.push(box(0.008, 0.05, 0.006, dark, 0.3, y0 + 0.385, 0.455)); g.push(box(0.035, 0.008, 0.006, dark, 0.315, y0 + 0.36, 0.455));   // hands
+    for (const lx of [-0.3, 0.3]) { g.push(box(0.01, 0.06, 0.01, dark, lx, y0 + H - 0.03, 0.3)); wg.push(box(0.09, 0.1, 0.09, PAL.window, lx, y0 + H - 0.11, 0.3)); g.push(box(0.1, 0.012, 0.1, dark, lx, y0 + H - 0.055, 0.3)); }   // square paper lamps
+    g.push(box(0.3, 0.06, 0.015, PAL.cream2, 0, y0 + 0.5, -0.395)); g.push(box(0.2, 0.02, 0.01, PAL.roofRose, 0, y0 + 0.5, -0.387));   // a small sign inside over the stairs
     return;
   }
   if (di === 0) {   // north edge: benches facing the entrance; south edge (in front of the stairs) stays open; a bin and planter on both
     const rot = dj < 0 ? 0 : Math.PI;
-    if (dj < 0) { bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot); }
+    if (dj < 0) {
+      bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot);
+      for (const px of [-0.2, 0.2]) g.push(box(0.03, 0.5, 0.03, PAL.lamp, px, y0 + 0.25, -0.45));   // the station name board (駅名標) behind the benches
+      g.push(box(0.56, 0.22, 0.02, PAL.cream2, 0, y0 + 0.46, -0.45)); g.push(box(0.58, 0.24, 0.012, '#4a4340', 0, y0 + 0.46, -0.455));
+      g.push(box(0.56, 0.035, 0.022, PAL.roofSage, 0, y0 + 0.54, -0.449)); for (let k = 0; k < 4; k++) g.push(box(0.06, 0.06, 0.01, '#4a4340', -0.18 + k * 0.12, y0 + 0.45, -0.438)); g.push(box(0.4, 0.012, 0.01, '#4a4340', 0, y0 + 0.385, -0.438));
+    }
     g.push(box(0.2, 0.1, 0.2, PAL.wood, -0.42, y0 + 0.05, -dj * 0.38)); g.push(blob(0.1, PAL.bush2, -0.42, y0 + 0.16, -dj * 0.38, 0, 0.8)); g.push(blob(0.04, PAL.flower, -0.38, y0 + 0.22, -dj * 0.34, 0, 1));
     for (const tx of [-0.3, 0.1]) g.push(box(0.3, 0.005, 0.3, PAL.cream2, tx, y0 + 0.003, -dj * 0.1));
     return;
   }
   if (dj === 0) {   // east / west edges: vending machines facing the plaza
     const rot = di > 0 ? -Math.PI / 2 : Math.PI / 2;
-    if (di > 0) { vendingMachine(g, wg, 0.3, -0.22, rot, PAL.pink); vendingMachine(g, wg, 0.3, 0.22, rot, PAL.mint); }
+    if (di > 0) {
+      vendingMachine(g, wg, 0.3, -0.22, rot, PAL.pink); vendingMachine(g, wg, 0.3, 0.22, rot, PAL.mint);
+      g.push(cyl(0.025, 0.03, 1.0, PAL.lamp, 0.4, y0 + 0.5, 0.44, 6)); g.push(box(0.1, 0.03, 0.1, PAL.lamp, 0.4, y0 + 0.015, 0.44));   // the line-mark pillar
+      g.push(box(0.24, 0.3, 0.05, PAL.cream2, 0.4, y0 + 1.1, 0.44)); wg.push(box(0.2, 0.26, 0.06, PAL.window, 0.4, y0 + 1.1, 0.44));
+      const ring = new THREE.TorusGeometry(0.075, 0.018, 6, 16); ring.translate(0.4, y0 + 1.14, 0.475); g.push(colorize(ring, PAL.roofTeal));
+      const ring2 = ring.clone(); ring2.translate(0, 0, -0.07); g.push(ring2);
+      g.push(box(0.14, 0.03, 0.005, '#4a4340', 0.4, y0 + 0.99, 0.476)); g.push(box(0.14, 0.03, 0.005, '#4a4340', 0.4, y0 + 0.99, 0.404));
+    }
     else { vendingMachine(g, wg, -0.3, -0.2, rot, PAL.sky2); koban(g, wg, -0.28, 0.26, rot); }
     g.push(box(0.3, 0.005, 0.3, PAL.cream2, -di * 0.1, y0 + 0.003, 0.35));
     return;

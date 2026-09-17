@@ -53,7 +53,8 @@ let boatModel = false; let boatTheta = Math.random() * Math.PI * 2;
   const manager = new THREE.LoadingManager(); manager.setURLModifier(url => /colormap\.png$/i.test(url) ? boatMapUrl : url);
   new GLTFLoader(manager).loadAsync(boatUrl).then(gltf => {
     for (const c of boat.children.slice()) boat.remove(c);
-    gltf.scene.scale.setScalar(0.23); gltf.scene.rotation.y = Math.PI;   // the kit's bow points -z; we head +z gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = 0.9; } });
+    gltf.scene.scale.setScalar(0.23);   // the kit's bow points +z, the way the boat heads
+    gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = 0.9; } });
     boat.add(gltf.scene); boatModel = true;
   }).catch(err => console.warn('Komachi: boat model skipped', err));
 }

@@ -5,6 +5,7 @@ import { rand, pick, clamp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
 import { createCat, updateCat, CAT_COATS } from './cats.js';
+import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { attachCharacter, detachCharacter } from './characters.js';
 import { attachVehicle } from './vehicles.js';
 import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, signalRed, updateSignals } from './world.js';
@@ -112,6 +113,9 @@ function makeCar(color, kind = 'kei') {
 }
 function makeCat(color) {
   const grp = createCat(color); peopleGroup.add(grp); return grp;
+}
+function makeDog(color) {
+  const grp = createDog(color); peopleGroup.add(grp); return grp;
 }
 
 // ───────────────────────────── residents ─────────────────────────────
@@ -660,13 +664,14 @@ function updateResidents(simDt, realT) {
   }
 }
 
-// ───────────────────────────── ambient wanderers (cars & cats) ─────────────────────────────
+// ───────────────────────────── ambient wanderers (cars, cats & neighbourhood Shibas) ─────────────────────────────
 function roadCellsList() { return cells.filter(c => c.type === 'road'); }
 function spawnWanderer(kind) {
   const roads = roadCellsList(); if (!roads.length) return;
   const c = pick(roads);
   if (kind === 'car' && carMeshes.some(m => m.visible && Math.hypot(m.position.x - cx(c.i), m.position.z - cz(c.j)) < 0.6)) return;   // do not spawn onto another car
-  const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch', 'suv', 'delivery'])) : makeCat(pick(CAT_COATS)), trip: null, pause: 0, dead: false };
+  const mesh = kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch', 'suv', 'delivery'])) : kind === 'dog' ? makeDog(pick(DOG_COATS)) : makeCat(pick(CAT_COATS));
+  const w = { kind, cell: c, mesh, trip: null, pause: 0, dead: false };
   w.mesh.visible = true; w.mesh.position.set(cx(c.i), (c.h || 0) + (kind === 'car' ? 0.08 : 0.1), cz(c.j)); wanderers.push(w);
 }
 function wanderPick(w) {
@@ -674,24 +679,26 @@ function wanderPick(w) {
     const t = pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
     const y = w.kind === 'car' ? 0.08 : 0.1, side = w.kind === 'car' ? 0.17 : 0.36;
     const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y, w.kind === 'car' ? -1 : (w.lane || (w.lane = Math.random() < 0.5 ? 1 : -1))); pts.pop();
-    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : rand(0.35, 0.6), last: t }; return;
+    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t }; return;
   }
   w.pause = rand(1, 4);
 }
 function updateWanderers(simDt) {
   const R = roadCellsList().length;
-  const wantCars = Math.min(8, Math.floor(R / 16)), wantCats = Math.min(4, Math.floor(R / 22));
-  const cars = wanderers.filter(w => w.kind === 'car'), cats = wanderers.filter(w => w.kind === 'cat');
-  if (cars.length < wantCars) spawnWanderer('car'); if (cats.length < wantCats) spawnWanderer('cat');
+  const wantCars = Math.min(8, Math.floor(R / 16)), wantCats = Math.min(4, Math.floor(R / 22)), wantDogs = Math.min(2, Math.floor(R / 50));
+  const cars = wanderers.filter(w => w.kind === 'car'), cats = wanderers.filter(w => w.kind === 'cat'), dogs = wanderers.filter(w => w.kind === 'dog');
+  if (cars.length < wantCars) spawnWanderer('car'); if (cats.length < wantCats) spawnWanderer('cat'); if (dogs.length < wantDogs) spawnWanderer('dog');
   for (let k = wanderers.length - 1; k >= 0; k--) {
     const w = wanderers[k];
-    const excess = (w.kind === 'car' && cars.length > wantCars) || (w.kind === 'cat' && cats.length > wantCats);
+    const excess = (w.kind === 'car' && cars.length > wantCars) || (w.kind === 'cat' && cats.length > wantCats) || (w.kind === 'dog' && dogs.length > wantDogs);
     if (w.dead || (excess && !w.trip)) { peopleGroup.remove(w.mesh); disposeGroup(w.mesh); const ci = carMeshes.indexOf(w.mesh); if (ci >= 0) carMeshes.splice(ci, 1); wanderers.splice(k, 1); continue; }
     if (w.kind === 'cat') updateCat(w.mesh, simDt, w.pause <= 0 && !!w.trip);
+    if (w.kind === 'dog') updateDog(w.mesh, simDt, w.pause <= 0 && !!w.trip, w.pause > 3, w.pause > 0 && w.pause <= 3);
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
-    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : rand(0.2, 1.5); }
+    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : rand(0.2, 1.5); }
     if (w.kind === 'cat') { w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1; if (!w.trip) updateCat(w.mesh, 0, false); }
+    if (w.kind === 'dog') w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + .1;
   }
 }
 

@@ -58,7 +58,7 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
     }
   }
   const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace; rippleTex = rt;
-  for (const [rep, y, op] of [[16, -0.776, 0.3], [9, -0.774, 0.18]]) {
+  for (const [rep, y, op] of [[44, -0.776, 0.13], [26, -0.774, 0.08]]) {   // fine and faint: from far out the sea reads as a calm colour, not a pattern
     const t = rt.clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: op, depthWrite: false }));
     m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); rippleLayers.push({ t, speed: rep === 14 ? [0.004, 0.0025] : [-0.002, 0.0035] });
@@ -233,6 +233,8 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set();
     }
     // never run along the coast road: two consecutive canal cells on it would make a bridge with water both sides
     for (let k = 0; k + 1 < cellsHere.length && !bad; k++) if (coastCells.has(key(...cellsHere[k])) && coastCells.has(key(...cellsHere[k + 1]))) bad = true;
+    // the canal may only touch the coast at its two ends: a run alongside the beach would spill over at every cell
+    for (let k = 3; k + 3 < cellsHere.length && !bad; k++) if (coastDist(cx(cellsHere[k][0]), cz(cellsHere[k][1])) < 1.8) bad = true;
     if (bad || cellsHere.length < 8) continue;
     for (const c of cellsHere) { canalCells.add(key(...c)); canalOrder.push(c); }
   }
@@ -242,38 +244,60 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
 {
   const g = [], veg = [], wat = [];   // wat: the water tops again, for the drifting ripple overlay
   // the land mesh is solid down from y 0, so the channel sits on it: dark bed, water just above ground, low stone walls
-  const WATER = 0.02, TOP = 0.1, wall = biome.rock[0], coping = PAL.concrete;
+  const WATER = 0.02, TOP = 0.08, wall = '#cdc5b8', coping = PAL.concrete, fall = [];   // pale stone: the shaded inner face of the old rock colour read as a green outline
   const flowAt = k => { const a = canalOrder[Math.max(0, k - 1)], b = canalOrder[Math.min(canalOrder.length - 1, k + 1)]; return Math.atan2(b[0] - a[0], b[1] - a[1]); };
-  const flowPlane = (w, l, ang, px, py, pz) => { const p = new THREE.PlaneGeometry(l, w); p.rotateX(-Math.PI / 2); p.rotateY(ang - Math.PI / 2); p.translate(px, py, pz); return colorize(p, PAL.canal); };   // u runs along the flow
+  const TILE = 180 / 44;   // the sea's fine ripple layer repeats every ~4.1 units; the canal uses the same scale
+  const flowPlane = (w, l, ang, px, py, pz, u0 = 0) => {   // u runs along the flow, measured in world units from the canal's start so cells join up
+    const p = new THREE.PlaneGeometry(l, w); const uv = p.getAttribute('uv');
+    for (let q = 0; q < uv.count; q++) uv.setXY(q, (u0 + uv.getX(q) * l) / TILE, uv.getY(q) * w / TILE);
+    p.rotateX(-Math.PI / 2); p.rotateY(ang - Math.PI / 2); p.translate(px, py, pz); return colorize(p, PAL.canal);
+  };
   for (const [i, j] of canalOrder) {
-    const flow = flowAt(canalOrder.findIndex(c => c[0] === i && c[1] === j));
-    const x = cx(i), z = cz(j), nb = DIRS.map(([di, dj]) => isCanal(i + di, j + dj) || coastDist(cx(i + di), cz(j + dj)) <= 0.8);
-    g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(flowPlane(0.78, 0.78, flow, x, WATER + 0.014, z));
+    const ko = canalOrder.findIndex(c => c[0] === i && c[1] === j), flow = flowAt(ko);
+    const x = cx(i), z = cz(j), isEnd = DIRS.filter(([di, dj]) => isCanal(i + di, j + dj)).length <= 1;   // only an end cell opens to the sea; a cell running near the shore is walled
+    const nb = DIRS.map(([di, dj]) => isCanal(i + di, j + dj) || (isEnd && coastDist(cx(i + di), cz(j + dj)) <= 0.8));
+    g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(flowPlane(0.78, 0.78, flow, x, WATER + 0.014, z, ko));
     g.push(box(0.9, 0.02, 0.9, PAL.canalBed, x, WATER - 0.012, z));   // a dark bed below the water
     let mouthK = -1, mouthL = 99;
     nb.forEach((open, k) => { if (!open || isCanal(i + DIRS[k][0], j + DIRS[k][1])) return; const [di, dj] = DIRS[k]; let L = 0.5; while (L < 6 && coastDist(x + di * L, z + dj * L) > 0) L += 0.1; if (L < mouthL) { mouthL = L; mouthK = k; } });
-    nb.forEach((open, k) => { const [di, dj] = DIRS[k]; if (open) { g.push(box(di ? 0.12 : 0.78, 0.02, di ? 0.78 : 0.12, PAL.canal, x + di * 0.44, WATER, z + dj * 0.44));
+    nb.forEach((open, k) => { const [di, dj] = DIRS[k]; if (open) { g.push(box(di ? 0.11 : 0.78, 0.02, di ? 0.78 : 0.11, PAL.canal, x + di * 0.445, WATER, z + dj * 0.445));   // butts against the cell's water without overlapping it
         if (!isCanal(i + di, j + dj) && k !== mouthK) { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); }   // a second sea-facing side is walled
-        if (!isCanal(i + di, j + dj) && k === mouthK) {   // the mouth: the channel runs on to the coastline, then the water steps down the beach into the sea
-          const L = mouthL;
+        if (!isCanal(i + di, j + dj) && k === mouthK) {   // the mouth: a waterfall off the land edge
+          const L = mouthL, theta = Math.atan2((z + dj * L) / SZ, (x + di * L) / SX);
+          const across = (w, len, h, col, px, py, pz) => g.push(box(di ? len : w, h, di ? w : len, col, px, py, pz));   // a box aligned with the flow
+          // does the spillway have to cross a street (the coast road) to reach the edge? then it runs in a culvert instead
+          let culvert = false; for (let d = 1; d < L + 0.5; d++) if (isCoastRoad(i + di * d, j + dj * d) && !isCanal(i + di * d, j + dj * d)) culvert = true;   // only the coast road exists when the island is built
           const cl = L - 0.5, cpx = x + di * (0.5 + cl / 2), cpz = z + dj * (0.5 + cl / 2);
-          g.push(box(di ? cl : 0.78, 0.02, di ? 0.78 : cl, PAL.canal, cpx, WATER, cpz)); wat.push(flowPlane(0.78, cl, Math.atan2(di, dj), cpx, WATER + 0.014, cpz));
-          g.push(box(di ? cl : 0.9, 0.02, di ? 0.9 : cl, PAL.canalBed, cpx, WATER - 0.012, cpz));
-          for (const s of [-1, 1]) { g.push(box(di ? cl : 0.11, TOP, di ? 0.11 : cl, wall, cpx + (di ? 0 : s * 0.445), TOP / 2, cpz + (di ? s * 0.445 : 0))); g.push(box(di ? cl : 0.13, 0.025, di ? 0.13 : cl, coping, cpx + (di ? 0 : s * 0.445), TOP + 0.012, cpz + (di ? s * 0.445 : 0))); }
-          let B = 0.2; while (B < 3 && coastDist(x + di * (L + B), z + dj * (L + B)) > -beachExtra(Math.atan2((z + dj * (L + B)) / SZ, (x + di * (L + B)) / SX))) B += 0.1;   // the beach's width here
-          const steps = [[B / 2, B, -0.48]];   // one step down onto the beach; the sea takes it from there   // [distance past the shore to the step's centre, its length, its water height]
-          for (const [d, len, wy] of steps) {
-            const px = x + di * (L + d), pz = z + dj * (L + d);
-            g.push(box(di ? len : 0.78, 0.02, di ? 0.78 : len, PAL.canal, px, wy, pz)); g.push(box(di ? len : 0.86, 0.02, di ? 0.86 : len, PAL.canalBed, px, wy - 0.012, pz));
-            g.push(box(0.78, 0.03, 0.78, PAL.foam, x + di * (L + d - len / 2 + 0.12), wy + 0.01, z + dj * (L + d - len / 2 + 0.12)));   // a lip of foam where the water lands
+          if (!culvert && cl > 0.05) {   // an open spillway between two walls out to the edge
+            across(0.78, cl, 0.02, PAL.canal, cpx, WATER, cpz); wat.push(flowPlane(0.78, cl, Math.atan2(di, dj), cpx, WATER + 0.014, cpz, ko + 0.5));
+            across(0.9, cl, 0.02, PAL.canalBed, cpx, WATER - 0.012, cpz);
+            for (const sd of [-1, 1]) { across(0.11, cl, TOP, wall, cpx + (di ? 0 : sd * 0.445), TOP / 2, cpz + (di ? sd * 0.445 : 0)); across(0.13, cl, 0.025, coping, cpx + (di ? 0 : sd * 0.445), TOP + 0.012, cpz + (di ? sd * 0.445 : 0)); }
+          } else if (culvert) {   // the end is walled, with a dark culvert arch the water disappears into
+            across(0.78, 0.11, TOP, wall, x + di * 0.445, TOP / 2, z + dj * 0.445); across(1, 0.13, 0.025, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445);
+            across(0.4, 0.03, 0.07, '#3f3a38', x + di * 0.41, WATER + 0.03, z + dj * 0.41);
           }
-          for (const s of [-1, 1]) g.push(blob(0.12, wall, x + di * (L + 0.1) + (di ? 0 : s * 0.42), -0.42, z + dj * (L + 0.1) + (dj ? 0 : s * 0.42), 0, 0.6));   // rocks at the drop
+          // the fall: from the lip at the edge (or an outlet in the cliff below the road) down to the beach, foam at the top and the bottom
+          const ex = x + di * (L + 0.26), ez = z + dj * (L + 0.26), top = culvert ? -0.18 : WATER, beachY = -0.5, drop = top - beachY;   // the land mass runs 0.2 past the coastline (its bevel), so the fall hangs just beyond it
+          if (culvert) { across(0.6, 0.08, 0.3, PAL.concrete, ex - di * 0.08, top + 0.02, ez - dj * 0.08); across(0.44, 0.09, 0.2, '#3f3a38', ex - di * 0.07, top - 0.02, ez - dj * 0.07); }   // outlet frame in the cliff
+          across(0.66, 0.03, drop, PAL.canal, ex, top - drop / 2, ez);
+          const sheet = new THREE.PlaneGeometry(0.66, drop); sheet.rotateY(Math.atan2(di, dj)); sheet.translate(ex + di * 0.03, top - drop / 2, ez + dj * 0.03); fall.push(colorize(sheet, PAL.canal));
+          if (!culvert) { across(0.78, 0.34, 0.34, PAL.canal, x + di * (L + 0.12), WATER - 0.16, z + dj * (L + 0.12)); for (const sd of [-1, 1]) { across(0.11, 0.34, 0.44, wall, x + di * (L + 0.12) + (di ? 0 : sd * 0.445), TOP - 0.22, z + dj * (L + 0.12) + (di ? sd * 0.445 : 0)); across(0.13, 0.34, 0.025, coping, x + di * (L + 0.12) + (di ? 0 : sd * 0.445), TOP + 0.012, z + dj * (L + 0.12) + (di ? sd * 0.445 : 0)); } wat.push(flowPlane(0.78, 0.34, Math.atan2(di, dj), x + di * (L + 0.12), WATER + 0.014, z + dj * (L + 0.12), ko + L - 0.4)); }   // a solid block of water between walls over the land's bevelled edge, so no ground shows beneath the lip
+          across(0.74, 0.14, 0.04, PAL.foam, ex - di * 0.02, top + 0.01, ez - dj * 0.02);   // the lip
+          let B = 0.2; while (B < 3 && coastDist(x + di * (L + B), z + dj * (L + B)) > -beachExtra(theta)) B += 0.1;   // the beach's width here
+          // a walled channel carries the water straight across the sand and out into the sea; its walls run down into the sand
+          const c0 = L + 0.22, c1 = L + B + 0.4, cm = (c0 + c1) / 2, clen = c1 - c0, chx = x + di * cm, chz = z + dj * cm, chY = beachY + 0.008;
+          across(0.78, clen, 0.02, PAL.canal, chx, chY, chz); wat.push(flowPlane(0.78, clen, Math.atan2(di, dj), chx, chY + 0.012, chz, ko + c0));
+          across(0.86, clen, 0.02, PAL.canalBed, chx, chY - 0.012, chz);
+          for (const sd of [-1, 1]) { across(0.11, clen, 0.5, wall, chx + (di ? 0 : sd * 0.445), chY - 0.15, chz + (di ? sd * 0.445 : 0)); across(0.13, clen, 0.025, coping, chx + (di ? 0 : sd * 0.445), chY + 0.11, chz + (di ? sd * 0.445 : 0)); }
+          for (let f = 0; f < 9; f++) { const fd = 0.1 + (f % 3) * 0.09, fo = -0.26 + (f * 0.29) % 0.52, fr = 0.05 + ((f * 7) % 4) * 0.012; g.push(blob(fr, PAL.foam, ex + di * fd + (dj ? fo : 0), chY + 0.016, ez + dj * fd + (di ? fo : 0), 1, 0.35)); }   // churn where the fall lands
+          // the open end: the channel water steps down into the sea with a lip of foam
+          const seaX = x + di * (c1 + 0.02), seaZ = z + dj * (c1 + 0.02), sdrop = chY + 0.78;
+          across(0.76, 0.03, sdrop, PAL.canal, seaX, chY - sdrop / 2, seaZ);
+          const sheet2 = new THREE.PlaneGeometry(0.74, sdrop); sheet2.rotateY(Math.atan2(di, dj)); sheet2.translate(seaX + di * 0.02, chY - sdrop / 2, seaZ + dj * 0.02); fall.push(colorize(sheet2, PAL.canal));
+          for (const fo of [-0.22, 0, 0.22]) g.push(blob(0.12, PAL.foam, seaX + di * 0.16 + (dj ? fo : 0), -0.766, seaZ + dj * 0.16 + (di ? fo : 0), 1, 0.12));
         }      }
-      else {   // a grassy bank sloping from the coping into the water, with a low stone kerb along the top
-        const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.2, 0); sh.lineTo(0.2, TOP); sh.lineTo(0.02, TOP); sh.closePath();   // profile: water edge at x 0, land at x 0.2
-        const bank = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); bank.translate(0, 0, -0.5); bank.rotateY(Math.atan2(-dj, di) + Math.PI); bank.translate(x + di * 0.5, WATER - 0.02, z + dj * 0.5);
-        g.push(colorize(bank, biome.grass));
-        g.push(box(di ? 0.1 : 1, 0.03, di ? 1 : 0.1, coping, x + di * 0.45, TOP + 0.015, z + dj * 0.45));
+      else {   // a stone wall with a coping, the same on every closed side (the grass bank read as a green stripe from above)
+        g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445));
       } });
     if (cellHash(i * 3, j * 7) < 0.45) { const side = DIRS.findIndex((_, k) => !nb[k]); if (side >= 0) { const [di, dj] = DIRS[side]; for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.4 + cellHash(i + k, j) * 0.25, '#b9c084', x + di * 0.56 + (cellHash(k, i) - 0.5) * 0.25 * (dj ? 1 : 0.3), 0.2, z + dj * 0.56 + (cellHash(j, k) - 0.5) * 0.25 * (di ? 1 : 0.3), 4)); } }
   }
@@ -286,9 +310,14 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
   }
   const cm = mergeMesh(g, true); if (cm) { cm.receiveShadow = true; scene.add(cm); }
   if (wat.length) {   // ripples drift along the canal so the water reads as moving
-    const t = rippleTex.clone(); t.needsUpdate = true; t.repeat.set(0.7, 0.7);
-    const wm = mergeMesh(wat, false, false); wm.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.5, depthWrite: false }); wm.renderOrder = 3; scene.add(wm);
-    rippleLayers.push({ t, speed: [-0.06, 0] });   // a growing u offset moves the pattern toward -u, so negative here runs the ripples with the flow
+    const t = rippleTex.clone(); t.needsUpdate = true;   // uvs are already in tile units (see flowPlane)
+    const wm = mergeMesh(wat, false, false); wm.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.2, depthWrite: false }); wm.renderOrder = 3; scene.add(wm);
+    rippleLayers.push({ t, speed: [-0.014, 0] });   // a growing u offset moves the pattern toward -u, so negative here runs the ripples with the flow
+  }
+  if (fall.length) {   // the waterfall sheets: the same ripple tile stretched tall and scrolled downward, drawn from both sides
+    const t = rippleTex.clone(); t.needsUpdate = true; t.repeat.set(1.2, 3);
+    const fm = mergeMesh(fall, false, false); fm.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.75, depthWrite: false, side: THREE.DoubleSide }); fm.renderOrder = 3; scene.add(fm);
+    rippleLayers.push({ t, speed: [0, 0.9] });
   }
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }

@@ -10,6 +10,22 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Shiba animation corrections: fitted inner ears, seated haunches and grounded paws,
+  working rear-leg gait at every simulation speed, and shared game/GLB animation clips.
+  Dogs now sniff during short pauses and hold their seated pose during longer pauses.
+
+- Original low-poly Shiba Inu with pointed ears, cream markings, four coat colours and
+  a curled wagging tail. The reusable GLB includes walk, idle, sit and sniff clips;
+  growing towns now gain one or two occasional neighbourhood dogs on pedestrian routes.
+
+- Builder work gloves now have compact tan palms, visible thumbs and darker cuffs,
+  making the hands distinct from the navy sleeves while retaining their animation weights.
+
+- Dedicated construction builder derived from a separate copy of a Kenney Mini Character:
+  fitted hard hat with dome, brim, ridge and vents, plus reflective workwear. Preserves all
+  32 source animations and the construction tool attachment; includes an editable model
+  generator, self-contained GLB and pose preview.
+
 - Phase 4.8, the Japanese identity pass. Roofs: a third of homes get grey kawara tile roofs, and every tile roof
   now carries tile courses, a ridge cap with end tiles and deep eaves; two-storey detached houses have a
   hip-and-gable (irimoya) roof. Houses get a concrete-block wall with the gate slid open in front of the
@@ -58,6 +74,28 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Komachi Station is remodelled in a Japanese style: an open pavilion with a hipped kawara roof and deep eaves over
+  the stairwell, cream pillars and side screens, a lit window band on the back wall, the station name board on the
+  front eave with a sage band, a clock and two square paper lamps; a 駅名標 name board stands behind the benches and
+  a lit line-mark pillar by the vending machines (the arched sage roof is gone)
+- The canal mouth flows straight to the sea: the fall lands in a walled channel that runs across the beach and
+  steps into the water, with no plunge pool. Canal walls are pale stone and a little lower (the shaded face of
+  the old rock colour read as a green outline), and the water surface no longer shows seams between cells
+- The canal only meets the coast at its two ends, so there is one waterfall per end instead of one at every
+  cell that ran near the beach; canal ripples are mapped in world units at the sea's scale and run continuously
+  along the flow, so canal and sea carry the same pattern
+- The fishing boat now heads bow-first (the model was turned round), and its shadow and matte finish are back
+- While the hill is closed, its slope roads stay clear of woods and a striped barrier with a no-entry sign stands
+  at the foot of each; the barriers go when the hill opens
+- Sea and canal ripples are finer and much fainter, so the water reads as a calm colour from far out rather
+  than a blotchy pattern; bamboo never grows beside a street (the tall culms looked as if they stood on it)
+- Water is pastel blue now (sea, canal, foam) instead of mint and grey-teal, and the canal has stone walls on
+  every closed side; the grass bank that read as a green stripe along one edge is gone
+- The canal now ends in a waterfall: the channel runs to the land edge and pours down the cliff face in an
+  animated sheet onto a plunge pool in the sand, with foam and wet rocks, then a pebble-lined stream carries it
+  over the beach and down a last step into the sea. Where the coast road lies between the canal end and the
+  shore, the water leaves through a culvert under the road and falls from an outlet in the cliff. The old
+  stepped slabs at the mouth are gone
 - Pixel look is off by default; the toggle is still remembered once you use it
 - Roadmap: a Phase 4.8 Japanese identity pass (roofs and walls, signage, street details, greenery,
   balcony life) now comes before the economy phase

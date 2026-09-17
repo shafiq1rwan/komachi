@@ -61,7 +61,8 @@ Some things worth knowing:
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
   cliffs, a pier and a boat, a terraced hill with a shrine on the far side from the pier, a canal with a
   heron on the pier's side, and a coast road running round the island just inside the beach. Zone on both
-  banks of the canal and a bridge appears between the facing streets. Waves lap
+  banks of the canal and a bridge appears between the facing streets. The canal ends in a waterfall off the
+  land edge onto the beach. Waves lap
   the beaches, fish leap and a fishing boat circles offshore. Zoom out to see all of it; nothing can be
   built in the water.
 - **Build up the hill.** The hill stays wild until 60 people live in town; then its slope roads open and
@@ -127,9 +128,11 @@ src/
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
   cats.js             original low-poly cats, coat colours and walk/idle motion
+  dogs.js             original low-poly Shiba Inu, four poses and ambient street behaviour
   dolphins.js         standalone low-poly dolphin asset and swim animation
   construction.js     builders, crews riding the trains, material deliveries
   characters.js       rigged people (Kenney Mini Characters): loading, per-person recolour, animation
+  builder-model.js    editable Kenney builder derivative: fitted hard hat and reflective workwear
   vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
   sea.js              waves, jumping fish, a school near the shore, the fishing boat
 assets/characters/    Kenney Mini Characters (CC0) under kenney/

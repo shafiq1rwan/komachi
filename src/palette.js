@@ -2,7 +2,7 @@
 import { pick, irand } from './utils.js';
 
 export const PAL = {
-  water:'#bfe3d6', canal:'#9cc6c0', canalBed:'#6f8a86', foam:'#d8eee5', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
+  water:'#b7d8ea', canal:'#a4c9e4', canalBed:'#6c8aa4', foam:'#e2f0f7', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
   grass:'#c8d7ad', grass2:'#bccf9f', landSide:'#e8d5b4', sidewalk:'#efe3cc', asphalt:'#9a9ea3', asphalt2:'#8e9296',
   cream:'#f3e6cf', cream2:'#f7efe2', peachWall:'#f1d7c0', greyWall:'#dfe6ea', tealWall:'#b9d1cd', blueWall:'#cfdde6',
   roofRose:'#d98b7a', roofSage:'#7f9b7a', roofBlue:'#8fb0c9', roofPeach:'#e9b08a', roofTeal:'#6f9a96', roofPlum:'#a98ba0',
