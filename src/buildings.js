@@ -111,8 +111,18 @@ function genShop(b, u, g, wg) {
   const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : -0.24;
   u.door = { x: doorX, z: d / 2 + 0.02 };
   g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
-  g.push(box(w + 0.1, 0.09, d + 0.1, b.roof, 0, y0 + H + 0.04, 0)); g.push(box(w + 0.14, 0.04, d + 0.14, b.roof, 0, y0 + H + 0.1, 0));
-  acUnit(g, -0.2, y0 + H + 0.14, -0.15, 0); pipe(g, -w / 2 - 0.02, y0, y0 + H, -d / 2 + 0.06);
+  // three silhouettes by the block's roof style, so a shop street is not a row of identical boxes
+  if (b.roofStyle === 'kawara') {   // a tiled gable, machiya-style, with a lattice band under the eaves
+    kawaraRoof(g, w, d, H, y0, u.seed > 0.5 ? PAL.kawara : PAL.kawara2, false);
+    for (let k = 0; k < 7; k++) g.push(box(0.02, 0.1, 0.02, PAL.wood2, -0.3 + k * 0.1, y0 + H - 0.08, d / 2 + 0.01));
+  } else if (b.roofStyle === 'metal') {   // a mono-pitch metal roof rising to the back, with a tall fascia over the front
+    const slope = new THREE.BoxGeometry(w + 0.12, 0.04, d + 0.16); slope.rotateX(-0.22); slope.translate(0, y0 + H + 0.1, -0.02); g.push(colorize(slope, K.metal));
+    g.push(box(w + 0.14, 0.22, 0.05, b.roof, 0, y0 + H + 0.06, d / 2 + 0.03)); g.push(box(w + 0.14, 0.03, 0.06, PAL.cream2, 0, y0 + H + 0.18, d / 2 + 0.035));
+    for (let k = 0; k < 6; k++) g.push(box(0.012, 0.012, d + 0.14, K.metal2, -w / 2 + 0.05 + k * ((w - 0.1) / 5), y0 + H + 0.13, -0.02));
+  } else {   // the flat roof with a parapet
+    g.push(box(w + 0.1, 0.09, d + 0.1, b.roof, 0, y0 + H + 0.04, 0)); g.push(box(w + 0.14, 0.04, d + 0.14, b.roof, 0, y0 + H + 0.1, 0));
+  }
+  if (b.roofStyle !== 'kawara') acUnit(g, -0.2, y0 + H + 0.14, -0.15, 0); pipe(g, -w / 2 - 0.02, y0, y0 + H, -d / 2 + 0.06);
   if (kind === 'konbini') {
     wg.push(box(0.62, 0.36, 0.03, PAL.window, -0.1, y0 + 0.31, d / 2 + 0.015)); g.push(box(0.66, 0.4, 0.02, K.frame, -0.1, y0 + 0.31, d / 2 + 0.005));
     for (const x of [-0.3, -0.1, 0.1]) g.push(box(0.02, 0.36, 0.035, K.mullion, x, y0 + 0.31, d / 2 + 0.02));

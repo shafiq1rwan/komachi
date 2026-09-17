@@ -79,7 +79,8 @@ Some things worth knowing:
   and white kerb lines on the streets, a red post box, a kōban by the station, a hokora on a quiet bend,
   pruned pines, bamboo groves and pocket parks with swings.
 - **Buildings vary.** Homes come as detached houses (kawara, tile or metal roofs), narrow two-storey
-  houses with exterior stairs, or small apartment blocks with balconies. Shops become cafés,
+  houses with exterior stairs, or small apartment blocks with balconies. Shops take one of three shapes, a
+  tiled machiya gable, a mono-pitch metal roof with a tall fascia, or a flat roof with a parapet, and become cafés,
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are
   offices, workshops or studios. Streets get utility poles with cables, traffic mirrors, notice
   boards and bike racks.

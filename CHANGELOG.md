@@ -74,6 +74,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Shops come in three silhouettes by roof style: a tiled machiya gable with a lattice band, a mono-pitch metal
+  roof with a tall fascia, or the flat roof with a parapet, so a shop street is no longer a row of identical boxes
 - Roadmap: a Phase 4.9 before the economy, in which buildings get a front street stub auto-connected to the
   nearest street and the player gains a Road tool, replacing the automatic ring around every block
 - The station plaza lost its tall corner lamps; one ordinary street lamp stands mid-way along each side of its ring road, and
