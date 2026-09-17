@@ -109,6 +109,9 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Fixed: routing let cars and walkers step between neighbouring roads on different terraces, so they drove
+  off retaining walls and floated over the street below. Roads now connect only at the same height, or
+  along a slope road's own axis; cables no longer span a terrace wall
 - Sea: the ripple texture tiles seamlessly (streaks drawn with wrap-around) so the water no longer shows
   square patches; the fishing boat has a real wake, two foam lines fanning from the stern and rings that
   spread in its trail, and sails bow-first

@@ -206,7 +206,7 @@ function rebuildRoads() {
   // cables only run along a street: two poles link if they share a row or column and every cell
   // between them is road, and each pole takes at most one neighbour in each direction
   const pos = [];
-  const roadBetween = (a, b) => { const di = Math.sign(b.i - a.i), dj = Math.sign(b.j - a.j); for (let i = a.i + di, j = a.j + dj; i !== b.i || j !== b.j; i += di, j += dj) { const c = cell(i, j); if (!c || c.type !== 'road') return false; } return true; };
+  const roadBetween = (a, b) => { const di = Math.sign(b.i - a.i), dj = Math.sign(b.j - a.j); const h = (cell(a.i, a.j).h || 0); for (let i = a.i + di, j = a.j + dj; i !== b.i || j !== b.j; i += di, j += dj) { const c = cell(i, j); if (!c || c.type !== 'road' || c.ramp || Math.abs((c.h || 0) - h) > 1e-6) return false; } return true; };
   for (let a = 0; a < poles.length; a++) {
     const A0 = poles[a];
     const cands = poles.map((P, k) => ({ k, di: P.i - A0.i, dj: P.j - A0.j })).filter(o => o.k !== a && ((o.di === 0) !== (o.dj === 0)) && Math.abs(o.di + o.dj) <= 5 && (o.di + o.dj) > 0 && roadBetween(A0, poles[o.k]));

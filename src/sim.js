@@ -19,7 +19,16 @@ function daylight() { const h = hourOf(); return smooth((h - 5.5) / 1.5) * smoot
 // ───────────────────────────── routing over roads ─────────────────────────────
 const pathCache = new Map();
 const bfsParent = new Int32Array(N * N), bfsQueue = new Int32Array(N * N);
-function roadNeighbors(c) { const out = []; for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road') out.push(n); } return out; }
+/** can traffic pass from road cell a to its neighbour b (stepping di, dj)? Same height, or along a slope road's axis. */
+function roadLinked(a, b, di, dj) {
+  const r = a.ramp || b.ramp;
+  if (!r) return Math.abs((a.h || 0) - (b.h || 0)) < 1e-6;
+  if (a.ramp && b.ramp) return false;
+  if (di !== r.di && di !== -r.di || dj !== r.dj && dj !== -r.dj) return false;   // only along the slope
+  const ramp = a.ramp ? a : b, other = a.ramp ? b : a, up = a.ramp ? (di === r.di && dj === r.dj) : (di === -r.di && dj === -r.dj);
+  return Math.abs((other.h || 0) - (up ? r.h1 : r.h0)) < 1e-6 && !!ramp;
+}
+function roadNeighbors(c) { const out = []; for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road' && roadLinked(c, n, di, dj)) out.push(n); } return out; }
 function routeCells(srcs, dsts) {
   if (!srcs.length || !dsts.length) return null;
   bfsParent.fill(-1); const target = new Set(dsts.map(c => c.j * N + c.i));
@@ -29,7 +38,8 @@ function routeCells(srcs, dsts) {
     const k = bfsQueue[qh++];
     if (target.has(k)) { const path = []; let cur = k; while (true) { path.push(cells[cur]); if (bfsParent[cur] === cur) break; cur = bfsParent[cur]; } return path.reverse(); }
     const i = k % N, j = (k - i) / N;
-    for (const [di, dj] of DIR4) { const n = cell(i + di, j + dj); if (!n || n.type !== 'road') continue; const nk = n.j * N + n.i; if (bfsParent[nk] !== -1) continue; bfsParent[nk] = k; bfsQueue[qt++] = nk; }
+    const c0 = cells[k];
+    for (const [di, dj] of DIR4) { const n = cell(i + di, j + dj); if (!n || n.type !== 'road' || !roadLinked(c0, n, di, dj)) continue; const nk = n.j * N + n.i; if (bfsParent[nk] !== -1) continue; bfsParent[nk] = k; bfsQueue[qt++] = nk; }
   }
   return null;
 }

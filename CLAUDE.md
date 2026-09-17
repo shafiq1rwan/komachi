@@ -111,8 +111,8 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 2. ✅ Construction stages, crews by train, deliveries, renovation
 3. ✅ Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
    3.5 ✅ buildable hill terraces with slope roads
-4. Station commuting, persistent bikes and taxis (starts with the hill unlock at ~60 residents)
-   4.5 (optional) canal with bridges
+4. Station commuting, persistent bikes and taxis, traffic lights (starts with the hill unlock at ~60 residents)
+   4.5 (optional) canal with bridges, coastal ring road, optional overpass
 5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism

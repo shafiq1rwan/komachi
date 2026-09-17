@@ -83,12 +83,20 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Persistent cars: a resident's car stays parked at the kerb or in a small carpark while they are
   indoors instead of vanishing; carpark as a zone or kerbside bays
 - Station busier at rush hour: platform sounds implied by movement, crowds on the plaza
+- **Traffic lights** at busy junctions (three or more arms with real traffic): Japanese-style signals on a
+  cantilever arm cycling green and red with a walk light; cars and trucks stop at red, walkers wait at
+  the kerb and cross at the lights (settles the zebra-crossing question)
 
-## ⬜ Phase 4.5 (optional) — Canal
+## ⬜ Phase 4.5 (optional) — Canal, ring road, bridges
 
-A seeded canal from shore to shore, stone-edged, with reeds and a heron. Canal cells are water;
-roads that cross become bridge cells with railings so the town never splits in two. Footbridges for
-walkers. Sets up fishing in Phase 7.
+- A seeded canal from shore to shore, stone-edged, with reeds and a heron. Canal cells are water;
+  roads that cross become bridge cells with railings so the town never splits in two. Footbridges for
+  walkers. Sets up fishing in Phase 7
+- A two-lane coastal ring road with a median that the town's streets can join; ambient cars use it for
+  long trips, later the fishing and farm trucks. Landscape, not a zone
+- Bridges give us a road-over-something cell type (also a **tunnel**: a flat street passing under a slope
+  road's embankment where the two must cross); an **overpass** (road over road, with ramps up and
+  supports) is an optional extension once bridges work, built for the look rather than for traffic
 
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
