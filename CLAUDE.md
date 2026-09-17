@@ -39,7 +39,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   (0 on the flat, `level × 0.55` on hill terraces). Trip points hold height above ground; `moveAlong`
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
   Cars keep left; walkers pick one sidewalk. Vehicles persist: `carAt`/`bikeAt` say where a resident's
-  vehicle is parked (`parkVehicle`), and `userData.parked` vehicles are ignored by traffic. Signals:
+  vehicle is parked (`parkVehicle`: bikes on the plot, cars at the kerb of the street in front), and
+  `userData.parked` vehicles are ignored by traffic. Signals:
   `signalCells` in world.js, one town-wide phase on `S.T`; `trafficFactor` in sim.js does queueing,
   give-way and red lights.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
@@ -127,7 +128,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    4.5 ✅ canal with bridges, coast road (overpass/tunnel still optional, not built)
    4.8 ✅ Japanese identity pass: kawara roofs and block walls, signage (noren, chōchin, konbini), street
        details (tomare marks, post box, kōban, pole transformers), pines and bamboo, laundry on balconies
-5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
+5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan; car ferry at
+   the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism
 7. Farming and fishing

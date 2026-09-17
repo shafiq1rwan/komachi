@@ -304,10 +304,22 @@ function assignHome(r, u) {
   if (path) startTrip(r, path, start, entryPts(u), u, 'moving into a new home');
   else startDirectTrip(r, start, exitPts(u)[0], 'moving in the long way round', () => enterUnit(r, u), 0.06);   // no road yet: cut across the grass
 }
-// ── parking: a resident's car or bike waits on the plot beside the building while they are inside ──
+// ── parking: a resident's bike waits on the plot beside the building; their car waits at the kerb of the street in front ──
 const PARK_SLOTS = [[0.33, 0.2], [-0.33, 0.2], [0.33, -0.22], [-0.33, -0.22]];
 function parkVehicle(mesh, u, kind) {
-  const used = new Set(residents.filter(x => (kind === 'car' ? x.car : x.bike) && (kind === 'car' ? x.car : x.bike) !== mesh && (kind === 'car' ? x.carAt : x.bikeAt) === u && (kind === 'car' ? x.car : x.bike).userData.slot !== undefined).map(x => (kind === 'car' ? x.car : x.bike).userData.slot));
+  const veh = x => kind === 'car' ? x.car : x.bike, at = x => kind === 'car' ? x.carAt : x.bikeAt;
+  const used = new Set(residents.filter(x => veh(x) && veh(x) !== mesh && at(x) === u && veh(x).userData.slot !== undefined).map(x => veh(x).userData.slot));
+  if (kind === 'car') {   // the plot is too small for a car: it waits at the kerb of the street in front, half on the pavement, with the home on its left
+    const road = frontRoad(u)[0];
+    if (road) {
+      const dx = Math.sign(u.cell.i - road.i), dz = Math.sign(u.cell.j - road.j);   // from the street toward the home
+      let slot = [0, 1].find(k => !used.has(k)); if (slot === undefined) slot = 0;
+      const along = (slot ? -1 : 1) * 0.28, ax = -dz, az = dx;   // two bays along the kerb
+      mesh.position.set(cx(road.i) + dx * 0.42 + ax * along, 0.085 + (road.h || 0), cz(road.j) + dz * 0.42 + az * along);
+      mesh.rotation.set(0, Math.atan2(-dz, dx), 0);   // heading with the home on the driver's left (Japan keeps left)
+      mesh.visible = true; mesh.userData.parked = true; mesh.userData.slot = slot; return;
+    }
+  }
   let slot = PARK_SLOTS.findIndex((_, k) => !used.has(k)); if (slot < 0) slot = 0;
   const [lx, lz] = PARK_SLOTS[slot], p = unitLocal(u, lx * (kind === 'bike' ? 1.15 : 1), lz, 0.12);
   mesh.position.set(p.x, 0.12 + (u.cell.h || 0), p.z); mesh.rotation.set(0, (u.facing || 0) + (kind === 'bike' ? Math.PI / 2 : 0), 0);

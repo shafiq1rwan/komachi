@@ -123,6 +123,19 @@ All of it is set dressing and ambient behaviour; nothing is gated or scored.
   people stroll up, and later a ryokan or small hotel (Phase 6 tourism). Starts as demand-driven
   auto-build; money attaches once the economy exists
 
+- **Car ferry** (agreed 2026-09-17): nothing on wheels appears out of thin air any more. A small ro-ro ferry
+  (Kenney Watercraft cargo ship, repainted) calls at the pier a few times a day and lowers a ramp onto a
+  slipway joined to the coast road. Residents order a car once they have a job and have settled in; it rolls
+  off the next sailing, drives to their street and parks at the kerb. Visiting cars and delivery vans arrive the
+  same way and drive back to the pier to leave. The taxis belong to the island: the first two are delivered by
+  the opening ferry and live at the station rank from then on, and a third is delivered when the town grows. A household that moves away takes its car
+  with it. The flatbed truck can carry a new car to a home far from the coast road; bikes come from a bike
+  shop kind, wheeled home. Replaces the instant spawning of owned cars and ambient traffic.
+- **Building materials by sea** (agreed 2026-09-17): the ferry's deck carries visible pallets and a container,
+  unloaded into a small fenced builders' yard by the slipway (stacked timber, sacks, a container). The flatbed
+  truck loads there and drives to the site, and the yard looks fuller while several sites are under way. Purely
+  visual: nothing is counted or gated, and construction time is unchanged, driven only by the stage clock and
+  the crew on site.
 - **Landmarks**: a summit observation deck beside the shrine once the hill opens; the tea house and ryokan on the
   terraces are landmarks in their own right
 

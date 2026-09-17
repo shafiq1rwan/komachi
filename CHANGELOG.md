@@ -74,6 +74,10 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: building materials arrive on the ferry into a builders' yard by the pier (visual only, no effect on
+  construction time)
+- Roadmap: Phase 5 gains a car ferry at the pier, so owned cars and visiting traffic arrive and leave by sea
+  instead of appearing on the island; the taxis are delivered once and stay at the station rank
 - Roadmap: landmarks noted per phase (observation deck, civic buildings, lighthouse and arched bridge, fish
   market and paddies) and a cross-cutting note on sense of achievement (world-changing milestones, a town
   chronicle, residents who remember, visible growth, small ceremonies)
@@ -150,6 +154,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- Parked cars no longer overlap their homes: a car waits at the kerb of the street in front, half on the
+  pavement with the home on the driver's left, two bays per street cell; bikes still park on the plot
 - Every hill now has both island slope roads: when the middle terrace was only one cell deep, the lower ramp
   landed on the upper ramp's foot and was lost, leaving the bottom terrace with no slope of its own
 - Queued vehicles leave about a quarter of a car length between bumpers instead of touching
