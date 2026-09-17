@@ -111,6 +111,24 @@ All of it is set dressing and ambient behaviour; nothing is gated or scored.
 - Still open: kanji lettering itself (signs carry glyph blocks, not text), a level crossing (the line is
   underground), and laundry that reacts to weather (Phase 6)
 
+## ⬜ Phase 4.9 — Streets the player can shape
+
+Agreed 2026-09-17. The automatic square ring around every block makes the town read as a grid of identical
+islands and produces the odd roads that keep showing up. Streets become the player's second verb, without
+ever letting the town break.
+
+- **Front stub, not a ring**: a new building gets a street stub in front of its door only, and the town
+  connects that stub to the nearest street along the shortest path (the hill connector, generalised to the
+  flat). No building is ever left unreachable, so there is no failure state
+- **Road tool**: the player draws streets anywhere on land (click-drag along a line, with a touch gesture);
+  drawn roads are permanent, the connector prefers to join them, and the Remove tool takes them away unless
+  a building still needs them
+- **Visible reasons**: while a stub is being joined the crew waits at the kerb and the truck idles at the
+  nearest street, with a notice explaining what is happening
+- **Keeps working**: routing, avenues, canal bridges, coast road, hill slopes, parking and lamps all follow
+  the new streets; the smoke checks that assume ring roads are rewritten
+- Done before Phase 5 so the ferry slipway, builders' yard and plot market build on the final road model
+
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
 - Gentle economy shown through behaviour: a shop with customers gets a new awning and stock, one

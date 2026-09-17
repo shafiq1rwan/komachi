@@ -74,6 +74,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: a Phase 4.9 before the economy, in which buildings get a front street stub auto-connected to the
+  nearest street and the player gains a Road tool, replacing the automatic ring around every block
 - The station plaza lost its tall corner lamps; one ordinary street lamp stands mid-way along each side of its ring road, and
   the pavilion's paper lamps light the entrance
 - Street lamps cast a much fainter, narrower beam and a smaller warm pool, so the light sits in the scene
