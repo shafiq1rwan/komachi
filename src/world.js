@@ -324,10 +324,13 @@ function rebuildRoads() {
         lg.push(box(0.1, 0.12, 0.01, PAL.pink, px + Math.cos(ry) * -0.1, 0.5, pz - Math.sin(ry) * -0.1 + Math.sin(ry) * 0 , ry)); lg.push(box(0.12, 0.08, 0.01, PAL.roofBlue, px + Math.cos(ry) * 0.09, 0.52, pz - Math.sin(ry) * 0.09, ry));
       }
     }
-    let byStation = false; for (let dj = -1; dj <= 1 && !byStation; dj++) for (let di = -1; di <= 1 && !byStation; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'station') byStation = true; }   // the whole ring road around the plaza
     // a lamp wherever a street passes a building (most cells), and every third cell along any other street, so ring
-    // roads, avenues, the coast road and hill streets are lit too; the plaza has its own lamps, bridges and slopes none
-    const lampHere = !byStation && !c.bridge && !c.ramp && ((h > 0.5 && lotAdjacent4(c)) || ((c.i * 2 + c.j) % 3 === 0 && deg <= 2 && !isDbl));
+    // roads, avenues, the coast road and hill streets are lit too; bridges and slopes have none
+    let byStation = false; for (let dj = -1; dj <= 1 && !byStation; dj++) for (let di = -1; di <= 1 && !byStation; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'station') byStation = true; }
+    // around the station only the middle cell of each ring-road side carries a lamp, so the plaza is not hemmed in by poles
+    const sc = STATION.anchor ? STATION.anchor.cell : null, sdi = sc ? Math.abs(c.i - sc.i) : 9, sdj = sc ? Math.abs(c.j - sc.j) : 9;
+    const ringMid = byStation && ((sdi === 2 && sdj === 0) || (sdj === 2 && sdi === 0));
+    const lampHere = !c.bridge && !c.ramp && (byStation ? ringMid : ((h > 0.5 && lotAdjacent4(c)) || ((c.i * 2 + c.j) % 3 === 0 && deg <= 2 && !isDbl)));
     if (lampHere) {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; }) || DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type !== 'road' && n.type !== 'water' && n.type !== 'canal'; }) || DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type !== 'road'; });
       if (!d) { /* a street with roads on all four sides: no kerb to stand on */ } else {
@@ -342,8 +345,8 @@ function rebuildRoads() {
       const hx = px + ax * 0.4, hz = pz + az * 0.4, hy = top + 0.12;
       const housing = new THREE.BoxGeometry(0.13, 0.05, 0.24); housing.rotateY(ry); housing.translate(hx, hy, hz); lg.push(colorize(housing, PAL.lamp));
       const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.2), lampHeadMat); head.rotation.y = ry; head.position.set(hx, hy - 0.03, hz); head.castShadow = false; scene.add(head); lampHeads.push(head);
-      cones.push(lightCone(hx, hy - 0.03, hz, 0.07, 0.62, PAL.lampGlow));
-      const gl = makeGlow(hx, 0.125, hz, 2.0); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
+      cones.push(lightCone(hx, hy - 0.03, hz, 0.06, 0.4, PAL.lampGlow));
+      const gl = makeGlow(hx, 0.125, hz, 1.5); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
       }
     }
     if (gy) {   // lift everything this cell added to its terrace

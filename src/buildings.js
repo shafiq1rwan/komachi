@@ -342,10 +342,6 @@ function koban(g, wg, x, z, rot) {
   parts.push(box(0.03, 0.03, 0.28, K.frame, -0.18, 0.12 + 0.05, 0)); parts.push(box(0.34, 0.03, 0.06, PAL.concrete, 0, 0.12 + 0.015, 0.17));
   for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); } for (const p of glow) { p.rotateY(rot); p.translate(x, 0, z); wg.push(p); }
 }
-function stationLamp(g, wg, x, z) {
-  g.push(cyl(0.025, 0.035, 0.95, PAL.lamp, x, 0.12 + 0.475, z, 6)); g.push(box(0.12, 0.05, 0.12, PAL.lamp, x, 0.12 + 0.03, z));
-  wg.push(box(0.13, 0.11, 0.13, PAL.window, x, 0.12 + 1.0, z)); g.push(box(0.17, 0.03, 0.17, PAL.lamp, x, 0.12 + 1.07, z));
-}
 function genStation(b, u, g, wg) {
   const { di, dj } = u, y0 = 0.12;
   if (di === 0 && dj === 0) {
@@ -410,7 +406,7 @@ function genStation(b, u, g, wg) {
   g.push(box(0.36, 0.14, 0.36, PAL.wood, di * 0.25, y0 + 0.07, dj * 0.25));
   g.push(cyl(0.035, 0.045, 0.3, PAL.wood2, di * 0.25, y0 + 0.28, dj * 0.25, 5)); g.push(blob(0.24, u.seed < 0.5 ? PAL.treePeach : PAL.treeSage, di * 0.25, y0 + 0.5, dj * 0.25, 0, 0.9));
   g.push(blob(0.09, PAL.bush, di * 0.08, y0 + 0.18, dj * 0.3, 0, 0.8));
-  stationLamp(g, wg, -di * 0.32, -dj * 0.32);
+  // (the plaza is lit by the street lamps on its ring road and the pavilion's paper lamps; the old tall corner lamps are gone)
   if (di === dj) g.push(cyl(0.07, 0.06, 0.2, RAIL, -di * 0.32, y0 + 0.1, dj * 0.3, 8));   // a bin tucked by the lamp in two corners
   g.push(box(0.3, 0.005, 0.3, PAL.cream2, -di * 0.15, y0 + 0.003, dj * 0.15));
 }
@@ -430,7 +426,7 @@ function rebuildUnitMesh(u, pop = false) {
   if (LG.length && b.stage >= DONE) { const lm = mergeMesh(LG, false); grp.add(lm); u.laundry = lm; }   // hung out in the morning, taken in before dusk (daynight.js)
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
-    const spots = u.di && u.dj ? [[-u.di * 0.32, -u.dj * 0.32, 1.5]] : (!u.di && !u.dj) ? [[-0.2, 0.47, 0.9], [0.2, 0.47, 0.9]] : [];
+    const spots = (!u.di && !u.dj) ? [[-0.3, 0.3, 0.9], [0.3, 0.3, 0.9]] : [];   // the pavilion's two paper lamps
     for (const [gx, gz, gs] of spots) { const gl = makeGlow(gx, 0.135, gz, gs); gl.material = u.glowMat; grp.add(gl); if (!u.glow) u.glow = gl; }
   }
   grp.position.set(cx(u.cell.i), u.cell.h || 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;

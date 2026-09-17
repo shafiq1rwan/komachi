@@ -74,6 +74,10 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- The station plaza lost its tall corner lamps; one ordinary street lamp stands mid-way along each side of its ring road, and
+  the pavilion's paper lamps light the entrance
+- Street lamps cast a much fainter, narrower beam and a smaller warm pool, so the light sits in the scene
+  instead of reading as pale triangles across the streets
 - CI retries the smoke test once, since a timing check can miss on the slow software-GL runner
 - Roadmap: building materials arrive on the ferry into a builders' yard by the pier (visual only, no effect on
   construction time)

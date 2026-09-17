@@ -82,7 +82,7 @@ const coneMat = new THREE.MeshBasicMaterial({ vertexColors: true, transparent: t
 function lightCone(x, yTop, z, rTop, rBottom, hex) {
   const g = new THREE.CylinderGeometry(rTop, rBottom, yTop - 0.1, 14, 1, true).toNonIndexed();
   const c = new THREE.Color(hex), pos = g.attributes.position, col = new Float32Array(pos.count * 3), h = yTop - 0.1;
-  for (let k = 0; k < pos.count; k++) { const t = Math.max(0, Math.min(1, (pos.getY(k) + h / 2) / h)); const f = 0.02 + 0.6 * t * t * t; col[k * 3] = c.r * f; col[k * 3 + 1] = c.g * f; col[k * 3 + 2] = c.b * f; }
+  for (let k = 0; k < pos.count; k++) { const t = Math.max(0, Math.min(1, (pos.getY(k) + h / 2) / h)); const f = 0.01 + 0.5 * t * t * t * t; col[k * 3] = c.r * f; col[k * 3 + 1] = c.g * f; col[k * 3 + 2] = c.b * f; }
   g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.translate(x, 0.1 + h / 2, z); return g;
 }
 

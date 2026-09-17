@@ -24,7 +24,7 @@ function envUpdate(realT) {
   sun.intensity = lerp(0.55, 1.6, d); C.tmp2.copy(C.sunDay).lerp(C.sunDusk, dusk * 0.7); sun.color.copy(C.moon).lerp(C.tmp2, d);
   fill.intensity = lerp(0.3, 0.35, d);
   renderer.toneMappingExposure = lerp(1.0, 1.05, d);
-  lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.75; coneMat.opacity = night * 0.2;
+  lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness
   const shopOpen = h >= 7 && h < 22;
   for (const u of units.values()) {
     const occ = u.inside.size > 0, b = u.block;
