@@ -5,14 +5,14 @@ import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
 import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
-import { TERRACE, hillCentre, cellHash } from './island.js';
+import { TERRACE, hillCentre, cellHash, isCanal, isCoastRoad } from './island.js';
 import { toast } from './toast.js';
 import { isLand, coastDist, terraceInfo } from './island.js';
 import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
 
 const cells = [];
-for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false });
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false, canal: false, bridge: false, coast: false });
 const cell = (i, j) => (i < 0 || j < 0 || i >= N || j >= N) ? null : cells[j * N + i];
 /** ground height under a world point: terrace height, or a slope across a ramp cell */
 function terrainY(x, z) {
@@ -37,8 +37,20 @@ for (const c of cells) {   // water outside the coast; sparse, gently clustered 
     if (ti.keep) { c.type = 'hill'; c.keep = true; continue; }
     if (ti.wild) { c.type = 'hill'; continue; }
   }
+  if (isCanal(c.i, c.j)) { c.canal = true; c.type = 'canal'; if (isCoastRoad(c.i, c.j)) { c.type = 'road'; c.bridge = true; c.keep = true; c.coast = true; } continue; }
+  if (isCoastRoad(c.i, c.j)) { c.type = 'road'; c.keep = true; c.coast = true; continue; }
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
   if (h < (0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
+}
+/** A bridge spans the canal wherever roads face each other across it; a bridge nobody needs goes back to water. */
+function connectCanal() {
+  const road = c => c && c.type === 'road' && !c.canal;
+  for (const c of cells) {
+    if (!c.canal || c.keep) continue;
+    const span = [[1, 0], [0, 1]].some(([di, dj]) => road(cell(c.i + di, c.j + dj)) && road(cell(c.i - di, c.j - dj)));
+    if (span && c.type === 'canal') { c.type = 'road'; c.bridge = true; }
+    else if (!span && c.bridge) { c.type = 'canal'; c.bridge = false; }
+  }
 }
 
 let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMesh = null; const lampHeads = [], lampGlows = [];
@@ -143,6 +155,20 @@ function rebuildRoads() {
       continue;
     }
     const gy = c.h || 0, g0 = g.length, lg0 = lg.length, hd0 = lampHeads.length, gl0 = lampGlows.length, cn0 = cones.length, po0 = poles.length;
+    if (c.bridge) {   // a deck over the canal: asphalt, a pavement each side, railings, and stone piers down to the water
+      const rd = (i, j) => { const n = cell(i, j); return !!n && n.type === 'road' && !n.canal; };
+      const along = rd(c.i + 1, c.j) || rd(c.i - 1, c.j) ? 0 : 1;   // 0: the bridge runs east–west, 1: north–south
+      g.push(box(1, 0.035, 1, PAL.asphalt, x, 0.0625, z));   // a thin deck held clear of the water, so the canal runs on beneath
+      for (const s of [-1, 1]) {
+        const sx = along ? s * 0.405 : 0, sz = along ? 0 : s * 0.405;
+        g.push(box(along ? 0.19 : 1, 0.055, along ? 1 : 0.19, PAL.sidewalk, x + sx, 0.0725, z + sz));
+        for (const t of [-0.4, -0.2, 0, 0.2, 0.4]) g.push(box(0.025, 0.14, 0.025, PAL.lamp, x + (along ? sx * 1.1 : t), 0.17, z + (along ? t : sz * 1.1)));
+        g.push(box(along ? 0.03 : 1, 0.025, along ? 1 : 0.03, PAL.roofRose, x + (along ? sx * 1.1 : 0), 0.245, z + (along ? 0 : sz * 1.1)));
+        for (const t of [-0.3, 0.3]) g.push(box(0.09, 0.14, 0.09, PAL.concrete2, x + (along ? sx * 0.8 : t), -0.02, z + (along ? t : sz * 0.8)));   // piers standing in the water
+      }
+      for (const o of [-0.25, 0.25]) g.push(box(along ? 0.025 : 0.18, 0.004, along ? 0.18 : 0.025, PAL.cream2, x + (along ? 0 : o), 0.082, z + (along ? o : 0)));
+      continue;
+    }
     const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; });
     // a road cell whose neighbour is a parallel road (two blocks placed two cells apart) is one half of a
     // two-lane avenue: asphalt runs straight across the shared edge with a dashed centre line on it
@@ -446,7 +472,7 @@ function placeBlock(type, sel, preset = null) {
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
   for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
-  ringRoads(sel); connectHillRoads();
+  ringRoads(sel); connectHillRoads(); connectCanal();
   blocks.push(block);
   for (const u of block.units) u.facing = pickFacing(u);
   refreshWorld(); for (const u of block.units) rebuildUnitMesh(u);
@@ -468,6 +494,6 @@ function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };

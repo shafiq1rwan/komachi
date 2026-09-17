@@ -33,7 +33,7 @@ export function restore(d) {
   if (d.hillOpen) openHill(true);
   const town = [];
   for (const bd of d.blocks) {
-    const sel = bd.cells.map(([i, j]) => cell(i, j)).filter(c => c && (c.type === 'empty' || c.type === 'road'));
+    const sel = bd.cells.map(([i, j]) => cell(i, j)).filter(c => c && (c.type === 'empty' || c.type === 'road') && !c.keep && !c.canal);
     if (sel.length !== bd.cells.length) { town.push(null); continue; }   // the island differs from the save; skip the block
     const preset = { ...bd }; delete preset.cells; delete preset.units; const ud = bd.units;
     const b = placeBlock(bd.type, sel, { ...preset, crew: [], crewBooked: false, unitVariants: ud.map(u => u.variant) });

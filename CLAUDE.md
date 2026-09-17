@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 18 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 19 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -99,9 +99,9 @@ Open threads the user has not decided:
 - Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.
 - Kenney people: watch performance past ~100 people (each is ~1,400 tris); a LOD swap to box people when far is the likely fix.
 
-Phase 4 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, traffic lights, hill unlock; see
-docs/ROADMAP.md for what was simplified). Next is Phase 4.5 (canal, ring road, bridges) or Phase 5
-(economy, hill plot market) when the user says go. Deliver in the same style: build, verify with screenshots and headless traces (see the
+Phases 4 and 4.5 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, traffic lights, hill unlock;
+canal with bridges, coast road). Next is Phase 5 (economy, dynamic businesses, hill plot market) when the
+user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
 scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
 Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
 shape changes incompatibly).
@@ -116,7 +116,7 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 3. ✅ Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
    3.5 ✅ buildable hill terraces with slope roads
 4. ✅ Station commuting, bikes, taxis, traffic lights, hill unlock at 60 residents
-   4.5 (optional) canal with bridges, coastal ring road, optional overpass
+   4.5 ✅ canal with bridges, coast road (overpass/tunnel still optional, not built)
 5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism

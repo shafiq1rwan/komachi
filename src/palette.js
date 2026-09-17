@@ -2,11 +2,11 @@
 import { pick, irand } from './utils.js';
 
 export const PAL = {
-  water:'#bfe3d6', foam:'#d8eee5', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
+  water:'#bfe3d6', canal:'#9cc6c0', canalBed:'#6f8a86', foam:'#d8eee5', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
   grass:'#c8d7ad', grass2:'#bccf9f', landSide:'#e8d5b4', sidewalk:'#efe3cc', asphalt:'#9a9ea3', asphalt2:'#8e9296',
   cream:'#f3e6cf', cream2:'#f7efe2', peachWall:'#f1d7c0', greyWall:'#dfe6ea', tealWall:'#b9d1cd', blueWall:'#cfdde6',
   roofRose:'#d98b7a', roofSage:'#7f9b7a', roofBlue:'#8fb0c9', roofPeach:'#e9b08a', roofTeal:'#6f9a96', roofPlum:'#a98ba0',
-  wood:'#b98a5b', wood2:'#a3764a', dirt:'#d9c3a1', concrete:'#d9d3c6', raw:'#e6d3b1',
+  wood:'#b98a5b', wood2:'#a3764a', dirt:'#d9c3a1', concrete:'#d9d3c6', concrete2:'#c4bdb1', raw:'#e6d3b1',
   treePeach:'#f0b48b', treeOrange:'#e69a6a', treeSage:'#a9c08a', treeGreen:'#8fae78', bush:'#93b47c', bush2:'#a8c48c', flower:'#f3c6c0',
   lamp:'#c9c3b7', lampGlow:'#ffd08a', window:'#e8dfcf', glow:'#ffb86b',
   pink:'#e9b7b0', mint:'#a9d3c4', lilac:'#c4b7d6', sky2:'#a7c7d9',

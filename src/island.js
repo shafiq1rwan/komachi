@@ -16,6 +16,7 @@ const SX = 1.08, SZ = 0.94;                  // gentle ellipse so the island is 
 const harm = [[2, rng() * 6.28, 2.2], [3, rng() * 6.28, 1.5], [5, rng() * 6.28, 0.75], [8, rng() * 6.28, 0.3]];
 const shorePhase = [rng() * 6.28, rng() * 6.28];
 const TAU = Math.PI * 2;
+const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
 function radius(theta) { let r = R0; for (const [k, p, a] of harm) r += a * Math.sin(k * theta + p); return r; }
 function coastPoint(theta, extra = 0) { const r = radius(theta) + extra; return [Math.cos(theta) * r * SX, Math.sin(theta) * r * SZ]; }
@@ -32,7 +33,7 @@ function polygon(extra, n = 180) {
   s.closePath(); return s;
 }
 
-const rippleLayers = [];
+const rippleLayers = []; let rippleTex = null;   // the ripple tile, shared with the canal
 /** drift the ripple textures a little each frame */
 function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.speed[0] * dt; l.t.offset.y += l.speed[1] * dt; } }
 
@@ -56,7 +57,7 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
       ctx.fillStyle = grd; ctx.beginPath(); ctx.ellipse(rx + ox, rz + oz, rr * 2.2, rr * 0.8, rot, 0, 6.29); ctx.fill();
     }
   }
-  const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace;
+  const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace; rippleTex = rt;
   for (const [rep, y, op] of [[16, -0.776, 0.3], [9, -0.774, 0.18]]) {
     const t = rt.clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: op, depthWrite: false }));
@@ -154,6 +155,17 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
     const info = terraceInfo(i, j); if (!info || !info.level) continue;
     const h = info.level * TERRACE, x = cx(i), z = cz(j);
     g.push(box(1, h + 0.05, 1, PAL.landSide, x, (h - 0.15) / 2, z)); g.push(box(1, 0.05, 1, biome.grass, x, h - 0.025, z));
+    // where the terrace drops to a lower level: a sloped earth skirt and the odd bush or rock at the foot
+    for (const [di, dj] of DIRS) {
+      const ni = i + di, nj = j + dj, nInfo = terraceInfo(ni, nj), nl = nInfo ? nInfo.level : 0;
+      if (nl >= info.level || (nInfo && nInfo.ramp)) continue;
+      const drop = (info.level - nl) * TERRACE, base = nl * TERRACE;
+      const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.18, 0); sh.lineTo(0, drop); sh.closePath();   // wedge: flush with the wall at the top, 0.18 out at the foot
+      const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-dj, di)); w.translate(x + di * 0.5, base, z + dj * 0.5);   // local +x → outward (di, dj) g.push(colorize(w, PAL.landSide));
+      const r = cellHash(i * 11 + di, j * 13 + dj);
+      if (r < 0.3) g.push(blob(0.12 + r * 0.2, r < 0.15 ? PAL.bush : PAL.bush2, x + di * 0.6 + (dj ? (r - 0.15) * 2 : 0), base + 0.08, z + dj * 0.6 + (di ? (r - 0.15) * 2 : 0), 0, 0.7));
+      else if (r > 0.82) g.push(blob(0.09, biome.rock[0], x + di * 0.62 + (dj ? (r - 0.9) * 3 : 0), base + 0.04, z + dj * 0.62 + (di ? (r - 0.9) * 3 : 0), 0, 0.6));
+    }
     if (info.ramp) {
       const r = info.ramp, dh = r.h1 - r.h0; const sh = new THREE.Shape(); sh.moveTo(-0.5, 0); sh.lineTo(0.5, 0); sh.lineTo(0.5, dh); sh.closePath();
       const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-r.dj, r.di)); w.translate(x, h, z); g.push(colorize(w, PAL.landSide));
@@ -186,5 +198,77 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
 }
 
 const hillCentre = { x: HX, z: HZ, fx: -hct, fz: -hst, top: hillTop };
+
+// ── the canal: a gently meandering channel from shore to shore on the pier's side of the island, clear of the
+//    town centre and the hill. Cells are keyed "i,j". The coast road follows the beach just inland, one cell
+//    wide, breaking only at the hill; where it meets the canal it crosses on a bridge. ──
+const key = (i, j) => i + ',' + j;
+const canalCells = new Set(), canalOrder = [], coastCells = new Set();
+{
+  const base = pierTheta !== null ? pierTheta : rng() * TAU;
+  for (let attempt = 0; attempt < 12 && !canalCells.size; attempt++) {
+    const th = base + (attempt % 2 ? -1 : 1) * Math.ceil(attempt / 2) * 0.35, phi = rng() * TAU;
+    const nx = Math.cos(th), nz = Math.sin(th), vx = -nz, vz = nx, off = 8.8;
+    // a few points along a bowed curve, joined by straight runs with right-angle corners (a diagonal canal would be a staircase)
+    const stops = []; for (let t = -16; t <= 16; t += 4) { const m = 1.1 * Math.sin(t * 0.33 + phi) + 0.028 * t * t; const x = nx * (off + m) + vx * t, z = nz * (off + m) + vz * t; stops.push([Math.floor(x + HALF), Math.floor(z + HALF)]); }
+    const cellsHere = []; let bad = false; const seen = new Set();
+    const lrun = (a, b) => { const out = []; let [i, j] = a; while (i !== b[0]) { i += Math.sign(b[0] - i); out.push([i, j]); } while (j !== b[1]) { j += Math.sign(b[1] - j); out.push([i, j]); } return out; };
+    for (let k = 0; k < stops.length - 1; k++) {
+      const a = stops[k], b = stops[k + 1], viaX = lrun(a, b), viaZ = lrun(a, [a[0], b[1]]).concat(lrun([a[0], b[1]], b));
+      const path = (k % 2 ? viaZ : viaX);
+      for (const c of [a, ...path]) { const x = cx(c[0]), z = cz(c[1]); if (c[0] < 0 || c[1] < 0 || c[0] >= N || c[1] >= N || coastDist(x, z) <= 0.8) continue; if (terraceInfo(c[0], c[1]) || Math.hypot(x, z) < 7.2) bad = true; const kk = key(...c); if (!seen.has(kk)) { seen.add(kk); cellsHere.push(c); } }
+    }
+    if (bad || cellsHere.length < 8) continue;
+    for (const c of cellsHere) { canalCells.add(key(...c)); canalOrder.push(c); }
+  }
+  // the coast road: sixteen points just inside the beach joined by L-shaped runs (grid roads cannot go diagonal, and
+  // long straight runs with a few corners read far better than a one-cell sawtooth). Hill cells break the road.
+  const stops = []; for (let k = 0; k < 8; k++) { const [x, z] = coastPoint((k + 0.5) / 8 * TAU, -3.0); stops.push([Math.floor(x + HALF), Math.floor(z + HALF)]); }   // eight stops: a rounded rectangle, corners on the diagonals
+  const skipRoad = (i, j) => !!terraceInfo(i, j) || coastDist(cx(i), cz(j)) <= 0.8;
+  const run = (a, b) => { const out = []; let [i, j] = a; while (i !== b[0]) { i += Math.sign(b[0] - i); out.push([i, j]); } while (j !== b[1]) { j += Math.sign(b[1] - j); out.push([i, j]); } return out; };
+  for (let k = 0; k < 8; k++) {
+    const a = stops[k], b = stops[(k + 1) % 8];
+    const viaX = run(a, b), viaZ = run(a, [a[0], b[1]]).concat(run([a[0], b[1]], b));   // corner at (b.x, a.z) or (a.x, b.z)
+    const inland = path => path.reduce((m, [i, j]) => Math.min(m, coastDist(cx(i), cz(j))), 99);
+    const path = inland(viaZ) > inland(viaX) ? viaZ : viaX;
+    for (const [i, j] of [a, ...path]) if (!skipRoad(i, j)) coastCells.add(key(i, j));
+  }
+}
+const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coastCells.has(key(i, j));
+// the channel: sunken water with stone banks on every side that has no canal neighbour, reeds and a heron
+{
+  const g = [], veg = [], wat = [];   // wat: the water tops again, for the drifting ripple overlay
+  // the land mesh is solid down from y 0, so the channel sits on it: dark bed, water just above ground, low stone walls
+  const WATER = 0.02, TOP = 0.1, wall = biome.rock[0], coping = PAL.concrete;
+  for (const [i, j] of canalOrder) {
+    const x = cx(i), z = cz(j), nb = DIRS.map(([di, dj]) => isCanal(i + di, j + dj) || coastDist(cx(i + di), cz(j + dj)) <= 0.8);
+    g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(box(0.78, 0.01, 0.78, PAL.canal, x, WATER + 0.008, z));
+    g.push(box(0.9, 0.02, 0.9, PAL.canalBed, x, WATER - 0.012, z));   // a dark bed below the water
+    nb.forEach((open, k) => { const [di, dj] = DIRS[k]; if (open) { g.push(box(di ? 0.12 : 0.78, 0.02, di ? 0.78 : 0.12, PAL.canal, x + di * 0.44, WATER, z + dj * 0.44));
+        if (!isCanal(i + di, j + dj)) {   // the mouth: a spillway runs down the beach to the sea
+          const L = 2.2, drop = WATER + 0.7, ang = Math.atan2(drop, L); const mk = (w, h, d, col) => { const b = new THREE.BoxGeometry(w, h, d); b.rotateX(di ? 0 : (dj > 0 ? ang : -ang)); b.rotateZ(di ? (di > 0 ? -ang : ang) : 0); return colorize(b, col); };
+          const px = x + di * (0.5 + L / 2), pz = z + dj * (0.5 + L / 2), py = WATER - drop / 2;
+          const wb = mk(di ? L : 0.78, 0.02, di ? 0.78 : L, PAL.canal); wb.translate(px, py, pz); g.push(wb);
+          const bed = mk(di ? L : 0.9, 0.02, di ? 0.9 : L, PAL.canalBed); bed.translate(px, py - 0.012, pz); g.push(bed);
+        }
+      }
+      else { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); } });
+    if (cellHash(i * 3, j * 7) < 0.45) { const side = DIRS.findIndex((_, k) => !nb[k]); if (side >= 0) { const [di, dj] = DIRS[side]; for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.4 + cellHash(i + k, j) * 0.25, '#b9c084', x + di * 0.56 + (cellHash(k, i) - 0.5) * 0.25 * (dj ? 1 : 0.3), 0.2, z + dj * 0.56 + (cellHash(j, k) - 0.5) * 0.25 * (di ? 1 : 0.3), 4)); } }
+  }
+  if (canalOrder.length) {   // a grey heron standing on the coping, looking along the water
+    const [i, j] = canalOrder[Math.floor(canalOrder.length * 0.6)], x = cx(i), z = cz(j);
+    const side = DIRS.findIndex(([di, dj]) => !isCanal(i + di, j + dj)); const [di, dj] = DIRS[side >= 0 ? side : 0];
+    const hx = x + di * 0.415, hz = z + dj * 0.415, y0 = TOP + 0.03;
+    for (const o of [-0.02, 0.02]) g.push(box(0.008, 0.16, 0.008, '#e0b070', hx + o, y0 + 0.08, hz));
+    g.push(box(0.09, 0.07, 0.15, '#9fb3bf', hx, y0 + 0.2, hz)); g.push(box(0.025, 0.14, 0.025, '#c7d3d8', hx, y0 + 0.3, hz + 0.05)); g.push(box(0.045, 0.04, 0.05, '#c7d3d8', hx, y0 + 0.38, hz + 0.06)); g.push(box(0.012, 0.012, 0.07, '#e0b070', hx, y0 + 0.38, hz + 0.11));
+  }
+  const cm = mergeMesh(g, true); if (cm) { cm.receiveShadow = true; scene.add(cm); }
+  if (wat.length) {   // ripples drift along the canal so the water reads as moving
+    const t = rippleTex.clone(); t.needsUpdate = true; t.repeat.set(0.7, 0.7);
+    const wm = mergeMesh(wat, false, false); wm.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.5, depthWrite: false }); wm.renderOrder = 3; scene.add(wm);
+    rippleLayers.push({ t, speed: [0.05, 0.02] });
+  }
+  const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
+}
 const islandEllipse = [SX, SZ];
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse };
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells };

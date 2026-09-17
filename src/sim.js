@@ -7,7 +7,7 @@ import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } fr
 import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { attachCharacter, detachCharacter } from './characters.js';
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads, hill, openHill, HILL_UNLOCK, signalRed, updateSignals } from './world.js';
+import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, signalRed, updateSignals } from './world.js';
 import { bicycle } from './kit.js';
 import { unitLocal } from './buildings.js';
 import { mergeMesh } from './geometry.js';
@@ -742,8 +742,9 @@ function removeBlock(block) {
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }
   blocks.splice(blocks.indexOf(block), 1);
-  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } c.link = false; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
+  for (const c of cells) if (c.type === 'road' && !c.keep && !c.bridge && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } c.link = false; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
   connectHillRoads();   // hill links were cleared with the orphans; rebuild them for the blocks that remain
+  connectCanal();       // a bridge whose banks lost their roads goes back to water
   refreshWorld();
 }
 

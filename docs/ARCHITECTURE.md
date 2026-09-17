@@ -122,6 +122,17 @@ cells until `openHill()` runs, which `updateBlocks` calls at `HILL_UNLOCK` (60) 
 cells become roads, stone lanterns with lamp-style glows are added along the shrine path, and the save
 records `hillOpen`.
 
+**Canal and coast road (Phase 4.5).** `island.js` lays both from the seed as sets of cell keys. The canal is a
+bowed curve on the pier's side, sampled every four units and joined by L-shaped runs (grid features cannot
+run diagonally without a staircase), rejected and re-tried if it touches the hill or comes within 7.2 of the
+station. Canal cells are type `canal` with `c.canal`; the channel (bed, water, walls on sides without a
+canal neighbour, reeds, heron) is one static mesh sitting on the solid land mesh, so the water is at y 0.02.
+`connectCanal` in world.js (from `placeBlock` and `removeBlock`) turns a canal cell into a road with
+`c.bridge` when roads face each other across it along an axis, and back again when they do not; the bridge
+deck, pavements, railings and piers are drawn in `rebuildRoads`. The coast road is eight stops just inside
+the beach joined by L-runs whose corner is chosen inland; its cells are permanent roads (`c.keep`, `c.coast`),
+skipped where the hill is, bridges where the canal is. Old saves skip blocks that would land on either.
+
 **Wanderer.** Ambient cars and cats with no home; they drive or stroll between random road cells
 to keep the streets alive.
 

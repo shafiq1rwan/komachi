@@ -59,7 +59,9 @@ Some things worth knowing:
   06:00. Hover the station to see who is waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
-  cliffs, a pier and a boat, and a terraced hill with a shrine on the far side from the pier. Waves lap
+  cliffs, a pier and a boat, a terraced hill with a shrine on the far side from the pier, a canal with a
+  heron on the pier's side, and a coast road running round the island just inside the beach. Zone on both
+  banks of the canal and a bridge appears between the facing streets. Waves lap
   the beaches, fish leap and a fishing boat circles offshore. Zoom out to see all of it; nothing can be
   built in the water.
 - **Build up the hill.** The hill stays wild until 60 people live in town; then its slope roads open and

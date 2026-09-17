@@ -7,6 +7,14 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Phase 4.5, water and the coast:
+  - A canal from shore to shore on the pier's side of the island, laid in straight runs with right-angle
+    bends, stone banks with copings, reeds and a grey heron. Nothing is built in it; zone on both banks and
+    a bridge spans the water where the two streets face each other, with pavements, red railings and stone
+    piers. A bridge nobody needs goes back to water when its blocks are removed
+  - A coast road just inside the beach, laid as a rounded rectangle around the island; it breaks at the hill
+    and crosses the canal on bridges. It is permanent, ambient traffic uses it, and blocks zoned beside it
+    join the town through it
 - Phase 4, the station and the streets:
   - The hill opens once 60 people live in town: the island's slope roads appear, stone lanterns light the
     shrine path at night, and terrace plots become zonable. Until then the hill is wild and the toast says so
@@ -123,6 +131,9 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Canal: ripples drift along the water so it reads as flowing, the mouth spills down the beach into the
+  sea, and bridges are a thin deck on piers with the canal running visibly underneath
+- Hill terraces are less boxy: where a terrace drops to a lower level the wall gets a sloped earth skirt, and bushes and rocks are scattered along the base
 - The hover highlight fades with the daylight instead of glowing at night; no street lamps on the ring road
   around the station (the plaza has its own); the plaza bins moved from the edges to two corners by the lamps
 - Fixed: routing let cars and walkers step between neighbouring roads on different terraces, so they drove

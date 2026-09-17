@@ -83,16 +83,13 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Not done, carried forward: pedestrians waiting at the lights and crossing there (walkers still cross at
   the end of the trip); a walk light on the signal heads
 
-## ⬜ Phase 4.5 (optional) — Canal, ring road, bridges
+## ✅ Phase 4.5 — Canal, coast road, bridges
 
-- A seeded canal from shore to shore, stone-edged, with reeds and a heron. Canal cells are water;
-  roads that cross become bridge cells with railings so the town never splits in two. Footbridges for
-  walkers. Sets up fishing in Phase 7
-- A two-lane coastal ring road with a median that the town's streets can join; ambient cars use it for
-  long trips, later the fishing and farm trucks. Landscape, not a zone
-- Bridges give us a road-over-something cell type (also a **tunnel**: a flat street passing under a slope
-  road's embankment where the two must cross); an **overpass** (road over road, with ramps up and
-  supports) is an optional extension once bridges work, built for the look rather than for traffic
+- Seeded canal in right-angled runs on the pier's side, stone banks, reeds, a heron; bridges appear where
+  streets face each other across it and vanish when no longer needed
+- Coast road as a rounded rectangle just inside the beach, permanent, broken at the hill, bridging the canal
+- Not done: footbridges for walkers, a median on the coast road, and the **overpass / tunnel** (a cell
+  holding two roads at two heights). Still optional; revisit if a player town ever needs a crossing
 
 ## ⬜ Phase 5 — Economy and dynamic businesses
 

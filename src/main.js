@@ -9,6 +9,7 @@ import { updateCharacters, characterAvailable } from './characters.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import { updateSea } from './sea.js';
+import { canalCells } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, moveAlong, carMeshes } from './sim.js';
@@ -67,7 +68,7 @@ function demoTown() {
 }
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
-  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells,
+  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };
