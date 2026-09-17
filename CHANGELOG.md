@@ -74,6 +74,7 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- CI retries the smoke test once, since a timing check can miss on the slow software-GL runner
 - Roadmap: building materials arrive on the ferry into a builders' yard by the pier (visual only, no effect on
   construction time)
 - Roadmap: Phase 5 gains a car ferry at the pier, so owned cars and visiting traffic arrive and leave by sea
