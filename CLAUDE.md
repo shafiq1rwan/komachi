@@ -121,5 +121,5 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism
 7. Farming and fishing
-8. Mobile quality levels, PWA
+8. Mobile quality levels, PWA, Electron desktop app
 9. Menus, saves UI, photo album

@@ -205,6 +205,19 @@ const hillCentre = { x: HX, z: HZ, fx: -hct, fz: -hst, top: hillTop };
 const key = (i, j) => i + ',' + j;
 const canalCells = new Set(), canalOrder = [], coastCells = new Set();
 {
+  // the coast road: sixteen points just inside the beach joined by L-shaped runs (grid roads cannot go diagonal, and
+  // long straight runs with a few corners read far better than a one-cell sawtooth). Hill cells break the road.
+  const stops = []; for (let k = 0; k < 8; k++) { const [x, z] = coastPoint((k + 0.5) / 8 * TAU, -3.0); stops.push([Math.floor(x + HALF), Math.floor(z + HALF)]); }   // eight stops: a rounded rectangle, corners on the diagonals
+  const skipRoad = (i, j) => !!terraceInfo(i, j) || coastDist(cx(i), cz(j)) <= 0.8;
+  const run = (a, b) => { const out = []; let [i, j] = a; while (i !== b[0]) { i += Math.sign(b[0] - i); out.push([i, j]); } while (j !== b[1]) { j += Math.sign(b[1] - j); out.push([i, j]); } return out; };
+  for (let k = 0; k < 8; k++) {
+    const a = stops[k], b = stops[(k + 1) % 8];
+    const viaX = run(a, b), viaZ = run(a, [a[0], b[1]]).concat(run([a[0], b[1]], b));   // corner at (b.x, a.z) or (a.x, b.z)
+    const inland = path => path.reduce((m, [i, j]) => Math.min(m, coastDist(cx(i), cz(j))), 99);
+    const path = inland(viaZ) > inland(viaX) ? viaZ : viaX;
+    for (const [i, j] of [a, ...path]) if (!skipRoad(i, j)) coastCells.add(key(i, j));
+  }
+
   const base = pierTheta !== null ? pierTheta : rng() * TAU;
   for (let attempt = 0; attempt < 12 && !canalCells.size; attempt++) {
     const th = base + (attempt % 2 ? -1 : 1) * Math.ceil(attempt / 2) * 0.35, phi = rng() * TAU;
@@ -218,20 +231,10 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set();
       const path = (k % 2 ? viaZ : viaX);
       for (const c of [a, ...path]) { const x = cx(c[0]), z = cz(c[1]); if (c[0] < 0 || c[1] < 0 || c[0] >= N || c[1] >= N || coastDist(x, z) <= 0.8) continue; if (terraceInfo(c[0], c[1]) || Math.hypot(x, z) < 7.2) bad = true; const kk = key(...c); if (!seen.has(kk)) { seen.add(kk); cellsHere.push(c); } }
     }
+    // never run along the coast road: two consecutive canal cells on it would make a bridge with water both sides
+    for (let k = 0; k + 1 < cellsHere.length && !bad; k++) if (coastCells.has(key(...cellsHere[k])) && coastCells.has(key(...cellsHere[k + 1]))) bad = true;
     if (bad || cellsHere.length < 8) continue;
     for (const c of cellsHere) { canalCells.add(key(...c)); canalOrder.push(c); }
-  }
-  // the coast road: sixteen points just inside the beach joined by L-shaped runs (grid roads cannot go diagonal, and
-  // long straight runs with a few corners read far better than a one-cell sawtooth). Hill cells break the road.
-  const stops = []; for (let k = 0; k < 8; k++) { const [x, z] = coastPoint((k + 0.5) / 8 * TAU, -3.0); stops.push([Math.floor(x + HALF), Math.floor(z + HALF)]); }   // eight stops: a rounded rectangle, corners on the diagonals
-  const skipRoad = (i, j) => !!terraceInfo(i, j) || coastDist(cx(i), cz(j)) <= 0.8;
-  const run = (a, b) => { const out = []; let [i, j] = a; while (i !== b[0]) { i += Math.sign(b[0] - i); out.push([i, j]); } while (j !== b[1]) { j += Math.sign(b[1] - j); out.push([i, j]); } return out; };
-  for (let k = 0; k < 8; k++) {
-    const a = stops[k], b = stops[(k + 1) % 8];
-    const viaX = run(a, b), viaZ = run(a, [a[0], b[1]]).concat(run([a[0], b[1]], b));   // corner at (b.x, a.z) or (a.x, b.z)
-    const inland = path => path.reduce((m, [i, j]) => Math.min(m, coastDist(cx(i), cz(j))), 99);
-    const path = inland(viaZ) > inland(viaX) ? viaZ : viaX;
-    for (const [i, j] of [a, ...path]) if (!skipRoad(i, j)) coastCells.add(key(i, j));
   }
 }
 const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coastCells.has(key(i, j));
@@ -244,14 +247,25 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
     const x = cx(i), z = cz(j), nb = DIRS.map(([di, dj]) => isCanal(i + di, j + dj) || coastDist(cx(i + di), cz(j + dj)) <= 0.8);
     g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(box(0.78, 0.01, 0.78, PAL.canal, x, WATER + 0.008, z));
     g.push(box(0.9, 0.02, 0.9, PAL.canalBed, x, WATER - 0.012, z));   // a dark bed below the water
+    let mouthK = -1, mouthL = 99;
+    nb.forEach((open, k) => { if (!open || isCanal(i + DIRS[k][0], j + DIRS[k][1])) return; const [di, dj] = DIRS[k]; let L = 0.5; while (L < 6 && coastDist(x + di * L, z + dj * L) > 0) L += 0.1; if (L < mouthL) { mouthL = L; mouthK = k; } });
     nb.forEach((open, k) => { const [di, dj] = DIRS[k]; if (open) { g.push(box(di ? 0.12 : 0.78, 0.02, di ? 0.78 : 0.12, PAL.canal, x + di * 0.44, WATER, z + dj * 0.44));
-        if (!isCanal(i + di, j + dj)) {   // the mouth: a spillway runs down the beach to the sea
-          const L = 2.2, drop = WATER + 0.7, ang = Math.atan2(drop, L); const mk = (w, h, d, col) => { const b = new THREE.BoxGeometry(w, h, d); b.rotateX(di ? 0 : (dj > 0 ? ang : -ang)); b.rotateZ(di ? (di > 0 ? -ang : ang) : 0); return colorize(b, col); };
-          const px = x + di * (0.5 + L / 2), pz = z + dj * (0.5 + L / 2), py = WATER - drop / 2;
-          const wb = mk(di ? L : 0.78, 0.02, di ? 0.78 : L, PAL.canal); wb.translate(px, py, pz); g.push(wb);
-          const bed = mk(di ? L : 0.9, 0.02, di ? 0.9 : L, PAL.canalBed); bed.translate(px, py - 0.012, pz); g.push(bed);
-        }
-      }
+        if (!isCanal(i + di, j + dj) && k !== mouthK) { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); }   // a second sea-facing side is walled
+        if (!isCanal(i + di, j + dj) && k === mouthK) {   // the mouth: the channel runs on to the coastline, then the water steps down the beach into the sea
+          const L = mouthL;
+          const cl = L - 0.5, cpx = x + di * (0.5 + cl / 2), cpz = z + dj * (0.5 + cl / 2);
+          g.push(box(di ? cl : 0.78, 0.02, di ? 0.78 : cl, PAL.canal, cpx, WATER, cpz)); wat.push(box(di ? cl : 0.78, 0.01, di ? 0.78 : cl, PAL.canal, cpx, WATER + 0.008, cpz));
+          g.push(box(di ? cl : 0.9, 0.02, di ? 0.9 : cl, PAL.canalBed, cpx, WATER - 0.012, cpz));
+          for (const s of [-1, 1]) { g.push(box(di ? cl : 0.11, TOP, di ? 0.11 : cl, wall, cpx + (di ? 0 : s * 0.445), TOP / 2, cpz + (di ? s * 0.445 : 0))); g.push(box(di ? cl : 0.13, 0.025, di ? 0.13 : cl, coping, cpx + (di ? 0 : s * 0.445), TOP + 0.012, cpz + (di ? s * 0.445 : 0))); }
+          let B = 0.2; while (B < 3 && coastDist(x + di * (L + B), z + dj * (L + B)) > -beachExtra(Math.atan2((z + dj * (L + B)) / SZ, (x + di * (L + B)) / SX))) B += 0.1;   // the beach's width here
+          const steps = [[B / 2, B, -0.48]];   // one step down onto the beach; the sea takes it from there   // [distance past the shore to the step's centre, its length, its water height]
+          for (const [d, len, wy] of steps) {
+            const px = x + di * (L + d), pz = z + dj * (L + d);
+            g.push(box(di ? len : 0.78, 0.02, di ? 0.78 : len, PAL.canal, px, wy, pz)); g.push(box(di ? len : 0.86, 0.02, di ? 0.86 : len, PAL.canalBed, px, wy - 0.012, pz));
+            g.push(box(0.78, 0.03, 0.78, PAL.foam, x + di * (L + d - len / 2 + 0.12), wy + 0.01, z + dj * (L + d - len / 2 + 0.12)));   // a lip of foam where the water lands
+          }
+          for (const s of [-1, 1]) g.push(blob(0.12, wall, x + di * (L + 0.1) + (di ? 0 : s * 0.42), -0.42, z + dj * (L + 0.1) + (dj ? 0 : s * 0.42), 0, 0.6));   // rocks at the drop
+        }      }
       else { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); } });
     if (cellHash(i * 3, j * 7) < 0.45) { const side = DIRS.findIndex((_, k) => !nb[k]); if (side >= 0) { const [di, dj] = DIRS[side]; for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.4 + cellHash(i + k, j) * 0.25, '#b9c084', x + di * 0.56 + (cellHash(k, i) - 0.5) * 0.25 * (dj ? 1 : 0.3), 0.2, z + dj * 0.56 + (cellHash(j, k) - 0.5) * 0.25 * (di ? 1 : 0.3), 4)); } }
   }

@@ -1,6 +1,6 @@
 {
   "name": "komachi",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A cosy, retro-flavoured city diorama. Zone homes, shops and workplaces and watch a little town come alive.",
   "private": true,
   "type": "module",

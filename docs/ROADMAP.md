@@ -132,6 +132,8 @@ effect through the town instead.
 - Quality levels (shadows, pixel look, ambient density) chosen automatically on phones
 - Installable PWA with offline play
 - Touch-first tool bar layout at phone width
+- **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native
+  window, saves in the user data folder instead of browser storage, and installers from CI
 
 ## ⬜ Phase 9 — Menus, saves UI, photo album
 

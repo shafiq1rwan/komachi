@@ -141,7 +141,7 @@ function rebuildRoads() {
   for (const c of cells) {
     if (c.type !== 'road') continue;
     const x = cx(c.i), z = cz(c.j), h = hash(c.i, c.j);
-    const asp = h < 0.5 ? PAL.asphalt : PAL.asphalt2;
+    const asp = PAL.asphalt;   // one shade everywhere (the two-tone patchwork read as different roads)
     if (c.ramp) {   // a slope road up to the next terrace: tilted asphalt with a pavement band each side
       const { di, dj, h0, h1 } = c.ramp, dh = h1 - h0, L = Math.hypot(1, dh), ang = Math.atan2(dh, 1), ry = Math.atan2(di, dj);
       const tilt = geo => { geo.rotateX(-ang); geo.rotateY(ry); return geo; };
@@ -156,17 +156,21 @@ function rebuildRoads() {
     }
     const gy = c.h || 0, g0 = g.length, lg0 = lg.length, hd0 = lampHeads.length, gl0 = lampGlows.length, cn0 = cones.length, po0 = poles.length;
     if (c.bridge) {   // a deck over the canal: asphalt, a pavement each side, railings, and stone piers down to the water
-      const rd = (i, j) => { const n = cell(i, j); return !!n && n.type === 'road' && !n.canal; };
-      const along = rd(c.i + 1, c.j) || rd(c.i - 1, c.j) ? 0 : 1;   // 0: the bridge runs east–west, 1: north–south
-      g.push(box(1, 0.035, 1, PAL.asphalt, x, 0.0625, z));   // a thin deck held clear of the water, so the canal runs on beneath
-      for (const s of [-1, 1]) {
-        const sx = along ? s * 0.405 : 0, sz = along ? 0 : s * 0.405;
-        g.push(box(along ? 0.19 : 1, 0.055, along ? 1 : 0.19, PAL.sidewalk, x + sx, 0.0725, z + sz));
-        for (const t of [-0.4, -0.2, 0, 0.2, 0.4]) g.push(box(0.025, 0.14, 0.025, PAL.lamp, x + (along ? sx * 1.1 : t), 0.17, z + (along ? t : sz * 1.1)));
-        g.push(box(along ? 0.03 : 1, 0.025, along ? 1 : 0.03, PAL.roofRose, x + (along ? sx * 1.1 : 0), 0.245, z + (along ? 0 : sz * 1.1)));
-        for (const t of [-0.3, 0.3]) g.push(box(0.09, 0.14, 0.09, PAL.concrete2, x + (along ? sx * 0.8 : t), -0.02, z + (along ? t : sz * 0.8)));   // piers standing in the water
+      // the deck runs across the water: if the canal continues east/west of this cell the bridge runs north–south, and
+      // vice versa; at a bend (canal on both axes) or a dead end, fall back to the side that has a street
+      const cn = (i, j) => { const n = cell(i, j); return !!n && n.canal; }, rd = (i, j) => { const n = cell(i, j); return !!n && n.type === 'road' && !n.canal; };
+      const canalX = cn(c.i + 1, c.j) || cn(c.i - 1, c.j), canalZ = cn(c.i, c.j + 1) || cn(c.i, c.j - 1);
+      const along = canalX !== canalZ ? (canalX ? 1 : 0) : (rd(c.i, c.j + 1) || rd(c.i, c.j - 1) ? 1 : 0);   // 0: bridge runs east–west, 1: north–south
+      g.push(box(1, 0.035, 1, PAL.asphalt, x, 0.0625, z));   // a thin deck held clear of the water, so the canal runs on beneath; no centre line on a bridge
+      // pavements along the deck; a railing on every side that has no street, so a bridge on a bend stays open where the road turns
+      for (const s of [-1, 1]) { const sx = along ? s * 0.405 : 0, sz = along ? 0 : s * 0.405; g.push(box(along ? 0.19 : 1, 0.055, along ? 1 : 0.19, PAL.sidewalk, x + sx, 0.0725, z + sz)); }
+      for (const [di, dj] of DIR4) {
+        if (rd(c.i + di, c.j + dj)) continue;
+        const rx = x + di * 0.445, rz = z + dj * 0.445;
+        for (const t of [-0.4, -0.2, 0, 0.2, 0.4]) g.push(box(0.025, 0.14, 0.025, PAL.lamp, rx + (di ? 0 : t), 0.17, rz + (dj ? 0 : t)));
+        g.push(box(di ? 0.03 : 1, 0.025, dj ? 0.03 : 1, PAL.roofRose, rx, 0.245, rz));
+        if (cn(c.i + di, c.j + dj)) for (const t of [-0.3, 0.3]) g.push(box(0.09, 0.14, 0.09, PAL.concrete2, x + di * 0.36 + (di ? 0 : t), -0.02, z + dj * 0.36 + (dj ? 0 : t)));   // piers on the water sides
       }
-      for (const o of [-0.25, 0.25]) g.push(box(along ? 0.025 : 0.18, 0.004, along ? 0.18 : 0.025, PAL.cream2, x + (along ? 0 : o), 0.082, z + (along ? o : 0)));
       continue;
     }
     const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; });
@@ -188,9 +192,9 @@ function rebuildRoads() {
       if (di + dj > 0) for (const o of [-0.25, 0.25]) g.push(box(di ? 0.03 : 0.22, 0.004, di ? 0.22 : 0.03, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
     }
     const deg = open.filter(Boolean).length, isDbl = dbl.some(Boolean);
-    // centre line on straight two-way stretches
-    if (!isDbl && deg === 2 && open[0] && open[2]) for (const dz of [-0.24, 0.24]) g.push(box(0.025, 0.004, 0.18, PAL.cream2, x, 0.082, z + dz));
-    if (!isDbl && deg === 2 && open[1] && open[3]) for (const dx of [-0.24, 0.24]) g.push(box(0.18, 0.004, 0.025, PAL.cream2, x + dx, 0.082, z));
+    // a centre dash along every open arm, so straights, corners and junctions all carry the line; the zebra arm is left clear
+    const zebraArm = deg >= 3 && !isDbl && h > 0.45 ? (open[0] ? 0 : 2) : -1;
+    if (!isDbl && deg >= 2) for (let k = 0; k < 4; k++) if (open[k] && k !== zebraArm) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.18 : 0.025, 0.004, di ? 0.025 : 0.18, PAL.cream2, x + di * 0.3, 0.082, z + dj * 0.3)); }
     if (deg === 2 && h > 0.7) g.push(cyl(0.09, 0.09, 0.012, '#858a8e', x + (h - 0.85) * 0.4, 0.083, z + (h - 0.8) * 0.4, 8));
     // zebra crossing across one arm of a real junction
     if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }

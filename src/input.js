@@ -38,7 +38,8 @@ ui.inspect.addEventListener('click', e => {
   if (b.dataset.follow === 'stop') { setFollow(null); return; }
   const t = pinned || hovered || (follow ? { res: follow } : null); if (t && t.res) { follow = t.res; pinned = t; }
 });
-document.getElementById('btn-settings').addEventListener('click', e => { const s = document.getElementById('settings'); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
+for (const [btn, panel] of [['btn-settings', 'settings'], ['btn-stats', 'stats']]) document.getElementById(btn).addEventListener('click', e => { const s = document.getElementById(panel); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
+if (innerWidth < 720) { document.getElementById('stats').classList.add('collapsed'); const b = document.getElementById('btn-stats'); b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }   // phones: figures start folded so both cards fit side by side
 document.getElementById('btn-center').addEventListener('click', () => { follow = null; cam.target.set(0, 0, 0); cam.tView = 18; });
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {

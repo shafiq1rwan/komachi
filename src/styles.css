@@ -12,7 +12,7 @@
   .card{position:fixed;background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:12px 16px;pointer-events:auto}
   #hud{position:fixed;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
   #hud .card{position:static;pointer-events:auto;height:56px;box-sizing:border-box;display:flex;align-items:center}
-  #brand{gap:16px;padding:0 16px 0 14px}
+  #brand{gap:10px;padding:0 12px 0 14px}
   #brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:8px;white-space:nowrap}
   #brand h1 i{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--rose);box-shadow:15px 0 0 var(--sage), 30px 0 0 var(--blue)}
   #brand h1 span{margin-left:32px}
@@ -31,8 +31,9 @@
   .seg button.on{background:#fff;color:var(--teal2);box-shadow:0 1px 3px rgba(0,0,0,.08)}
   .seg button:hover{color:var(--ink)}
   .divider-v{width:1px;height:28px;background:var(--cream2)}
-  #settings{display:flex;gap:4px;max-width:120px;transition:max-width .28s ease,opacity .2s ease}   /* overflow stays visible so tooltips can hang below */
-  #settings.collapsed{max-width:0;opacity:0;pointer-events:none;overflow:hidden}
+  .fold{display:flex;align-items:center;gap:6px;max-width:420px;transition:max-width .28s ease,opacity .2s ease}   /* overflow stays visible so tooltips can hang below */
+  .fold.collapsed{max-width:0;opacity:0;pointer-events:none;overflow:hidden}
+  #settings{gap:8px}
   #btn-settings.on{background:var(--cream2);color:var(--ink)}
   .icon-btn{border:0;background:transparent;width:32px;height:32px;border-radius:10px;color:var(--ink2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .icon-btn:hover{background:var(--cream2);color:var(--ink)}
@@ -118,4 +119,4 @@
   #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#cfe8dd;color:var(--ink2);font-weight:800;font-size:14px;z-index:9;transition:opacity .4s}
   #loading.gone{opacity:0;pointer-events:none}
   .tag{position:fixed;transform:translate(-50%,-100%);background:rgba(251,246,238,.92);color:var(--ink);font-size:11px;font-weight:800;padding:2px 7px;border-radius:7px;pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-  @media (max-width:720px){#hint{display:none}#hud{flex-direction:column;align-items:stretch}#clock{justify-content:space-between}#inspect{top:auto;bottom:100px;width:240px}}
+  @media (max-width:720px){#hint{display:none}#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:42px;border-radius:14px}#brand{padding:0 6px 0 8px;gap:4px}#brand h1 i{width:9px;height:9px;margin-right:22px;box-shadow:12px 0 0 var(--sage),24px 0 0 var(--blue)}#stats{gap:3px}#stats .stat{padding:4px 6px;font-size:11px;gap:4px}#stats .stat i{font-size:10px}.icon-btn{width:26px;height:26px;font-size:12px}#clock{padding:0 6px;gap:6px}#sun{width:18px;height:18px;box-shadow:0 0 0 3px rgba(240,194,122,.25)}#sun.night{box-shadow:0 0 0 3px rgba(167,184,221,.3)}#clock-text{min-width:60px}#time{font-size:13px}#day{font-size:9px}.seg button{min-width:24px;height:22px;font-size:10px;padding:0 5px}.divider-v{height:22px}#inspect{top:auto;bottom:84px;width:220px}#inspect .row{font-size:11px}#tools{bottom:10px;gap:2px;padding:5px;border-radius:14px;max-width:calc(100vw - 16px)}.tool{min-width:52px;padding:6px 6px 5px;font-size:10px;gap:3px;border-radius:10px}.tool .sw{width:22px;height:16px;border-radius:5px}.tool .sw::after{top:-4px;height:5px;left:4px;right:4px}.tool kbd{display:none}}

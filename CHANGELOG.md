@@ -3,7 +3,10 @@
 All notable changes to Komachi are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [Unreleased]
+
+## [Unreleased] - 2026-09-17
+
+Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
@@ -39,6 +42,49 @@ All notable changes to Komachi are recorded here. The format follows
   curved tails and five coat colours. Cats animate their legs while walking and glance
   around while idle. Includes an animated GLB export and an interactive model preview.
   Ears have compact proportions with pink insets fitted to their sloping front faces.
+
+### Changed
+
+- Bridges have no centre line, and their railings sit only on the sides without a street, so a bridge on a
+  bend stays open where the road turns; the canal mouth is a stepped cascade onto the beach and into the sea
+- Small screens keep the two HUD cards side by side with smaller chips, buttons and clock, the town figures
+  folded to start, and a compact tool bar without key hints
+- Fixed: bridge railings sometimes ran across the deck. Bridges now orient by where the canal is, and the
+  canal may no longer run along the coast road (which produced bridges with water on both sides)
+- HUD: the speed buttons moved inside the folding options panel (Space still pauses), and the town figures
+  on the left fold behind a chart button
+- Streets: one asphalt shade instead of the two-tone patchwork, and centre dashes run through corners and
+  junctions as well as straights (the zebra-crossing arm stays clear)
+- Canal: ripples drift along the water so it reads as flowing, the mouth spills down the beach into the
+  sea, and bridges are a thin deck on piers with the canal running visibly underneath
+- Hill terraces are less boxy: where a terrace drops to a lower level the wall gets a sloped earth skirt, and bushes and rocks are scattered along the base
+- The hover highlight fades with the daylight instead of glowing at night; no street lamps on the ring road
+  around the station (the plaza has its own); the plaza bins moved from the edges to two corners by the lamps
+- Fixed: routing let cars and walkers step between neighbouring roads on different terraces, so they drove
+  off retaining walls and floated over the street below. Roads now connect only at the same height, or
+  along a slope road's own axis; cables no longer span a terrace wall
+- Sea: the ripple texture tiles seamlessly (streaks drawn with wrap-around) so the water no longer shows
+  square patches; the fishing boat has a real wake, two foam lines fanning from the stern and rings that
+  spread in its trail, and sails bow-first
+- Hill blocks get a single street in front, on the side facing the town, instead of a full ring. Town-built
+  slopes and links are recomputed whenever blocks change: a slope never sits inside a block's ring or alongside
+  a street (so it cannot cut one), a slope down to the flat must be able to reach the town, and ground-level
+  links always end at a real street rather than at another slope's foot
+- Vehicles are now Kenney Car Kit models (CC0): sedans, hatchbacks, SUVs, vans, flatbed kei trucks and
+  taxis, each recoloured to its owner's colour with shading kept; the box cars remain the fallback. A sedan
+  is about one and a half people long
+- Traffic: cars and trucks slow down and queue behind a vehicle close ahead in their lane instead of
+  driving through it
+- Removed unused assets: the earlier custom character model and its Blender sources and previews, the
+  Kenney accessories and wheelchairs, stray atlas copies and an unreferenced doc screenshot
+- Kenney Mini Characters are now the default people; `?boxes` brings back the box figures (they also
+  remain the fallback if the models fail to load)
+
+## [0.2.0] - 2026-09-16
+
+Phases 1, 2, 3 and 3.5, built between 15 and 16 September.
+
+### Added
 
 - Rigged people from Kenney's Mini Characters (CC0) behind `?rigged`: eleven chibi variants, each person
   recoloured from their look by baking the colour atlas into vertex colours and repainting skin, hair,
@@ -131,30 +177,6 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
-- Canal: ripples drift along the water so it reads as flowing, the mouth spills down the beach into the
-  sea, and bridges are a thin deck on piers with the canal running visibly underneath
-- Hill terraces are less boxy: where a terrace drops to a lower level the wall gets a sloped earth skirt, and bushes and rocks are scattered along the base
-- The hover highlight fades with the daylight instead of glowing at night; no street lamps on the ring road
-  around the station (the plaza has its own); the plaza bins moved from the edges to two corners by the lamps
-- Fixed: routing let cars and walkers step between neighbouring roads on different terraces, so they drove
-  off retaining walls and floated over the street below. Roads now connect only at the same height, or
-  along a slope road's own axis; cables no longer span a terrace wall
-- Sea: the ripple texture tiles seamlessly (streaks drawn with wrap-around) so the water no longer shows
-  square patches; the fishing boat has a real wake, two foam lines fanning from the stern and rings that
-  spread in its trail, and sails bow-first
-- Hill blocks get a single street in front, on the side facing the town, instead of a full ring. Town-built
-  slopes and links are recomputed whenever blocks change: a slope never sits inside a block's ring or alongside
-  a street (so it cannot cut one), a slope down to the flat must be able to reach the town, and ground-level
-  links always end at a real street rather than at another slope's foot
-- Vehicles are now Kenney Car Kit models (CC0): sedans, hatchbacks, SUVs, vans, flatbed kei trucks and
-  taxis, each recoloured to its owner's colour with shading kept; the box cars remain the fallback. A sedan
-  is about one and a half people long
-- Traffic: cars and trucks slow down and queue behind a vehicle close ahead in their lane instead of
-  driving through it
-- Removed unused assets: the earlier custom character model and its Blender sources and previews, the
-  Kenney accessories and wheelchairs, stray atlas copies and an unreferenced doc screenshot
-- Kenney Mini Characters are now the default people; `?boxes` brings back the box figures (they also
-  remain the fallback if the models fail to load)
 - Hill streets: a block's ring road now forms only on its own terrace, so a house against a retaining wall
   gets its street in front and nothing on the terraces above or below. A terrace street with no way down
   gets a slope road built by the town at the nearest edge toward the station (walking through the woods
