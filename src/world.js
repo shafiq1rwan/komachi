@@ -217,7 +217,9 @@ function rebuildRoads() {
       }
       continue;
     }
-    const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; });
+    // a street opens toward a neighbouring road only at the same height, or along a slope road's axis (as routing does)
+    const axisOK = (r, di, dj) => !!r && Math.abs(r.di) === Math.abs(di) && Math.abs(r.dj) === Math.abs(dj);
+    const nb = DIR4.map(([di, dj]) => { const n = cell(c.i + di, c.j + dj); if (!n || n.type !== 'road') return false; return (c.h || 0) === (n.h || 0) || axisOK(c.ramp, di, dj) || axisOK(n.ramp, di, dj); });
     // a road cell whose neighbour is a parallel road (two blocks placed two cells apart) is one half of a
     // two-lane avenue: asphalt runs straight across the shared edge with a dashed centre line on it
     const road = q => q && q.type === 'road';

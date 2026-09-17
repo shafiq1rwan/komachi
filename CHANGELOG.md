@@ -163,6 +163,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- A ground-level street beside a terrace street no longer draws an opening into the terrace wall: roads only
+  join at the same height or along a slope road's axis, matching how traffic is routed
 - A ring road running beside the island's slope road or a town-built link is no longer mistaken for a two-lane
   avenue (it lost its pavement and grew guard rails); those cells render as ordinary streets
 - Street lamps stand along every street: on most cells that pass a building and every third cell elsewhere,
