@@ -154,9 +154,9 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   // terraces: a box per cell (earth sides, grass cap) so tops are flush and walls fall on cell edges; a wedge under each ramp
   const g = [];
   for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) {
-    const info = terraceInfo(i, j); if (!info || !info.level) continue;
+    const info = terraceInfo(i, j); if (!info || (!info.level && !info.ramp)) continue;   // a ground-level ramp cell still needs its wedge
     const h = info.level * TERRACE, x = cx(i), z = cz(j);
-    g.push(box(1, h + 0.05, 1, PAL.landSide, x, (h - 0.15) / 2, z)); g.push(box(1, 0.05, 1, biome.grass, x, h - 0.025, z));
+    if (info.level) { g.push(box(1, h + 0.05, 1, PAL.landSide, x, (h - 0.15) / 2, z)); g.push(box(1, 0.05, 1, biome.grass, x, h - 0.025, z)); }
     // where the terrace drops to a lower level: a sloped earth skirt and the odd bush or rock at the foot
     for (const [di, dj] of DIRS) {
       const ni = i + di, nj = j + dj, nInfo = terraceInfo(ni, nj), nl = nInfo ? nInfo.level : 0;
