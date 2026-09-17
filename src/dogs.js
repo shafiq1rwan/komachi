@@ -20,7 +20,7 @@ function ear(x, coat, inner = false) {
   const s = Math.sign(x);
   const frontZ = y => .13 - (y - .105) * (.055 / .195) + .001;
   const vertices = inner
-    ? [x - .039, .205, frontZ(.205), x + .039, .205, frontZ(.205), x + s * .018, .272, frontZ(.272)]
+    ? [x + s * .014 - .022, .215, frontZ(.215), x + s * .014 + .022, .215, frontZ(.215), x + s * .018, .272, frontZ(.272)]
     : [x - .075, .105, .13, x + .075, .105, .13, x + s * .025, .30, .075,
       x - .075, .105, -.06, x + .075, .105, -.06, x + s * .025, .30, .01];
   const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));

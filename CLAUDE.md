@@ -90,7 +90,8 @@ Decisions already made (do not reopen without asking):
   streets between poles that share a row/column of road.
 - Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
 - HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
-  icon after 5 s; instant tooltips; progress pills float over sites under construction.
+  icon after 5 s; instant tooltips; progress pills float over sites under construction; notices slide in as a cream
+  card under the brand card (top left), never over the town centre.
 - Pixel look is off by default (user request 2026-09-17); `S.pixelLook` reads `komachi.pixelLook === '1'` and the
   toggle is remembered once used. `index.html` ships without the `pixel` body class.
 - Docs stay full-length (the user reverted an attempt to compact README/CHANGELOG/ARCHITECTURE).

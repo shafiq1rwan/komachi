@@ -74,6 +74,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Notices (a train pulling in, a crew arriving, the hill opening) now appear as a small cream card with a bell that
+  slides in under the town figures at the top left and stays a little longer, instead of a dark pill over the town centre
 - Komachi Station is remodelled in a Japanese style: an open pavilion with a hipped kawara roof and deep eaves over
   the stairwell, cream pillars and side screens, a lit window band on the back wall, the station name board on the
   front eave with a sage band, a clock and two square paper lamps; a 駅名標 name board stands behind the benches and
@@ -144,6 +146,12 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- Every hill now has both island slope roads: when the middle terrace was only one cell deep, the lower ramp
+  landed on the upper ramp's foot and was lost, leaving the bottom terrace with no slope of its own
+- Queued vehicles leave about a quarter of a car length between bumpers instead of touching
+- The shrine faces along the slope roads' axis toward the town, so the torii and path square up with the
+  road that climbs to the summit (it used to face the island centre diagonally); nothing grows over the canal:
+  trees beside it become bushes set back from the bank, and shoreline reeds and bushes keep out of the mouth
 - Dusk and dawn no longer flash: the sun slides over to the moon's position as the light fades instead of
   snapping there at 19:30 and 05:30 (shadows used to flip and the scene got brighter for a frame)
 

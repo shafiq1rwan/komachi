@@ -1,8 +1,16 @@
 import assert from 'node:assert/strict';
-import { AnimationMixer, Box3, LoopOnce } from 'three';
+import { AnimationMixer, Box3, Color, LoopOnce } from 'three';
 import { createDog, dogClips, updateDog } from '../src/dogs.js';
 
 const names = ['Body', 'Head', 'Tail', 'Leg_0', 'Leg_1', 'Leg_2', 'Leg_3'];
+const headGeometry = createDog().dogParts.head.geometry, pink = new Color('#e9b7b0');
+for (let i = 0; i < headGeometry.attributes.position.count; i++) {
+  const col = headGeometry.attributes.color;
+  if (Math.abs(col.getX(i) - pink.r) > 1e-5 || Math.abs(col.getY(i) - pink.g) > 1e-5 || Math.abs(col.getZ(i) - pink.b) > 1e-5) continue;
+  const pos = headGeometry.attributes.position, x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i), side = Math.sign(x), f = (y - .105) / .195;
+  assert.ok(Math.abs(z - (.13 - f * .055 + .001)) < 1e-6, 'Ear inset must sit on front face');
+  assert.ok(Math.abs(x - (side * .155 + side * .025 * f)) < .075 * (1 - f), 'Ear inset must stay inside ear outline');
+}
 for (const mode of ['walk', 'idle', 'sit', 'sniff']) {
   const fine = createDog(), coarse = createDog(), reference = createDog();
   const args = [mode === 'walk', mode === 'sit', mode === 'sniff'];

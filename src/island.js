@@ -66,7 +66,7 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
-let pierTheta = null;
+let pierTheta = null, shoreVeg = [];
 {
   const solid = [], veg = [];
   pierTheta = null;
@@ -100,7 +100,7 @@ let pierTheta = null;
   // pebbles further out in the water
   for (let k = 0; k < 14; k++) { const t = rng() * TAU; const [x, z] = coastPoint(t, 2.4 + rng() * 3); solid.push(blob(0.25 + rng() * 0.45, biome.rock[1], x, -0.76, z, 0, 0.5)); }
   const sm = mergeMesh(solid, true); if (sm) scene.add(sm);
-  const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
+  shoreVeg = veg;   // merged once the canal is known, so nothing grows in its mouth
 }
 
 // ── the hill: cell-aligned terraces opposite the pier. Each hill cell sits wholly on one terrace, so every
@@ -111,6 +111,7 @@ const hillTheta = pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
 const [HX, HZ] = coastPoint(hillTheta, -0.34 * radius(hillTheta));   // far enough out that the town around the station stays flat
 const HR = 4.7, hillPhase = [rng() * TAU, rng() * TAU];
 const hct = Math.cos(hillTheta), hst = Math.sin(hillTheta);
+const shrineDir = Math.abs(hct) >= Math.abs(hst) ? [-Math.sign(hct) || -1, 0] : [0, -Math.sign(hst) || -1];   // the slope roads' axis, toward the town: the shrine faces along it
 function hillOutline(a) { return HR * (1 + 0.12 * Math.sin(2 * a + hillPhase[0]) + 0.07 * Math.sin(3 * a + hillPhase[1])); }
 function hillFrac(x, z) {
   const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / 0.9, v = (-dx * hst + dz * hct) / 1.3;   // squashed radially, stretched along the shore
@@ -129,11 +130,12 @@ const ramps = [];
   const ci0 = Math.round(HX + HALF - 0.5), cj0 = Math.round(HZ + HALF - 0.5);
   const at = t => ({ i: ci0 + dir[0] * t, j: cj0 + dir[1] * t });
   const lvl = t => { const c = at(t); return c.i < 0 || c.j < 0 || c.i >= N || c.j >= N ? 0 : hillLevel(cx(c.i), cz(c.j)); };
+  let prev = -9;   // the previous ramp's slope cell: the next ramp starts past its foot, and that foot counts as the higher level
   for (const k of [1, 0]) {
-    let pick = -1;
-    for (let t = 1; t < 16 && pick < 0; t++) if (lvl(t - 1) === k + 1 && lvl(t) === k && lvl(t + 1) === k) pick = t;
-    if (pick < 0) for (let t = 1; t < 16 && pick < 0; t++) if (lvl(t - 1) === k + 1 && lvl(t) === k) pick = t;
-    if (pick < 0) continue;
+    let pick = -1; const hi = t => lvl(t) === k + 1 || t === prev + 1;
+    for (let t = Math.max(1, prev + 2); t < 16 && pick < 0; t++) if (hi(t - 1) && lvl(t) === k && lvl(t + 1) === k) pick = t;
+    if (pick < 0) for (let t = Math.max(1, prev + 2); t < 16 && pick < 0; t++) if (hi(t - 1) && lvl(t) === k) pick = t;
+    if (pick < 0) continue; prev = pick;
     ramps.push({ R: at(pick), H: at(pick - 1), L: at(pick + 1), di: -dir[0], dj: -dir[1], h0: k * TERRACE, h1: (k + 1) * TERRACE, level: k });
   }
 }
@@ -175,7 +177,7 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   const wg = [];
   // the summit shrine: stone platform, a hall with red pillars under a stepped roof, a torii with upturned
   // beam ends facing the town, stone lanterns and an offering box on a flagged path
-  const fx = -hct, fz = -hst, rx = -fz, rz = fx, ang = Math.atan2(fx, fz), y0 = hillTop;
+  const fx = shrineDir[0], fz = shrineDir[1], rx = -fz, rz = fx, ang = Math.atan2(fx, fz), y0 = hillTop;
   const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); wg.push(geo); };
   const rot = geo => { geo.rotateY(ang); return geo; };
   put(rot(box(1.4, 0.08, 1.1, PAL.concrete)), -0.7, 0, y0 + 0.04);                       // platform
@@ -197,7 +199,7 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   const hm = mergeMesh(wg, true); if (hm) scene.add(hm);
 }
 
-const hillCentre = { x: HX, z: HZ, fx: -hct, fz: -hst, top: hillTop };
+const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hillTop };
 
 // ── the canal: a gently meandering channel from shore to shore on the pier's side of the island, clear of the
 //    town centre and the hill. Cells are keyed "i,j". The coast road follows the beach just inland, one cell
@@ -299,6 +301,7 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
       else {   // a stone wall with a coping, the same on every closed side (the grass bank read as a green stripe from above)
         g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445));
       } });
+    for (let k = 0; k < 4; k++) { const k2 = (k + 1) % 4; if (nb[k] && nb[k2]) { const [a, b] = DIRS[k], [c2, d] = DIRS[k2]; g.push(box(0.11, 0.02, 0.11, PAL.canal, x + (a + c2) * 0.445, WATER, z + (b + d) * 0.445)); } }   // the corner square where two edge strips meet at a bend
     if (cellHash(i * 3, j * 7) < 0.45) { const side = DIRS.findIndex((_, k) => !nb[k]); if (side >= 0) { const [di, dj] = DIRS[side]; for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.4 + cellHash(i + k, j) * 0.25, '#b9c084', x + di * 0.56 + (cellHash(k, i) - 0.5) * 0.25 * (dj ? 1 : 0.3), 0.2, z + dj * 0.56 + (cellHash(j, k) - 0.5) * 0.25 * (di ? 1 : 0.3), 4)); } }
   }
   if (canalOrder.length) {   // a grey heron standing on the coping, looking along the water
@@ -320,6 +323,12 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
     rippleLayers.push({ t, speed: [0, 0.9] });
   }
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
+}
+{   // shoreline greenery, minus anything on a canal cell or in the line of its mouth
+  const ends = canalOrder.filter(([i, j]) => DIRS.filter(([di, dj]) => isCanal(i + di, j + dj)).length <= 1).map(([i, j]) => { const nbr = DIRS.find(([di, dj]) => isCanal(i + di, j + dj)) || [0, 1]; return { x: cx(i), z: cz(j), dx: -nbr[0], dz: -nbr[1] }; });
+  const clear = (x, z) => canalOrder.some(([i, j]) => Math.hypot(x - cx(i), z - cz(j)) < 0.95) || ends.some(e => { const t = (x - e.x) * e.dx + (z - e.z) * e.dz; if (t < 0 || t > 6) return false; return Math.abs((x - e.x) * e.dz - (z - e.z) * e.dx) < 0.9; });
+  const keep = shoreVeg.filter(g => { g.computeBoundingSphere(); const c = g.boundingSphere.center; return !clear(c.x, c.z); });
+  const vm = mergeMesh(keep, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
 const islandEllipse = [SX, SZ];
 export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells };

@@ -124,8 +124,10 @@ function rebuildDecor() {
   for (const c of cells) {
     if (c.type !== 'empty' || !c.tree || parkCells.has(c)) continue;
     const g0 = g.length;
-    const t = c.tree, x = cx(c.i) + t.ox, z = cz(c.j) + t.oz;
+    const t = c.tree;
     let kind = t.kind; if (kind === 'bamboo') { for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road') kind = 'tree'; } }   // tall culms beside a street looked as if they stood on it
+    let x = cx(c.i) + t.ox, z = cz(c.j) + t.oz;
+    for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.canal) { if (kind === 'tree' || kind === 'matsu' || kind === 'bamboo') kind = 'bush'; x = cx(c.i) - di * 0.28 + (di ? 0 : t.ox); z = cz(c.j) - dj * 0.28 + (dj ? 0 : t.oz); } }   // beside the canal: a bush set back from the bank, never a canopy over the water
     if (kind === 'matsu') {   // a pruned pine: a leaning trunk carrying flat pads of needles
       const lean = 0.22, dir = t.c * 6.28;
       const trunk = new THREE.CylinderGeometry(0.035 * t.s, 0.055 * t.s, 0.62 * t.s, 5); trunk.rotateZ(lean); trunk.rotateY(dir); trunk.translate(x, 0.3 * t.s, z); g.push(colorize(trunk, PAL.wood2));

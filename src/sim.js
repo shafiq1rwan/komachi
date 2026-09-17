@@ -609,10 +609,10 @@ function trafficFactor(obj) {
   for (const v of carMeshes) {
     if (v === obj || !v.visible || v.userData.parked) continue;
     tfRel.subVectors(v.position, obj.position); tfRel.y = 0;
-    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 0.95) continue;
+    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 1.1) continue;
     const cross = tfRel.x * tfFwd.z - tfRel.z * tfFwd.x, side = Math.abs(cross);
     const same = Math.sin(v.rotation.y) * tfFwd.x + Math.cos(v.rotation.y) * tfFwd.z;
-    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.58) / 0.25, 0, 1)); }          // a queue: hold back from the car in front
+    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.74) / 0.25, 0, 1)); }   // a queue: about a quarter of a car length between bumpers          // a queue: hold back from the car in front
     else if (same > -0.3 && side <= 0.4 && cross > 0) f = Math.min(f, clamp((ahead - 0.55) / 0.2, 0, 1));   // a junction: give way to a car crossing from the left (never mutual, so no deadlock)
   }
   return f;
