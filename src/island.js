@@ -185,6 +185,6 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   const hm = mergeMesh(wg, true); if (hm) scene.add(hm);
 }
 
-const hillCentre = { x: HX, z: HZ };
+const hillCentre = { x: HX, z: HZ, fx: -hct, fz: -hst, top: hillTop };
 const islandEllipse = [SX, SZ];
 export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse };

@@ -4,9 +4,9 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit } from './world.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit, hill, HILL_UNLOCK } from './world.js';
 import { clearSave } from './save.js';
-import { removeBlock, residents } from './sim.js';
+import { removeBlock, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
@@ -69,7 +69,7 @@ canvas.addEventListener('pointerdown', e => {
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
-  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && c.type !== 'empty') toast(c.keep || c.ramp ? 'The hill road stays open' : c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
+  if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && (c.type !== 'empty' || ((c.h || 0) > 0 && !hill.open))) toast((c.h || 0) > 0 && !hill.open ? `The hill opens once ${HILL_UNLOCK} people live in town` : c.keep || c.ramp ? 'The hill road stays open' : c.type === 'road' ? "Keep the station's ring road clear" : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); }
   else { ptr.panning = true; document.body.classList.add('dragging'); }
   canvas.setPointerCapture(e.pointerId);
 });
@@ -171,6 +171,7 @@ function finishHover() {
   const hu = target && target.unit ? target.unit : null;
   hoverRings.forEach((m, k) => { const u = hu ? hu.block.units[k] : null; m.visible = !!u && hu.block.stage >= 0; if (u) m.position.set(cx(u.cell.i), 0.135 + (u.cell.h || 0), cz(u.cell.j)); });
   if (tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station') ringMat.color.set(PAL.roofRose); else ringMat.color.set(PAL.mint);
+  ringMat.opacity = 0.25 + 0.45 * daylight();   // the highlight is unlit, so it would glow at night; fade it with the light
   canvas.style.cursor = tool !== 'explore' ? 'crosshair' : (hovered ? 'pointer' : (ptr.panning ? 'grabbing' : 'grab'));
 }
 const tagV = new THREE.Vector3();

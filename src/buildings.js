@@ -358,7 +358,6 @@ function genStation(b, u, g, wg) {
   if (di === 0) {   // north edge: benches facing the entrance; south edge (in front of the stairs) stays open; a bin and planter on both
     const rot = dj < 0 ? 0 : Math.PI;
     if (dj < 0) { bench(g, -0.25, dj * 0.3, rot); bench(g, 0.25, dj * 0.3, rot); }
-    g.push(cyl(0.07, 0.06, 0.2, RAIL, 0.46, y0 + 0.1, dj * 0.42, 8));
     g.push(box(0.2, 0.1, 0.2, PAL.wood, -0.42, y0 + 0.05, -dj * 0.38)); g.push(blob(0.1, PAL.bush2, -0.42, y0 + 0.16, -dj * 0.38, 0, 0.8)); g.push(blob(0.04, PAL.flower, -0.38, y0 + 0.22, -dj * 0.34, 0, 1));
     for (const tx of [-0.3, 0.1]) g.push(box(0.3, 0.005, 0.3, PAL.cream2, tx, y0 + 0.003, -dj * 0.1));
     return;
@@ -375,6 +374,7 @@ function genStation(b, u, g, wg) {
   g.push(cyl(0.035, 0.045, 0.3, PAL.wood2, di * 0.25, y0 + 0.28, dj * 0.25, 5)); g.push(blob(0.24, u.seed < 0.5 ? PAL.treePeach : PAL.treeSage, di * 0.25, y0 + 0.5, dj * 0.25, 0, 0.9));
   g.push(blob(0.09, PAL.bush, di * 0.08, y0 + 0.18, dj * 0.3, 0, 0.8));
   stationLamp(g, wg, -di * 0.32, -dj * 0.32);
+  if (di === dj) g.push(cyl(0.07, 0.06, 0.2, RAIL, -di * 0.32, y0 + 0.1, dj * 0.3, 8));   // a bin tucked by the lamp in two corners
   g.push(box(0.3, 0.005, 0.3, PAL.cream2, -di * 0.15, y0 + 0.003, dj * 0.15));
 }
 

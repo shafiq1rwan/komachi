@@ -7,6 +7,20 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Phase 4, the station and the streets:
+  - The hill opens once 60 people live in town: the island's slope roads appear, stone lanterns light the
+    shrine path at night, and terrace plots become zonable. Until then the hill is wild and the toast says so
+  - Commuters: a quarter of new households keep a job in the city, and anyone who finds no work in town may
+    start commuting too. They walk to the station in the morning, are away for the day and come home on the
+    first train after their shift, so the evening trains bring a rush of people through the plaza and shops
+  - Parked vehicles: a resident's car now waits on the plot beside their home or workplace while they are
+    inside, and drives off from there; nothing vanishes into a building any more
+  - Bicycles: almost half of the residents without a car own a bike, ride it to work and the shops keeping
+    left along the kerb, and park it beside the building
+  - Taxis: two wait at a rank on the plaza's south edge; a household moving to a home far from the station
+    rides together, is dropped at the kerb and the taxi returns to the rank
+  - Traffic lights at every crossroads, Japanese-style horizontal three-lamp heads on a corner pole, one per
+    axis, cycling on game time; cars, trucks and taxis stop at the line on red
 - A living sea: foam bands lap the beaches in turn, fish leap out of the water with a splash ring where
   they leave and land, a school of fish drifts along the shore just under the surface, and a small fishing
   boat (Kenney Watercraft kit, CC0) bobs on a slow circuit offshore, trailing a wake
@@ -109,6 +123,8 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- The hover highlight fades with the daylight instead of glowing at night; no street lamps on the ring road
+  around the station (the plaza has its own); the plaza bins moved from the edges to two corners by the lamps
 - Fixed: routing let cars and walkers step between neighbouring roads on different terraces, so they drove
   off retaining walls and floated over the street below. Roads now connect only at the same height, or
   along a slope road's own axis; cables no longer span a terrace wall

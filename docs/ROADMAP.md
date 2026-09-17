@@ -71,21 +71,17 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Ground height is a cell property (`c.h`) plus a continuous `terrainY`; all movement follows it
 - Chosen over the earlier "stone steps" idea: slope roads let cars and trucks reach the terraces too
 
-## ⬜ Phase 4 — Station commuting, bikes and taxis
+## ✅ Phase 4 — Station commuting, bikes, taxis, traffic lights
 
-- **Hill unlock** (small, first): the hill stays wild until the town reaches about 60 residents (tune
-  after play). The unlock is an event to watch, not a message: a crew builds the two slope roads over a
-  day, lanterns light along the torii path, a toast says the hill is open. Manual terrace zoning from
-  Phase 3.5 remains available after the unlock until the plot market (Phase 5) replaces it
-- Some residents commute to the city by train each morning and return in the evening
-- Persistent bicycles: owned by residents, parked at racks, ridden to work and shops
-- Taxis that wait at the station rank and carry arrivals with luggage to their new home
-- Persistent cars: a resident's car stays parked at the kerb or in a small carpark while they are
-  indoors instead of vanishing; carpark as a zone or kerbside bays
-- Station busier at rush hour: platform sounds implied by movement, crowds on the plaza
-- **Traffic lights** at busy junctions (three or more arms with real traffic): Japanese-style signals on a
-  cantilever arm cycling green and red with a walk light; cars and trucks stop at red, walkers wait at
-  the kerb and cross at the lights (settles the zebra-crossing question)
+- Hill unlock at 60 housed residents: slope roads appear, lanterns light the shrine path, plots open.
+  Simplified from the "crew builds it over a day" idea to an instant opening with a toast
+- Commuters (a quarter of households, plus anyone without local work): away by day, home on the evening
+  trains, so the plaza and shops have a rush hour
+- Persistent cars and bicycles parked on the plot beside the building (no carpark zone; plots have room)
+- Two taxis at a plaza rank carry households to distant homes and return (no luggage prop yet)
+- Traffic lights at every crossroads, one town-wide phase on game time; vehicles stop at red
+- Not done, carried forward: pedestrians waiting at the lights and crossing there (walkers still cross at
+  the end of the trip); a walk light on the signal heads
 
 ## ⬜ Phase 4.5 (optional) — Canal, ring road, bridges
 

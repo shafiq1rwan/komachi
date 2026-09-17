@@ -6,6 +6,7 @@ import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
 import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
 import { TERRACE, hillCentre, cellHash } from './island.js';
+import { toast } from './toast.js';
 import { isLand, coastDist, terraceInfo } from './island.js';
 import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
@@ -30,10 +31,10 @@ function treeSpec(i, j) {
 for (const c of cells) {   // water outside the coast; sparse, gently clustered vegetation on land
   if (!isLand(cx(c.i), cz(c.j))) { c.type = 'water'; continue; }
   const ti = terraceInfo(c.i, c.j);
-  if (ti) {   // the hill: flat terrace cells are plots at their terrace height; ramps and their ends are permanent roads; the rest is wild
+  if (ti) {   // the hill: flat terrace cells are plots at their terrace height; the island's slope roads open with the hill; the rest is wild
     c.h = ti.level * TERRACE;
-    if (ti.ramp) { c.type = 'road'; c.ramp = ti.ramp; c.keep = true; continue; }
-    if (ti.keep) { c.type = 'road'; c.keep = true; continue; }
+    if (ti.ramp) { c.type = 'hill'; c.pendingRamp = ti.ramp; c.keep = true; continue; }
+    if (ti.keep) { c.type = 'hill'; c.keep = true; continue; }
     if (ti.wild) { c.type = 'hill'; continue; }
   }
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
@@ -41,6 +42,22 @@ for (const c of cells) {   // water outside the coast; sparse, gently clustered 
 }
 
 let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMesh = null; const lampHeads = [], lampGlows = [];
+// traffic lights: every crossroads gets a signal; all signals share one phase, so four merged lamp meshes suffice
+const SIGNAL_PERIOD = 0.05;   // game hours (18 s at 1×), so lights keep cycling while time is fast-forwarded
+const signalCells = new Set();
+const lampMats = { nsRed: null, nsGreen: null, ewRed: null, ewGreen: null };
+for (const k in lampMats) lampMats[k] = new THREE.MeshStandardMaterial({ color: k.endsWith('Red') ? '#e0665a' : '#6fcf9a', emissive: k.endsWith('Red') ? '#ff5a4a' : '#4fe08a', emissiveIntensity: 0, roughness: 0.5 });
+const signalMeshes = [];
+let signalGreen = { ns: true, ew: false };
+/** green for north–south for the first half of the period, east–west for the second, a short all-red between */
+function updateSignals() {
+  const t = S.T % SIGNAL_PERIOD, half = SIGNAL_PERIOD / 2, gap = SIGNAL_PERIOD * 0.07;
+  signalGreen = { ns: t < half - gap, ew: t >= half && t < SIGNAL_PERIOD - gap };
+  lampMats.nsGreen.emissiveIntensity = signalGreen.ns ? 1.6 : 0; lampMats.nsRed.emissiveIntensity = signalGreen.ns ? 0 : 1.6;
+  lampMats.ewGreen.emissiveIntensity = signalGreen.ew ? 1.6 : 0; lampMats.ewRed.emissiveIntensity = signalGreen.ew ? 0 : 1.6;
+}
+/** is the light red for traffic travelling along the given axis ('ns' or 'ew') at this cell? */
+const signalRed = (c, axis) => signalCells.has(c) && !signalGreen[axis];
 const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: true, opacity: 0.8 });
 const lampGlowMat = glowMat.clone();
 
@@ -100,11 +117,14 @@ function lotAdjacent8(c) { for (let dj = -1; dj <= 1; dj++) for (let di = -1; di
 function rebuildRoads() {
   if (roadMesh) { scene.remove(roadMesh); roadMesh.geometry.dispose(); }
   if (lampMesh) { scene.remove(lampMesh); lampMesh.geometry.dispose(); }
+  const keepHeads = lampHeads.filter(h => h.userData.lantern), keepGlows = lampGlows.filter(g => g.userData.lantern);
   if (coneMesh) { scene.remove(coneMesh); coneMesh.geometry.dispose(); coneMesh = null; }
   const cones = [];
   if (wireMesh) { scene.remove(wireMesh); wireMesh.geometry.dispose(); wireMesh = null; }
   const poles = [];
-  for (const h of lampHeads) scene.remove(h); for (const g of lampGlows) scene.remove(g); lampHeads.length = 0; lampGlows.length = 0;
+  for (const m of signalMeshes) { scene.remove(m); m.geometry.dispose(); } signalMeshes.length = 0; signalCells.clear();
+  const lampGeo = { nsRed: [], nsGreen: [], ewRed: [], ewGreen: [] };
+  for (const h of lampHeads) if (!h.userData.lantern) scene.remove(h); for (const g of lampGlows) if (!g.userData.lantern) scene.remove(g); lampHeads.length = 0; lampGlows.length = 0; lampHeads.push(...keepHeads); lampGlows.push(...keepGlows);
   const g = [], lg = [];
   for (const c of cells) {
     if (c.type !== 'road') continue;
@@ -149,6 +169,21 @@ function rebuildRoads() {
     // zebra crossing across one arm of a real junction
     if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
     for (let k = 0; k < 4; k++) if (open[k] && !isDbl) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 + dj * 0.32, 0.105, z + dj * 0.41 - di * 0.32)); g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 - dj * 0.32, 0.105, z + dj * 0.41 + di * 0.32)); }
+    // a traffic light at every crossroads: a pole on one corner, a horizontal three-lamp head for each axis
+    if (deg === 4 && !isDbl && !c.ramp) {
+      signalCells.add(c);
+      const px = x - 0.42, pz = z + 0.42;
+      lg.push(cyl(0.02, 0.028, 1.05, PAL.lamp, px, 0.525, pz, 6)); lg.push(box(0.1, 0.04, 0.1, PAL.lamp, px, 0.12, pz));
+      const heads = [['ns', 0, px, 0.98, pz - 0.14], ['ew', Math.PI / 2, px + 0.14, 0.9, pz]];   // one faces the road running north–south, one east–west
+      for (const [axis, ry, hx, hy, hz] of heads) {
+        const arm = new THREE.BoxGeometry(0.03, 0.03, 0.16); arm.rotateY(ry); arm.translate((px + hx) / 2, hy + 0.04, (pz + hz) / 2); lg.push(colorize(arm, PAL.lamp));
+        const housing = new THREE.BoxGeometry(0.2, 0.07, 0.06); housing.rotateY(ry); housing.translate(hx, hy, hz); lg.push(colorize(housing, '#4a4340'));
+        const hood = new THREE.BoxGeometry(0.22, 0.015, 0.08); hood.rotateY(ry); hood.translate(hx, hy + 0.04, hz); lg.push(colorize(hood, '#4a4340'));
+        const lamp = (dx, key) => { const l = new THREE.BoxGeometry(0.05, 0.05, 0.015); l.rotateY(ry); const ox = ry ? 0 : dx, oz = ry ? dx : 0; l.translate(hx + ox + (ry ? 0.035 : 0), hy, hz + oz + (ry ? 0 : 0.035)); lampGeo[key].push(l); };
+        lamp(-0.065, axis + 'Red'); lamp(0.065, axis + 'Green');
+        const amber = new THREE.BoxGeometry(0.05, 0.05, 0.015); amber.rotateY(ry); amber.translate(hx + (ry ? 0.035 : 0), hy, hz + (ry ? 0 : 0.035)); lg.push(colorize(amber, '#c9a24a'));
+      }
+    }
     // utility poles on the corner opposite the lamp; cables are strung between neighbours below
     if (h > 0.2 && h < 0.5 && lotAdjacent4(c)) {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
@@ -177,7 +212,8 @@ function rebuildRoads() {
         lg.push(box(0.1, 0.12, 0.01, PAL.pink, px + Math.cos(ry) * -0.1, 0.5, pz - Math.sin(ry) * -0.1 + Math.sin(ry) * 0 , ry)); lg.push(box(0.12, 0.08, 0.01, PAL.roofBlue, px + Math.cos(ry) * 0.09, 0.52, pz - Math.sin(ry) * 0.09, ry));
       }
     }
-    if (h > 0.62 && lotAdjacent4(c)) {
+    let byStation = false; for (let dj = -1; dj <= 1 && !byStation; dj++) for (let di = -1; di <= 1 && !byStation; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'station') byStation = true; }   // the whole ring road around the plaza
+    if (h > 0.62 && lotAdjacent4(c) && !byStation) {   // the plaza has its own lamps; none on the ring road around it
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
       // street lamp: a pole on the sidewalk corner, an arm reaching over the road, a housing lit from
       // underneath, a soft beam fading to the ground, and a pool of light on the asphalt
@@ -222,6 +258,7 @@ function rebuildRoads() {
   if (pos.length) { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); wireMesh = new THREE.LineSegments(wg, wireMat); scene.add(wireMesh); }
   roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; scene.add(roadMesh); }
   lampMesh = mergeMesh(lg, false, true); if (lampMesh) scene.add(lampMesh);
+  for (const k in lampGeo) if (lampGeo[k].length) { const m = mergeMesh(lampGeo[k], false, false); m.material = lampMats[k]; m.castShadow = false; scene.add(m); signalMeshes.push(m); }
   if (cones.length) { coneMesh = mergeMesh(cones, false, false); coneMesh.material = coneMat; coneMesh.receiveShadow = false; coneMesh.renderOrder = 6; scene.add(coneMesh); }
 }
 
@@ -248,8 +285,27 @@ function makeUnit(block, c) {
 }
 // A cell can take a building if it is empty, or a street that is not the station's ring and would still have
 // a street (road or empty cell) on one side once the whole selection is built, so the door has somewhere to face.
+// ── the hill opens once the town has grown: the island's slope roads appear and lanterns light the shrine path ──
+const HILL_UNLOCK = 60;
+const hill = { open: false };
+let lanternMesh = null;
+function openHill(quiet = false) {
+  if (hill.open) return; hill.open = true;
+  for (const c of cells) if (c.keep) { c.type = 'road'; c.tree = null; if (c.pendingRamp) { c.ramp = c.pendingRamp; } }
+  const g = [], { x, z, fx, fz, top } = hillCentre, rx = -fz, rz = fx;
+  for (let k = 0; k < 3; k++) for (const side of [-0.42, 0.42]) {   // stone lanterns down the flagged path, lit at night like the street lamps
+    const px = x + fx * (0.9 + k * 0.45) + rx * side, pz = z + fz * (0.9 + k * 0.45) + rz * side;
+    g.push(cyl(0.03, 0.04, 0.22, PAL.concrete, px, top + 0.11, pz, 6)); g.push(box(0.11, 0.09, 0.11, PAL.concrete, px, top + 0.27, pz)); g.push(box(0.15, 0.025, 0.15, PAL.concrete, px, top + 0.33, pz));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.06), lampHeadMat); head.position.set(px, top + 0.27, pz); head.userData.lantern = true; scene.add(head); lampHeads.push(head);
+    const gl = makeGlow(px, top + 0.005, pz, 0.9); gl.material = lampGlowMat; gl.userData.lantern = true; scene.add(gl); lampGlows.push(gl);
+  }
+  lanternMesh = mergeMesh(g, false); if (lanternMesh) scene.add(lanternMesh);
+  refreshWorld();
+  if (!quiet) toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.');
+}
 function placeable(c, sel = []) {
   if (!c || (c.type !== 'empty' && c.type !== 'road') || c.keep || c.ramp) return false;
+  if ((c.h || 0) > 0 && !hill.open) return false;   // the hill opens later
   if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
   return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
@@ -412,6 +468,6 @@ function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads,
+export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };

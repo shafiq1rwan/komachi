@@ -102,6 +102,26 @@ with needs and references to home and job. `restore()` re-places blocks through 
 sel, preset)`, then rebuilds households and residents; nobody is restored mid-trip. `state.js` reads
 the saved seed and biome before the island is built, unless `?seed=`, `?new` or `?demo` is present.
 
+**Commuting and vehicles (Phase 4).** `r.commuter` residents (a quarter of movers-in, plus anyone who finds
+no local job) go to the station at `workStart` with purpose `commute`, become `away` with `returnAt`, and
+ride back on the first train after it; `updateStation` lists them among the returners. A resident's car and
+bike are meshes that persist: `parkVehicle` places them in one of four plot slots beside the unit
+(`carAt` / `bikeAt` say where they are), `startTrip` drives or rides only from where the vehicle is parked
+and starts the route at the parking spot, and parked vehicles are ignored by `trafficFactor`. Two taxis
+(`taxis` in sim.js) wait at the plaza's south edge; `assignHome` puts a household onto one when the route
+is seven cells or more, `updateTaxis` drives it out, drops everyone with `enterUnit`, and brings it back.
+
+**Traffic lights.** `rebuildRoads` marks every crossroads (four open arms, no avenue, no slope) in
+`signalCells` and builds a pole with a head per axis; the lamps are four merged meshes sharing four emissive
+materials, since every signal in town runs on one phase. `updateSignals` reads game time (period 0.05 h),
+so lights keep cycling through fast-forward, and `trafficFactor` stops a vehicle short of a signalled cell
+ahead when its axis is red.
+
+**Hill unlock.** Terrace plots are unbuildable (`placeable`) and the island's slope roads are wild `hill`
+cells until `openHill()` runs, which `updateBlocks` calls at `HILL_UNLOCK` (60) housed residents: the slope
+cells become roads, stone lanterns with lamp-style glows are added along the shrine path, and the save
+records `hillOpen`.
+
 **Wanderer.** Ambient cars and cats with no home; they drive or stroll between random road cells
 to keep the streets alive.
 

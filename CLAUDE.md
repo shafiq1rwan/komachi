@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 17 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 18 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -38,7 +38,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Heights: asphalt top 0.08, sidewalk 0.10, plinth 0.12, all relative to the cell's ground `c.h`
   (0 on the flat, `level × 0.55` on hill terraces). Trip points hold height above ground; `moveAlong`
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
-  Cars keep left; walkers pick one sidewalk.
+  Cars keep left; walkers pick one sidewalk. Vehicles persist: `carAt`/`bikeAt` say where a resident's
+  vehicle is parked (`parkVehicle`), and `userData.parked` vehicles are ignored by traffic. Signals:
+  `signalCells` in world.js, one town-wide phase on `S.T`; `trafficFactor` in sim.js does queueing,
+  give-way and red lights.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
 - People are Kenney Mini Characters by default (CC0, `assets/characters/kenney/`, adopted 2026-09-17);
   `?boxes` brings back the original box people. Loaded via `src/characters.js`: atlas baked to vertex
@@ -92,12 +95,13 @@ Decisions already made (do not reopen without asking):
   `state.js` reads the saved seed before island.js runs. Name-tags toggle removed; tags follow/pin only.
 
 Open threads the user has not decided:
-- Whether people should cross at zebra crossings instead of at trip end (carried to Phase 4).
+- Pedestrians do not yet wait at traffic lights or cross there; walkers still cross at trip end.
 - Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.
 - Kenney people: watch performance past ~100 people (each is ~1,400 tris); a LOD swap to box people when far is the likely fix.
 
-Next up is Phase 4 (station commuting, persistent bikes, taxis) when the user says go; its scope is in
-docs/ROADMAP.md. Deliver in the same style: build, verify with screenshots and headless traces (see the
+Phase 4 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, traffic lights, hill unlock; see
+docs/ROADMAP.md for what was simplified). Next is Phase 4.5 (canal, ring road, bridges) or Phase 5
+(economy, hill plot market) when the user says go. Deliver in the same style: build, verify with screenshots and headless traces (see the
 scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
 Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
 shape changes incompatibly).
@@ -111,7 +115,7 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
 2. ✅ Construction stages, crews by train, deliveries, renovation
 3. ✅ Resident depth: households, needs, utility decisions, LOD, follow-camera, save/load
    3.5 ✅ buildable hill terraces with slope roads
-4. Station commuting, persistent bikes and taxis, traffic lights (starts with the hill unlock at ~60 residents)
+4. ✅ Station commuting, bikes, taxis, traffic lights, hill unlock at 60 residents
    4.5 (optional) canal with bridges, coastal ring road, optional overpass
 5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)

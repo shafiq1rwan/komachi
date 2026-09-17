@@ -52,7 +52,8 @@ Other scripts:
 Some things worth knowing:
 
 - **Everyone arrives by train.** Komachi Station sits at the centre of the island and cannot be
-  removed. A train pulls in every hour and a half between 6:00 and 23:30. When a home is close to
+  removed. A quarter of households commute to the city by train and come home in the evening rush;
+  households moving to a distant home take a taxi from the rank on the plaza. A train pulls in every hour and a half between 6:00 and 23:30. When a home is close to
   finished, its future household rides the next train, waits on the plaza, and walks in when the
   builders are done. Anyone still waiting at 22:00 takes the last train to the city and is back at
   06:00. Hover the station to see who is waiting and when the next train is due.
@@ -61,7 +62,8 @@ Some things worth knowing:
   cliffs, a pier and a boat, and a terraced hill with a shrine on the far side from the pier. Waves lap
   the beaches, fish leap and a fishing boat circles offshore. Zoom out to see all of it; nothing can be
   built in the water.
-- **Build up the hill.** The hill rises in three terraces. Each terrace cell is a plot at its own
+- **Build up the hill.** The hill stays wild until 60 people live in town; then its slope roads open and
+  the shrine path is lit. The hill rises in three terraces. Each terrace cell is a plot at its own
   height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. A hill
   block gets one street in front, facing the town, and the town builds whatever slope roads and links
   are needed to join it to the streets below; residents walk and drive up to hillside homes with a view.
@@ -88,7 +90,9 @@ Some things worth knowing:
   and the distance, so you see breakfast at home, a lunch break at the ramen shop, a grocery run, a
   stroll, a visit to a friend, and bed when tired. Hover anyone to read how they feel, in words.
 - Residents look for work at shops and workspaces they can reach by road, and follow a daily
-  schedule with personal wake and finish times. About a third own cars. A home that is not
+  schedule with personal wake and finish times. About a third own cars and many of the rest ride
+  bicycles; vehicles park on the plot beside the building while their owner is inside. Crossroads
+  have traffic lights, and traffic queues and stops at red. A home that is not
   connected to the station by road still gets residents (they cut across the grass to move in),
   but they cannot commute until a road links it up.
 - Buildings **grow to level 3** once they stay occupied and the town is big enough: three or

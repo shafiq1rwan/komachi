@@ -9,7 +9,8 @@ const ui = { time: document.getElementById('time'), day: document.getElementById
 const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
 
 function whereIs(r) {
-  if (r.state === 'away') return 'in the city for the night';
+  if (r.state === 'away') return r.home ? 'at work in the city' : 'in the city for the night';
+  if (r.state === 'riding') return 'in a taxi · heading home';
   if (r.state !== 'inside') return `${r.state === 'driving' ? 'driving' : 'walking'} · ${r.activity}`;
   if (!r.at) return 'somewhere';
   if (r.home && r.at === r.home) return `home · ${r.activity}`;
@@ -97,10 +98,10 @@ function renderInspect(target, follow = null) {
     const who = r.hh.kind === 'solo' ? 'lives alone' : `${hhLabel(r.hh).toLowerCase()}${others.length ? ` · with ${others.map(m => m.name.split(' ')[0]).join(', ')}` : ''}`;
     html += `<div class="row"><span>Household</span><b>${esc(who)}</b></div>`;
     html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : r.hh.home ? `${esc(r.hh.home.block.name)} (soon)` : `none yet · arrived day ${r.arrivedDay}`}</b></div>`;
-    if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : 'looking for work'}</b></div>`;
+    if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.commuter ? 'in the city, by train' : 'looking for work'}</b></div>`;
     html += `<div class="row"><span>Feeling</span><b>${esc(moodWords(r))}</b></div>`;
     if (r.trip && r.trip.dest) html += `<div class="row"><span>Heading to</span><b>${esc(r.trip.dest.block.name)}</b></div>`;
-    html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : 'on foot'}</div>`;
+    html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : r.hasBike ? 'by bicycle' : 'on foot'}</div>`;
     if (r.state !== 'away') html += follow === r ? `<button class="cta off" data-follow="stop"><i class="fa-solid fa-video-slash"></i> Stop following</button>` : `<button class="cta" data-follow="start"><i class="fa-solid fa-video"></i> Follow</button>`;
   }
   ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker));
@@ -109,7 +110,7 @@ function updateStats() {
   ui.pop.textContent = residents.length;
   ui.homes.textContent = blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
   ui.jobs.textContent = jobUnits().reduce((s, u) => s + Math.max(0, unitCap(u) - u.staff.length), 0);   // open positions, not total
-  ui.seek.textContent = residents.filter(r => r.home && !r.job).length;
+  ui.seek.textContent = residents.filter(r => r.home && !r.job && !r.commuter).length;
   ui.shops.textContent = blocks.filter(b => b.type === 'shop' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
   ui.wait.textContent = residents.filter(r => !r.home).length;
 }

@@ -56,6 +56,7 @@ try {
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, hills: MT.cells.filter(c => c.type === 'hill').length }));
   check('the steep parts of the hill cannot be built on', s.blocks === 3 && s.hills >= 12, JSON.stringify(s));
   s = await page.evaluate(() => {
+    MT.openHill();
     const plot = MT.cells.find(c => c.type === 'empty' && c.h > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(c.i + di, c.j + dj); return n && n.type === 'empty' && n.h === c.h; }));
     if (!plot) return null;
     const b = MT.placeBlock('res', [plot]); const u = b.units[0];
@@ -69,9 +70,9 @@ try {
   check('a street between blocks can be built over', s.blocks === 4 && s.cell === 'lot' && s.side === 'road', JSON.stringify(s));
 
   await page.evaluate(() => MT.fastForward(40));
-  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), shopJob: MT.residents.some(r => r.job && r.job.block.type === 'shop') }));
+  s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), shopJob: MT.residents.some(r => r.job && r.job.block.type === 'shop'), working: MT.residents.filter(r => r.job || r.commuter).length }));
   check('construction completes and newcomers fill every bed', s.stages.every(x => x === s.done) && s.beds >= 6 && s.housed === s.beds, JSON.stringify(s));
-  check('a resident takes the shop job', s.shopJob);
+  check('residents take local jobs or commute by train', s.working >= 4, JSON.stringify({ shopJob: s.shopJob, working: s.working }));
   s = await page.evaluate(() => { const seen = new Set(); for (let k = 0; k < 96; k++) { MT.fastForward(0.25); for (const r of MT.residents) seen.add(r.actKind); } return { kinds: [...seen], hh: MT.households.filter(h => h.members.length).length, moods: MT.residents.map(r => Object.values(r.needs).every(v => v >= 0 && v <= 1)).every(Boolean) }; });
   check('residents live by their needs (sleep, meals, errands) in households', s.kinds.includes('sleep') && s.kinds.includes('eat') && (s.kinds.includes('shop') || s.kinds.includes('stroll') || s.kinds.includes('visit')) && s.hh >= 1 && s.moods, JSON.stringify(s));
 
@@ -104,6 +105,8 @@ try {
   await page.screenshot({ path: 'scripts/out/night.png' });
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, residents: MT.residents.length, jobs: MT.residents.filter(r => r.job).length }));
   check('demo town populated', s.blocks === 8 && s.residents >= 10 && s.jobs >= 8, JSON.stringify(s));
+  s = await page.evaluate(() => { MT.setSpeed(0); let away = 0; for (let k = 0; k < 48; k++) { MT.fastForward(0.5); away = Math.max(away, MT.residents.filter(r => r.state === 'away' && r.home).length); } return { commuters: MT.residents.filter(r => r.commuter).length, away, parked: MT.carMeshes.filter(c => c.visible && c.userData.parked).length, bikes: MT.residents.filter(r => r.hasBike).length, signals: MT.signalCells.size }; });
+  check('commuters ride the train, vehicles park beside buildings, crossroads have lights', s.commuters >= 1 && s.away >= 1 && s.parked >= 1 && s.signals >= 1, JSON.stringify(s));
   check('no page errors', errors.length === 0, errors.join(' | '));
 } finally {
   await browser.close(); server.kill();
