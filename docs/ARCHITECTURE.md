@@ -142,8 +142,13 @@ to keep the streets alive.
 detached / narrow / apartment) or the block's `kind` (shops: café, bakery, ramen, grocery,
 konbini, florist, books; workspaces: office, workshop, studio). Generators are built from the
 shared parts in `kit.js` and must set `u.door` so trips start and end at the right doorstep.
-Roof style (tile or metal) and wall colour are chosen per block; small details (bicycles,
-pots, signs) vary per unit from its seed.
+Roof style (kawara, tile or metal) and wall colour are chosen per block; small details (bicycles,
+pots, signs) vary per unit from its seed. `kawaraRoof` builds the tiled roofs (courses, ridge cap,
+optional irimoya skirt); `blockWall`, `genkan`, `tateKanban`, `noren`, `chochin` and `laundry` are
+the Japanese identity parts. Laundry geometry is merged into its own mesh (`u.laundry`) so
+`daynight.js` can show it only between 08:00 and 17:00. Street furniture (stop marks, kerb lines,
+post boxes, hokora, pole transformers, guard rails) is generated per road cell in `rebuildRoads`;
+pocket parks, pruned pines and bamboo in `rebuildDecor` (`parkCells` lists the parks).
 
 ## Construction
 

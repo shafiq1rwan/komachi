@@ -243,9 +243,12 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
   const g = [], veg = [], wat = [];   // wat: the water tops again, for the drifting ripple overlay
   // the land mesh is solid down from y 0, so the channel sits on it: dark bed, water just above ground, low stone walls
   const WATER = 0.02, TOP = 0.1, wall = biome.rock[0], coping = PAL.concrete;
+  const flowAt = k => { const a = canalOrder[Math.max(0, k - 1)], b = canalOrder[Math.min(canalOrder.length - 1, k + 1)]; return Math.atan2(b[0] - a[0], b[1] - a[1]); };
+  const flowPlane = (w, l, ang, px, py, pz) => { const p = new THREE.PlaneGeometry(l, w); p.rotateX(-Math.PI / 2); p.rotateY(ang - Math.PI / 2); p.translate(px, py, pz); return colorize(p, PAL.canal); };   // u runs along the flow
   for (const [i, j] of canalOrder) {
+    const flow = flowAt(canalOrder.findIndex(c => c[0] === i && c[1] === j));
     const x = cx(i), z = cz(j), nb = DIRS.map(([di, dj]) => isCanal(i + di, j + dj) || coastDist(cx(i + di), cz(j + dj)) <= 0.8);
-    g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(box(0.78, 0.01, 0.78, PAL.canal, x, WATER + 0.008, z));
+    g.push(box(0.78, 0.02, 0.78, PAL.canal, x, WATER, z)); wat.push(flowPlane(0.78, 0.78, flow, x, WATER + 0.014, z));
     g.push(box(0.9, 0.02, 0.9, PAL.canalBed, x, WATER - 0.012, z));   // a dark bed below the water
     let mouthK = -1, mouthL = 99;
     nb.forEach((open, k) => { if (!open || isCanal(i + DIRS[k][0], j + DIRS[k][1])) return; const [di, dj] = DIRS[k]; let L = 0.5; while (L < 6 && coastDist(x + di * L, z + dj * L) > 0) L += 0.1; if (L < mouthL) { mouthL = L; mouthK = k; } });
@@ -254,7 +257,7 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
         if (!isCanal(i + di, j + dj) && k === mouthK) {   // the mouth: the channel runs on to the coastline, then the water steps down the beach into the sea
           const L = mouthL;
           const cl = L - 0.5, cpx = x + di * (0.5 + cl / 2), cpz = z + dj * (0.5 + cl / 2);
-          g.push(box(di ? cl : 0.78, 0.02, di ? 0.78 : cl, PAL.canal, cpx, WATER, cpz)); wat.push(box(di ? cl : 0.78, 0.01, di ? 0.78 : cl, PAL.canal, cpx, WATER + 0.008, cpz));
+          g.push(box(di ? cl : 0.78, 0.02, di ? 0.78 : cl, PAL.canal, cpx, WATER, cpz)); wat.push(flowPlane(0.78, cl, Math.atan2(di, dj), cpx, WATER + 0.014, cpz));
           g.push(box(di ? cl : 0.9, 0.02, di ? 0.9 : cl, PAL.canalBed, cpx, WATER - 0.012, cpz));
           for (const s of [-1, 1]) { g.push(box(di ? cl : 0.11, TOP, di ? 0.11 : cl, wall, cpx + (di ? 0 : s * 0.445), TOP / 2, cpz + (di ? s * 0.445 : 0))); g.push(box(di ? cl : 0.13, 0.025, di ? 0.13 : cl, coping, cpx + (di ? 0 : s * 0.445), TOP + 0.012, cpz + (di ? s * 0.445 : 0))); }
           let B = 0.2; while (B < 3 && coastDist(x + di * (L + B), z + dj * (L + B)) > -beachExtra(Math.atan2((z + dj * (L + B)) / SZ, (x + di * (L + B)) / SX))) B += 0.1;   // the beach's width here
@@ -266,7 +269,12 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
           }
           for (const s of [-1, 1]) g.push(blob(0.12, wall, x + di * (L + 0.1) + (di ? 0 : s * 0.42), -0.42, z + dj * (L + 0.1) + (dj ? 0 : s * 0.42), 0, 0.6));   // rocks at the drop
         }      }
-      else { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); } });
+      else {   // a grassy bank sloping from the coping into the water, with a low stone kerb along the top
+        const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.2, 0); sh.lineTo(0.2, TOP); sh.lineTo(0.02, TOP); sh.closePath();   // profile: water edge at x 0, land at x 0.2
+        const bank = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); bank.translate(0, 0, -0.5); bank.rotateY(Math.atan2(-dj, di) + Math.PI); bank.translate(x + di * 0.5, WATER - 0.02, z + dj * 0.5);
+        g.push(colorize(bank, biome.grass));
+        g.push(box(di ? 0.1 : 1, 0.03, di ? 1 : 0.1, coping, x + di * 0.45, TOP + 0.015, z + dj * 0.45));
+      } });
     if (cellHash(i * 3, j * 7) < 0.45) { const side = DIRS.findIndex((_, k) => !nb[k]); if (side >= 0) { const [di, dj] = DIRS[side]; for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.4 + cellHash(i + k, j) * 0.25, '#b9c084', x + di * 0.56 + (cellHash(k, i) - 0.5) * 0.25 * (dj ? 1 : 0.3), 0.2, z + dj * 0.56 + (cellHash(j, k) - 0.5) * 0.25 * (di ? 1 : 0.3), 4)); } }
   }
   if (canalOrder.length) {   // a grey heron standing on the coping, looking along the water
@@ -280,7 +288,7 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
   if (wat.length) {   // ripples drift along the canal so the water reads as moving
     const t = rippleTex.clone(); t.needsUpdate = true; t.repeat.set(0.7, 0.7);
     const wm = mergeMesh(wat, false, false); wm.material = new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: 0.5, depthWrite: false }); wm.renderOrder = 3; scene.add(wm);
-    rippleLayers.push({ t, speed: [0.05, 0.02] });
+    rippleLayers.push({ t, speed: [-0.06, 0] });   // a growing u offset moves the pattern toward -u, so negative here runs the ripples with the flow
   }
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }

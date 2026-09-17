@@ -10,6 +10,7 @@ export const PAL = {
   treePeach:'#f0b48b', treeOrange:'#e69a6a', treeSage:'#a9c08a', treeGreen:'#8fae78', bush:'#93b47c', bush2:'#a8c48c', flower:'#f3c6c0',
   lamp:'#c9c3b7', lampGlow:'#ffd08a', window:'#e8dfcf', glow:'#ffb86b',
   pink:'#e9b7b0', mint:'#a9d3c4', lilac:'#c4b7d6', sky2:'#a7c7d9',
+  kawara:'#7a828c', kawara2:'#5f6772', indigo:'#5d6b8a',   // grey-blue roof tiles and noren cloth (added with the Japanese identity pass)
 };
 export const ROOFS = [PAL.roofRose, PAL.roofSage, PAL.roofBlue, PAL.roofPeach, PAL.roofTeal, PAL.roofPlum];
 export const WALLS = [PAL.cream, PAL.cream2, PAL.peachWall, PAL.greyWall];

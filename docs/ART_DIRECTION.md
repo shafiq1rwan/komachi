@@ -19,6 +19,7 @@ its content.
 | Details | Lamp posts, striped awnings, hanging signs, vending machine, benches, planters | Lamp posts at block corners, awnings on shops, rooftop units on offices, planters on plinths |
 | Setting | Island diorama on soft mint water | Organic coastline from a seeded curve: sandy beaches, rocky lips, grassy cliffs, one pier; cream cliff sides floating on mint |
 | Neighbourhood | Compact Japanese suburb: narrow houses, exterior stairs, balconies, AC units, utility poles and cables, traffic mirrors, vending machines, bikes | All present as kit parts; every building is assembled from them so the street reads as one place |
+| Japanese identity | Kawara tile roofs, hip-and-gable forms, block walls and gates, noren, chōchin, vertical signboards, 止まれ marks, post boxes, kōban, hokora, laundry on balconies, pruned pines and bamboo | Phase 4.8 parts in `kit.js` and `world.js`. Three extra swatches: `kawara`, `kawara2` (grey-blue tiles) and `indigo` (noren) |
 | Landmark | Sunken subway entrance with a curved sage roof, railings, bench, vending machine | Komachi Station: stairwell with arched sage roof, dark-green railings, two round lamps, benches facing the stairs, pastel vending machines |
 | Mood | Cosy, quiet, suburban Japan | Slow pacing, no failure states, ambient walkers, cats |
 

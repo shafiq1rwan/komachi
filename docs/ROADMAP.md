@@ -91,6 +91,26 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Not done: footbridges for walkers, a median on the coast road, and the **overpass / tunnel** (a cell
   holding two roads at two heights). Still optional; revisit if a player town ever needs a crossing
 
+## ✅ Phase 4.8 — Japanese identity pass
+
+Shipped 2026-09-17. The town read as generic pastel-European from a distance: plain gable boxes and
+bare streets. This pass added the details that say "Japanese suburb" before the economy work begins.
+All of it is set dressing and ambient behaviour; nothing is gated or scored.
+
+- ✅ **Roofs and walls**: kawara tile roofs with courses, ridge caps and deep eaves, hip-and-gable
+  (irimoya) on two-storey houses, block walls with the gate slid open, a genkan step and nameplate
+- ✅ **Signage**: vertical signboards on shops (lit on the konbini and ramen shop), noren on the ramen
+  shop and some cafés, a row of chōchin lanterns, the konbini fascia lit as a whole
+- ✅ **Street details**: 止まれ stop marks before T-junctions, white kerb lines, a red post box by shops,
+  a kōban on the station plaza, transformer drums and striped guards on the poles, guard rails on avenues
+  (manhole covers already existed)
+- ✅ **Greenery**: pruned pines and bamboo groves among the round trees, pocket parks with a swing,
+  slide, bench and hedge near homes, a hokora with a red bib on quiet bends
+- ✅ **Homes**: laundry and futons on balconies from 08:00 to 17:00, rooftop water tanks on level 2+
+  shops (apartments already had one), bicycles and pots by the door
+- Still open: kanji lettering itself (signs carry glyph blocks, not text), a level crossing (the line is
+  underground), and laundry that reacts to weather (Phase 6)
+
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
 - Gentle economy shown through behaviour: a shop with customers gets a new awning and stock, one

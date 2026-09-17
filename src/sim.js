@@ -406,6 +406,8 @@ function updateStation() {
       let n = Math.max(0, vacancies - waiting - enRoute);
       if (STATION.block.trains === 0 && n === 0 && total === 0) n = 1;            // one hopeful on the very first train
       if (h >= 21.5) n = 0;                                                        // nobody arrives just to leave again at 22:00
+      // a hopeful now and then even when every bed is taken: someone visibly looking for a home keeps the plaza alive
+      if (n === 0 && total === 0 && waiting + enRoute < 2 && h >= 6 && h < 20 && Math.random() < 0.6) n = 1;
       n = Math.min(n, room, 4); total += n;
       for (const size of splitHouseholds(n)) { const hh = makeHousehold(size, null); for (let k = 0; k < size; k++) arrivals.push({ t: (t += 0.07), r: null, hh }); }
       STATION.block.trains++;
@@ -424,9 +426,27 @@ function leaveForCity(r) {
 function returnFromCity(r) {
   r.state = 'inside'; r.at = STATION.anchor; STATION.anchor.inside.add(r); r.mesh.position.copy(STATION.entrance); r.mesh.visible = true;
   r.needsT = S.T;   // the day away is not charged to their needs all at once
-  if (r.home) { r.needs.food = Math.max(0.15, r.needs.food - 0.35); r.needs.energy = Math.max(0.2, r.needs.energy - 0.3); r.activity = 'back from the city'; r.next = S.T + 0.02; r.purpose = null; return; }
+  if (r.home) {
+    r.needs.food = Math.max(0.15, r.needs.food - 0.35); r.needs.energy = Math.max(0.2, r.needs.energy - 0.3); r.purpose = null;
+    // most of them catch their breath on the plaza first: a bench, the planters, a drink, and then the walk home
+    if (Math.random() < 0.7 && takeSpot(r)) { startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => restAtStation(r, pick(PLAZA_ACTS), S.T + rand(0.12, 0.35))); return; }
+    r.activity = 'back from the city'; r.next = S.T + 0.02; return;
+  }
   if (takeSpot(r)) startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => sitDown(r));
   else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
+}
+const PLAZA_ACTS = ['stretching after the ride', 'waiting for a neighbour off the same train', 'checking messages before the walk home', 'catching their breath on the bench', 'watching the plaza for a while'];
+/** someone with a home pausing on a station spot (a commuter waiting for the train, or just off it) */
+function restAtStation(r, activity, next) {
+  const s = r.spot; if (!s) { r.state = 'inside'; r.next = S.T; return; }
+  r.mesh.visible = true; r.mesh.position.copy(s.pos); r.mesh.rotation.y = s.rot; setPose(r, s.kind === 'seat');
+  r.state = 'inside'; r.trip = null; r.activity = activity; r.next = next;
+}
+/** down to the platform and away to the city until the evening */
+function departForCity(r) {
+  freeSpot(r); if (r.at) r.at.inside.delete(r);
+  r.purpose = null; r.mesh.visible = false; r.state = 'away'; r.actKind = 'work'; r.activity = 'at work in the city'; r.at = null; r.trip = null;
+  r.returnAt = Math.floor(S.T / 24) * 24 + r.workEnd; r.next = r.returnAt;
 }
 const isWaiting = r => !r.home && !r.movingIn && r.state === 'inside' && r.at === STATION.anchor;
 /** households with at least one member waiting on the plaza */
@@ -490,9 +510,12 @@ function arrive(r) {
     else { r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
     return;
   }
-  if (tr.dest === STATION.anchor && r.purpose === 'commute') {   // onto the platform and away to the city until the evening
-    r.purpose = null; r.mesh.visible = false; r.state = 'away'; r.actKind = 'work'; r.activity = 'at work in the city'; r.at = null;
-    r.returnAt = Math.floor(S.T / 24) * 24 + r.workEnd; r.next = r.returnAt; return;
+  if (tr.dest === STATION.anchor && r.purpose === 'commute') {   // the train is due soon: wait for it on the plaza; otherwise straight down to the platform
+    if (nextTrain - S.T < 0.6 && takeSpot(r)) {
+      r.at = STATION.anchor; STATION.anchor.inside.add(r); r.mesh.position.copy(endPos);
+      const at = nextTrain; startDirectTrip(r, endPos, r.spot.pos.clone().setY(0.12), 'waiting for the train', () => restAtStation(r, 'waiting for the train', at)); return;
+    }
+    departForCity(r); return;
   }
   if (tr.dest === STATION.anchor) { r.mesh.position.copy(endPos); arriveAtStation(r); return; }
   if (tr.dest.removed) { returnToStation(r, endPos); return; }
@@ -531,6 +554,7 @@ function decide(r) {
   const h = hourOf(), day = dayOf(), u = r.at;
   if (!u) { r.next = S.T + 0.5; return; }
   if (u === STATION.anchor && !r.home) { r.actKind = 'wait'; tickNeeds(r); waitDecide(r); return; }
+  if (u === STATION.anchor && r.purpose === 'commute') { departForCity(r); return; }   // the train they were waiting for has pulled in
   if (!r.home) { go(r, STATION.anchor, 'heading back to the station'); return; }
   tickNeeds(r);
   if (u === STATION.anchor) {   // just off the train: home, or a bite first
@@ -576,16 +600,16 @@ function trafficFactor(obj) {
   const here = cellAt(obj.position), aheadCell = cell(Math.floor(obj.position.x + tfFwd.x * 0.6 + HALF), Math.floor(obj.position.z + tfFwd.z * 0.6 + HALF));
   if (aheadCell && aheadCell !== here && signalRed(aheadCell, Math.abs(tfFwd.x) > Math.abs(tfFwd.z) ? 'ew' : 'ns')) {
     const ahead = (cx(aheadCell.i) - obj.position.x) * tfFwd.x + (cz(aheadCell.j) - obj.position.z) * tfFwd.z;   // distance to the junction's centre
-    f = Math.min(f, clamp((ahead - 0.64) / 0.14, 0, 1));
+    f = Math.min(f, clamp((ahead - 0.74) / 0.14, 0, 1));
   }
   for (const v of carMeshes) {
     if (v === obj || !v.visible || v.userData.parked) continue;
     tfRel.subVectors(v.position, obj.position); tfRel.y = 0;
-    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 0.75) continue;
+    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 0.95) continue;
     const cross = tfRel.x * tfFwd.z - tfRel.z * tfFwd.x, side = Math.abs(cross);
     const same = Math.sin(v.rotation.y) * tfFwd.x + Math.cos(v.rotation.y) * tfFwd.z;
-    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.42) / 0.25, 0, 1)); }          // a queue: hold back from the car in front
-    else if (same > -0.3 && side <= 0.4 && cross > 0) f = Math.min(f, clamp((ahead - 0.45) / 0.2, 0, 1));   // a junction: give way to a car crossing from the left (never mutual, so no deadlock)
+    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.58) / 0.25, 0, 1)); }          // a queue: hold back from the car in front
+    else if (same > -0.3 && side <= 0.4 && cross > 0) f = Math.min(f, clamp((ahead - 0.55) / 0.2, 0, 1));   // a junction: give way to a car crossing from the left (never mutual, so no deadlock)
   }
   return f;
 }

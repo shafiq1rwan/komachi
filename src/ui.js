@@ -25,7 +25,8 @@ function renderStation(b) {
   html += `<div class="row"><span>Trains so far</span><b>${b.trains}</b></div>`;
   html += `<div class="row"><span>Waiting for a home</span><b>${waiting.length}</b></div>`;
   html += `<div class="divider"></div><ul>`;
-  for (const r of waiting) html += personLi(r, r.state === 'away' ? 'staying in the city tonight' : r.activity);
+  for (const r of waiting.slice(0, 8)) html += personLi(r, r.state === 'away' ? 'staying in the city tonight' : r.activity);
+  if (waiting.length > 8) html += `<li class="empty">and ${waiting.length - 8} more</li>`;
   if (!waiting.length) html += `<li class="empty">Nobody is waiting right now</li>`;
   html += `</ul>`;
   const vacancies = blocks.filter(x => x.type === 'res' && x.stage === DONE).reduce((s, x) => s + x.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length - u.incoming), 0), 0);

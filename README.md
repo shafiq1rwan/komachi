@@ -72,7 +72,12 @@ Some things worth knowing:
 - **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
   junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
   Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.
-- **Buildings vary.** Homes come as detached houses (tile or metal roofs), narrow two-storey
+- **It reads as Japan.** Grey kawara tile roofs with ridge caps, hip-and-gable roofs on larger houses,
+  block walls with sliding gates and a genkan step, laundry and futons on the balconies by day, vertical
+  signboards, noren and red chōchin lanterns on the shop street, a glowing konbini, painted stop marks
+  and white kerb lines on the streets, a red post box, a kōban by the station, a hokora on a quiet bend,
+  pruned pines, bamboo groves and pocket parks with swings.
+- **Buildings vary.** Homes come as detached houses (kawara, tile or metal roofs), narrow two-storey
   houses with exterior stairs, or small apartment blocks with balconies. Shops become cafés,
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are
   offices, workshops or studios. Streets get utility poles with cables, traffic mirrors, notice

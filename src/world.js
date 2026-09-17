@@ -4,7 +4,7 @@ import { PAL, ROOFS, WALLS, SHOP_WALLS, WORK_WALLS, AWNINGS, FAMILY, HOME_SUFFIX
 import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
-import { box, blob, cyl, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
+import { box, blob, cyl, prism, colorize, mergeMesh, makeGlow, glowMat, lampHeadMat, swayMat, coneMat, lightCone } from './geometry.js';
 import { TERRACE, hillCentre, cellHash, isCanal, isCoastRoad } from './island.js';
 import { toast } from './toast.js';
 import { isLand, coastDist, terraceInfo } from './island.js';
@@ -21,11 +21,12 @@ function terrainY(x, z) {
   return c.h || 0;
 }
 const DIR4 = [[0, -1], [1, 0], [0, 1], [-1, 0]];
+const K_DARK = '#4a4340';
 function treeSpec(i, j) {
   const r = hash(j * 3 + 1, i * 5 + 2), r2 = hash(i + 11, j + 7), near = coastDist(cx(i), cz(j)) < 2.6;
   let kind;
   if (near) kind = r < 0.4 ? 'reed' : r < 0.75 ? 'tuft' : 'rock';                       // coastal vegetation
-  else kind = r < 0.42 ? (hash(i * 7, j * 3) < biome.pineRatio ? 'pine' : 'tree') : r < 0.78 ? 'bush' : 'flowers';
+  else { const r3 = hash(i + 5, j + 13); kind = r < 0.42 ? (hash(i * 7, j * 3) < biome.pineRatio ? 'pine' : r3 < 0.2 ? 'matsu' : r3 < 0.3 ? 'bamboo' : 'tree') : r < 0.78 ? 'bush' : 'flowers'; }   // a fifth of the trees are pruned pines, a tenth bamboo
   return { kind, ox: (r2 - 0.5) * 0.4, oz: (hash(i + 3, j + 9) - 0.5) * 0.4, s: 0.8 + r2 * 0.5, c: r2 };
 }
 for (const c of cells) {   // water outside the coast; sparse, gently clustered vegetation on land
@@ -74,6 +75,7 @@ const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: tru
 const lampGlowMat = glowMat.clone();
 
 let hillDecorMesh = null;
+const parkCells = new Set();   // empty cells carrying a pocket park (rebuilt with the decor)
 function rebuildDecor() {
   if (decorMesh) { townGroup.remove(decorMesh); decorMesh.geometry.dispose(); }
   if (hillDecorMesh) { townGroup.remove(hillDecorMesh); hillDecorMesh.geometry.dispose(); hillDecorMesh = null; }
@@ -91,11 +93,40 @@ function rebuildDecor() {
       else gh.push(blob(0.2 * s, r < 0.92 ? PAL.bush : PAL.bush2, x, y + 0.12 * s, z, 0, 0.7));
     }
   }
+  // pocket parks: a gravel pad with a swing, a slide, a bench and a hedge on some empty cells beside a street near homes
+  parkCells.clear();
+  const resNear = c => { for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'res') return true; } return false; };
   for (const c of cells) {
-    if (c.type !== 'empty' || !c.tree) continue;
+    if (c.type !== 'empty' || c.h || cellHash(c.i * 3 + 11, c.j * 7 + 5) > 0.2 || !DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; }) || !resNear(c)) continue;
+    if ([...parkCells].some(p => Math.abs(p.i - c.i) + Math.abs(p.j - c.j) < 5)) continue;
+    parkCells.add(c); const x = cx(c.i), z = cz(c.j), m = '#7d8a94';
+    gh.push(box(0.88, 0.02, 0.88, PAL.dirt, x, 0.01, z));
+    for (const s of [-1, 1]) { for (const t of [-0.05, 0.05]) { const leg = new THREE.BoxGeometry(0.02, 0.36, 0.02); leg.rotateX(t * 6); leg.translate(x - 0.22 + s * 0.2, 0.18, z - 0.2 + t * 1.6); gh.push(colorize(leg, m)); } }   // swing frame
+    gh.push(box(0.44, 0.02, 0.02, m, x - 0.22, 0.36, z - 0.2));
+    for (const s of [-1, 1]) { gh.push(box(0.07, 0.015, 0.04, PAL.wood, x - 0.22 + s * 0.09, 0.12, z - 0.2)); for (const q of [-1, 1]) gh.push(box(0.006, 0.23, 0.006, m, x - 0.22 + s * 0.09 + q * 0.03, 0.245, z - 0.2)); }
+    gh.push(box(0.03, 0.26, 0.03, m, x + 0.3, 0.13, z - 0.3)); gh.push(box(0.03, 0.26, 0.03, m, x + 0.3, 0.13, z - 0.14)); gh.push(box(0.12, 0.02, 0.2, PAL.roofBlue, x + 0.3, 0.27, z - 0.22));   // slide: ladder tower and a sloped chute
+    for (let k = 0; k < 4; k++) gh.push(box(0.1, 0.012, 0.012, m, x + 0.3, 0.06 + k * 0.06, z - 0.22));
+    const chute = new THREE.BoxGeometry(0.12, 0.02, 0.4); chute.rotateX(-0.6); chute.translate(x + 0.3, 0.16, z + 0.02); gh.push(colorize(chute, PAL.roofBlue));
+    gh.push(box(0.3, 0.025, 0.1, PAL.wood, x - 0.2, 0.19, z + 0.3)); for (const s of [-1, 1]) gh.push(box(0.03, 0.07, 0.08, PAL.lamp, x - 0.2 + s * 0.12, 0.035, z + 0.3));   // bench
+    for (let k = 0; k < 4; k++) gh.push(blob(0.1, k % 2 ? PAL.bush : PAL.bush2, x - 0.36 + k * 0.24, 0.08, z - 0.42, 0, 0.7));   // hedge along the back
+    gh.push(cyl(0.03, 0.04, 0.3, PAL.wood2, x + 0.34, 0.15, z + 0.32, 5)); gh.push(blob(0.2, biome.treeColors[0], x + 0.34, 0.4, z + 0.32, 0, 0.9));
+  }
+  for (const c of cells) {
+    if (c.type !== 'empty' || !c.tree || parkCells.has(c)) continue;
     const g0 = g.length;
     const t = c.tree, x = cx(c.i) + t.ox, z = cz(c.j) + t.oz;
-    if (t.kind === 'tree') {
+    if (t.kind === 'matsu') {   // a pruned pine: a leaning trunk carrying flat pads of needles
+      const lean = 0.22, dir = t.c * 6.28;
+      const trunk = new THREE.CylinderGeometry(0.035 * t.s, 0.055 * t.s, 0.62 * t.s, 5); trunk.rotateZ(lean); trunk.rotateY(dir); trunk.translate(x, 0.3 * t.s, z); g.push(colorize(trunk, PAL.wood2));
+      for (let k = 0; k < 3; k++) { const hy = (0.4 + k * 0.16) * t.s, off = Math.sin(lean) * hy; const px = x - Math.cos(dir) * off * (k === 2 ? 1 : 1) + Math.cos(dir + k * 2.1) * 0.08 * t.s, pz = z + Math.sin(dir) * off + Math.sin(dir + k * 2.1) * 0.08 * t.s; g.push(blob((0.24 - k * 0.05) * t.s, k % 2 ? '#6f8f6a' : '#7f9b7a', px, hy + 0.06 * t.s, pz, 0, 0.32)); }
+    } else if (t.kind === 'bamboo') {   // a grove: tall thin culms with pale nodes and a few leaves at the top
+      for (let k = 0; k < 6; k++) {
+        const bx = x + (hash(c.i + k, c.j * 2) - 0.5) * 0.36, bz = z + (hash(c.j + k * 3, c.i) - 0.5) * 0.36, bh = (0.9 + hash(k, c.i + c.j) * 0.45) * t.s;
+        g.push(cyl(0.012, 0.016, bh, '#9db87f', bx, bh / 2, bz, 5));
+        for (let n = 1; n * 0.24 < bh; n++) g.push(cyl(0.018, 0.018, 0.012, '#cfd7a8', bx, n * 0.24, bz, 5));
+        g.push(blob(0.07, '#a9c08a', bx + 0.03, bh - 0.05, bz, 0, 0.3)); if (k % 2) g.push(blob(0.05, '#8fae78', bx - 0.04, bh - 0.16, bz + 0.03, 0, 0.3));
+      }
+    } else if (t.kind === 'tree') {
       const tc = biome.treeColors, col = tc[Math.min(tc.length - 1, Math.floor(t.c * tc.length))];
       g.push(cyl(0.05 * t.s, 0.07 * t.s, 0.5 * t.s, PAL.wood2, x, 0.25 * t.s, z, 5));
       g.push(blob(0.36 * t.s, col, x, 0.62 * t.s, z, 0, 0.95));
@@ -196,6 +227,25 @@ function rebuildRoads() {
     const zebraArm = deg >= 3 && !isDbl && h > 0.45 ? (open[0] ? 0 : 2) : -1;
     if (!isDbl && deg >= 2) for (let k = 0; k < 4; k++) if (open[k] && k !== zebraArm) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.18 : 0.025, 0.004, di ? 0.025 : 0.18, PAL.cream2, x + di * 0.3, 0.082, z + dj * 0.3)); }
     if (deg === 2 && h > 0.7) g.push(cyl(0.09, 0.09, 0.012, '#858a8e', x + (h - 0.85) * 0.4, 0.083, z + (h - 0.8) * 0.4, 8));
+    const straight = deg === 2 && !isDbl && ((open[0] && open[2]) || (open[1] && open[3]));
+    if (straight) {
+      const ns = open[0] && open[2];
+      for (const s of [-1, 1]) g.push(box(ns ? 0.015 : 1, 0.004, ns ? 1 : 0.015, PAL.cream2, x + (ns ? s * 0.29 : 0), 0.082, z + (ns ? 0 : s * 0.29)));   // white edge lines along the kerb
+      // 止まれ: on the approach to a T-junction, a stop line across the near lane with the painted mark behind it (Japan keeps left)
+      const degOf = q => DIR4.reduce((s, [a, b]) => s + (road(cell(q.i + a, q.j + b)) ? 1 : 0), 0);
+      for (let k = 0; k < 4; k++) if (open[k]) {
+        const [di, dj] = DIR4[k], n = cell(c.i + di, c.j + dj); if (!n || degOf(n) !== 3 || n.bridge || (n.h || 0) !== gy) continue;
+        const ox = -dj * 0.16, oz = di * 0.16;   // the left-hand lane when driving toward the junction
+        g.push(box(di ? 0.03 : 0.27, 0.005, di ? 0.27 : 0.03, PAL.cream2, x + di * 0.42 + ox, 0.083, z + dj * 0.42 + oz));
+        for (let m = 0; m < 3; m++) g.push(box(di ? 0.06 : 0.05, 0.005, di ? 0.05 : 0.06, PAL.cream2, x + di * (0.3 - m * 0.09) + ox, 0.083, z + dj * (0.3 - m * 0.09) + oz));
+      }
+    }
+    for (let k = 0; k < 4; k++) if (dbl[k]) {   // guard rail along the avenue's outer kerb
+      const kk = (k + 2) % 4, [di, dj] = DIR4[kk]; if (open[kk]) continue;
+      const rx = x + di * 0.3, rz = z + dj * 0.3;
+      for (const t of [-0.33, 0, 0.33]) g.push(box(0.025, 0.13, 0.025, PAL.cream2, rx + (di ? 0 : t), 0.165, rz + (dj ? 0 : t)));
+      g.push(box(di ? 0.03 : 1, 0.035, dj ? 0.03 : 1, PAL.cream2, rx, 0.215, rz));
+    }
     // zebra crossing across one arm of a real junction
     if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
     for (let k = 0; k < 4; k++) if (open[k] && !isDbl) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 + dj * 0.32, 0.105, z + dj * 0.41 - di * 0.32)); g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 - dj * 0.32, 0.105, z + dj * 0.41 + di * 0.32)); }
@@ -222,6 +272,8 @@ function rebuildRoads() {
       lg.push(box(0.36, 0.03, 0.03, PAL.concrete, px, 1.7, pz, d[0] ? Math.PI / 2 : 0)); lg.push(box(0.3, 0.025, 0.025, PAL.concrete, px, 1.55, pz, d[0] ? Math.PI / 2 : 0));
       for (const o of [-0.14, 0.14]) lg.push(cyl(0.018, 0.018, 0.05, PAL.cream2, px + (d[0] ? 0 : o), 1.74, pz + (d[0] ? o : 0), 5));
       lg.push(box(0.1, 0.16, 0.1, PAL.concrete2, px + (d[0] ? 0 : 0.05), 1.3, pz + (d[0] ? 0.05 : 0)));
+      lg.push(cyl(0.05, 0.05, 0.14, PAL.concrete2, px + (d[0] ? 0 : -0.07), 1.47, pz + (d[0] ? -0.07 : 0), 7)); lg.push(box(0.02, 0.06, 0.02, '#4a4340', px + (d[0] ? 0 : -0.07), 1.57, pz + (d[0] ? -0.07 : 0)));   // transformer drum
+      lg.push(box(0.075, 0.22, 0.075, '#e6c25c', px, 0.45, pz)); for (const yy of [0.39, 0.51]) lg.push(box(0.077, 0.035, 0.077, '#4a4340', px, yy, pz));   // striped guard wrap at the base
       poles.push({ p: new THREE.Vector3(px, 1.72, pz), i: c.i, j: c.j });
     }
     // convex traffic mirror at busier corners
@@ -231,6 +283,23 @@ function rebuildRoads() {
       lg.push(cyl(0.018, 0.022, 0.85, PAL.lamp, px, 0.5, pz, 5));
       const ring = new THREE.TorusGeometry(0.075, 0.012, 6, 12); ring.rotateX(0.35); ring.rotateY(Math.atan2(-d[0], -d[1])); ring.translate(px, 0.98, pz); lg.push(colorize(ring, '#e9a25a'));
       const disc = new THREE.CylinderGeometry(0.066, 0.066, 0.012, 12); disc.rotateX(Math.PI / 2 + 0.35); disc.rotateY(Math.atan2(-d[0], -d[1])); disc.translate(px, 0.98, pz); lg.push(colorize(disc, '#cfdbe0'));
+    }
+    // a red post box on the pavement outside a shop
+    if (h > 0.54 && h <= 0.6) {
+      const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot' && n.block && n.block.type === 'shop'; });
+      if (d) {
+        const px = x + d[0] * 0.38 - d[1] * 0.24, pz = z + d[1] * 0.38 + d[0] * 0.24, red = '#c9564b';
+        lg.push(box(0.12, 0.02, 0.12, PAL.concrete2, px, 0.11, pz)); lg.push(box(0.1, 0.22, 0.1, red, px, 0.23, pz)); lg.push(box(0.12, 0.03, 0.12, red, px, 0.355, pz)); lg.push(box(0.06, 0.02, 0.06, red, px, 0.38, pz));
+        lg.push(box(d[0] ? 0.008 : 0.07, 0.012, d[0] ? 0.07 : 0.008, '#4a4340', px - d[0] * 0.052, 0.3, pz - d[1] * 0.052)); lg.push(box(d[0] ? 0.006 : 0.06, 0.05, d[0] ? 0.06 : 0.006, PAL.cream2, px - d[0] * 0.052, 0.2, pz - d[1] * 0.052));
+      }
+    }
+    // a hokora (wayside shrine) on the outer pavement corner of a quiet bend
+    if (deg === 2 && !straight && !isDbl && h > 0.62 && h <= 0.72 && lotAdjacent8(c)) {   // ring-road bends touch their lot only diagonally
+      const arms = DIR4.filter((_, k) => open[k]), sx = -(arms[0][0] + arms[1][0]), sz = -(arms[0][1] + arms[1][1]), px = x + sx * 0.4, pz = z + sz * 0.4, ry = Math.atan2(-sx, -sz);
+      lg.push(box(0.18, 0.06, 0.18, PAL.concrete2, px, 0.13, pz, ry)); lg.push(box(0.12, 0.16, 0.1, PAL.cream, px, 0.24, pz, ry)); lg.push(box(0.1, 0.11, 0.012, K_DARK, px + Math.sin(ry) * 0.05, 0.25, pz + Math.cos(ry) * 0.05, ry));   // stone base, body, the dark opening at the front
+      lg.push(prism(0.24, 0.09, 0.2, PAL.kawara, px, 0.315, pz, ry + Math.PI / 2)); lg.push(box(0.25, 0.02, 0.21, PAL.kawara2, px, 0.318, pz, ry)); lg.push(box(0.03, 0.03, 0.22, PAL.kawara2, px, 0.405, pz, ry + Math.PI / 2));
+      lg.push(box(0.05, 0.045, 0.008, '#c9564b', px + Math.sin(ry) * 0.058, 0.225, pz + Math.cos(ry) * 0.058, ry));   // the little red bib
+      for (const o of [-0.06, 0.06]) lg.push(cyl(0.014, 0.014, 0.04, PAL.cream2, px + Math.cos(ry) * o + Math.sin(ry) * 0.075, 0.18, pz - Math.sin(ry) * o + Math.cos(ry) * 0.075, 5));   // offerings
     }
     // neighbourhood notice board beside residential lots
     if (h > 0.5 && h <= 0.54) {
@@ -471,7 +540,7 @@ function placeBlock(type, sel, preset = null) {
     awning: pick(AWNINGS), family,
     kind: type === 'shop' ? pick(SHOP_KINDS) : type === 'work' ? pick(WORK_KINDS) : null,
     variant: type === 'res' ? (seed < 0.45 ? 'detached' : seed < 0.75 ? 'narrow' : 'apartment') : null,
-    roofStyle: seed < 0.6 ? 'tile' : 'metal',
+    roofStyle: seed < 0.38 ? 'kawara' : seed < 0.68 ? 'tile' : 'metal',   // grey kawara tiles, pastel tiles, or a corrugated metal roof
   };
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
@@ -498,6 +567,6 @@ function onWorldChange(fn) { worldListeners.push(fn); }
 function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { cells, cell, DIR4, treeSpec, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };

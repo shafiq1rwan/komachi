@@ -10,6 +10,19 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Phase 4.8, the Japanese identity pass. Roofs: a third of homes get grey kawara tile roofs, and every tile roof
+  now carries tile courses, a ridge cap with end tiles and deep eaves; two-storey detached houses have a
+  hip-and-gable (irimoya) roof. Houses get a concrete-block wall with the gate slid open in front of the
+  door, a genkan step and a nameplate. Shops hang vertical signboards off the front corner (lit at night on
+  the konbini and the ramen shop), the ramen shop and some cafés hang a noren over the door, the ramen shop a
+  row of red chōchin lanterns that glow after dark, and the konbini fascia lights up as a whole. Level 2+
+  shops carry a rooftop water tank. Laundry and futons hang on balconies between 08:00 and 17:00.
+- Streets: white kerb lines along straight stretches, painted 止まれ stop marks in the near lane on the
+  approaches to T-junctions, white guard rails along avenues, transformer drums and striped guards on the
+  utility poles, a red post box outside some shops, a hokora (wayside shrine) with a red bib on some quiet
+  bends, and a kōban (police box) on the station plaza
+- Greenery: pruned pines (matsu) and bamboo groves among the round trees; pocket parks with a swing, a
+  slide, a bench and a hedge appear on some empty cells beside a street near homes
 - Phase 4.5, water and the coast:
   - A canal from shore to shore on the pier's side of the island, laid in straight runs with right-angle
     bends, stone banks with copings, reeds and a grey heron. Nothing is built in it; zone on both banks and
@@ -45,6 +58,16 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: a Phase 4.8 Japanese identity pass (roofs and walls, signage, street details, greenery,
+  balcony life) now comes before the economy phase
+- Vehicles are a third larger (a sedan is about two people long); traffic keeps a longer gap to match
+- The station plaza stays alive: a hopeful still steps off now and then when every bed is taken, commuters wait
+  on the plaza when their train is due, and most pause on a bench or by the planters when they get back
+- Inspect cards no longer scroll: long activity text wraps under the name, the station list shows eight
+  people with an "and N more" line, and on phones the card is a compact panel under the clock at the top right
+- HUD cards have equal padding on both sides; a folded panel no longer leaves a gap on the right
+- Canal: the ripples now run along each stretch in the direction of flow, from one shore to the other,
+  and the vertical stone walls became sloped grass banks with a low stone kerb
 - Bridges have no centre line, and their railings sit only on the sides without a street, so a bridge on a
   bend stays open where the road turns; the canal mouth is a stepped cascade onto the beach and into the sea
 - Small screens keep the two HUD cards side by side with smaller chips, buttons and clock, the town figures
@@ -79,6 +102,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   Kenney accessories and wheelchairs, stray atlas copies and an unreferenced doc screenshot
 - Kenney Mini Characters are now the default people; `?boxes` brings back the box figures (they also
   remain the fallback if the models fail to load)
+
+### Fixed
+
+- Dusk and dawn no longer flash: the sun slides over to the moon's position as the light fades instead of
+  snapping there at 19:30 and 05:30 (shadows used to flip and the scene got brighter for a frame)
 
 ## [0.2.0] - 2026-09-16
 

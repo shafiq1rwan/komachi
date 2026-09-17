@@ -50,6 +50,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   relative path, so the loader's URL modifier points them at the bundled copy.
 - Vehicles are Kenney Car Kit models via `src/vehicles.js` (same atlas-bake and repaint idea; `attachVehicle`
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
+- Roof styles: `kawara` (grey tiles, irimoya from level 2), `tile`, `metal`; the kit's Japanese parts are
+  `kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry` (laundry goes to the `LG` list, its own mesh).
 - Cells: `water | hill | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
   zoned over road cells (`placeable` in world.js), never over the station ring, ramp roads (`c.keep`)
   or across two terraces. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
@@ -100,8 +102,9 @@ Open threads the user has not decided:
 - Kenney people: watch performance past ~100 people (each is ~1,400 tris); a LOD swap to box people when far is the likely fix.
 
 Phases 4 and 4.5 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, traffic lights, hill unlock;
-canal with bridges, coast road). Next is Phase 5 (economy, dynamic businesses, hill plot market) when the
-user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
+canal with bridges, coast road). Phase 4.8 (Japanese identity pass) shipped the same day: roof styles are now `kawara | tile | metal`,
+`u.laundry` is a per-unit mesh toggled by the hour in daynight.js, `parkCells` in world.js lists pocket
+parks. Next is Phase 5 (economy, dynamic businesses, hill plot market) when the user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
 scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
 Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
 shape changes incompatibly).
@@ -117,6 +120,8 @@ Full detail per phase lives in docs/ROADMAP.md; keep both in step when a phase i
    3.5 ✅ buildable hill terraces with slope roads
 4. ✅ Station commuting, bikes, taxis, traffic lights, hill unlock at 60 residents
    4.5 ✅ canal with bridges, coast road (overpass/tunnel still optional, not built)
+   4.8 ✅ Japanese identity pass: kawara roofs and block walls, signage (noren, chōchin, konbini), street
+       details (tomare marks, post box, kōban, pole transformers), pines and bamboo, laundry on balconies
 5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism

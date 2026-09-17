@@ -7,7 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { box, colorize, mergeMesh } from './geometry.js';
 
-const SCALE = 0.17;                 // a sedan is 2.55 long in the kit; about 0.43 here, one and a half people long
+const SCALE = 0.23;                 // a sedan is 2.55 long in the kit; about 0.59 here, close to two people long (people are 0.31 tall)
 const MODEL = { kei: 'sedan', hatch: 'hatchback-sports', suv: 'suv', van: 'van', truck: 'truck-flat', taxi: 'taxi', garbage: 'garbage-truck', delivery: 'delivery' };
 const NO_REPAINT = new Set(['taxi']);   // keeps its own livery
 const urls = import.meta.glob('../assets/vehicle/{sedan,hatchback-sports,suv,van,truck-flat,taxi,garbage-truck,delivery}.glb', { eager: true, query: '?url', import: 'default' });
@@ -93,7 +93,7 @@ function boxCar(grp, color, kind) {
   else { g.push(box(0.42, 0.16, 0.27, color, 0, 0.14, 0)); g.push(box(0.32, 0.16, 0.25, color, -0.03, 0.3, 0)); g.push(box(0.33, 0.1, 0.23, glass, -0.03, 0.31, 0)); g.push(box(0.04, 0.03, 0.2, dark, -0.2, 0.2, 0)); }
   const wheelX = kind === 'kei' ? 0.13 : 0.16;
   for (const [x, z] of [[-wheelX, -0.13], [wheelX, -0.13], [-wheelX, 0.13], [wheelX, 0.13]]) { const wgm = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 8); wgm.rotateX(Math.PI / 2); wgm.translate(x, 0.07, z); g.push(colorize(wgm, dark)); }
-  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(0.8); grp.add(inner);
+  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(1.05); grp.add(inner);
   inner.add(mergeMesh(g, false));
   const front = kind === 'kei' ? 0.21 : 0.25;
   const lights = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.24), lightMat()); lights.position.set(front, 0.13, 0); inner.add(lights); grp.userData.lights = lights;
@@ -106,7 +106,7 @@ export function attachVehicle(grp, color, kind = 'kei') {
   if (!model) { boxCar(grp, color, kind); if (!models.size) pending.push({ grp, color, kind }); return; }
   const root = instance(model, color, !NO_REPAINT.has(kind)); grp.add(root);
   const [fz, bz] = model.lightsZ;
-  const lights = new THREE.Mesh(new THREE.BoxGeometry(0.14, 0.03, 0.02), lightMat()); lights.position.set(0, 0.09, fz * SCALE + 0.004); grp.add(lights); grp.userData.lights = lights;
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.13, 0.025, 0.015), tailMat()); tail.position.set(0, 0.09, bz * SCALE - 0.004); grp.add(tail); grp.userData.tail = tail;
+  const lights = new THREE.Mesh(new THREE.BoxGeometry(0.19, 0.04, 0.025), lightMat()); lights.position.set(0, 0.12, fz * SCALE + 0.004); grp.add(lights); grp.userData.lights = lights;
+  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.17, 0.034, 0.02), tailMat()); tail.position.set(0, 0.12, bz * SCALE - 0.004); grp.add(tail); grp.userData.tail = tail;
 }
 export const vehiclesAvailable = () => models.size > 0;
