@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi · Dolphin study</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#e2eee9;color:#3d5657;font:16px system-ui,sans-serif}header{position:absolute;top:40px;left:48px;pointer-events:none}small{letter-spacing:.2em;text-transform:uppercase;font-size:11px}h1{font-size:38px;font-weight:550;margin:9px 0}p{color:#657e7c;font-size:14px}canvas{display:block}footer{position:absolute;bottom:30px;left:48px;right:48px;display:flex;align-items:center;justify-content:space-between}button{border:1px solid #b2c9c2;border-radius:20px;padding:10px 17px;background:#f6faf7;color:inherit;cursor:pointer}button[aria-pressed=true]{background:#526e70;color:white}nav{display:flex;gap:8px}
+</style></head><body><header><small>Komachi / Character study 02</small><h1>A little ocean wanderer.</h1><p>Soft blue. Gentle fins. A playful flick of the tail.</p></header><footer><small>Original low-poly dolphin · drag to orbit</small><nav><button id="motion" aria-pressed="false">Swim</button><button id="export">Download GLB</button></nav></footer>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { createDolphin, dolphinClips } from '../src/dolphins.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#e2eee9');
+const camera=new THREE.PerspectiveCamera(32,innerWidth/innerHeight,.1,100);camera.position.set(5,2.8,4.3);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(devicePixelRatio);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.62,0);controls.enableDamping=true;controls.update();
+scene.add(new THREE.HemisphereLight('#f8fcff','#9cbbba',2.5));const light=new THREE.DirectionalLight('#fff6e4',3);light.position.set(-3,7,5);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-5,right:5,top:5,bottom:-5});light.shadow.normalBias=.015;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#e2eee9',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const dolphin=createDolphin();dolphin.position.y=.95;scene.add(dolphin);
+const mixer=new THREE.AnimationMixer(dolphin),action=mixer.clipAction(dolphinClips()[0]);action.play();action.paused=true;
+document.querySelector('#motion').onclick=e=>{action.paused=!action.paused;e.target.setAttribute('aria-pressed',!action.paused);e.target.textContent=action.paused?'Swim':'Pause';};
+document.querySelector('#export').onclick=async()=>{const data=await new GLTFExporter().parseAsync(createDolphin(),{binary:true,animations:dolphinClips()});const url=URL.createObjectURL(new Blob([data],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download='komachi-dolphin.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{mixer.update(Math.min(clock.getDelta(),.05));controls.update();renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+window.dolphinPreview={dolphin,scene,renderer,camera,controls};
+</script></body></html>

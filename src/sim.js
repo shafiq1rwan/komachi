@@ -1,11 +1,12 @@
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
-import { PAL, GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
+import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
 import { rand, pick, clamp, smooth, hash } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
-import { box, colorize, mergeMesh } from './geometry.js';
+import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { attachCharacter, detachCharacter } from './characters.js';
+import { attachVehicle } from './vehicles.js';
 import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads } from './world.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
@@ -91,38 +92,13 @@ function setPose(r, sitting) {
   if (d.char) { d.char.sitting = sitting; return; }
   if (d.legs) { d.legs.rotation.x = sitting ? -Math.PI / 2 : 0; d.upper.rotation.x = sitting ? -0.08 : 0; }
 }
+/** a vehicle group whose forward is +z: the Car Kit model when loaded, a box car until then (see vehicles.js) */
 function makeCar(color, kind = 'kei') {
-  const grp = new THREE.Group(); const g = [];
-  const dark = '#4a4340', glass = '#d8e3e8';
-  if (kind === 'van') {          // boxy delivery van
-    g.push(box(0.52, 0.3, 0.28, color, 0, 0.21, 0)); g.push(box(0.12, 0.12, 0.24, glass, 0.2, 0.28, 0)); g.push(box(0.26, 0.1, 0.29, glass, -0.08, 0.28, 0)); g.push(box(0.3, 0.04, 0.3, PAL.cream2, -0.06, 0.37, 0));
-  } else if (kind === 'truck') { // kei truck with a flat bed
-    g.push(box(0.16, 0.26, 0.26, color, 0.16, 0.2, 0)); g.push(box(0.1, 0.12, 0.22, glass, 0.21, 0.27, 0)); g.push(box(0.3, 0.06, 0.28, color, -0.09, 0.14, 0));
-    for (const zz of [-0.13, 0.13]) g.push(box(0.3, 0.08, 0.02, color, -0.09, 0.2, zz)); g.push(box(0.02, 0.08, 0.28, color, -0.23, 0.2, 0));
-    if (Math.random() < 0.6) g.push(box(0.14, 0.1, 0.14, PAL.wood2, -0.1, 0.22, 0));
-  } else if (kind === 'taxi') {  // pastel taxi with a roof sign
-    g.push(box(0.5, 0.15, 0.28, '#e8cf7a', 0, 0.135, 0)); g.push(box(0.28, 0.13, 0.24, '#e8cf7a', -0.02, 0.27, 0)); g.push(box(0.29, 0.09, 0.22, glass, -0.02, 0.27, 0)); g.push(box(0.08, 0.04, 0.12, PAL.roofRose, -0.02, 0.355, 0));
-  } else if (kind === 'hatch') { // compact hatchback
-    g.push(box(0.5, 0.16, 0.28, color, 0, 0.14, 0)); g.push(box(0.28, 0.14, 0.24, color, -0.02, 0.29, 0)); g.push(box(0.29, 0.1, 0.22, glass, -0.02, 0.29, 0));
-  } else {                       // kei car: short, tall, upright cabin
-    g.push(box(0.42, 0.16, 0.27, color, 0, 0.14, 0)); g.push(box(0.32, 0.16, 0.25, color, -0.03, 0.3, 0)); g.push(box(0.33, 0.1, 0.23, glass, -0.03, 0.31, 0)); g.push(box(0.04, 0.03, 0.2, dark, -0.2, 0.2, 0));
-  }
-  const wheelX = kind === 'kei' ? 0.13 : 0.16;
-  for (const [x, z] of [[-wheelX, -0.13], [wheelX, -0.13], [-wheelX, 0.13], [wheelX, 0.13]]) { const wgm = new THREE.CylinderGeometry(0.06, 0.06, 0.05, 8); wgm.rotateX(Math.PI / 2); wgm.translate(x, 0.07, z); g.push(colorize(wgm, dark)); }
-  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(0.8); grp.add(inner);   // model faces +x; forward is +z; a touch smaller than the boxes suggest
-  const m = mergeMesh(g, false); inner.add(m);
-  const front = kind === 'kei' ? 0.21 : kind === 'van' || kind === 'truck' ? 0.26 : 0.25;
-  const lights = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.05, 0.24), new THREE.MeshStandardMaterial({ color: '#fff6dd', emissive: '#ffe2a8', emissiveIntensity: 0 })); lights.position.set(front, 0.13, 0); inner.add(lights); grp.userData.lights = lights;
-  const tail = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.04, 0.22), new THREE.MeshStandardMaterial({ color: '#d98b7a', emissive: '#e07060', emissiveIntensity: 0 })); tail.position.set(-front, 0.13, 0); inner.add(tail); grp.userData.tail = tail;
+  const grp = new THREE.Group(); attachVehicle(grp, color, kind);
   carMeshes.push(grp); grp.visible = false; peopleGroup.add(grp); return grp;
 }
 function makeCat(color) {
-  const grp = new THREE.Group(); const g = [];
-  g.push(box(0.2, 0.09, 0.1, color, 0, 0.08, 0)); const hd = new THREE.SphereGeometry(0.06, 7, 5); hd.translate(0.12, 0.14, 0); g.push(colorize(hd, color));
-  g.push(box(0.03, 0.04, 0.03, color, 0.14, 0.19, -0.03)); g.push(box(0.03, 0.04, 0.03, color, 0.14, 0.19, 0.03));
-  g.push(box(0.12, 0.03, 0.03, color, -0.14, 0.13, 0, 0)); for (const [x, z] of [[-0.07, -0.03], [0.07, -0.03], [-0.07, 0.03], [0.07, 0.03]]) g.push(box(0.03, 0.05, 0.03, color, x, 0.025, z));
-  const inner = new THREE.Group(); inner.rotation.y = -Math.PI / 2; inner.scale.setScalar(0.8); grp.add(inner);
-  const m = mergeMesh(g, false); inner.add(m); peopleGroup.add(grp); return grp;
+  const grp = createCat(color); peopleGroup.add(grp); return grp;
 }
 
 // ───────────────────────────── residents ─────────────────────────────
@@ -198,7 +174,7 @@ function baseResident(name, hh) {
     wake, workStart: clamp(wake + rand(0.5, 1.5), 7, 10.5), workEnd: rand(16.5, 18.5), hasCar: Math.random() < 0.35, lastWorkDay: -1, lunched: -1, returnTo: null, until: 0, purpose: null, jobSearchAt: S.T + rand(0.2, 1),
     needs: freshNeeds(), needsT: S.T, actKind: 'wait', far: false, lodDist: 0, carAt: null,
     skin: pick(SKIN), shirt: pick(SHIRTS), pants: pick(['#6b6f7a', '#8a7a6f', '#4a4340', '#9aa4aa', '#7f9b7a']), hair: pick(HAIR), hat: Math.random() < 0.3, hatColor: pick(SHIRTS), bag: Math.random() < 0.45, bagColor: pick(['#4a4340', '#a3764a', '#d98b7a', '#6f9a96']),
-    trip: null, mesh: null, car: null, carColor: pick(CARS), carKind: pick(['kei', 'kei', 'kei', 'hatch', 'van']), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(), arrivedT: S.T,
+    trip: null, mesh: null, car: null, carColor: pick(CARS), carKind: pick(['kei', 'kei', 'hatch', 'hatch', 'suv', 'van']), phase: rand(0, 6.28), spot: null, vendingAt: null, movingIn: false, arrivedDay: dayOf(), arrivedT: S.T,
   };
 }
 
@@ -497,6 +473,21 @@ function decide(r) {
   r.next = S.T + rand(0.3, 0.8);
 }
 
+// ── traffic: a vehicle slows for another one close ahead in its own lane (same heading, small side offset) ──
+const tfFwd = new THREE.Vector3(), tfRel = new THREE.Vector3();
+function trafficFactor(obj) {
+  let f = 1; tfFwd.set(Math.sin(obj.rotation.y), 0, Math.cos(obj.rotation.y));
+  for (const v of carMeshes) {
+    if (v === obj || !v.visible) continue;
+    tfRel.subVectors(v.position, obj.position); tfRel.y = 0;
+    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 0.75) continue;
+    const cross = tfRel.x * tfFwd.z - tfRel.z * tfFwd.x, side = Math.abs(cross);
+    const same = Math.sin(v.rotation.y) * tfFwd.x + Math.cos(v.rotation.y) * tfFwd.z;
+    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.42) / 0.25, 0, 1)); }          // a queue: hold back from the car in front
+    else if (same > -0.3 && side <= 0.4 && cross > 0) f = Math.min(f, clamp((ahead - 0.45) / 0.2, 0, 1));   // a junction: give way to a car crossing from the left (never mutual, so no deadlock)
+  }
+  return f;
+}
 function moveAlong(obj, tr, dist) {
   const pts = tr.pts;
   while (dist > 0 && tr.i < pts.length - 1) {
@@ -535,6 +526,7 @@ function updateResidents(simDt, realT) {
     if ((frameNo + r.id) % 20 === 0) { lodV.copy(obj.position).project(camera); r.far = farZoom || Math.abs(lodV.x) > 1.15 || Math.abs(lodV.y) > 1.15; }
     r.lodDist += tr.speed * simDt;
     if (r.far && (frameNo + r.id) % 6 !== 0) continue;
+    if (tr.drive) r.lodDist *= trafficFactor(obj);
     const done = moveAlong(obj, tr, r.lodDist); r.lodDist = 0;
     if (!tr.drive && !r.far && !r.mesh.userData.char) r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
     if (done) arrive(r);
@@ -546,8 +538,9 @@ function roadCellsList() { return cells.filter(c => c.type === 'road'); }
 function spawnWanderer(kind) {
   const roads = roadCellsList(); if (!roads.length) return;
   const c = pick(roads);
-  const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch'])) : makeCat(pick(['#e9d5b8', '#7a706a', '#f0b48b', '#4a4340', '#f7efe2'])), trip: null, pause: 0, dead: false };
-  w.mesh.visible = true; w.mesh.position.set(cx(c.i), kind === 'car' ? 0.08 : 0.1, cz(c.j)); wanderers.push(w);
+  if (kind === 'car' && carMeshes.some(m => m.visible && Math.hypot(m.position.x - cx(c.i), m.position.z - cz(c.j)) < 0.6)) return;   // do not spawn onto another car
+  const w = { kind, cell: c, mesh: kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch', 'suv', 'delivery'])) : makeCat(pick(CAT_COATS)), trip: null, pause: 0, dead: false };
+  w.mesh.visible = true; w.mesh.position.set(cx(c.i), (c.h || 0) + (kind === 'car' ? 0.08 : 0.1), cz(c.j)); wanderers.push(w);
 }
 function wanderPick(w) {
   const roads = roadCellsList(); for (let k = 0; k < 6; k++) {
@@ -567,10 +560,11 @@ function updateWanderers(simDt) {
     const w = wanderers[k];
     const excess = (w.kind === 'car' && cars.length > wantCars) || (w.kind === 'cat' && cats.length > wantCats);
     if (w.dead || (excess && !w.trip)) { peopleGroup.remove(w.mesh); disposeGroup(w.mesh); const ci = carMeshes.indexOf(w.mesh); if (ci >= 0) carMeshes.splice(ci, 1); wanderers.splice(k, 1); continue; }
+    if (w.kind === 'cat') updateCat(w.mesh, simDt, w.pause <= 0 && !!w.trip);
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
-    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt)) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : rand(0.2, 1.5); }
-    if (w.kind === 'cat') w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1 + Math.abs(Math.sin(performance.now() * 0.012)) * 0.01;
+    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : rand(0.2, 1.5); }
+    if (w.kind === 'cat') { w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1; if (!w.trip) updateCat(w.mesh, 0, false); }
   }
 }
 
@@ -642,7 +636,7 @@ function removeBlock(block) {
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }
   blocks.splice(blocks.indexOf(block), 1);
-  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
+  for (const c of cells) if (c.type === 'road' && !c.keep && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } c.link = false; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
   connectHillRoads();   // hill links were cleared with the orphans; rebuild them for the blocks that remain
   refreshWorld();
 }
@@ -651,4 +645,4 @@ onWorldChange(() => { pathCache.clear(); for (const w of wanderers) if (w.cell &
 
 export { HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
-  roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, unitPos, setProgressRate, onTrain };
+  roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, trafficFactor, unitPos, setProgressRate, onTrain };

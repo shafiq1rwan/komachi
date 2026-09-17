@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi · Builder workshop</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#ede9df;color:#49473e;font:16px system-ui}header{position:absolute;top:38px;left:46px}small{letter-spacing:.18em;text-transform:uppercase;font-size:11px}h1{font-size:36px;font-weight:550;margin:10px 0}p{color:#787568;font-size:14px}canvas{display:block}footer{position:absolute;bottom:28px;left:46px;right:46px;display:flex;justify-content:space-between;align-items:center}button,select{border:1px solid #c7c3b5;border-radius:20px;padding:10px 17px;background:#faf8f0;color:inherit;cursor:pointer}nav{display:flex;gap:8px}</style></head>
+<body><header><small>Komachi / Builder workshop</small><h1>Ready for the worksite.</h1><p>Fitted hard hat. Reflective vest. The original Kenney rig.</p></header><footer><small>Kenney Mini Characters derivative · drag to orbit</small><nav><select id="pose"><option value="idle">Idle</option><option value="walk">Walk</option><option value="attack-melee-right">Hammer</option><option value="crouch">Crouch</option><option value="holding-both">Carry</option></select><button id="download">Download GLB</button></nav></footer>
+<script type="module">
+import * as THREE from 'three';
+import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {GLTFLoader} from 'three/addons/loaders/GLTFLoader.js';
+import {GLTFExporter} from 'three/addons/exporters/GLTFExporter.js';
+import {dressBuilder} from '../src/builder-model.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#ede9df');
+const camera=new THREE.PerspectiveCamera(32,innerWidth/innerHeight,.01,50);camera.position.set(1.25,.95,2.25);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(devicePixelRatio);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.36,0);controls.enableDamping=true;controls.update();
+scene.add(new THREE.HemisphereLight('#fff9ea','#a8b7ac',2.4));const light=new THREE.DirectionalLight('#fff4de',3);light.position.set(-2,4,3);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-2,right:2,top:2,bottom:-2});light.shadow.normalBias=.002;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#ede9df',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;scene.add(floor);
+const manager=new THREE.LoadingManager();manager.setURLModifier(u=>/colormap.png$/i.test(u)?'/assets/characters/kenney/Textures/colormap.png':u);
+const source=new URLSearchParams(location.search).has('source');
+const gltf=await new GLTFLoader(manager).loadAsync(source?'/assets/characters/builder/kenney-source.glb':'/assets/characters/builder/komachi-builder.glb');
+if(source)dressBuilder(gltf);
+scene.add(gltf.scene);gltf.scene.traverse(o=>{if(o.isMesh){o.castShadow=true;o.frustumCulled=false;}});
+const mixer=new THREE.AnimationMixer(gltf.scene);let action;
+function pose(name){mixer.stopAllAction();action=mixer.clipAction(gltf.animations.find(c=>c.name===name));action.play();mixer.update(0);}
+pose('idle');document.querySelector('#pose').onchange=e=>pose(e.target.value);
+async function exportAsset(){mixer.stopAllAction();gltf.scene.updateMatrixWorld(true);return new GLTFExporter().parseAsync(gltf.scene,{binary:true,animations:gltf.animations});}
+document.querySelector('#download').onclick=async()=>{const binary=await exportAsset(),url=URL.createObjectURL(new Blob([binary],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download='komachi-builder.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);pose('idle');};
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{mixer.update(Math.min(clock.getDelta(),.05));controls.update();renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+window.builderPreview={gltf,mixer,pose,exportAsset,scene,camera,renderer,controls};
+</script></body></html>

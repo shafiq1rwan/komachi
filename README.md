@@ -47,7 +47,7 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons in the clock card, or Space to pause |
-| Look | "Pixel look" toggles the half-resolution chunky render; the sliders button also holds Centre and Start over |
+| Look | "Pixel look" toggles the half-resolution chunky render; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
 
 Some things worth knowing:
 
@@ -58,12 +58,13 @@ Some things worth knowing:
   06:00. Hover the station to see who is waiting and when the next train is due.
 - If a house loses its residents (you removed it), they walk back to the station and wait again.
 - **The island is the world.** An organic coastline with beaches, rocky stretches and grassy
-  cliffs, a pier and a boat, and a terraced hill with a shrine on the far side from the pier. Zoom out
-  to see all of it; nothing can be built in the water.
+  cliffs, a pier and a boat, and a terraced hill with a shrine on the far side from the pier. Waves lap
+  the beaches, fish leap and a fishing boat circles offshore. Zoom out to see all of it; nothing can be
+  built in the water.
 - **Build up the hill.** The hill rises in three terraces. Each terrace cell is a plot at its own
-  height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. Two
-  slope roads on the town side climb from terrace to terrace; zone next to their feet and your streets
-  join up, and residents walk and drive up the slopes to hillside homes with a view.
+  height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. A hill
+  block gets one street in front, facing the town, and the town builds whatever slope roads and links
+  are needed to join it to the streets below; residents walk and drive up to hillside homes with a view.
 - **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
   junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
   Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.
@@ -114,9 +115,15 @@ src/
   island.js           organic coastline, beach terrace, rocks, pier; land/water test
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
+  cats.js             original low-poly cats, coat colours and walk/idle motion
+  dolphins.js         standalone low-poly dolphin asset and swim animation
   construction.js     builders, crews riding the trains, material deliveries
   characters.js       rigged people (Kenney Mini Characters): loading, per-person recolour, animation
-assets/characters/    Kenney Mini Characters (CC0) under kenney/, plus the earlier custom model
+  vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
+  sea.js              waves, jumping fish, a school near the shore, the fishing boat
+assets/characters/    Kenney Mini Characters (CC0) under kenney/
+assets/vehicle/       Kenney Car Kit models (CC0) and their atlas
+assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few kept for later
   sim.js              time, road routing, residents and schedules, ambient traffic, growth
   daynight.js         sky, lights and emissive glow over the day
   ui.js               inspect card and stats strip
@@ -151,8 +158,9 @@ works from any static host or sub-folder.
 
 Vanilla JavaScript, [Three.js](https://threejs.org/) and [Vite](https://vitejs.dev/), with
 [Font Awesome](https://fontawesome.com/) for UI icons. No framework. Buildings, trees, vehicles and props are generated from boxes, prisms and dodecahedra
-at runtime, people included. Rigged people from [Kenney's Mini Characters](https://kenney.nl) (CC0)
-can be switched on with `?rigged` for comparison.
+at runtime. People are [Kenney's Mini Characters](https://kenney.nl) (CC0) and vehicles come from
+Kenney's Car Kit (CC0), both recoloured per owner;
+`?boxes` brings back the original generated box people.
 
 ## License
 

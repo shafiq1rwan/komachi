@@ -48,9 +48,16 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
   water.rotation.x = -Math.PI / 2; water.position.y = -0.78; water.receiveShadow = true; scene.add(water);
   // soft ripple layers: a canvas of blurry lighter blobs, tiled and slowly drifted in two directions
   const rc = document.createElement('canvas'); rc.width = rc.height = 256; const ctx = rc.getContext('2d');
-  for (let k = 0; k < 34; k++) { const rx = rng() * 256, rz = rng() * 256, rr = 10 + rng() * 26; const grd = ctx.createRadialGradient(rx, rz, 0, rx, rz, rr); grd.addColorStop(0, 'rgba(232,246,240,0.55)'); grd.addColorStop(1, 'rgba(232,246,240,0)'); ctx.fillStyle = grd; ctx.beginPath(); ctx.ellipse(rx, rz, rr * 1.6, rr * 0.7, rng() * 3, 0, 6.29); ctx.fill(); }
+  // every streak is drawn at the eight wrapped offsets too, so the tile repeats without visible edges
+  for (let k = 0; k < 40; k++) {
+    const rx = rng() * 256, rz = rng() * 256, rr = 8 + rng() * 18, rot = rng() * 3, a = 0.3 + rng() * 0.25;
+    for (const ox of [-256, 0, 256]) for (const oz of [-256, 0, 256]) {
+      const grd = ctx.createRadialGradient(rx + ox, rz + oz, 0, rx + ox, rz + oz, rr * 2.2); grd.addColorStop(0, `rgba(232,246,240,${a})`); grd.addColorStop(0.5, `rgba(232,246,240,${a * 0.35})`); grd.addColorStop(1, 'rgba(232,246,240,0)');
+      ctx.fillStyle = grd; ctx.beginPath(); ctx.ellipse(rx + ox, rz + oz, rr * 2.2, rr * 0.8, rot, 0, 6.29); ctx.fill();
+    }
+  }
   const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace;
-  for (const [rep, y, op] of [[18, -0.776, 0.38], [11, -0.774, 0.22]]) {
+  for (const [rep, y, op] of [[16, -0.776, 0.3], [9, -0.774, 0.18]]) {
     const t = rt.clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
     const m = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: op, depthWrite: false }));
     m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); rippleLayers.push({ t, speed: rep === 14 ? [0.004, 0.0025] : [-0.002, 0.0035] });
@@ -179,4 +186,5 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
 }
 
 const hillCentre = { x: HX, z: HZ };
-export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash };
+const islandEllipse = [SX, SZ];
+export { isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse };

@@ -1,5 +1,5 @@
 // Komachi — rigged people from Kenney's "Mini Characters" pack (CC0, assets/characters/kenney/).
-// Opt-in with ?rigged; the box people stay the default. Every character GLB in the folder is loaded once;
+// The default look since 2026-09-17 (?boxes brings back the box people). Every character GLB in the folder is loaded once;
 // each person gets a clone of one variant, recoloured from their look (skin, shirt, trousers, hair) by
 // baking the shared colour atlas into vertex colours and repainting by body part. Animations: idle, walk,
 // sit. Falls back to the box people if nothing loads, so the game never depends on the files being there.
@@ -89,7 +89,7 @@ async function loadVariant(url) {
   let headTop = 0.67; gltf.scene.traverse(o => { if (o.isSkinnedMesh && o.name === 'head-mesh') { o.geometry.computeBoundingBox(); headTop = o.geometry.boundingBox.max.y; } });
   return { scene: gltf.scene, clips: gltf.animations, geoms, headTop };
 }
-// The box people are the default look; the rigged models are opt-in with ?rigged (kept for comparison).
+// The rigged people are the default; ?boxes keeps the original box people (and any load failure falls back to them).
 export const characterReady = !S.rigged ? Promise.resolve() : Promise.all(Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; }))).then(list => {
   for (const v of list) if (v) variants.push(v);
   if (!variants.length) { console.warn('Komachi: no rigged characters loaded, using box people'); return; }
@@ -99,7 +99,7 @@ export const characterReady = !S.rigged ? Promise.resolve() : Promise.all(Object
 
 export const characterAvailable = () => variants.length > 0;
 
-/** the original box person, kept as the fallback and the default */
+/** the original box person, kept as the fallback and the ?boxes look */
 function boxPerson(look) {
   const rig = new THREE.Group(); rig.scale.setScalar(0.7);
   const legs = mergeMesh([box(0.15, 0.13, 0.11, look.pants, 0, -0.065, 0)], false); legs.position.y = 0.13; legs.castShadow = true; rig.add(legs);

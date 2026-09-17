@@ -10,7 +10,7 @@ import { blocks, STATION, DONE, terrainY } from './world.js';
 import { unitLocal, dims } from './buildings.js';
 import * as THREE from 'three';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
-import { hourOf, routeCells, roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, setProgressRate, onTrain, carMeshes } from './sim.js';
+import { hourOf, routeCells, roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, setProgressRate, onTrain, carMeshes, trafficFactor } from './sim.js';
 import { toast } from './toast.js';
 
 const workers = [], trucks = [], pending = [];      // pending: { t, fn } things that happen a little after a train pulls in
@@ -203,7 +203,7 @@ function updateConstruction(dh, simDt, realT) {
   }
   for (let i = trucks.length - 1; i >= 0; i--) {
     const tr = trucks[i];
-    if (tr.state === 'toSite') { if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt)) { tr.state = 'unloading'; tr.wait = 0.35; } }
+    if (tr.state === 'toSite') { if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt * trafficFactor(tr.mesh))) { tr.state = 'unloading'; tr.wait = 0.35; } }
     else if (tr.state === 'unloading') {
       tr.wait -= dh;
       if (tr.wait <= 0) {
@@ -212,7 +212,7 @@ function updateConstruction(dh, simDt, realT) {
         const end = unitLocal({ cell: stationRoads()[0], facing: 0 }, 0, 0, 0.08);
         tr.trip = { pts: buildPoints(path, tr.mesh.position.clone().setY(0.08), end, 0.17, 0.08, -1), i: 0, t: 0, speed: 2.2 }; tr.state = 'back';
       }
-    } else if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt)) removeTruck(tr);
+    } else if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt * trafficFactor(tr.mesh))) removeTruck(tr);
   }
 }
 

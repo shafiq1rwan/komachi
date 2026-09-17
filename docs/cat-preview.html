@@ -1,0 +1,24 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi · Cat study</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#ede9df;color:#49473e;font:16px system-ui,sans-serif}header{position:absolute;top:40px;left:48px;pointer-events:none}small{letter-spacing:.2em;text-transform:uppercase;font-size:11px}h1{font-size:38px;font-weight:550;margin:9px 0}p{color:#787568;font-size:14px}canvas{display:block}footer{position:absolute;bottom:30px;left:48px;right:48px;display:flex;align-items:center;justify-content:space-between}button{border:1px solid #c7c3b5;border-radius:20px;padding:10px 17px;background:#faf8f0;color:inherit;cursor:pointer}button[aria-pressed=true]{background:#526557;color:white}nav{display:flex;gap:8px}
+</style></head><body><header><small>Komachi / Character study 01</small><h1>The neighbourhood cat.</h1><p>Soft bevels. Tiny paws. A curious little face.</p></header><footer><small>Original low-poly model · drag to orbit</small><nav><button id="motion" aria-pressed="false">Walk</button><button id="export">Download GLB</button></nav></footer>
+<script type="module">
+import * as THREE from 'three';
+import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { createCat, updateCat, CAT_COATS, catClips } from '../src/cats.js';
+const scene = new THREE.Scene(); scene.background = new THREE.Color('#ede9df');
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.1, 100); camera.position.set(3.6, 2.6, 5.6);
+const renderer = new THREE.WebGLRenderer({ antialias:true, preserveDrawingBuffer:true }); renderer.setSize(innerWidth,innerHeight); renderer.setPixelRatio(devicePixelRatio); renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap; renderer.toneMapping=THREE.ACESFilmicToneMapping; renderer.toneMappingExposure=1.25; document.body.appendChild(renderer.domElement);
+const controls = new OrbitControls(camera,renderer.domElement); controls.target.set(0,0.45,0); controls.enableDamping=true; controls.update();
+scene.add(new THREE.HemisphereLight('#fff9ea','#a8b7ac',2.5)); const light=new THREE.DirectionalLight('#fff4de',3.5); light.position.set(-3,6,4); light.castShadow=true; light.shadow.mapSize.set(2048,2048); light.shadow.camera.left=-5;light.shadow.camera.right=5;light.shadow.camera.top=5;light.shadow.camera.bottom=-5;light.shadow.normalBias=.025;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#ede9df',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=-.015;scene.add(floor);
+const cats=[createCat(CAT_COATS[0],1),createCat(CAT_COATS[2],.72),createCat(CAT_COATS[4],.72)];
+cats[0].position.set(0,0,.45); cats[0].rotation.y=.2;cats[1].position.set(-1.25,0,-.35);cats[1].rotation.y=.45;cats[2].position.set(1.05,0,-.5);cats[2].rotation.y=-.45;cats.forEach(c=>scene.add(c));
+let walking=false;document.querySelector('#motion').onclick=e=>{walking=!walking;e.target.setAttribute('aria-pressed',walking);e.target.textContent=walking?'Idle':'Walk';};
+document.querySelector('#export').onclick=async()=>{const data=await new GLTFExporter().parseAsync(createCat(),{binary:true,animations:catClips()});const url=URL.createObjectURL(new Blob([data],{type:'model/gltf-binary'}));const a=document.createElement('a');a.href=url;a.download='komachi-cat.glb';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{const dt=Math.min(clock.getDelta(),.05);cats.forEach(c=>updateCat(c,dt,walking));controls.update();renderer.render(scene,camera);});
+addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});
+window.catPreview={cats,scene,renderer,camera};
+</script></body></html>

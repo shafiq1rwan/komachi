@@ -26,7 +26,7 @@ box per cell (earth sides, grass cap) so walls fall on cell edges and every hill
 wild woods (type `hill`: the summit and about 38 % of cells by hash), or part of a ramp. Ramps are found
 along the grid axis from the hill centre toward the town: for each lip, three permanent road cells
 (`c.keep`) L → R → H, with `c.ramp = { h0, h1, di, dj }` on R and a wedge under the tilted asphalt.
-`ringRoads` only writes roads on the block's own terrace. `connectHillRoads` (called from `placeBlock` and
+`ringRoads` gives a hill block one street on its most townward free side (flat blocks keep the full ring). `connectHillRoads` (called from `placeBlock` and
 `removeBlock`) then floods each terrace street network; one with no way down gets a town-built slope
 (`c.dyn`) at the free edge nearest the station, walking over free or wooded cells of that terrace if the
 street itself has no edge, and every slope's ends are linked to the nearest street or slope end on their
@@ -136,6 +136,10 @@ enters the finishing stage. `renoT` puts a scaffold overlay on a finished buildi
   converts everything to non-indexed first.
 - Vegetation and shoreline reeds use `swayMat`, a vertex-colour material whose vertex shader
   offsets points above knee height by a time-based sine, so trees move in the wind for free.
+- `sea.js` is pure scenery driven by real time: three foam bands beyond the beach whose opacity cycles in
+  turn, a pool of four jumping fish on sine arcs with expanding splash rings, a school of eight dark discs
+  wandering along the coast, and the fishing boat model on an elliptical circuit five cells beyond the
+  coast with bob, roll and a wake plane.
 - Utility cables are one `LineSegments` mesh rebuilt with the roads; each pole links to its two
   nearest neighbours with a sagging 8-segment curve.
 - Lighting: hemisphere fill + one shadow-casting directional light that moves along a sun arc by

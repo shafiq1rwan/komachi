@@ -7,6 +7,17 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- A living sea: foam bands lap the beaches in turn, fish leap out of the water with a splash ring where
+  they leave and land, a school of fish drifts along the shore just under the surface, and a small fishing
+  boat (Kenney Watercraft kit, CC0) bobs on a slow circuit offshore, trailing a wake
+- Standalone low-poly dolphin model with a pale belly, swept fins and animated horizontal
+  tail flukes; reusable GLB with a swim clip, editable generator and interactive preview.
+
+- Original low-poly neighbourhood cats with bevelled bodies, pointed ears, cream paws,
+  curved tails and five coat colours. Cats animate their legs while walking and glance
+  around while idle. Includes an animated GLB export and an interactive model preview.
+  Ears have compact proportions with pink insets fitted to their sloping front faces.
+
 - Rigged people from Kenney's Mini Characters (CC0) behind `?rigged`: eleven chibi variants, each person
   recoloured from their look by baking the colour atlas into vertex colours and repainting skin, hair,
   shirt and trousers with shading kept; idle, walk and sit animations; hard hats for builders. The box
@@ -98,6 +109,22 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Changed
 
+- Sea: the ripple texture tiles seamlessly (streaks drawn with wrap-around) so the water no longer shows
+  square patches; the fishing boat has a real wake, two foam lines fanning from the stern and rings that
+  spread in its trail, and sails bow-first
+- Hill blocks get a single street in front, on the side facing the town, instead of a full ring. Town-built
+  slopes and links are recomputed whenever blocks change: a slope never sits inside a block's ring or alongside
+  a street (so it cannot cut one), a slope down to the flat must be able to reach the town, and ground-level
+  links always end at a real street rather than at another slope's foot
+- Vehicles are now Kenney Car Kit models (CC0): sedans, hatchbacks, SUVs, vans, flatbed kei trucks and
+  taxis, each recoloured to its owner's colour with shading kept; the box cars remain the fallback. A sedan
+  is about one and a half people long
+- Traffic: cars and trucks slow down and queue behind a vehicle close ahead in their lane instead of
+  driving through it
+- Removed unused assets: the earlier custom character model and its Blender sources and previews, the
+  Kenney accessories and wheelchairs, stray atlas copies and an unreferenced doc screenshot
+- Kenney Mini Characters are now the default people; `?boxes` brings back the box figures (they also
+  remain the fallback if the models fail to load)
 - Hill streets: a block's ring road now forms only on its own terrace, so a house against a retaining wall
   gets its street in front and nothing on the terraces above or below. A terrace street with no way down
   gets a slope road built by the town at the nearest edge toward the station (walking through the woods

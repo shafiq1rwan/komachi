@@ -10,5 +10,5 @@ export const S = {
   pixelLook: (() => { try { return localStorage.getItem('komachi.pixelLook') !== '0'; } catch { return true; } })(),   // half-resolution chunky render; remembered
   seed: params.has('seed') ? (parseInt(params.get('seed'), 10) || 1) : (!fresh && saved && saved.seed) || (Math.floor(Math.random() * 1e9) + 1),
   biome: params.get('biome') || (!fresh && saved && saved.biome) || 'suburban',
-  rigged: params.has('rigged'),   // use the glTF resident model instead of the default box people
+  rigged: !params.has('boxes'),   // Kenney Mini Characters by default; ?boxes brings back the original box people
 };

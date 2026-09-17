@@ -44,7 +44,8 @@ Legend: ✅ done · 🔧 in progress · ⬜ not started
 - Avenue centre lines visible and seamless
 - Benches at hip height, entrance side of the plaza kept clear, plaza walks detour round the stairs
 - Vending machines a head taller than a person
-- Box people kept as the default; rigged GLB available with `?rigged`
+- People are Kenney Mini Characters (CC0), recoloured per person, with the pack's idle, walk, sit and
+  work poses; the original box people stay behind `?boxes` and as the load fallback
 - A terraced, wooded hill with a shrine opposite the pier (unbuildable)
 
 ---

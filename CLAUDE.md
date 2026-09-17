@@ -40,11 +40,13 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
   Cars keep left; walkers pick one sidewalk.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
-- People are the box figures by default (user preference). Rigged people are Kenney Mini Characters
-  (CC0, `assets/characters/kenney/`), opt-in with `?rigged` via `src/characters.js`: atlas baked to vertex
+- People are Kenney Mini Characters by default (CC0, `assets/characters/kenney/`, adopted 2026-09-17);
+  `?boxes` brings back the original box people. Loaded via `src/characters.js`: atlas baked to vertex
   colours, parts classified and repainted per person. `new THREE.Color(hex)` is already linear; never call
   `convertSRGBToLinear` on it (canvas pixels are sRGB and do need it). The GLBs reference the atlas by a
   relative path, so the loader's URL modifier points them at the bundled copy.
+- Vehicles are Kenney Car Kit models via `src/vehicles.js` (same atlas-bake and repaint idea; `attachVehicle`
+  fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
 - Cells: `water | hill | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
   zoned over road cells (`placeable` in world.js), never over the station ring, ramp roads (`c.keep`)
   or across two terraces. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
@@ -62,7 +64,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Where things stand (handoff for a fresh session)
 
-Version 0.2 work, not yet committed (no git repo initialised as of 2026-09-15). Phases 1, 2 and 3 are
+Version 0.2 work; a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
 complete and verified (lint, build, `npm test`, screenshots). Between phases the user asked for and got:
 zoning over streets, visible avenue lines, hip-height benches, a clear station entrance, plaza detours,
 taller vending machines, a nine-cell station highlight, and a wooded hill with a shrine (the mountain
@@ -72,8 +74,8 @@ its effect through residents, buildings, vehicles or light, never only through n
 "Everything is optional. Everything creates consequences you can see."
 
 Decisions already made (do not reopen without asking):
-- Box people are the default; Kenney Mini Characters (`?rigged`) were wired in on 2026-09-15 for the
-  user to compare. If adopted, flip the default in `characters.js` (`characterReady`) and `state.js`.
+- Kenney Mini Characters are the default people (the user chose them over the box people on 2026-09-17);
+  `?boxes` keeps the box look, which also remains the fallback if the GLBs fail to load.
 - Japan rules: cars keep left; walkers pick one sidewalk, hug corners (mitred offset) and cross at
   the end of the trip; trucks stop on the road, not the pavement.
 - Everyone arrives by train. Nobody sleeps on a bench: last train 22:00, back at 06:00. Households
@@ -92,7 +94,7 @@ Decisions already made (do not reopen without asking):
 Open threads the user has not decided:
 - Whether people should cross at zebra crossings instead of at trip end (carried to Phase 4).
 - Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.
-- Kenney people, if adopted as default: check performance with 100+ people (each is ~1,400 tris).
+- Kenney people: watch performance past ~100 people (each is ~1,400 tris); a LOD swap to box people when far is the likely fix.
 
 Next up is Phase 4 (station commuting, persistent bikes, taxis) when the user says go; its scope is in
 docs/ROADMAP.md. Deliver in the same style: build, verify with screenshots and headless traces (see the

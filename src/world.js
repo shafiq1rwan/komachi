@@ -11,7 +11,7 @@ import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
 
 const cells = [];
-for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false });
+for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false });
 const cell = (i, j) => (i < 0 || j < 0 || i >= N || j >= N) ? null : cells[j * N + i];
 /** ground height under a world point: terrace height, or a slope across a ramp cell */
 function terrainY(x, z) {
@@ -255,6 +255,15 @@ function placeable(c, sel = []) {
   return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
 }
 function ringRoads(sel) {
+  const h = sel[0].h || 0;
+  if (h > 0) {   // on the hill a block gets one street in front, on the free side that faces the town
+    const mx = sel.reduce((s, c) => s + cx(c.i), 0) / sel.length, mz = sel.reduce((s, c) => s + cz(c.j), 0) / sel.length;
+    const dirs = DIR4.slice().sort((a, b) => (b[0] * -mx + b[1] * -mz) - (a[0] * -mx + a[1] * -mz));   // most townward first
+    for (const [di, dj] of dirs) {
+      const front = sel.map(c => cell(c.i + di, c.j + dj));
+      if (front.every(n => n && !sel.includes(n) && (n.type === 'empty' || n.type === 'road') && (n.h || 0) === h && !n.ramp)) { for (const n of front) if (n.type === 'empty') { n.type = 'road'; n.tree = null; } return; }
+    }
+  }
   for (const c of sel) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
     const n = cell(c.i + di, c.j + dj); if (n && n.type === 'empty' && (n.h || 0) === (c.h || 0)) { n.type = 'road'; n.tree = null; }   // a street only on the block's own terrace
   }
@@ -310,7 +319,15 @@ function connectHillRoads() {
     }
     return null;
   };
+  // start over: town-built slopes and links from the last pass go, unless a block's ring now needs the cell as plain road
+  for (const c of cells) {
+    if (!c.dyn && !c.link) continue;
+    if (c.type === 'road' && !lotAdjacent8(c)) c.type = 'empty';
+    c.ramp = null; c.dyn = false; c.link = false;
+  }
   if (!cells.some(c => c.type === 'lot' && (c.h || 0) > 0)) return;   // nothing to link until someone builds up there
+  // a link may end at a block's street (the town, at ground level) or, above ground, at another slope road's end
+  const goal = c => c.type === 'road' && !c.ramp && (lotAdjacent8(c) || ((c.h || 0) > 0 && (c.keep || c.dyn)));
   // 1. slope roads for terrace streets that cannot get down
   const flood = start => { const h = start.h || 0, seen = new Set([start]), q = [start]; while (q.length) { const c = q.shift(); for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && !seen.has(n) && n.type === 'road' && !n.ramp && (n.h || 0) === h) { seen.add(n); q.push(n); } } } return seen; };
   for (let pass = 0; pass < 3; pass++) {
@@ -325,6 +342,9 @@ function connectHillRoads() {
         const R = cell(n.i + di, n.j + dj), L = cell(n.i + 2 * di, n.j + 2 * dj), hl = (n.h || 0) - TERRACE;
         if (!R || !L || Math.abs((R.h || 0) - hl) > 1e-6 || Math.abs((L.h || 0) - hl) > 1e-6) continue;
         if (!free(R) || !(free(L) || (L.type === 'road' && !L.ramp))) continue;
+        if (lotAdjacent8(R) || lotAdjacent8(L)) continue;                                              // never inside a block's ring
+        if (DIR4.some(([qi, qj]) => (qi !== di && qi !== -di || qj !== dj && qj !== -dj) && (m => m && m.type === 'road' && !m.dyn && Math.abs((m.h || 0) - hl) < 1e-6)(cell(R.i + qi, R.j + qj)))) continue;   // never alongside a street
+        if (hl < 1e-6 && !sameLevelPath(L, 0, goal)) continue;                                        // a slope to the flat must be able to reach the town
         const d = Math.hypot(cx(L.i), cz(L.j)); if (d < bd) { bd = d; best = { R, L, di, dj }; } } return best; };
       let best = null, bd = 1e9;
       for (const n of net) { const s = slopeAt(n); if (s && Math.hypot(cx(s.L.i), cz(s.L.j)) < bd) { bd = Math.hypot(cx(s.L.i), cz(s.L.j)); best = s; } }
@@ -334,7 +354,7 @@ function connectHillRoads() {
         let found = null;
         while (q.length && !found) { const n = q.shift(); if (!net.has(n) && slopeAt(n)) { found = n; break; } for (const [di, dj] of DIR4) { const m = cell(n.i + di, n.j + dj); if (!m || prev.has(m) || !passable(m, h)) continue; prev.set(m, n); q.push(m); } }
         if (!found) continue;
-        for (let p = found; p; p = prev.get(p)) if (free(p)) { p.type = 'road'; p.tree = null; }
+        for (let p = found; p; p = prev.get(p)) if (free(p)) { p.type = 'road'; p.tree = null; p.link = true; }
         best = slopeAt(found);
       }
       const { R, L, di, dj } = best;
@@ -344,14 +364,13 @@ function connectHillRoads() {
     if (!added) break;
   }
   // 2. link every slope road's ends to a street on its level
-  const goal = c => c.type === 'road' && !c.ramp && ((c.keep || c.dyn) || lotAdjacent8(c));
   for (const R of cells) {
     if (!R.ramp) continue;
     const { di, dj, h0, h1 } = R.ramp, H = cell(R.i + di, R.j + dj), L = cell(R.i - di, R.j - dj);
     for (const [end, h] of [[H, h1], [L, h0]]) {
       if (!end) continue;
       const path = sameLevelPath(end, h, goal); if (!path) continue;
-      for (const c of path) if (free(c)) { c.type = 'road'; c.tree = null; }
+      for (const c of path) if (free(c)) { c.type = 'road'; c.tree = null; c.link = true; }
     }
   }
 }
