@@ -163,6 +163,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- A ring road running beside the island's slope road or a town-built link is no longer mistaken for a two-lane
+  avenue (it lost its pavement and grew guard rails); those cells render as ordinary streets
 - Street lamps stand along every street: on most cells that pass a building and every third cell elsewhere,
   so ring roads, avenues, the coast road and hill streets are lit at night (they used to be dark)
 - Parked cars no longer overlap their homes: a car waits at the kerb of the street in front, half on the

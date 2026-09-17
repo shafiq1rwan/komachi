@@ -223,6 +223,7 @@ function rebuildRoads() {
     const road = q => q && q.type === 'road';
     const dbl = DIR4.map(([di, dj], k) => {
       if (!nb[k]) return false; const n = cell(c.i + di, c.j + dj), pi = di ? 0 : 1, pj = di ? 1 : 0;
+      if (c.keep || c.dyn || c.link || n.keep || n.dyn || n.link || (c.h || 0) !== (n.h || 0)) return false;   // slope roads and links beside a ring road are not an avenue
       return (road(cell(c.i + pi, c.j + pj)) && road(cell(n.i + pi, n.j + pj))) || (road(cell(c.i - pi, c.j - pj)) && road(cell(n.i - pi, n.j - pj)));
     });
     const open = nb.map((v, k) => v && !dbl[k]);
