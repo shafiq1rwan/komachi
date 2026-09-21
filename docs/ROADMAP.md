@@ -132,8 +132,35 @@ ever letting the town break.
   streets; the ring-road smoke checks were rewritten and two new ones cover the Road tool and lights
 - Done before Phase 5 so the ferry slipway, builders' yard and plot market build on the final road model
 
+## ✅ Phase 4.95 — Building variety pass
+
+Agreed and shipped 2026-09-21. Visual variety does not need the economy, and it is what the player sees first. Each zone
+gets several distinct generators per size, and every building varies its details from its seed.
+
+- ✅ **Several looks per zone**: detached homes are cottage, machiya or modern box (plus the narrow house and
+  apartments); shops keep their seven kinds and gain three wall finishes, three awning shapes and hanging
+  signs; offices come as glass, punched-window or louvred (plus workshop and studio)
+- ✅ **Details from the seed**: balcony side, corner windows, shutters, dishes, corrugated cladding, slats, tile
+  bands, sign positions, lattice windows, engawa steps
+- ✅ **Roofs multiply it**: with the kawara / tile / metal split, a home has 3 × 3 × 3 silhouettes before colours
+- Size-based generators (terrace pair, manshon, restaurant, supermarket, shotengai, factory, warehouse) wait
+  for Phase 5, where the size tiers give them their roles
+- Stays procedural in the current kit style; no building pack
+- Phase 5 then reuses these generators when its size tiers decide role and capacity
+
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
+- **Size tiers by drag length** (agreed 2026-09-21, first item of the phase): the number of cells dragged decides
+  the building's shape and role, shown on the card before placing ("2 cells: café or restaurant").
+  Residential: 1 = detached or narrow two-storey house (1–2 households); 2 = low apartment block or a pair of
+  terrace houses (4–6); 3 = a three-storey manshon with lobby, bike shelter and rooftop tank (8–10, the only home
+  that can grow a fourth floor). Shop: 1 = konbini, bakery, florist, bookshop or ramen counter (quick visits);
+  2 = café, kissaten or family restaurant with outside seats, or grocery (people linger); 3 = small supermarket
+  or a covered shotengai arcade with three fronts under one canopy (draws people from further, the first
+  landmark). Workspace: 1 = studio, small office or clinic; 2 = workshop with a yard and roller shutter, or a
+  design office; 3 = small factory, warehouse by the coast road (fed by the ferry's cargo later) or office
+  block (most jobs). Kinds within a tier still vary by roof style and colour, but shape and scale are fixed
+  by the tier. These tiers are what the economy picks between when a business opens or closes
 - Gentle economy shown through behaviour: a shop with customers gets a new awning and stock, one
   without goes quiet, shutters early, and eventually changes what it sells
 - Shop kind chosen from what the neighbourhood lacks rather than at random

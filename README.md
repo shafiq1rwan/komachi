@@ -80,7 +80,7 @@ Some things worth knowing:
   signboards, noren and red chōchin lanterns on the shop street, a glowing konbini, painted stop marks
   and white kerb lines on the streets, a red post box, a kōban by the station, a hokora on a quiet bend,
   pruned pines, bamboo groves and pocket parks with swings.
-- **Buildings vary.** Homes come as detached houses (kawara, tile or metal roofs), narrow two-storey
+- **Buildings vary.** Detached homes are cottages, timber machiya townhouses or modern render boxes; homes also come as narrow two-storey
   houses with exterior stairs, or small apartment blocks with balconies. Shops take one of three shapes, a
   tiled machiya gable, a mono-pitch metal roof with a tall fascia, or a flat roof with a parapet, and become cafés,
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are

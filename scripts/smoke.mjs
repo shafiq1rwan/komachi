@@ -126,6 +126,13 @@ try {
   check('a canal and a coast road exist; a street drawn across the canal becomes a bridge and goes when erased', cn.canal >= 8 && cn.coast >= 40 && !!cn.built && cn.built.laid === 5 && cn.built.bridge === true && cn.built.afterRemove === false, JSON.stringify(cn));
   check('commuters ride the train, vehicles park beside buildings, crossroads have lights', s.commuters >= 1 && s.away >= 1 && s.parked >= 1 && s.signals >= 1, JSON.stringify(s));
   s = await page.evaluate(async () => { const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const us = MT.blocks.flatMap(b => b.units); MT.setHour(10); await frame(); const dayOut = us.filter(u => u.laundry && u.laundry.visible).length; MT.setHour(21); await frame(); const nightOut = us.filter(u => u.laundry && u.laundry.visible).length; return { laundry: us.filter(u => u.laundry).length, dayOut, nightOut, roofs: [...new Set(MT.blocks.map(b => b.roofStyle).filter(Boolean))], parks: MT.parkCells.size, matsu: MT.cells.filter(c => c.tree && c.tree.kind === 'matsu').length, bamboo: MT.cells.filter(c => c.tree && c.tree.kind === 'bamboo').length }; });
+  const vv = await page.evaluate(() => {   // the same unit, rebuilt with different seeds, takes different looks
+    const ru = MT.blocks.find(b => b.type === 'res').units[0], su = MT.blocks.find(b => b.type === 'shop').units[0], wu = MT.blocks.find(b => b.type === 'work' && b.kind === 'office')?.units[0];
+    const styles = new Set(), finishes = new Set(), facades = new Set();
+    for (let k = 0; k < 8; k++) { ru.variant = 'detached'; ru.seed = (k + 0.5) / 8; MT.rebuildUnitMesh(ru); styles.add(ru.style); su.seed = (k + 0.5) / 8; MT.rebuildUnitMesh(su); finishes.add(su.finish); if (wu) { wu.seed = (k + 0.5) / 8; MT.rebuildUnitMesh(wu); facades.add(wu.facade); } }
+    return { styles: [...styles], finishes: [...finishes], facades: [...facades], office: !!wu };
+  });
+  check('building variety: three detached styles, three shop finishes, three office facades from the seed', vv.styles.length === 3 && vv.finishes.length === 3 && (!vv.office || vv.facades.length === 3), JSON.stringify(vv));
   check('Japanese identity: laundry out by day only, kawara roofs, a pocket park, pines and bamboo', s.laundry >= 1 && s.dayOut >= 1 && s.nightOut === 0 && s.roofs.includes('kawara') && s.parks >= 1 && s.matsu >= 1 && s.bamboo >= 1, JSON.stringify(s));
   check('no page errors', errors.length === 0, errors.join(' | '));
 } finally {

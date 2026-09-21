@@ -182,3 +182,52 @@ export function laundry(lg, x, y, z, w, seed) {
   for (let k = 0; k < n; k++) { if ((seed * 13 + k * 2.3) % 1 < 0.3) continue; const col = SHIRTS[(k + Math.floor(seed * 9)) % SHIRTS.length]; lg.push(box(0.055, 0.085 + (k % 2) * 0.02, 0.012, col, x - w / 2 + 0.05 + k * ((w - 0.1) / Math.max(1, n - 1)), y + 0.28, z)); }
   if (seed > 0.35) lg.push(box(0.17, 0.05, 0.05, seed > 0.7 ? PAL.pink : PAL.sky2, x + w / 2 - 0.13, y + 0.135, z));   // futon over the rail
 }
+
+// ── building variety (Phase 4.95): wall finishes and small props, all in the unit's local space ──
+/** vertical timber slats on a face: `face` = 'z' (front, at +d/2), '-z' (back), 'x' or '-x' (sides) */
+export function slatWall(g, w, d, y0, y1, face, color = PAL.wood2, gap = 0.055) {
+  const side = face.replace('-', ''), sgn = face.startsWith('-') ? -1 : 1, len = side === 'z' ? w : d, h = y1 - y0;
+  for (let t = -len / 2 + 0.03; t < len / 2 - 0.02; t += gap) {
+    if (side === 'z') g.push(box(0.022, h, 0.014, color, t, (y0 + y1) / 2, sgn * (d / 2 + 0.008)));
+    else g.push(box(0.014, h, 0.022, color, sgn * (w / 2 + 0.008), (y0 + y1) / 2, t));
+  }
+}
+/** a glazed tile band round the base (sides and back), with grout lines */
+export function tileBand(g, w, d, y0, h, color, grout = PAL.cream2) {
+  g.push(box(0.012, h, d + 0.02, color, w / 2 + 0.006, y0 + h / 2, 0)); g.push(box(0.012, h, d + 0.02, color, -w / 2 - 0.006, y0 + h / 2, 0)); g.push(box(w + 0.02, h, 0.012, color, 0, y0 + h / 2, -d / 2 - 0.006));
+  for (let y = y0 + 0.05; y < y0 + h - 0.02; y += 0.05) { g.push(box(0.014, 0.004, d + 0.02, grout, w / 2 + 0.006, y, 0)); g.push(box(0.014, 0.004, d + 0.02, grout, -w / 2 - 0.006, y, 0)); g.push(box(w + 0.02, 0.004, 0.014, grout, 0, y, -d / 2 - 0.006)); }
+}
+/** horizontal corrugation lines on both side faces */
+export function corrugated(g, w, d, y0, y1, color = K.metal2) { for (let y = y0 + 0.04; y < y1 - 0.02; y += 0.045) for (const s of [-1, 1]) g.push(box(0.01, 0.008, d - 0.02, color, s * (w / 2 + 0.006), y, 0)); }
+/** a flat box canopy over the front, on two slim brackets */
+export function boxCanopy(g, x, y, z, w, color, depth = 0.22) {
+  g.push(box(w, 0.035, depth, color, x, y, z + depth / 2)); g.push(box(w + 0.02, 0.05, 0.02, PAL.cream2, x, y, z + depth));
+  for (const s of [-1, 1]) g.push(box(0.012, 0.012, depth - 0.02, K.metal, x + s * (w / 2 - 0.03), y + 0.03, z + depth / 2 - 0.01));
+}
+/** a small round sign hung off a bracket at a front corner */
+export function hangingSign(g, wg, x, y, z, color, accent, glow = false) {
+  g.push(box(0.16, 0.012, 0.012, K.metal, x, y + 0.11, z + 0.08)); g.push(box(0.012, 0.11, 0.012, K.metal, x, y + 0.06, z + 0.02));
+  const disc = new THREE.CylinderGeometry(0.075, 0.075, 0.018, 12); disc.rotateZ(Math.PI / 2); disc.translate(x + 0.06, y, z + 0.1); g.push(colorize(disc, color));
+  const ring = new THREE.CylinderGeometry(0.05, 0.05, 0.022, 12); ring.rotateZ(Math.PI / 2); ring.translate(x + 0.06, y, z + 0.1); (glow ? wg : g).push(colorize(ring, glow ? PAL.window : accent));
+}
+/** a satellite dish on a wall bracket, facing local +z before rotation */
+export function dish(g, x, y, z, ry = 0) {
+  const parts = [box(0.02, 0.02, 0.06, K.metal, 0, 0, -0.03)];
+  const d = new THREE.CylinderGeometry(0.06, 0.05, 0.012, 10); d.rotateX(-1.1); d.translate(0, 0.02, 0.01); parts.push(colorize(d, PAL.cream2));
+  parts.push(box(0.008, 0.008, 0.05, K.metal, 0, 0.03, 0.03));
+  for (const p of parts) { p.rotateY(ry); p.translate(x, y, z); g.push(p); }
+}
+/** koshi: a wooden lattice over a window */
+export function latticeWindow(g, wg, x, y, z, w, h, ry = 0, color = PAL.wood2) {
+  windowPane(g, wg, x, y, z, w, h, ry);
+  const n = Math.max(3, Math.round(w / 0.05));
+  for (let k = 0; k <= n; k++) g.push(box(0.012, h, 0.012, color, x - w / 2 + (w * k) / n, y, z + 0.022, ry));
+  g.push(box(w + 0.02, 0.012, 0.012, color, x, y + h * 0.2, z + 0.024, ry));
+}
+/** engawa: a wooden veranda step along the front, with a low rail at one end */
+export function engawa(g, w, d, y0, color = PAL.wood) {
+  g.push(box(w - 0.04, 0.04, 0.16, color, 0, y0 + 0.02, d / 2 + 0.1)); for (let k = 0; k < 4; k++) g.push(box(w - 0.06, 0.004, 0.006, PAL.wood2, 0, y0 + 0.042, d / 2 + 0.04 + k * 0.04));
+  g.push(box(0.02, 0.1, 0.16, color, w / 2 - 0.04, y0 + 0.09, d / 2 + 0.1)); g.push(box(0.02, 0.012, 0.16, color, w / 2 - 0.04, y0 + 0.15, d / 2 + 0.1));
+}
+/** hisashi: a shallow pent roof over the ground floor front */
+export function hisashi(g, w, d, y, color) { const a = new THREE.BoxGeometry(w + 0.12, 0.025, 0.24); a.rotateX(0.32); a.translate(0, y, d / 2 + 0.1); g.push(colorize(a, color)); for (const s of [-1, 1]) g.push(box(0.02, 0.02, 0.2, PAL.wood2, s * (w / 2 - 0.05), y - 0.05, d / 2 + 0.1)); }

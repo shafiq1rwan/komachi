@@ -3,7 +3,9 @@ import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
 import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry.js';
-import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry } from './kit.js';
+import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi } from './kit.js';
+/** a second, third… independent value derived from a unit's seed, so details vary without correlating */
+const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
 import { DONE } from './world.js';
 
 let LG = [];   // laundry geometry for the unit being built (its own mesh, shown in the daytime; see rebuildUnitMesh)
@@ -32,10 +34,14 @@ function genResidential(b, u, g, wg) {
   const v = u.variant || 'detached';
   if (v === 'narrow') return genNarrowHouse(b, u, g, wg);
   if (v === 'apartment') return genApartment(b, u, g, wg);
+  const style = u.style = sub(u.seed, 1) < 0.5 ? 'cottage' : sub(u.seed, 1) < 0.75 ? 'machiya' : 'modern';   // three detached looks; the cottage stays the common one
+  if (style === 'machiya') return genMachiya(b, u, g, wg);
+  if (style === 'modern') return genModern(b, u, g, wg);
   const L = b.level, { w, d, H } = dims('res', L), y0 = 0.12, metal = b.roofStyle === 'metal', kawara = b.roofStyle === 'kawara';
   u.door = { x: -0.16, z: d / 2 + 0.02 };
   g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
   if (u.seed > 0.5) for (let k = 0; k < 4; k++) g.push(box(w + 0.01, 0.012, d + 0.01, K.siding, 0, y0 + 0.1 + k * 0.12, 0));
+  if (sub(u.seed, 5) > 0.6) dish(g, -w / 2 - 0.03, y0 + H - 0.12, 0.12, -Math.PI / 2);
   if (metal) {
     g.push(prism(w + 0.2, 0.22, d + 0.22, K.metal, 0, y0 + H - 0.01, 0)); g.push(box(w + 0.24, 0.04, d + 0.26, K.metal2, 0, y0 + H, 0));
     for (let k = 0; k < 5; k++) { const rz = -d / 2 + 0.05 + k * ((d - 0.1) / 4); g.push(box(w + 0.2, 0.012, 0.012, K.metal2, 0, y0 + H + 0.11 - Math.abs(rz) / (d / 2) * 0.1 + 0.005, rz)); }
@@ -57,6 +63,47 @@ function genResidential(b, u, g, wg) {
   if (u.seed > 0.55) bicycle(g, -0.4, 0.3, 0.1, K.bike[Math.floor(u.seed * 5) % 5]);
   if (u.seed > 0.75) g.push(box(0.05, 0.3, 0.05, PAL.lamp, 0.42, 0.27, 0.42));
 }
+/** machiya: a timber townhouse right on the street, slatted upper wall, lattice window, engawa step and a pent roof over the ground floor */
+function genMachiya(b, u, g, wg) {
+  const L = b.level, { w, d, H } = dims('res', L), y0 = 0.12, tile = b.roofStyle === 'kawara' ? (sub(u.seed, 2) > 0.5 ? PAL.kawara : PAL.kawara2) : b.roof;
+  u.door = { x: -0.18, z: d / 2 + 0.02 };
+  g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
+  slatWall(g, w, d, y0 + H - 0.2, y0 + H - 0.05, 'z', PAL.wood, 0.05);   // a slatted band under the eaves only; plaster below
+  for (const s of [-1, 1]) g.push(box(0.03, H - 0.02, 0.03, PAL.wood2, s * (w / 2 - 0.005), y0 + H / 2, d / 2 - 0.005));   // timber corner posts
+  kawaraRoof(g, w, d, H, y0, tile, false);
+  hisashi(g, w, d, y0 + 0.46, tile);
+  door(g, -0.18, y0, d / 2 + 0.005, 0.16, 0.3, PAL.wood2); genkan(g, -0.18, y0, d / 2 + 0.02, 0.2);
+  latticeWindow(g, wg, 0.16, y0 + 0.26, d / 2 + 0.005, 0.3, 0.2, 0, PAL.wood);
+  for (let f = 1; f < L; f++) { const y = y0 + f * 0.52 + 0.2; for (const x of [-0.18, 0.16]) { windowPane(g, wg, x, y, d / 2 + 0.005, 0.18, 0.16); g.push(box(0.22, 0.012, 0.03, PAL.wood2, x, y - 0.1, d / 2 + 0.02)); } }   // plain upper windows with a timber sill
+  if (L === 1) for (const x of [-0.2, 0.0, 0.2]) g.push(box(0.05, 0.1, 0.02, PAL.cream2, x, y0 + H - 0.14, d / 2 + 0.03));   // mushiko-mado slits under the eaves
+  for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.12, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
+  engawa(g, w, d, y0);
+  acUnit(g, -w / 2 - 0.05, y0 + 0.2, -0.2, -Math.PI / 2); pipe(g, w / 2 + 0.02, y0, y0 + H - 0.05, -d / 2 + 0.05);
+  pots(g, 0.3, 0.44, 2); g.push(box(0.9, 0.12, 0.08, PAL.bush, 0, 0.18, -0.43));
+  if (sub(u.seed, 4) > 0.5) bicycle(g, -0.42, 0.28, 0.15, K.bike[Math.floor(u.seed * 5) % 5]);
+}
+/** a modern box: render with a darker volume, flat parapet roof, big corner window, balcony on the side the seed picks */
+function genModern(b, u, g, wg) {
+  const L = b.level, { w, d, H } = dims('res', L), y0 = 0.12, side = sub(u.seed, 2) > 0.5 ? 1 : -1, dark = sub(u.seed, 3) > 0.5 ? PAL.cream2 : PAL.concrete2, trim = b.roof;   // a second light volume; the block's roof colour as the accent
+  u.door = { x: -side * 0.2, z: d / 2 + 0.02 };
+  g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
+  g.push(box(w * 0.42, H + 0.04, d + 0.04, dark, side * w * 0.29, y0 + (H + 0.04) / 2, 0));   // the darker volume
+  g.push(box(w + 0.06, 0.05, d + 0.06, trim, 0, y0 + H + 0.025, 0)); g.push(box(w + 0.08, 0.06, 0.03, trim, 0, y0 + H + 0.06, d / 2 + 0.03));   // flat roof and parapet lip in the block's roof colour
+  door(g, -side * 0.2, y0, d / 2 + 0.005, 0.16, 0.3, PAL.wood, null); boxCanopy(g, -side * 0.2, y0 + 0.36, d / 2 + 0.01, 0.3, trim, 0.16); genkan(g, -side * 0.2, y0, d / 2 + 0.02, 0.2);
+  windowPane(g, wg, side * 0.17, y0 + 0.3, d / 2 + 0.005, 0.24, 0.3);                                     // tall ground-floor window
+  wg.push(box(0.03, 0.3, 0.2, PAL.window, side * (w / 2 + 0.005), y0 + 0.3, 0.2)); g.push(box(0.02, 0.34, 0.24, K.frame, side * (w / 2 + 0.005), y0 + 0.3, 0.2));   // wraps the corner
+  for (let f = 1; f < L; f++) {
+    const y = y0 + f * 0.52 + 0.28;
+    windowPane(g, wg, -side * 0.12, y, d / 2 + 0.005, 0.44, 0.2);
+    balcony(g, side * 0.2, y0 + f * 0.52 + 0.06, d / 2 + 0.08, 0.34, 0.16, K.rail); if (sub(u.seed, 6) > 0.4) laundry(LG, side * 0.2, y0 + f * 0.52 + 0.06, d / 2 + 0.16, 0.34, sub(u.seed, f));
+  }
+  for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.1, y, -d / 2 - 0.005, 0.3, 0.16, Math.PI); windowPane(g, wg, -side * (w / 2 + 0.005), y, -0.1, 0.16, 0.16, side > 0 ? -Math.PI / 2 : Math.PI / 2); }
+  acUnit(g, -side * (w / 2 + 0.05), y0 + 0.2, -0.2, -side * Math.PI / 2); pipe(g, side * (w / 2 + 0.02), y0, y0 + H, -d / 2 + 0.06);
+  if (sub(u.seed, 5) > 0.5) dish(g, -side * 0.2, y0 + H + 0.08, -0.2, 0.4);
+  fence(g, 0, 0.45, 0.9, true, K.metal2, 0.09); fence(g, side * 0.45, 0, 0.8, false, K.metal2, 0.09);
+  g.push(box(0.9, 0.1, 0.08, PAL.bush2, 0, 0.17, -0.43)); pots(g, side * 0.28, 0.4, 2);
+  if (sub(u.seed, 4) > 0.5) bicycle(g, -side * 0.4, 0.3, 0.1, K.bike[Math.floor(u.seed * 5) % 5]);
+}
 function genNarrowHouse(b, u, g, wg) {
   const L = b.level, floors = L === 3 ? 3 : 2, fh = 0.5, w = 0.46, d = 0.64, H = fh * floors + 0.06, y0 = 0.12;
   u.door = { x: -0.1, z: d / 2 + 0.02 };
@@ -73,6 +120,8 @@ function genNarrowHouse(b, u, g, wg) {
     acUnit(g, w / 2 + 0.05, y - 0.02, 0.15, Math.PI / 2);
   }
   if (L >= 2) extStairs(g, w / 2, d, 1, fh, y0);
+  if (sub(u.seed, 5) > 0.5) dish(g, -w / 2 - 0.03, y0 + H - 0.14, -0.1, -Math.PI / 2);
+  if (sub(u.seed, 6) > 0.5) corrugated(g, w, d, y0 + 0.08, y0 + H - 0.1, K.metal2);   // some narrow houses are clad in corrugated metal
   for (let f = 0; f < floors; f++) { const y = y0 + f * fh + 0.3; windowPane(g, wg, 0.05, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); if (f > 0) windowPane(g, wg, -w / 2 - 0.005, y, 0.05, 0.12, 0.14, -Math.PI / 2); }
   pipe(g, -w / 2 - 0.02, y0, y0 + H, 0.2);
   pots(g, 0.16, 0.42, 3); g.push(box(0.08, 0.12, 0.7, PAL.bush, -0.43, 0.18, -0.05));
@@ -99,6 +148,7 @@ function genApartment(b, u, g, wg) {
     windowPane(g, wg, w / 2 + 0.005, y, -0.12, 0.16, 0.18, Math.PI / 2);
   }
   extStairs(g, w / 2, d, Math.min(2, floors - 1), fh, y0);
+  if (sub(u.seed, 5) > 0.4) for (let k = 0; k < 2; k++) dish(g, -w / 2 - 0.03, y0 + fh * (k + 1) + 0.2, -0.16 + k * 0.1, -Math.PI / 2);   // dishes on the stair side
   for (let f = 0; f < floors; f++) { const y = y0 + f * fh + 0.3; for (const x of [-0.24, 0.24]) windowPane(g, wg, x, y, -d / 2 - 0.005, 0.16, 0.16, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, 0.1, 0.14, 0.16, -Math.PI / 2); }
   pipe(g, -w / 2 - 0.02, y0, y0 + H, -0.1);
   bikeRack(g, -0.3, 0.42, 3, 0, u.seed);
@@ -111,6 +161,10 @@ function genShop(b, u, g, wg) {
   const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : -0.24;
   u.door = { x: doorX, z: d / 2 + 0.02 };
   g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
+  const finish = u.finish = sub(u.seed, 2) < 0.34 ? 'timber' : sub(u.seed, 2) < 0.67 ? 'tile' : 'render', awnShape = sub(u.seed, 3);
+  if (finish === 'timber') slatWall(g, w, d, y0 + 0.08, y0 + H - 0.06, sub(u.seed, 4) > 0.5 ? 'x' : '-x', PAL.wood, 0.085);
+  else if (finish === 'tile') tileBand(g, w, d, y0, 0.22, b.roof);
+  const awn = (x, y, z, ww, c1, c2) => awnShape < 0.35 ? plainAwning(g, x, y, z, ww, c1) : awnShape < 0.7 ? stripedAwning(g, x, y, z, ww, c1, c2) : boxCanopy(g, x, y, z, ww, c1);   // cloth, striped cloth or a box canopy
   // three silhouettes by the block's roof style, so a shop street is not a row of identical boxes
   if (b.roofStyle === 'kawara') {   // a tiled gable, machiya-style, with a lattice band under the eaves
     kawaraRoof(g, w, d, H, y0, u.seed > 0.5 ? PAL.kawara : PAL.kawara2, false);
@@ -143,25 +197,25 @@ function genShop(b, u, g, wg) {
       for (const x of [0.28, 0.4]) g.push(cyl(0.04, 0.035, 0.12, PAL.wood2, x, y0 + 0.06, 0.42, 6));
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, K.red, PAL.cream2, true);
     } else if (kind === 'grocery') {
-      stripedAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofSage, PAL.cream2);
+      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofSage, PAL.cream2);
       for (let k = 0; k < 3; k++) { const x = 0.06 + k * 0.15; g.push(box(0.13, 0.08, 0.12, PAL.wood, x, y0 + 0.04, 0.42)); for (let m = 0; m < 3; m++) g.push(blob(0.03, [PAL.roofPeach, '#8fae78', K.red][(k + m) % 3], x - 0.04 + m * 0.04, y0 + 0.1, 0.42 + (m % 2) * 0.03, 0, 1)); }
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.44, PAL.cream2, PAL.roofSage); tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.roofSage, PAL.cream2, false, 0.36);
     } else if (kind === 'florist') {
-      stripedAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, PAL.pink, PAL.cream2);
+      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.pink, PAL.cream2);
       for (let k = 0; k < 3; k++) { const x = 0.08 + k * 0.14; g.push(cyl(0.05, 0.04, 0.12, K.metal2, x, y0 + 0.06, 0.42, 7)); g.push(blob(0.06, [PAL.flower, PAL.roofPeach, PAL.lilac][k], x, y0 + 0.16, 0.42, 0, 0.9)); }
       g.push(box(0.03, 0.03, 0.03, K.rail, -0.3, y0 + 0.75, d / 2 + 0.08)); g.push(blob(0.07, PAL.bush2, -0.3, y0 + 0.68, d / 2 + 0.08, 0, 0.9));
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.cream2, PAL.pink);
     } else if (kind === 'bakery') {
-      stripedAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofRose, PAL.cream2);
+      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofRose, PAL.cream2);
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.roofPeach, PAL.cream2); g.push(blob(0.045, '#d9a066', 0.13, y0 + H - 0.14, d / 2 + 0.05, 0, 0.7));
       g.push(box(0.14, 0.1, 0.12, PAL.wood, 0.36, y0 + 0.05, 0.42)); g.push(blob(0.04, '#d9a066', 0.36, y0 + 0.12, 0.42, 0, 0.7));
     } else if (kind === 'books') {
-      stripedAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofBlue, PAL.cream2);
+      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofBlue, PAL.cream2);
       for (let k = 0; k < 5; k++) g.push(box(0.05, 0.12 + (k % 2) * 0.03, 0.03, [PAL.roofRose, PAL.roofBlue, PAL.roofSage, PAL.roofPeach, PAL.lilac][k], -0.02 + k * 0.06, y0 + 0.22, d / 2 + 0.0));
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.cream2, PAL.roofBlue); tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.roofBlue, PAL.cream2, false, 0.36);
       g.push(box(0.16, 0.12, 0.14, PAL.wood, 0.38, y0 + 0.06, 0.42)); for (let k = 0; k < 3; k++) g.push(box(0.14, 0.02, 0.1, [PAL.roofRose, PAL.cream2, PAL.roofBlue][k], 0.38, y0 + 0.13 + k * 0.02, 0.42));
     } else {   // café
-      stripedAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, a1, a2);
+      awn(0, y0 + 0.55, d / 2 + 0.02, w, a1, a2);
       if (u.seed > 0.5) noren(g, doorX, y0 + 0.36, d / 2 + 0.03, 0.2, a1, PAL.cream2);        // a kissaten hangs a noren
       tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.cream2, a1, false, 0.36);
       g.push(cyl(0.1, 0.1, 0.02, PAL.cream2, 0.32, y0 + 0.2, 0.4, 10)); g.push(cyl(0.015, 0.015, 0.2, K.metal, 0.32, y0 + 0.1, 0.4, 5)); g.push(cyl(0.06, 0.06, 0.015, K.metal, 0.32, y0 + 0.01, 0.4, 8));
@@ -181,6 +235,8 @@ function genShop(b, u, g, wg) {
   if (L >= 2) { g.push(cyl(0.07, 0.07, 0.14, K.metal2, -0.25, y0 + H + 0.2, -0.18, 8)); for (const [lx, lz] of [[-0.3, -0.23], [-0.2, -0.13]]) g.push(box(0.02, 0.1, 0.02, K.metal, lx, y0 + H + 0.08, lz)); }   // rooftop water tank
   if (L >= 3) { g.push(cyl(0.02, 0.02, 0.36, PAL.lamp, 0.18, y0 + H + 0.28, -0.1, 5)); g.push(cyl(0.001, 0.2, 0.09, a1, 0.18, y0 + H + 0.45, -0.1, 8)); g.push(box(0.16, 0.03, 0.16, PAL.wood, 0.18, y0 + H + 0.2, -0.1)); }
   if (u.seed > 0.55 && kind !== 'konbini') { g.push(box(0.14, 0.32, 0.12, u.seed > 0.75 ? PAL.pink : PAL.mint, w / 2 + 0.09, y0 + 0.16, -0.12)); wg.push(box(0.09, 0.14, 0.02, PAL.window, w / 2 + 0.09, y0 + 0.22, -0.055)); }
+  if (kind !== 'konbini' && kind !== 'ramen' && sub(u.seed, 5) > 0.5) hangingSign(g, wg, w / 2 - 0.02, y0 + 0.5, d / 2 + 0.02, a1, PAL.cream2, sub(u.seed, 6) > 0.5);   // a round sign off the front corner
+  if (L >= 2 && sub(u.seed, 7) > 0.5) for (const x of [-0.18, 0.18]) for (const s of [-1, 1]) g.push(box(0.05, 0.2, 0.015, K.shutter, x + s * 0.12, y0 + 0.9, d / 2 + 0.012));   // shutters beside the upstairs windows
   windowPane(g, wg, 0.1, y0 + 0.36, -d / 2 - 0.005, 0.2, 0.16, Math.PI); if (L >= 2) windowPane(g, wg, -0.15, y0 + 0.9, -d / 2 - 0.005, 0.16, 0.16, Math.PI);
   g.push(box(0.08, 0.12, 0.72, PAL.bush, -0.43, 0.18, -0.04));
 }
@@ -191,18 +247,22 @@ function genWork(b, u, g, wg) {
   if (kind === 'workshop') return genWorkshop(b, u, g, wg);
   if (kind === 'studio') return genStudio(b, u, g, wg);
   const L = b.level, { w, d, H } = dims('work', L), y0 = 0.12, floors = L + 1;
+  const facade = u.facade = sub(u.seed, 2) < 0.34 ? 'glass' : sub(u.seed, 2) < 0.67 ? 'punched' : 'louvre';   // three office faces
   u.door = { x: 0, z: d / 2 + 0.02 };
   g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
   g.push(box(w + 0.04, 0.12, d + 0.04, PAL.concrete, 0, y0 + 0.06, 0));
   g.push(box(w + 0.06, 0.07, d + 0.06, b.roof, 0, y0 + H + 0.03, 0));
-  for (let f = 0; f < floors; f++) {
+  if (facade === 'punched') { for (let f = 0; f < floors; f++) { const y = y0 + 0.42 + f * ((H - 0.5) / Math.max(1, floors - 1)) * (floors > 1 ? 1 : 0) + (floors === 1 ? 0.1 : 0); if (f === 0) { wg.push(box(0.2, 0.3, 0.03, PAL.window, 0, y0 + 0.27, d / 2 + 0.015)); g.push(box(0.34, 0.04, 0.18, b.roof, 0, y0 + 0.46, d / 2 + 0.09)); } for (const x of (f === 0 ? [-0.28, 0.28] : [-0.26, 0, 0.26])) windowPane(g, wg, x, y, d / 2 + 0.005, 0.14, 0.2); for (const z of [-0.2, 0.05]) windowPane(g, wg, w / 2 + 0.005, y, z, 0.14, 0.2, Math.PI / 2); g.push(box(w + 0.03, 0.03, d + 0.03, PAL.cream2, 0, y - 0.15, 0)); } }   // punched windows in a solid wall, a string course per floor
+  else for (let f = 0; f < floors; f++) {
     const y = y0 + 0.42 + f * ((H - 0.5) / Math.max(1, floors - 1)) * (floors > 1 ? 1 : 0) + (floors === 1 ? 0.1 : 0);
+    if (facade === 'louvre') for (const fy of [-0.07, 0, 0.07]) { g.push(box(0.64, 0.012, 0.06, K.metal2, 0, y + fy, d / 2 + 0.05)); g.push(box(0.06, 0.012, 0.54, K.metal2, w / 2 + 0.05, y + fy, 0)); }   // sun fins over the glass bands
     if (f === 0) { wg.push(box(0.2, 0.3, 0.03, PAL.window, 0, y0 + 0.27, d / 2 + 0.015)); g.push(box(0.34, 0.04, 0.18, b.roof, 0, y0 + 0.46, d / 2 + 0.09)); for (const x of [-0.16, 0.16]) g.push(box(0.03, 0.34, 0.03, K.mullion, x, y0 + 0.29, d / 2 + 0.06)); wg.push(box(0.03, 0.22, 0.5, PAL.window, w / 2 + 0.015, y0 + 0.3, 0)); continue; }
     wg.push(box(0.6, 0.22, 0.03, PAL.window, 0, y, d / 2 + 0.015)); for (const x of [-0.2, 0, 0.2]) g.push(box(0.025, 0.22, 0.04, K.mullion, x, y, d / 2 + 0.02));
     wg.push(box(0.03, 0.22, 0.5, PAL.window, w / 2 + 0.015, y, 0)); for (const z of [-0.17, 0, 0.17]) g.push(box(0.04, 0.22, 0.025, K.mullion, w / 2 + 0.02, y, z));
     g.push(box(w + 0.03, 0.04, d + 0.03, PAL.concrete, 0, y - 0.15, 0));
   }
   g.push(box(0.16, 0.12, 0.16, PAL.concrete, -0.22, y0 + H + 0.12, -0.15)); g.push(box(0.12, 0.1, 0.16, PAL.concrete, 0.2, y0 + H + 0.11, -0.18));
+  if (sub(u.seed, 4) > 0.5) dish(g, 0.3, y0 + H + 0.1, -0.05, 0.6);
   acUnit(g, -w / 2 - 0.05, y0 + 0.3, 0.1, -Math.PI / 2); pipe(g, -w / 2 - 0.02, y0, y0 + H, -0.25);
   if (L >= 2) g.push(box(0.3, 0.16, 0.05, PAL.cream2, 0.1, y0 + H + 0.14, 0.2));
   if (L >= 3) { g.push(cyl(0.012, 0.012, 0.5, PAL.lamp, 0.3, y0 + H + 0.3, 0.1, 4)); g.push(blob(0.035, PAL.roofRose, 0.3, y0 + H + 0.56, 0.1, 0, 1)); }

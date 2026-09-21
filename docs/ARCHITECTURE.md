@@ -144,7 +144,10 @@ detached / narrow / apartment) or the block's `kind` (shops: café, bakery, rame
 konbini, florist, books; workspaces: office, workshop, studio). Generators are built from the
 shared parts in `kit.js` and must set `u.door` so trips start and end at the right doorstep.
 Roof style (kawara, tile or metal) and wall colour are chosen per block; small details (bicycles,
-pots, signs) vary per unit from its seed. `kawaraRoof` builds the tiled roofs (courses, ridge cap,
+pots, signs) vary per unit from its seed; `sub(seed, k)` derives further independent values from it, which pick a
+detached home's style (cottage, machiya, modern), a shop's wall finish, awning shape and sign, and an office's
+facade (glass, punched, louvre). The kit's finishes are `slatWall`, `tileBand`, `corrugated`, `boxCanopy`,
+`hangingSign`, `dish`, `latticeWindow`, `engawa` and `hisashi`. `kawaraRoof` builds the tiled roofs (courses, ridge cap,
 optional irimoya skirt); `blockWall`, `genkan`, `tateKanban`, `noren`, `chochin` and `laundry` are
 the Japanese identity parts. Laundry geometry is merged into its own mesh (`u.laundry`) so
 `daynight.js` can show it only between 08:00 and 17:00. Street furniture (stop marks, kerb lines,

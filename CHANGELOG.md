@@ -10,6 +10,13 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Phase 4.95, building variety. Detached homes come in three looks chosen from the seed: the cottage, a machiya
+  townhouse with slatted timber walls, a lattice window, an engawa step and a pent roof over the ground floor,
+  and a modern render box with a second light volume, a flat parapet roof in the block's roof colour, a corner window and a balcony on the side
+  the seed picks. Shops get a wall finish (timber slats, a glazed tile band or plain render), one of three awning
+  shapes (cloth, striped cloth or a box canopy), sometimes a round hanging sign at the corner and shutters
+  upstairs. Offices come with a glass, punched-window or louvred facade. Satellite dishes, corrugated cladding on
+  some narrow houses and other small props also follow the seed
 - Phase 4.9, streets first. Buildings no longer bring a square ring of road with them: the player draws streets
   with the new Road tool (key 5), dragging an L-shaped run over land on one level or straight across the canal
   for a bridge, and zones buildings beside them (only beside a street that reaches the station, so nobody is ever cut off). A building's door faces the street it was placed against, and
@@ -96,6 +103,10 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: a Phase 4.95 building variety pass before the economy (several generators per size and zone,
+  details from the seed)
+- Roadmap: Phase 5 opens with size tiers by drag length, where 1, 2 or 3 cells decide a building's shape and
+  role (house, apartments, manshon; konbini, café, supermarket; studio, workshop, factory)
 - Roadmap: residents register at the town hall after moving in (Phase 5.5, kōban as the stand-in), and a list of
   hand props to model (can, bag, briefcase, umbrella, folder)
 - Shops come in three silhouettes by roof style: a tiled machiya gable with a lattice band, a mono-pitch metal

@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 24 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 25 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -51,6 +51,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   relative path, so the loader's URL modifier points them at the bundled copy.
 - Vehicles are Kenney Car Kit models via `src/vehicles.js` (same atlas-bake and repaint idea; `attachVehicle`
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
+- Detached homes pick a style from the seed (`u.style`: cottage | machiya | modern), shops a finish (`u.finish`), offices a
+  facade (`u.facade`); `sub(seed, k)` in buildings.js gives independent per-unit values for details.
 - Roof styles: `kawara` (grey tiles, irimoya from level 2), `tile`, `metal`; the kit's Japanese parts are
   `kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry` (laundry goes to the `LG` list, its own mesh).
 - Cells: `water | hill | empty | road | lot`; streets first: the player draws roads (`drawn`, permanent) and
@@ -114,7 +116,8 @@ Phases 4 and 4.5 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, tr
 canal with bridges, coast road). Phase 4.8 (Japanese identity pass) shipped the same day: roof styles are now `kawara | tile | metal`,
 `u.laundry` is a per-unit mesh toggled by the hour in daynight.js, `parkCells` in world.js lists pocket
 parks. Phase 4.9 shipped 2026-09-21 (streets first: Road tool, zoning beside streets, signals rule, walkers at lights; saves v2).
-Next is Phase 5 (economy, dynamic businesses, hill plot market, car ferry) when the user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
+Phase 4.95 (building variety) shipped 2026-09-21. Next is Phase 5 (economy, size tiers, hill plot
+market, car ferry) when the user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
 scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
 Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
 shape changes incompatibly).
@@ -136,7 +139,9 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
        details (tomare marks, post box, kōban, pole transformers), pines and bamboo, laundry on balconies
    4.9 ✅ Streets first: the player draws streets (Road tool, key 5) and zones beside them, lights only at
        through-street crossings, walkers wait at the red
-5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan; car ferry at
+   4.95 ✅ Building variety pass: three detached styles, shop finishes/awnings/signs, three office facades, props from the seed
+5. Economy and dynamic business selection (first: size tiers by drag length, 1/2/3 cells → house/apartments/manshon,
+   konbini/café/supermarket, studio/workshop/factory; then hill plot market: villas, tea house, later ryokan; car ferry at
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism
