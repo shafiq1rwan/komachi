@@ -41,8 +41,10 @@ Other scripts:
 | Pan | Drag (any button in Explore mode, right or middle button in any mode), or WASD / arrow keys |
 | Zoom | Mouse wheel |
 | Rotate | Q / E in 45° steps |
-| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Remove |
-| Zone a block | Pick a zone, then click and drag across one to three touching cells |
+| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove |
+| Remove | Click a building, or click or drag along a street (a street a building opens onto stays) |
+| Draw a street | Road tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
+| Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it |
 | Inspect | Hover any building or person. In Explore mode, click to pin the card |
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
@@ -84,10 +86,11 @@ Some things worth knowing:
   bakeries, ramen shops, groceries, convenience stores, florists or bookshops. Workspaces are
   offices, workshops or studios. Streets get utility poles with cables, traffic mirrors, notice
   boards and bike racks.
-- Everything placed in one drag becomes **one block**. Roads form around the outside of the
-  block and never between the buildings inside it. You can also zone on top of a street to fill a
-  gap between blocks: the road closes there and reforms around the new building. Only the
-  station's ring road stays clear, and every building keeps a street on at least one side.
+- **Streets first.** Draw them with the Road tool, out from the station ring, and zone buildings
+  beside them. Everything placed in one drag becomes **one block** and its doors face the street it
+  was placed against. A street a building opens onto cannot be removed until the building goes. The
+  town lays no streets of its own on the flat; on the hill it still builds a slope for a terrace
+  street that has no way down.
 - **Builders come by train.** Zone a block and a crew rides in on the next train, walks to the
   site and works until 18:00. Nothing is built without them. Buildings pass through five visible
   stages (survey, foundations with a digger, frame, scaffolding, finishing) while kei trucks bring
@@ -129,6 +132,9 @@ src/
   biome.js            island themes (colours, vegetation mix, shoreline character)
   ambient.js          bird flocks, gulls, butterflies
   cats.js             original low-poly cats, coat colours and walk/idle motion
+  character-props.js  shopping bag, briefcase, folding umbrella and registration folder
+  tea-can.js          labelled tea can and mouth-aligned drinking pose
+  bikes.js            original city bicycle, basket, rotating wheels and resident riding pose
   dogs.js             original low-poly Shiba Inu, four poses and ambient street behaviour
   dolphins.js         standalone low-poly dolphin asset and swim animation
   construction.js     builders, crews riding the trains, material deliveries

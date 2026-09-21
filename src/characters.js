@@ -8,12 +8,15 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import * as SkeletonUtils from 'three/addons/utils/SkeletonUtils.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { S } from './state.js';
+import { poseBikeRider } from './bikes.js';
+import { updateCharacterProp, clearCharacterProp } from './character-props.js';
+import { updateTeaDrink } from './tea-can.js';
 
 const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
 const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); seats sit 0.09 above the group
 const ROLE = { none: 0, skin: 1, shirt: 2, pants: 3, hair: 4 };
 // work poses for builders: which clip plays while they stand and do something
-const POSE_CLIPS = { swing: 'attack-melee-right', hold: 'holding-right', holdBoth: 'holding-both', pickup: 'pick-up', crouch: 'crouch' };
+const POSE_CLIPS = { swing: 'attack-melee-right', hold: 'holding-right', holdBoth: 'holding-both', pickup: 'pick-up', crouch: 'crouch', press: 'interact-right', drink: 'holding-right' };
 // where a tool sits in the right hand (bone units): the arm hangs from the shoulder, the hand is ~0.17 down
 const HAND = { pos: [0, -0.17, 0.03], rot: [-Math.PI / 2, 0, 0] };
 const chars = [];                   // every live character, for the per-frame mixer update
@@ -128,8 +131,9 @@ const hashStr = s => { let h = 0; for (let i = 0; i < s.length; i++) h = (h * 31
  */
 export function attachCharacter(grp, look) {
   if (!variants.length) { const b = boxPerson(look); grp.add(b.rig); grp.userData.legs = b.legs; grp.userData.upper = b.upper; if (S.rigged) pendingSwap.push({ grp, look }); return null; }
-  const pool = look.hat ? (variants.filter(v => v.headTop <= 0.7).length ? variants.filter(v => v.headTop <= 0.7) : variants) : variants;   // hats need short hair
-  const v = look.hat && builderVariant ? builderVariant : pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
+  // only construction crews use the builder model; a resident's cap (a box-people detail) does not change their character
+  const pool = look.builder ? (variants.filter(v => v.headTop <= 0.7).length ? variants.filter(v => v.headTop <= 0.7) : variants) : variants;   // the fallback helmet needs short hair
+  const v = look.builder && builderVariant ? builderVariant : pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
   const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE);
   inst.traverse(o => {
     if (v.builder && o.isMesh) { o.geometry = o.geometry.clone(); o.material = o.material.clone(); }
@@ -142,7 +146,7 @@ export function attachCharacter(grp, look) {
   for (const a of [idle, walk, sit]) if (a) { a.play(); a.setEffectiveWeight(0); }
   if (idle) idle.setEffectiveWeight(1); mixer.setTime(Math.random() * 2);
   const head = inst.getObjectByName('head'), armR = inst.getObjectByName('arm-right');
-  if (look.hat && head && !v.builder) {   // fallback only, if the dedicated builder asset failed to load
+  if (look.builder && head && !v.builder) {   // fallback only, if the dedicated builder asset failed to load
     const top = v.headTop - 0.343;   // the head bone sits ~0.343 up the model; the head is ~0.3 wide
     // a chibi head is the whole figure seen from above, so the helmet perches small on top rather than covering it
     const hat = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.16, 0.1, 12), new THREE.MeshStandardMaterial({ color: look.hatColor, roughness: 0.9 }));
@@ -158,7 +162,12 @@ export function holdTool(char, mesh) {
   if (!char.armR) { char.root.add(mesh); return; }
   mesh.scale.setScalar(1.5 / SCALE); mesh.position.set(...HAND.pos); mesh.rotation.set(...HAND.rot); char.armR.add(mesh);   // tools read better a little oversized in chibi hands
 }
+/** a small thing carried in the right hand (a can, a bag); replaces whatever was held */
+export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else holdTool(char, mesh); }
+export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan){char.item.geometry.dispose();char.item.material.dispose();} char.item = null; } }
 export function detachCharacter(grp) {
+  clearCharacterProp(grp.userData.char);
+  if(grp.userData.char)dropItem(grp.userData.char);
   const c = grp.userData.char; if (c) { c.mixer.stopAllAction(); const i = chars.indexOf(c); if (i >= 0) chars.splice(i, 1); }
   const p = pendingSwap.findIndex(x => x.grp === grp); if (p >= 0) pendingSwap.splice(p, 1);
 }
@@ -169,7 +178,7 @@ export function updateCharacters(simDt) {
   for (const c of chars) {
     const g = c.grp; if (!g.visible) continue;
     const owner = g.userData.res || g.userData.worker;
-    const moving = owner ? (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
+    const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
     c.blend += ((moving ? 1 : 0) - c.blend) * Math.min(1, simDt * 8);
     c.sitBlend += ((c.sitting ? 1 : 0) - c.sitBlend) * Math.min(1, simDt * 8);
     const s = c.sit ? c.sitBlend : 0;
@@ -184,6 +193,11 @@ export function updateCharacters(simDt) {
     if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s) * (1 - c.poseBlend));
     c.root.position.y = SIT_LIFT * s;
     c.mixer.update(simDt);
+    if (owner?.trip?.ride && owner.bike) poseBikeRider(c.root, owner.bike);
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));
+    if (c.poseName === 'drink' && c.head) { c.sipT = (c.sipT || 0) + simDt; const sip = Math.max(0, Math.sin(c.sipT * 1.6) - 0.35) / 0.65; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, -0.5 * sip)); if (c.armR) c.armR.rotation.x -= 0.9 * sip; }   // a sip: head tips back, the can comes up
+    else c.sipT = 0;
+    if(c.item?.userData.teaCan)updateTeaDrink(c,c.poseName==='drink'?Math.max(0,Math.sin(c.sipT*1.6)-.35)/.65:0);
+    updateCharacterProp(c);
   }
 }

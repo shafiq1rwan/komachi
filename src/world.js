@@ -182,6 +182,9 @@ function rebuildRoads() {
   const lampGeo = { nsRed: [], nsGreen: [], ewRed: [], ewGreen: [] };
   for (const h of lampHeads) if (!h.userData.lantern) scene.remove(h); for (const g of lampGlows) if (!g.userData.lantern) scene.remove(g); lampHeads.length = 0; lampGlows.length = 0; lampHeads.push(...keepHeads); lampGlows.push(...keepGlows);
   const g = [], lg = [];
+  // a light only where two through-streets cross (every arm runs straight for two cells); other crossroads get stop lines
+  const rdAt = (i, j) => { const n = cell(i, j); return !!n && n.type === 'road'; };
+  for (const c of cells) if (c.type === 'road' && !c.ramp && !c.bridge && DIR4.every(([di, dj]) => rdAt(c.i + di, c.j + dj) && rdAt(c.i + 2 * di, c.j + 2 * dj))) signalCells.add(c);
   for (const c of cells) {
     if (c.type !== 'road') continue;
     const x = cx(c.i), z = cz(c.j), h = hash(c.i, c.j);
@@ -250,7 +253,7 @@ function rebuildRoads() {
       // 止まれ: on the approach to a T-junction, a stop line across the near lane with the painted mark behind it (Japan keeps left)
       const degOf = q => DIR4.reduce((s, [a, b]) => s + (road(cell(q.i + a, q.j + b)) ? 1 : 0), 0);
       for (let k = 0; k < 4; k++) if (open[k]) {
-        const [di, dj] = DIR4[k], n = cell(c.i + di, c.j + dj); if (!n || degOf(n) !== 3 || n.bridge || (n.h || 0) !== gy) continue;
+        const [di, dj] = DIR4[k], n = cell(c.i + di, c.j + dj); if (!n || !(degOf(n) === 3 || (degOf(n) === 4 && !signalCells.has(n))) || n.bridge || (n.h || 0) !== gy) continue;   // T-junctions and unsignalled crossroads
         const ox = -dj * 0.16, oz = di * 0.16;   // the left-hand lane when driving toward the junction
         g.push(box(di ? 0.03 : 0.27, 0.005, di ? 0.27 : 0.03, PAL.cream2, x + di * 0.42 + ox, 0.083, z + dj * 0.42 + oz));
         for (let m = 0; m < 3; m++) g.push(box(di ? 0.06 : 0.05, 0.005, di ? 0.05 : 0.06, PAL.cream2, x + di * (0.3 - m * 0.09) + ox, 0.083, z + dj * (0.3 - m * 0.09) + oz));
@@ -266,8 +269,8 @@ function rebuildRoads() {
     if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
     for (let k = 0; k < 4; k++) if (open[k] && !isDbl) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 + dj * 0.32, 0.105, z + dj * 0.41 - di * 0.32)); g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 - dj * 0.32, 0.105, z + dj * 0.41 + di * 0.32)); }
     // a traffic light at every crossroads: a pole on one corner, a horizontal three-lamp head for each axis
-    if (deg === 4 && !isDbl && !c.ramp) {
-      signalCells.add(c);
+    if (signalCells.has(c) && isDbl) signalCells.delete(c);
+    if (signalCells.has(c)) {
       const px = x - 0.42, pz = z + 0.42;
       lg.push(cyl(0.02, 0.028, 1.05, PAL.lamp, px, 0.525, pz, 6)); lg.push(box(0.1, 0.04, 0.1, PAL.lamp, px, 0.12, pz));
       const heads = [['ns', 0, px, 0.98, pz - 0.14], ['ew', Math.PI / 2, px + 0.14, 0.9, pz]];   // one faces the road running north–south, one east–west
@@ -427,11 +430,12 @@ function openHill(quiet = false) {
   if (!quiet) toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.');
 }
 function placeable(c, sel = []) {
-  if (!c || (c.type !== 'empty' && c.type !== 'road') || c.keep || c.ramp) return false;
+  if (!c || c.type !== 'empty' || c.ramp) return false;   // buildings stand on empty ground, beside a street
   if ((c.h || 0) > 0 && !hill.open) return false;   // the hill opens later
   if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
-  return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && (n.type === 'road' || n.type === 'empty') && !sel.includes(n); });
+  const net = townNetCached();   // a street to face, and one that reaches the station, so nobody is ever cut off
+  return DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road' && !n.ramp && (n.h || 0) === (c.h || 0) && net.has(n); });
 }
 function ringRoads(sel) {
   const h = sel[0].h || 0;
@@ -446,6 +450,58 @@ function ringRoads(sel) {
   for (const c of sel) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) {
     const n = cell(c.i + di, c.j + dj); if (n && n.type === 'empty' && (n.h || 0) === (c.h || 0)) { n.type = 'road'; n.tree = null; }   // a street only on the block's own terrace
   }
+}
+
+// ───────────────────────────── streets (Phase 4.9) ─────────────────────────────
+// Streets first. The player draws them with the Road tool (`drawn`, permanent) and zones buildings beside them; a
+// building's door faces the street it was placed against. The station's ring is the first street. The town lays
+// nothing on the flat by itself; on the hill it still builds a slope for a terrace street that has no way down.
+const FACE = { '0,1': 0, '1,0': Math.PI / 2, '0,-1': Math.PI, '-1,0': -Math.PI / 2 };
+/** the street cells a block placed on `sel` would face: every road 4-neighbour on its own level */
+function frontRoads(sel) {
+  const h = sel[0].h || 0, out = [];
+  for (const c of sel) for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road' && !n.ramp && (n.h || 0) === h && !out.includes(n)) out.push(n); }
+  return out;
+}
+/** streets a block relies on: its road neighbours */
+const isStreet = c => blocks.some(b => b.street && b.street.includes(c));
+const joined = (a, b, di, dj) => { const ax = r => !!r && Math.abs(r.di) === Math.abs(di) && Math.abs(r.dj) === Math.abs(dj); return (a.h || 0) === (b.h || 0) || ax(a.ramp) || ax(b.ramp); };
+/** every road cell reachable from the station's ring */
+function townNet() {
+  const seen = new Set(), q = [];
+  if (STATION.block) for (const s of STATION.block.cells) for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(s.i + di, s.j + dj); if (n && n.type === 'road' && !seen.has(n)) { seen.add(n); q.push(n); } }
+  while (q.length) { const c = q.shift(); for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road' && !seen.has(n) && joined(c, n, di, dj)) { seen.add(n); q.push(n); } } }
+  return seen;
+}
+/** the street network settles: hill slopes and links for terrace streets, then bridges */
+function rebuildNetwork() { connectHillRoads(); connectCanal(); netCache = null; }
+let netCache = null;   // townNet, recomputed after any change to the roads
+function townNetCached() { return netCache || (netCache = townNet()); }
+/** the L-shaped run of cells between two cells, as the Road tool draws it */
+function roadRun(a, b) { const run = []; let i = a.i, j = a.j; run.push(cell(i, j)); while (i !== b.i) { i += Math.sign(b.i - i); run.push(cell(i, j)); } while (j !== b.j) { j += Math.sign(b.j - j); run.push(cell(i, j)); } return run; }
+const drawable = (c, h) => !!c && !c.ramp && (c.h || 0) === h && ((c.h || 0) === 0 || hill.open) && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep));
+/** does a street cell reach the station? (for the tools' messages) */
+const joinedToTown = c => townNetCached().has(c);
+/** the player draws a street: an L-shaped run on one level over land or straight across the canal; null if it cannot go there */
+function drawRoad(a, b) {
+  const run = roadRun(a, b), h = a.h || 0; if (!run.every(c => drawable(c, h))) return null;
+  for (const c of run) { if (c.type === 'canal') c.bridge = true; c.type = 'road'; c.tree = null; c.drawn = true; }
+  rebuildNetwork(); refreshWorld(); return run;
+}
+/** why a street cell cannot be removed, or null if it can */
+function roadKeepReason(c) {
+  if (!c || c.type !== 'road') return 'nothing';
+  if (c.keep || c.coast) return 'island';
+  if (!c.drawn) return 'ring';
+  for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type !== 'station' && frontRoads(n.block.cells).length <= 1) return 'needed'; }
+  return null;
+}
+/** the Remove tool on a drawn street cell that no building relies on */
+function eraseRoad(c) {
+  if (roadKeepReason(c)) return false;
+  c.drawn = false; c.type = c.canal ? 'canal' : 'empty'; c.bridge = false;
+  for (const b of blocks) if (b.street) b.street = b.street.filter(x => x !== c);
+  rebuildNetwork(); refreshWorld(); return true;
 }
 
 // ───────────────────────────── the station ─────────────────────────────
@@ -569,9 +625,10 @@ function placeBlock(type, sel, preset = null) {
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
   for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
-  ringRoads(sel); connectHillRoads(); connectCanal();
+  block.street = frontRoads(sel);
   blocks.push(block);
-  for (const u of block.units) u.facing = pickFacing(u);
+  rebuildNetwork();
+  for (const u of block.units) { const f = FACE[DIR4.map(([di, dj]) => [di, dj, cell(u.cell.i + di, u.cell.j + dj)]).filter(([, , n]) => n && block.street.includes(n)).map(([di, dj]) => di + ',' + dj)[0]]; u.facing = f !== undefined ? f : pickFacing(u); }
   refreshWorld(); for (const u of block.units) rebuildUnitMesh(u);
   return block;
 }
@@ -588,9 +645,9 @@ function rotateUnit(u) {
 }
 const worldListeners = [];
 function onWorldChange(fn) { worldListeners.push(fn); }
-function refreshWorld() { rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
+function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
 export { cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
-  STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit };
+  STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit, frontRoads, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

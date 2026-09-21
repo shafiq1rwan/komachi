@@ -111,22 +111,25 @@ All of it is set dressing and ambient behaviour; nothing is gated or scored.
 - Still open: kanji lettering itself (signs carry glyph blocks, not text), a level crossing (the line is
   underground), and laundry that reacts to weather (Phase 6)
 
-## ⬜ Phase 4.9 — Streets the player can shape
+## ✅ Phase 4.9 — Streets the player can shape
 
-Agreed 2026-09-17. The automatic square ring around every block makes the town read as a grid of identical
+Agreed 2026-09-17, shipped 2026-09-21. The automatic square ring around every block makes the town read as a grid of identical
 islands and produces the odd roads that keep showing up. Streets become the player's second verb, without
 ever letting the town break.
 
-- **Front stub, not a ring**: a new building gets a street stub in front of its door only, and the town
-  connects that stub to the nearest street along the shortest path (the hill connector, generalised to the
-  flat). No building is ever left unreachable, so there is no failure state
-- **Road tool**: the player draws streets anywhere on land (click-drag along a line, with a touch gesture);
-  drawn roads are permanent, the connector prefers to join them, and the Remove tool takes them away unless
-  a building still needs them
-- **Visible reasons**: while a stub is being joined the crew waits at the kerb and the truck idles at the
-  nearest street, with a notice explaining what is happening
-- **Keeps working**: routing, avenues, canal bridges, coast road, hill slopes, parking and lamps all follow
-  the new streets; the smoke checks that assume ring roads are rewritten
+- ✅ **Streets first, no ring**: the player draws streets and zones buildings beside them; doors face the
+  street they were placed against and the station ring is the first street. A front-stub-plus-connector
+  version was built first and dropped the same day: the town-laid joins between side-by-side blocks looked
+  wrong, and guessing the player's intent always misfires somewhere (decided 2026-09-21)
+- ✅ **Road tool** (key 5): click-drag draws an L-shaped run over land on one level or straight across the
+  canal for a bridge; Remove (key 6) takes a cell away unless a building still opens onto it. Works with the
+  same touch drag as zoning
+- **Visible reasons**: not needed, since a building can only be zoned beside a street it is already joined to
+- ✅ **Traffic lights**: a light only where two through-streets cross (every arm straight for two cells);
+  other crossroads get painted stop lines. Walkers wait at the kerb of a signalled crossing while the cars
+  have the green and cross when it turns
+- ✅ **Keeps working**: routing, avenues, bridges, coast road, hill slopes, parking and lamps follow the new
+  streets; the ring-road smoke checks were rewritten and two new ones cover the Road tool and lights
 - Done before Phase 5 so the ferry slipway, builders' yard and plot market build on the final road model
 
 ## ⬜ Phase 5 — Economy and dynamic businesses
@@ -170,6 +173,13 @@ effect through the town instead.
 
 - **Landmarks**: town hall or community centre, a small clinic, a fire station with a red kei truck, a public
   bath house with its chimney; residents visit them, so the effect shows on the street
+- **Registering as a resident** (agreed 2026-09-17): after a household moves in, one member walks to the town
+  hall, spends a moment inside and comes out with a small folder ("registering at the town office"); the town
+  chronicle logs it. Until the town hall exists the kōban by the station stands in. Never gated: a household
+  that skips it is still at home
+- **Hand props from the user**: low-poly GLBs, one mesh each, Y up on Y=0, tool scale (about 0.066 tall for the
+  can), vertex colours so they can be repainted: drink can (body mesh `can`, optional `label`), shopping bag,
+  briefcase, umbrella (Phase 6), registration folder, under `assets/props/` with a README like the dog's
 
 ## ⬜ Phase 6 — Weather, events, festivals, tourism
 

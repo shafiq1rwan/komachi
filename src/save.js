@@ -1,7 +1,7 @@
 // Komachi — save and load: one slot in localStorage, written every half game hour and when the page is left.
 // Nobody is saved mid-trip; on load residents start at home, on the station plaza, or away in the city.
 import { S } from './state.js';
-import { blocks, cell, placeBlock, STATION, unitCap, hill, openHill } from './world.js';
+import { blocks, cells, cell, placeBlock, STATION, unitCap, hill, openHill, rebuildNetwork } from './world.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { residents, households, restoreResident, restoreHousehold } from './sim.js';
 
@@ -15,14 +15,15 @@ export function snapshot() {
   const town = blocks.filter(b => b.type !== 'station');
   const ref = u => { if (!u) return null; const bi = town.indexOf(u.block); return bi < 0 ? null : [bi, u.block.units.indexOf(u)]; };
   return {
-    v: 1, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open,
+    v: 2, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open,
+    roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),
     households: households.filter(hh => hh.members.length).map(hh => ({ id: hh.id, kind: hh.kind, size: hh.size, surname: hh.surname, home: ref(hh.home) })),
     residents: residents.map(r => ({ ...pickKeys(r, RES_KEYS), hh: r.hh.id, home: ref(r.home), job: ref(r.job), state: r.state === 'away' ? 'away' : 'here' })),
   };
 }
 export function save() { if (resetting) return false; try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); return true; } catch { return false; } }
-export function loadData() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && d.v === 1 ? d : null; } catch { return null; } }
+export function loadData() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && (d.v === 1 || d.v === 2) ? d : null; } catch { return null; } }
 let resetting = false;   // set by clearSave so the leave-page autosave does not write the town straight back
 export function clearSave() { resetting = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } }
 export const isResetting = () => resetting;
@@ -31,6 +32,8 @@ export const isResetting = () => resetting;
 export function restore(d) {
   S.T = d.T; S.nextId = Math.max(S.nextId, d.nextId || 0); if (STATION.block) STATION.block.trains = d.trains || 0;
   if (d.hillOpen) openHill(true);
+  for (const [i, j] of d.roads || []) { const c = cell(i, j); if (c && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep)) && !c.ramp) { if (c.type === 'canal') c.bridge = true; c.type = 'road'; c.tree = null; c.drawn = true; } }
+  if ((d.roads || []).length) rebuildNetwork();
   const town = [];
   for (const bd of d.blocks) {
     const sel = bd.cells.map(([i, j]) => cell(i, j)).filter(c => c && (c.type === 'empty' || c.type === 'road') && !c.keep && !c.canal);

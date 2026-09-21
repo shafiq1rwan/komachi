@@ -126,7 +126,7 @@ const activeSites = () => blocks.filter(b => b.type !== 'station' && b.stage < D
 
 function spawnWorker(b) {
   const k = { id: S.nextId++, name: `${pick(GIVEN)} ${pick(FAMILY)}`, site: b, state: 'toSite', trip: null, activity: 'walking to the site', phase: rand(0, 6.28),
-    skin: pick(SKIN), shirt: VEST, pants: '#4a4340', hair: pick(HAIR), hat: true, hatColor: HELMET, bag: false };
+    skin: pick(SKIN), shirt: VEST, pants: '#4a4340', hair: pick(HAIR), hat: true, hatColor: HELMET, bag: false, builder: true };
   k.mesh = makePerson(k); k.mesh.userData.res = null; k.mesh.userData.worker = k;
   workers.push(k); b.crew.push(k);
   walkToSite(k, STATION.entrance.clone()); return k;

@@ -43,12 +43,13 @@ unit groups sit at `c.h`. `placeable` requires one terrace per block and refuses
 ratios, shoreline bias. Everything that draws vegetation or terrain reads from it.
 
 **Block.** One drag places one block: 1–3 touching cells that share a zone type, a palette
-(roof, wall, awning), a family name, a construction stage (0–3) and a level (1–3). Roads are
-written into every empty cell in the block's 8-neighbourhood, so a block never has a road inside
-it. A block may be zoned over existing road cells (`placeable` in `world.js`): the cell becomes a
-lot, neighbouring roads stay, and `onWorldChange` clears route caches and ambient traffic on the
-lost cells. The station's ring road cannot be built over, and every cell needs a road or empty
-4-neighbour outside the selection so its door has a street to face.
+(roof, wall, awning), a family name, a construction stage (0–3) and a level (1–3). Streets come
+first: the player draws them (`drawRoad`, an L-shaped run of `drawn` cells; `eraseRoad` removes one
+unless `roadKeepReason` says a building relies on it) and a block is zoned on empty cells beside a
+street (`placeable`: every cell needs a road 4-neighbour on its level). `block.street` lists the
+road cells the block touches (`frontRoads`) and doors face them. `rebuildNetwork` then lets the hill
+connector add slopes and links for terrace streets and `connectCanal` settle bridges. Roads are never
+built over; the station's ring is the first street.
 
 **Unit.** Each cell of a block is a unit: it owns a building mesh, its window material, a ground
 glow decal and the people currently inside it. Capacities depend on type and level

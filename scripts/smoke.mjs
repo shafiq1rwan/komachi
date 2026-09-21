@@ -41,13 +41,14 @@ try {
   await page.mouse.move(pts[0].x, pts[0].y); await page.mouse.down();
   for (const p of pts) { await page.mouse.move(p.x, p.y, { steps: 5 }); await sleep(40); }
   await page.mouse.up(); await sleep(200);
-  s = await page.evaluate(() => ({ blocks: MT.blocks.length, n: MT.blocks[1]?.cells.length, roads: MT.roadCount(), ring: MT.cell(16, 19).type, inside: MT.cell(17, 19).type, shared: MT.cell(18, 19).type }));
+  s = await page.evaluate(() => { const b = MT.blocks[1]; const net = MT.townNet(); return { blocks: MT.blocks.length, n: b?.cells.length, roads: MT.roadCount(), front: b ? b.street.map(c => c.type) : [], inside: MT.cell(17, 19).type, joined: b ? b.street.length > 0 && b.street.every(c => net.has(c)) : false }; });
   check('drag across 4 cells makes one block of 3', s.blocks === 2 && s.n === 3, JSON.stringify(s));
-  check('roads ring the block and join the station ring', s.ring === 'road' && s.inside === 'lot' && s.shared === 'road');
+  check('the block stands beside the station ring and faces it', s.front.length >= 3 && s.front.every(t => t === 'road') && s.inside === 'lot' && s.joined, JSON.stringify(s));
 
-  await page.keyboard.press('Digit3'); const sp = await page.evaluate(() => MT.project(17, 23)); await page.mouse.click(sp.x, sp.y); await sleep(200);
-  s = await page.evaluate(() => ({ blocks: MT.blocks.length, types: MT.blocks.map(b => b.type), between: MT.cell(17, 22).type }));
-  check('single click places a shop; road between blocks', s.blocks === 3 && s.types[2] === 'shop' && s.between === 'road', JSON.stringify(s));
+  await page.evaluate(() => MT.drawRoad(MT.cell(17, 22), MT.cell(17, 26)));   // a side street off the ring
+  await page.keyboard.press('Digit3'); const sp = await page.evaluate(() => MT.project(16, 23)); await page.mouse.click(sp.x, sp.y); await sleep(200);
+  s = await page.evaluate(() => { const b = MT.blocks[2]; const net = MT.townNet(); return { blocks: MT.blocks.length, types: MT.blocks.map(b => b.type), street: b ? b.street.map(c => [c.i, c.j]) : [], joined: b ? b.street.every(c => net.has(c)) : false, facing: b ? b.units[0].facing : null }; });
+  check('single click places a shop beside a drawn street, facing it', s.blocks === 3 && s.types[2] === 'shop' && s.street.length === 1 && s.joined && s.facing === Math.PI / 2, JSON.stringify(s));
 
   await page.keyboard.press('Digit4'); const rp = await page.evaluate(() => MT.project(20, 22)); await page.mouse.click(rp.x, rp.y); await sleep(200);
   s = await page.evaluate(() => MT.blocks.length); check("cannot build on the station's ring road", s === 3);
@@ -58,7 +59,7 @@ try {
   check('the steep parts of the hill cannot be built on', s.blocks === 3 && s.hills >= 12, JSON.stringify(s));
   s = await page.evaluate(() => {
     MT.openHill();
-    const plot = MT.cells.find(c => c.type === 'empty' && c.h > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(c.i + di, c.j + dj); return n && n.type === 'empty' && n.h === c.h; }));
+    const plot = MT.cells.find(c => c.type === 'empty' && c.h > 0 && [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(c.i + di, c.j + dj); return n && n.type === 'road' && !n.ramp && n.h === c.h; }));   // beside the island's terrace street
     if (!plot) return null;
     const b = MT.placeBlock('res', [plot]); const u = b.units[0];
     return { h: plot.h, meshY: u.mesh.position.y, ground: MT.terrainY(plot.i - 20 + 0.5, plot.j - 20 + 0.5), ramps: MT.cells.filter(c => c.ramp).length, ring: [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(plot.i + di, plot.j + dj); return n && n.type === 'road'; }) };
@@ -66,9 +67,22 @@ try {
   check('a home can be built on a hill terrace at its height', !!s && s.meshY === s.h && s.ground === s.h && s.ramps >= 1 && s.ring, JSON.stringify(s));
   await page.evaluate(() => { const b = MT.blocks[MT.blocks.length - 1]; if (b.cells[0].h > 0) MT.removeBlock(b); });
   await page.evaluate(() => { MT.cam.view = MT.cam.tView = 18; }); await sleep(300);
-  const wp = await page.evaluate(() => MT.project(17, 22)); await page.mouse.click(wp.x, wp.y); await sleep(200);
-  s = await page.evaluate(() => ({ blocks: MT.blocks.length, cell: MT.cell(17, 22).type, side: MT.cell(16, 22).type }));
-  check('a street between blocks can be built over', s.blocks === 4 && s.cell === 'lot' && s.side === 'road', JSON.stringify(s));
+  const wp = await page.evaluate(() => MT.project(16, 25)); await page.mouse.click(wp.x, wp.y); await sleep(200);
+  s = await page.evaluate(() => { const b = MT.blocks[3]; return { blocks: MT.blocks.length, cell: MT.cell(16, 25).type, street: b ? b.street.length : 0 }; });
+  check('a building can be zoned further along the same street', s.blocks === 4 && s.cell === 'lot' && s.street >= 1, JSON.stringify(s));
+  const np = await page.evaluate(() => MT.project(14, 25)); await page.mouse.click(np.x, np.y); await sleep(200);
+  s = await page.evaluate(() => MT.blocks.length); check('nothing is zoned away from a street', s === 4);
+  // the Road tool: drag draws a permanent street, crossing streets get a light, Remove takes a drawn cell away
+  await page.keyboard.press('Digit5');
+  const ra = await page.evaluate(() => MT.project(27, 17)), rb = await page.evaluate(() => MT.project(27, 23));
+  await page.mouse.move(ra.x, ra.y); await page.mouse.down(); await page.mouse.move(rb.x, rb.y, { steps: 6 }); await sleep(60); await page.mouse.up(); await sleep(200);
+  s = await page.evaluate(() => { MT.drawRoad(MT.cell(24, 20), MT.cell(28, 20)); return { drawn: MT.cells.filter(c => c.drawn).length, types: [17, 18, 19, 20, 21, 22, 23].map(j => MT.cell(27, j).type), signal: MT.signalCells.has(MT.cell(27, 20)) }; });
+  check('the Road tool draws a street by dragging; two through-streets crossing get a traffic light', s.drawn === 16 && s.types.every(t => t === 'road') && s.signal, JSON.stringify(s));
+  await page.keyboard.press('Digit6'); const rc = await page.evaluate(() => MT.project(27, 17)); await page.mouse.click(rc.x, rc.y); await sleep(200);
+  s = await page.evaluate(() => ({ drawn: MT.cells.filter(c => c.drawn).length, cell: MT.cell(27, 17).type }));
+  check('Remove takes a drawn street cell away', s.drawn === 15 && s.cell === 'empty', JSON.stringify(s));
+  s = await page.evaluate(() => ({ refused: !MT.eraseRoad(MT.cell(17, 23)), still: MT.cell(17, 23).type }));
+  check('a street a building opens onto cannot be removed', s.refused && s.still === 'road', JSON.stringify(s));
 
   await page.evaluate(() => MT.fastForward(40));
   s = await page.evaluate(() => ({ stages: MT.blocks.filter(b => b.type !== 'station').map(b => b.stage), done: MT.DONE, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, beds: MT.blocks.filter(b => b.type === 'res').flatMap(b => b.units).reduce((n, u) => n + MT.unitCap(u), 0), shopJob: MT.residents.some(r => r.job && r.job.block.type === 'shop'), working: MT.residents.filter(r => r.job || r.commuter).length }));
@@ -87,9 +101,10 @@ try {
   check('hover opens inspect card', cardOk(inspectText), inspectText.slice(0, 140).replace(/\n+/g, ' | '));
   await page.evaluate(() => MT.setSpeed(1));
 
-  await page.keyboard.press('Digit5'); await page.mouse.click(sp.x, sp.y); await sleep(200);
-  s = await page.evaluate(() => ({ blocks: MT.blocks.length, orphan: MT.cell(17, 24).type, kept: MT.cell(17, 21).type, residents: MT.residents.length }));
-  check('remove tool clears block and orphan roads', s.blocks === 3 && s.orphan === 'empty' && s.kept === 'road', JSON.stringify(s));
+  const shopStreet = await page.evaluate(() => MT.blocks[2].street.map(c => [c.i, c.j]));
+  await page.keyboard.press('Digit6'); await page.mouse.click(sp.x, sp.y); await sleep(200);
+  s = await page.evaluate(sc => { const net = MT.townNet(); return { blocks: MT.blocks.length, cell: MT.cell(16, 23).type, street: sc.map(([i, j]) => MT.cell(i, j).type), kept: MT.blocks[1].street.every(c => c.type === 'road' && net.has(c)), residents: MT.residents.length }; }, shopStreet);
+  check('remove tool clears a block; the street it stood on stays', s.blocks === 3 && s.cell === 'empty' && s.street.every(t => t === 'road') && s.kept, JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(30));
 
   // ── save and load: the town survives a reload ──
@@ -106,9 +121,9 @@ try {
   await page.screenshot({ path: 'scripts/out/night.png' });
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, residents: MT.residents.length, jobs: MT.residents.filter(r => r.job).length }));
   check('demo town populated', s.blocks === 8 && s.residents >= 10 && s.jobs >= 8, JSON.stringify(s));
-  s = await page.evaluate(() => { MT.setSpeed(0); let away = 0; for (let k = 0; k < 48; k++) { MT.fastForward(0.5); away = Math.max(away, MT.residents.filter(r => r.state === 'away' && r.home).length); } return { commuters: MT.residents.filter(r => r.commuter).length, away, parked: MT.carMeshes.filter(c => c.visible && c.userData.parked).length, bikes: MT.residents.filter(r => r.hasBike).length, signals: MT.signalCells.size }; });
-  const cn = await page.evaluate(() => { const canal = MT.cells.filter(c => c.canal); let built = null; for (const c of canal) { if (c.bridge) continue; for (const [di, dj] of [[1, 0], [0, 1]]) { const a = MT.cell(c.i - 2 * di, c.j - 2 * dj), b = MT.cell(c.i + 2 * di, c.j + 2 * dj), a1 = MT.cell(c.i - di, c.j - dj), b1 = MT.cell(c.i + di, c.j + dj); const ok = x => x && x.type === 'empty' && !x.h; if (ok(a) && ok(b) && ok(a1) && ok(b1)) { const A = MT.placeBlock('res', [a]); MT.placeBlock('res', [b]); built = { bridge: c.bridge, afterRemove: null }; MT.removeBlock(A); built.afterRemove = c.bridge; break; } } if (built) break; } return { canal: canal.length, coast: MT.cells.filter(c => c.coast).length, built }; });
-  check('a canal and a coast road exist; a bridge spans the canal between facing streets and goes when they do', cn.canal >= 8 && cn.coast >= 40 && !!cn.built && cn.built.bridge === true && cn.built.afterRemove === false, JSON.stringify(cn));
+  s = await page.evaluate(() => { MT.drawRoad(MT.cell(30, 17), MT.cell(30, 31)); MT.drawRoad(MT.cell(26, 22), MT.cell(34, 22)); MT.setSpeed(0); let away = 0; for (let k = 0; k < 48; k++) { MT.fastForward(0.5); away = Math.max(away, MT.residents.filter(r => r.state === 'away' && r.home).length); } return { commuters: MT.residents.filter(r => r.commuter).length, away, parked: MT.carMeshes.filter(c => c.visible && c.userData.parked).length, bikes: MT.residents.filter(r => r.hasBike).length, signals: MT.signalCells.size }; });
+  const cn = await page.evaluate(() => { const canal = MT.cells.filter(c => c.canal); let built = null; for (const c of canal) { if (c.bridge) continue; for (const [di, dj] of [[1, 0], [0, 1]]) { const a = MT.cell(c.i - 2 * di, c.j - 2 * dj), b = MT.cell(c.i + 2 * di, c.j + 2 * dj), a1 = MT.cell(c.i - di, c.j - dj), b1 = MT.cell(c.i + di, c.j + dj); const ok = x => x && x.type === 'empty' && !x.h; if (ok(a) && ok(b) && ok(a1) && ok(b1)) { const laid = MT.drawRoad(a, b); built = { laid: laid ? laid.length : 0, bridge: c.bridge, afterRemove: null }; if (laid) for (const x of laid) if (x !== c) MT.eraseRoad(x); MT.eraseRoad(c); built.afterRemove = c.bridge; break; } } if (built) break; } return { canal: canal.length, coast: MT.cells.filter(c => c.coast).length, built }; });
+  check('a canal and a coast road exist; a street drawn across the canal becomes a bridge and goes when erased', cn.canal >= 8 && cn.coast >= 40 && !!cn.built && cn.built.laid === 5 && cn.built.bridge === true && cn.built.afterRemove === false, JSON.stringify(cn));
   check('commuters ride the train, vehicles park beside buildings, crossroads have lights', s.commuters >= 1 && s.away >= 1 && s.parked >= 1 && s.signals >= 1, JSON.stringify(s));
   s = await page.evaluate(async () => { const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const us = MT.blocks.flatMap(b => b.units); MT.setHour(10); await frame(); const dayOut = us.filter(u => u.laundry && u.laundry.visible).length; MT.setHour(21); await frame(); const nightOut = us.filter(u => u.laundry && u.laundry.visible).length; return { laundry: us.filter(u => u.laundry).length, dayOut, nightOut, roofs: [...new Set(MT.blocks.map(b => b.roofStyle).filter(Boolean))], parks: MT.parkCells.size, matsu: MT.cells.filter(c => c.tree && c.tree.kind === 'matsu').length, bamboo: MT.cells.filter(c => c.tree && c.tree.kind === 'bamboo').length }; });
   check('Japanese identity: laundry out by day only, kawara roofs, a pocket park, pines and bamboo', s.laundry >= 1 && s.dayOut >= 1 && s.nightOut === 0 && s.roofs.includes('kawara') && s.parks >= 1 && s.matsu >= 1 && s.bamboo >= 1, JSON.stringify(s));

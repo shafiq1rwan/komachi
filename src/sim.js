@@ -1,17 +1,17 @@
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
 import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
-import { rand, pick, clamp, smooth, hash } from './utils.js';
+import { rand, pick, clamp, smooth } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
 import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { createDog, updateDog, DOG_COATS } from './dogs.js';
-import { attachCharacter, detachCharacter } from './characters.js';
+import { createTeaCan } from './tea-can.js';
+import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, treeSpec, lotAdjacent8, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, signalRed, updateSignals } from './world.js';
-import { bicycle } from './kit.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork } from './world.js';
+import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { unitLocal } from './buildings.js';
-import { mergeMesh } from './geometry.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
@@ -87,7 +87,10 @@ function buildPoints(cellPath, start, end, side, y, lane = null) {
   }
   if (lane === null && n > 0) {
     const rL = rightOf(dirs[dirs.length - 1]), endSide = Math.sign(rL.dot(kerbE.clone().sub(C[n - 1]).setY(0))) || laneSign;
-    if (endSide !== laneSign) pts.push(C[n - 1].clone().addScaledVector(rL, side * endSide));   // cross the road here
+    if (endSide !== laneSign) {   // cross the road here; remember where, so a walker can wait for the light
+      const d = dirs[dirs.length - 1]; pts.crossAt = pts.length - 1; pts.crossCell = cellPath[n - 1]; pts.crossAxis = Math.abs(d.x) > Math.abs(d.z) ? 'ew' : 'ns';
+      pts.push(C[n - 1].clone().addScaledVector(rL, side * endSide));
+    }
   }
   for (const p of eArr) pts.push(keepY(p));
   return pts;
@@ -126,7 +129,9 @@ const SHOP_STAFF_ACTS = ['serving customers', 'restocking shelves', 'wiping tabl
 const SHOP_ACTS = ['browsing', 'sipping coffee', 'buying groceries', 'chatting with the owner', 'picking a snack', 'trying samples'];
 
 const WAIT_ACTS = ['waiting for a home', 'reading the timetable', 'studying the town map', 'people-watching', 'checking their phone', 'chatting with a neighbour', 'humming a tune', 'watching the clouds'];
-const VEND_ACTS = ['buying a can of tea', 'choosing a soda', 'getting a hot coffee', 'buying a melon soda'];
+const VEND_ACTS = ['buying a can of tea', 'choosing a tea', 'getting a cold tea'];
+const DRINK_ACTS = ['sipping a can of tea', 'enjoying a quiet tea break', 'finishing a can of tea'];
+function makeCan() { return createTeaCan(); }
 
 const BREAKFAST_ACTS = ['having breakfast out', 'a coffee and a pastry', 'eating a morning set', 'reading the paper over coffee'];
 const LUNCH_ACTS = ['having lunch', 'eating ramen', 'having a set meal', 'sharing a pastry', 'finishing a coffee'];
@@ -211,7 +216,7 @@ function spawnNewcomer(hh = null) {
 }
 /** next decision time for someone waiting at the station: never sleeps past the 22:00 last train */
 const waitNext = dt => { const t = S.T + dt, lastTrain = Math.floor(S.T / 24) * 24 + 22.02; return hourOf() < 22 ? Math.min(t, lastTrain) : t; };
-function freeSpot(r) { if (r.spot) { r.spot.taken = null; r.spot = null; } if (r.vendingAt) { r.vendingAt.taken = null; r.vendingAt = null; } }
+function freeSpot(r) { if (r.spot) { r.spot.taken = null; r.spot = null; } if (r.vendingAt) { r.vendingAt.taken = null; r.vendingAt = null; } r.sipAt = 0; const ch = r.mesh && r.mesh.userData.char; if (ch && (ch.item || ch.pose === 'press' || ch.pose === 'drink')) { dropItem(ch); ch.pose = null; } }
 function takeSpot(r) {
   const spot = STATION.seats.find(s => !s.taken) || STATION.stands.find(s => !s.taken);
   if (spot) { spot.taken = r; r.spot = spot; } return spot;
@@ -243,8 +248,8 @@ function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
 function waitDecide(r) {
   const h = hourOf();
   if (h >= 22 || h < 5.5) { freeSpot(r); startDirectTrip(r, r.mesh.position, STATION.entrance, 'taking the last train to the city', () => leaveForCity(r)); return; }
-  if (r.vendingAt) {   // finished at the machine: back to the seat
-    r.vendingAt.taken = null; r.vendingAt = null;
+  if (r.vendingAt) {   // finished at the machine: the empty can goes in the bin, then back to the seat
+    r.vendingAt.taken = null; r.vendingAt = null; r.sipAt = 0; const ch = r.mesh.userData.char; if (ch) { dropItem(ch); ch.pose = null; }
     if (!r.spot) takeSpot(r);
     if (r.spot) startDirectTrip(r, r.mesh.position, r.spot.pos.clone().setY(0.12), 'heading back to the bench', () => sitDown(r));
     else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
@@ -254,7 +259,9 @@ function waitDecide(r) {
   const v = STATION.vending.find(x => !x.taken);
   if (v && h >= 6 && h < 23 && Math.random() < 0.28) {
     v.taken = r; r.vendingAt = v;
-    startDirectTrip(r, r.mesh.position, v.pos, 'going to the vending machine', () => { r.state = 'inside'; r.trip = null; r.mesh.rotation.y = v.rot; r.activity = pick(VEND_ACTS); r.needs.food = Math.min(1, r.needs.food + 0.15); r.next = waitNext(rand(0.12, 0.2)); });
+    startDirectTrip(r, r.mesh.position, v.pos, 'going to the vending machine', () => { r.state = 'inside'; r.trip = null; r.mesh.rotation.y = v.rot; r.activity = pick(VEND_ACTS); r.needs.food = Math.min(1, r.needs.food + 0.15); r.next = waitNext(rand(0.22, 0.32));
+      const ch = r.mesh.userData.char; if (ch) { ch.pose = 'press'; r.sipAt = S.T + 0.06; }
+    });   // a moment at the buttons, then the drink (see the inside loop)
     return;
   }
   r.activity = pick(WAIT_ACTS);
@@ -326,8 +333,7 @@ function parkVehicle(mesh, u, kind) {
   mesh.visible = true; mesh.userData.parked = true; mesh.userData.slot = slot;
 }
 function makeBike(r) {
-  const g = []; bicycle(g, 0, 0, 0, r.carColor); const m = mergeMesh(g, false); m.castShadow = true;
-  const grp = new THREE.Group(); grp.add(m); grp.userData.lights = null; grp.visible = false; peopleGroup.add(grp); return grp;
+  const grp = createBike(r.carColor); grp.userData.lights = null; grp.visible = false; peopleGroup.add(grp); return grp;
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
@@ -489,7 +495,7 @@ function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
   if (drive) { r.carAt = destUnit; if (!r.car) r.car = makeCar(r.carColor, r.carKind); start = r.car.userData.parked ? [r.car.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }   // from the parking spot to the kerb, then the road
   if (ride) { r.bikeAt = destUnit; if (!r.bike) r.bike = makeBike(r); start = r.bike.userData.parked ? [r.bike.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }
   const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : ride ? buildPoints(cellPath, start, end, 0.27, 0.08, -1) : buildPoints(cellPath, start, end, 0.34, 0.1);
-  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, ride, speed: drive ? 2.6 : ride ? 1.7 : 0.9 * rand(0.85, 1.15), baseY: drive || ride ? 0.08 : 0.1 };
+  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, ride, speed: drive ? 2.6 : ride ? 1.7 : 0.9 * rand(0.85, 1.15), baseY: drive || ride ? 0.08 : 0.1, cells: cellPath, label, from };
   setPose(r, ride);
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
   if (drive) { r.car.visible = true; r.car.userData.parked = false; r.mesh.visible = false; r.car.position.copy(pts[0]); }
@@ -630,11 +636,13 @@ function trafficFactor(obj) {
   return f;
 }
 function moveAlong(obj, tr, dist) {
+  const requested = dist;
   const pts = tr.pts;
   while (dist > 0 && tr.i < pts.length - 1) {
     const a = pts[tr.i], b = pts[tr.i + 1], segLen = a.distanceTo(b) || 0.0001, remain = segLen - tr.t;
     if (dist < remain) { tr.t += dist; dist = 0; } else { dist -= remain; tr.i++; tr.t = 0; }
   }
+  if (obj.bikeParts) rollBike(obj, requested - dist);
   // trip points carry a height above the ground (kerb, doorstep); the ground itself comes from the terrain
   if (tr.i >= pts.length - 1) { const e = pts[pts.length - 1]; obj.position.set(e.x, e.y + terrainY(e.x, e.z), e.z); return true; }
   const a = pts[tr.i], b = pts[tr.i + 1], k = tr.t / (a.distanceTo(b) || 1);
@@ -659,6 +667,7 @@ function updateResidents(simDt, realT) {
   for (const r of residents) {
     if (r.state === 'away' || r.state === 'riding') continue;
     if (r.state === 'inside') {
+      if (r.sipAt && S.T >= r.sipAt) { r.sipAt = 0; const ch = r.mesh.userData.char; if (ch && r.vendingAt) { holdItem(ch, makeCan(r)); ch.pose = 'drink'; r.activity = pick(DRINK_ACTS); r.mesh.rotation.y = r.vendingAt.rot + Math.PI * 0.85; } }   // turn from the machine and drink
       if (S.T >= r.next) decide(r);
       if (r.home && !r.job && S.T >= r.jobSearchAt) { findJob(r); r.jobSearchAt = S.T + rand(1.5, 3); }
       continue;
@@ -669,8 +678,16 @@ function updateResidents(simDt, realT) {
     r.lodDist += tr.speed * simDt;
     if (r.far && (frameNo + r.id) % 6 !== 0) continue;
     if (tr.drive) r.lodDist *= trafficFactor(obj);
+    const P = tr.pts;   // at a signalled crossing a walker waits at the kerb while the cars along the street have the green
+    if (!tr.drive && !tr.ride && P.crossAt !== undefined && tr.i === P.crossAt && tr.t < 0.03 && signalCells.has(P.crossCell) && !signalRed(P.crossCell, P.crossAxis)) { if (!r.paused) { r.paused = true; r.heldAct = r.activity; r.activity = 'waiting to cross'; } r.lodDist = 0; continue; }
+    if (r.paused) { r.paused = false; if (r.heldAct) r.activity = r.heldAct; }
     const done = moveAlong(obj, tr, r.lodDist); r.lodDist = 0;
-    if (tr.ride) { r.mesh.position.copy(r.bike.position); r.mesh.position.y += 0.1; r.mesh.rotation.y = r.bike.rotation.y; }   // the rider sits on the bike
+    if (tr.ride) {
+      r.mesh.position.copy(r.bike.position); r.mesh.position.y += BIKE_SEAT.y - 0.09;
+      r.mesh.position.x += Math.sin(r.bike.rotation.y) * BIKE_SEAT.z;
+      r.mesh.position.z += Math.cos(r.bike.rotation.y) * BIKE_SEAT.z;
+      r.mesh.rotation.y = r.bike.rotation.y;
+    }
     else if (!tr.drive && !r.far && !r.mesh.userData.char) r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
     if (done) arrive(r);
   }
@@ -691,7 +708,7 @@ function wanderPick(w) {
     const t = pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
     const y = w.kind === 'car' ? 0.08 : 0.1, side = w.kind === 'car' ? 0.17 : 0.36;
     const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y, w.kind === 'car' ? -1 : (w.lane || (w.lane = Math.random() < 0.5 ? 1 : -1))); pts.pop();
-    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t }; return;
+    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t, cells: path }; return;
   }
   w.pause = rand(1, 4);
 }
@@ -785,13 +802,25 @@ function removeBlock(block) {
     u.cell.type = 'empty'; u.cell.block = null; u.cell.unit = null; units.delete(u.id);
   }
   blocks.splice(blocks.indexOf(block), 1);
-  for (const c of cells) if (c.type === 'road' && !c.keep && !c.bridge && !lotAdjacent8(c)) { c.type = 'empty'; if (c.dyn) { c.ramp = null; c.dyn = false; } c.link = false; if (hash(c.j, c.i) < 0.18) c.tree = treeSpec(c.i, c.j); }
-  connectHillRoads();   // hill links were cleared with the orphans; rebuild them for the blocks that remain
-  connectCanal();       // a bridge whose banks lost their roads goes back to water
+  rebuildNetwork();     // hill slopes, links and bridges settle for the blocks that remain; streets are the player's and stay
   refreshWorld();
 }
 
-onWorldChange(() => { pathCache.clear(); for (const w of wanderers) if (w.cell && w.cell.type !== 'road') w.dead = true; });   // a street built over sends its traffic away
+onWorldChange(() => {   // a street removed or built over: ambient traffic on it leaves, residents on it find another way
+  pathCache.clear();
+  const gone = tr => !!tr && !!tr.cells && tr.cells.some(c => c.type !== 'road');
+  for (const w of wanderers) if ((w.cell && w.cell.type !== 'road') || gone(w.trip)) w.dead = true;
+  for (const r of residents) {
+    const tr = r.trip; if (!gone(tr)) continue;
+    const obj = tr.drive ? r.car : tr.ride ? r.bike : r.mesh, here = cellAt(obj.position), dest = tr.dest;
+    const targets = dest ? frontRoad(dest) : [];
+    const path = here && here.type === 'road' && targets.length ? routeCells([here], targets) : null;
+    if (path && dest) { startTrip(r, path, obj.position.clone().setY(0), dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, tr.label || r.activity, tr.from); continue; }
+    // stranded with no street under them: they slip indoors (home, or the station plaza) and carry on from there
+    r.trip = null; if (r.car) r.car.visible = false; if (r.bike) r.bike.visible = false; r.mesh.visible = false; r.paused = false;
+    const at = r.home || STATION.anchor; r.at = at; at.inside.add(r); r.state = 'inside'; r.next = S.T + 0.05; r.purpose = null;
+  }
+});
 
 export { HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,

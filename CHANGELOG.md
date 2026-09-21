@@ -10,6 +10,28 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Phase 4.9, streets first. Buildings no longer bring a square ring of road with them: the player draws streets
+  with the new Road tool (key 5), dragging an L-shaped run over land on one level or straight across the canal
+  for a bridge, and zones buildings beside them (only beside a street that reaches the station, so nobody is ever cut off). A building's door faces the street it was placed against, and
+  the station's ring is the first street. The Remove tool (now key 6) takes a drawn street cell away unless a
+  building still opens onto it. The town lays nothing on the flat by itself; on the hill it still builds a slope
+  for a terrace street with no way down. Traffic lights stand only where two through-streets cross, every arm
+  running straight for two cells; other crossroads get painted stop lines. Walkers wait at the kerb of a
+  signalled crossing while the cars have the green and cross when it turns. The demo town draws its own side
+  streets. Saves are v2 and carry drawn streets; v1 saves still load, their blocks finding the streets beside them
+- A sage-green tea can with a curved cream TEA sticker, leaf emblem, silver rims and pull tab.
+  Vending-machine drinks use the new can and a mouth-aligned sipping pose; includes a standalone GLB.
+
+- Four original Kenney-sized carry props: shopping bag, briefcase, folding umbrella and registration
+  folder. Standalone GLBs, character attachment/disposal helpers, walking preview and open/close
+  umbrella animations are ready for later trip and weather triggers.
+
+- Original city bicycle model with a step-through frame, open basket, mudguards, rear rack,
+  lamp and bell. Resident bikes now use the model with distance-based wheel/crank rotation,
+  level pedals and a dedicated rigid-limb riding pose. Includes an animated GLB and colour preview.
+
+- People drink from a can at the vending machines: they press the buttons, turn away with a small pastel can
+  in hand and tip their head back for sips before dropping it in the bin and heading back to the bench
 - Shiba animation corrections: fitted inner ears, seated haunches and grounded paws,
   working rear-leg gait at every simulation speed, and shared game/GLB animation clips.
   Dogs now sniff during short pauses and hold their seated pose during longer pauses.
@@ -74,6 +96,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Roadmap: residents register at the town hall after moving in (Phase 5.5, kōban as the stand-in), and a list of
+  hand props to model (can, bag, briefcase, umbrella, folder)
 - Shops come in three silhouettes by roof style: a tiled machiya gable with a lattice band, a mono-pitch metal
   roof with a tall fascia, or the flat roof with a parapet, so a shop street is no longer a row of identical boxes
 - Roadmap: a Phase 4.9 before the economy, in which buildings get a front street stub auto-connected to the
@@ -163,6 +187,12 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- Removing a street now clears its traffic: cars and animals travelling over it leave at once and residents on
+  it find another way (or step indoors if no street is left under them); the Remove tool highlights the street
+  cell under the pointer, rose when it can go and grey when a building still opens onto it, and dragging along
+  a street removes the whole run at once
+- Residents no longer turn up in builder gear: the old cap flag on some residents was selecting the builder
+  model; only construction crews use it now
 - A ground-level street beside a terrace street no longer draws an opening into the terrace wall: roads only
   join at the same height or along a slope road's axis, matching how traffic is routed
 - A ring road running beside the island's slope road or a town-built link is no longer mistaken for a two-lane

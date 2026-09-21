@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 20 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 24 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -53,9 +53,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
 - Roof styles: `kawara` (grey tiles, irimoya from level 2), `tile`, `metal`; the kit's Japanese parts are
   `kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry` (laundry goes to the `LG` list, its own mesh).
-- Cells: `water | hill | empty | road | lot`; roads ring blocks automatically; blocks are 1–3 cells and may be
-  zoned over road cells (`placeable` in world.js), never over the station ring, ramp roads (`c.keep`)
-  or across two terraces. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
+- Cells: `water | hill | empty | road | lot`; streets first: the player draws roads (`drawn`, permanent) and
+  blocks (1–3 empty cells beside a street, one terrace) face them (`block.street` = adjacent roads, `frontRoads`).
+  Road flags: `keep` (island), `drawn` (player), `dyn`/`link` (hill slopes/links the town builds), `bridge`,
+  `coast`. Roads are never built over; `eraseRoad` refuses a cell a building opens onto (`roadKeepReason`).
+  Signals only where two through-streets cross. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
 
@@ -87,9 +89,11 @@ Decisions already made (do not reopen without asking):
 - Everyone arrives by train. Nobody sleeps on a bench: last train 22:00, back at 06:00. Households
   are booked when their home enters the finishing stage. Builders also come and go by train and
   nothing is built without a crew on site (06:00–18:00).
-- Two blocks placed two cells apart form a two-lane avenue, not a doubled road. (Ring roads themselves are
-  slated to go in Phase 4.9: a front stub per building plus auto-connection, and a Road tool.) Cables only run along
-  streets between poles that share a row/column of road.
+- Two parallel adjacent road cells form a two-lane avenue, not a doubled road (slope roads and links excepted).
+  Since Phase 4.9 (2026-09-21) streets come first: the player draws them with the Road tool and zones beside
+  them; the town lays no streets on the flat (a stub-plus-connector version was tried and dropped the same day
+  because side-by-side blocks got odd joins). Only the station has a ring. Cables only run along streets
+  between poles that share a row/column of road.
 - Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
 - HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
   icon after 5 s; instant tooltips; progress pills float over sites under construction; notices slide in as a cream
@@ -109,8 +113,8 @@ Open threads the user has not decided:
 Phases 4 and 4.5 shipped 2026-09-17 (commuters, parked cars and bikes, taxis, traffic lights, hill unlock;
 canal with bridges, coast road). Phase 4.8 (Japanese identity pass) shipped the same day: roof styles are now `kawara | tile | metal`,
 `u.laundry` is a per-unit mesh toggled by the hour in daynight.js, `parkCells` in world.js lists pocket
-parks. Next is Phase 4.9 (player-shaped streets: front stubs, auto-connector, Road tool), then Phase 5 (economy,
-dynamic businesses, hill plot market, car ferry) when the user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
+parks. Phase 4.9 shipped 2026-09-21 (streets first: Road tool, zoning beside streets, signals rule, walkers at lights; saves v2).
+Next is Phase 5 (economy, dynamic businesses, hill plot market, car ferry) when the user says go. Cells now also carry `canal | bridge | coast` flags; canal cells are type `canal`. Deliver in the same style: build, verify with screenshots and headless traces (see the
 scratch scripts pattern in scripts/smoke.mjs), update CHANGELOG (Unreleased), README, docs, ROADMAP.
 Any change to what a resident or block carries must be mirrored in `src/save.js` (bump `v` if the
 shape changes incompatibly).
@@ -130,8 +134,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    4.5 ✅ canal with bridges, coast road (overpass/tunnel still optional, not built)
    4.8 ✅ Japanese identity pass: kawara roofs and block walls, signage (noren, chōchin, konbini), street
        details (tomare marks, post box, kōban, pole transformers), pines and bamboo, laundry on balconies
-   4.9 Streets the player can shape: a front stub per building auto-connected to the nearest street, plus a Road
-       tool for drawing permanent streets (agreed 2026-09-17; replaces the automatic ring around each block)
+   4.9 ✅ Streets first: the player draws streets (Road tool, key 5) and zones beside them, lights only at
+       through-street crossings, walkers wait at the red
 5. Economy and dynamic business selection (incl. hill plot market: villas, tea house, later ryokan; car ferry at
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
