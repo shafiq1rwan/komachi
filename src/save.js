@@ -6,8 +6,8 @@ import { rebuildUnitMesh } from './buildings.js';
 import { residents, households, restoreResident, restoreHousehold } from './sim.js';
 
 export const SAVE_KEY = 'komachi.save';
-const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage'];
-const RES_KEYS = ['id', 'name', 'wake', 'workStart', 'workEnd', 'hasCar', 'hasBike', 'commuter', 'lastWorkDay', 'lunched', 'skin', 'shirt', 'pants', 'hair', 'hat', 'hatColor', 'bag', 'bagColor', 'carColor', 'carKind', 'arrivedDay', 'needs'];
+const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor'];
+const RES_KEYS = ['id', 'name', 'wake', 'workStart', 'workEnd', 'hasCar', 'hasBike', 'commuter', 'lastWorkDay', 'lunched', 'skin', 'shirt', 'pants', 'hair', 'hat', 'hatColor', 'bag', 'bagColor', 'carColor', 'carKind', 'arrivedDay', 'needs', 'carOrdered'];
 const pickKeys = (o, keys) => Object.fromEntries(keys.filter(k => o[k] !== undefined).map(k => [k, o[k]]));
 
 /** everything needed to rebuild the town, as plain data */

@@ -391,6 +391,19 @@ function rebuildRoads() {
 // ───────────────────────────── blocks & units ─────────────────────────────
 const blocks = []; const units = new Map();
 const CAP = { res: [0, 2, 4, 6], work: [0, 4, 7, 10], shop: [0, 1, 2, 3] };
+// Size tiers (Phase 5): the number of cells dragged decides what a block becomes. Index = cells.
+const TIERS = {
+  res: [null, ['detached', 'narrow'], ['terrace', 'apartment'], ['manshon']],
+  shop: [null, ['konbini', 'bakery', 'florist', 'books', 'ramen'], ['cafe', 'restaurant', 'grocery'], ['supermarket', 'arcade']],
+  work: [null, ['studio', 'office'], ['workshop', 'office'], ['factory', 'office']],
+};
+const CAP_BONUS = { apartment: 2, manshon: 4, villa: 2, restaurant: 1, supermarket: 2, arcade: 1, factory: 3 };   // a villa holds a whole family
+/** what a drag of n cells would make, for the placement label */
+function tierLabel(type, n) {
+  const pool = TIERS[type] && TIERS[type][n]; if (!pool) return '';
+  const names = pool.map(k => (k === 'office' && n === 3 ? 'office block' : KIND_LABEL[k] || k).toLowerCase());
+  return `${n} cell${n > 1 ? 's' : ''} · ${names.length > 1 ? names.slice(0, -1).join(', ') + ' or ' + names[names.length - 1] : names[0]}`;
+}
 // construction: plot → foundation → frame → scaffolding → finishing → DONE. Hours are crew-hours at rate 1.
 const DONE = 5;
 const STAGE_HOURS = [2, 2.5, 2.5, 2, 2];        // shops, workspaces (~11 crew-hours)
@@ -399,10 +412,10 @@ const STAGE_NAMES = ['Surveying the plot', 'Laying foundations', 'Raising the fr
 const stageHours = b => b.type === 'res' ? RES_STAGE_HOURS : STAGE_HOURS;
 const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', station: 'Station' };
 const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, station: PAL.roofSage };
-function unitCap(u) { return CAP[u.block.type][u.block.level] + (u.variant === 'apartment' ? 2 : 0); }
+function unitCap(u) { return CAP[u.block.type][u.block.level] + (CAP_BONUS[u.variant] || 0) + (CAP_BONUS[u.block.kind] || 0); }
 const SHOP_KINDS = ['cafe', 'bakery', 'ramen', 'grocery', 'konbini', 'florist', 'books'];
 const WORK_KINDS = ['office', 'workshop', 'studio'];
-const KIND_LABEL = { cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', office: 'Office', workshop: 'Workshop', studio: 'Studio', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments' };
+const KIND_LABEL = { cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
 function makeUnit(block, c) {
   const u = { id: S.nextId++, block, cell: c, mesh: null, residents: [], staff: [], inside: new Set(), lastMoveIn: S.T, pop: 0, incoming: 0, removed: false,
     winMat: new THREE.MeshStandardMaterial({ color: PAL.window, emissive: PAL.glow, emissiveIntensity: 0, roughness: 0.4 }),
@@ -430,7 +443,7 @@ function openHill(quiet = false) {
   if (!quiet) toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.');
 }
 function placeable(c, sel = []) {
-  if (!c || c.type !== 'empty' || c.ramp) return false;   // buildings stand on empty ground, beside a street
+  if (!c || c.type !== 'empty' || c.ramp || c.yard) return false;   // buildings stand on empty ground, beside a street
   if ((c.h || 0) > 0 && !hill.open) return false;   // the hill opens later
   if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
@@ -463,6 +476,8 @@ function frontRoads(sel) {
   for (const c of sel) for (const [di, dj] of DIR4) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road' && !n.ramp && (n.h || 0) === h && !out.includes(n)) out.push(n); }
   return out;
 }
+/** free terrace plots beside a hill street that reaches the town: where the town's own villas and tea house may go */
+function hillPlots() { return cells.filter(c => c.type === 'empty' && (c.h || 0) > 0 && !c.ramp && frontRoads([c]).some(r => townNetCached().has(r))); }
 /** streets a block relies on: its road neighbours */
 const isStreet = c => blocks.some(b => b.street && b.street.includes(c));
 const joined = (a, b, di, dj) => { const ax = r => !!r && Math.abs(r.di) === Math.abs(di) && Math.abs(r.dj) === Math.abs(dj); return (a.h || 0) === (b.h || 0) || ax(a.ramp) || ax(b.ramp); };
@@ -479,7 +494,7 @@ let netCache = null;   // townNet, recomputed after any change to the roads
 function townNetCached() { return netCache || (netCache = townNet()); }
 /** the L-shaped run of cells between two cells, as the Road tool draws it */
 function roadRun(a, b) { const run = []; let i = a.i, j = a.j; run.push(cell(i, j)); while (i !== b.i) { i += Math.sign(b.i - i); run.push(cell(i, j)); } while (j !== b.j) { j += Math.sign(b.j - j); run.push(cell(i, j)); } return run; }
-const drawable = (c, h) => !!c && !c.ramp && (c.h || 0) === h && ((c.h || 0) === 0 || hill.open) && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep));
+const drawable = (c, h) => !!c && !c.ramp && !c.yard && (c.h || 0) === h && ((c.h || 0) === 0 || hill.open) && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep));
 /** does a street cell reach the station? (for the tools' messages) */
 const joinedToTown = c => townNetCached().has(c);
 /** the player draws a street: an L-shaped run on one level over land or straight across the canal; null if it cannot go there */
@@ -618,13 +633,13 @@ function placeBlock(type, sel, preset = null) {
     roof: ROOFS[Math.floor(seed * ROOFS.length)],
     wall: type === 'res' ? pick(WALLS) : type === 'shop' ? pick(SHOP_WALLS) : pick(WORK_WALLS),
     awning: pick(AWNINGS), family,
-    kind: type === 'shop' ? pick(SHOP_KINDS) : type === 'work' ? pick(WORK_KINDS) : null,
-    variant: type === 'res' ? (seed < 0.45 ? 'detached' : seed < 0.75 ? 'narrow' : 'apartment') : null,
+    kind: type === 'res' ? null : pick(TIERS[type][Math.min(3, sel.length)] || (type === 'shop' ? SHOP_KINDS : WORK_KINDS)),   // the tier decides the kind
+    variant: type === 'res' ? pick(TIERS.res[Math.min(3, sel.length)]) : null,
     roofStyle: seed < 0.38 ? 'kawara' : seed < 0.68 ? 'tile' : 'metal',   // grey kawara tiles, pastel tiles, or a corrugated metal roof
   };
-  block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : sel.length > 1 ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
+  block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'manshon' ? pick(['Heights', 'Mansion', 'Court']) : block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : block.variant === 'terrace' ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
-  for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : hash(c.i * 3, c.j * 5) < 0.7 ? block.variant : pick(['detached', 'narrow', 'apartment']); }
+  for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : block.variant; }   // one look per block, so a terrace or a manshon reads as one building
   block.street = frontRoads(sel);
   blocks.push(block);
   rebuildNetwork();
@@ -650,4 +665,4 @@ const isDecor = obj => obj === decorMesh;
 
 export { cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
-  STATION, placeStation, KIND_LABEL, wireMat, facingOptions, rotateUnit, frontRoads, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };
+  STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

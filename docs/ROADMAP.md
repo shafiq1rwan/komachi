@@ -150,7 +150,11 @@ gets several distinct generators per size, and every building varies its details
 
 ## ⬜ Phase 5 — Economy and dynamic businesses
 
-- **Size tiers by drag length** (agreed 2026-09-21, first item of the phase): the number of cells dragged decides
+- ✅ **Light economy** (shipped 2026-09-21): shops count customers per day; reach by kind (`REACH` in sim.js);
+  busy shops (5 visits per level a day) fly nobori banners; a staffed shop with under one visit per level a day
+  for three days, in a town with three or more shops, changes trade to another kind of its tier (`changeTrade`):
+  staff let go, shutters and scaffold for three hours, then a reopening notice. Nothing closes for good
+- ✅ **Size tiers by drag length** (agreed 2026-09-21, shipped the same day): the number of cells dragged decides
   the building's shape and role, shown on the card before placing ("2 cells: café or restaurant").
   Residential: 1 = detached or narrow two-storey house (1–2 households); 2 = low apartment block or a pair of
   terrace houses (4–6); 3 = a three-storey manshon with lobby, bike shelter and rooftop tank (8–10, the only home
@@ -166,12 +170,15 @@ gets several distinct generators per size, and every building varies its details
 - Shop kind chosen from what the neighbourhood lacks rather than at random
 - Household spending seen as shopping bags, deliveries and small purchases
 - No bankruptcies or fail states; a business that struggles simply becomes something else
-- **Hill plot market**: terrace plots are not zoned by the player but taken up by the town on demand:
-  a well-off household builds a villa with a view, a tea house or lookout café appears once enough
-  people stroll up, and later a ryokan or small hotel (Phase 6 tourism). Starts as demand-driven
-  auto-build; money attaches once the economy exists
+- ✅ **Hill plot market** (shipped 2026-09-21): terrace plots are taken up by the town on demand, and the
+  player may still zone them too. `hillMarket` runs at the day's turn: a settled household (all employed or
+  commuting, two days in town, living on the flat) gets a villa on the highest free plot beside a hill street
+  that reaches the town (`hillPlots`), and moves up when it is finished (`moveUp`); once a villa stands and six
+  or more trips end up the hill in a day, a tea house opens on the plot nearest the shrine path. If the hill has
+  no street the town lays one short lane from the top of an island slope (`layTerraceLane`). A ryokan or small
+  hotel waits for Phase 6 tourism. No money changes hands; demand is the trigger
 
-- **Car ferry** (agreed 2026-09-17): nothing on wheels appears out of thin air any more. A small ro-ro ferry
+- ✅ **Car ferry** (agreed 2026-09-17, shipped 2026-09-21; `src/ferry.js`): nothing on wheels appears out of thin air any more. A small ro-ro ferry
   (Kenney Watercraft cargo ship, repainted) calls at the pier a few times a day and lowers a ramp onto a
   slipway joined to the coast road. Residents order a car once they have a job and have settled in; it rolls
   off the next sailing, drives to their street and parks at the kerb. Visiting cars and delivery vans arrive the
@@ -179,7 +186,7 @@ gets several distinct generators per size, and every building varies its details
   the opening ferry and live at the station rank from then on, and a third is delivered when the town grows. A household that moves away takes its car
   with it. The flatbed truck can carry a new car to a home far from the coast road; bikes come from a bike
   shop kind, wheeled home. Replaces the instant spawning of owned cars and ambient traffic.
-- **Building materials by sea** (agreed 2026-09-17): the ferry's deck carries visible pallets and a container,
+- ✅ **Building materials by sea** (agreed 2026-09-17, shipped 2026-09-21): the ferry's deck carries visible pallets and a container,
   unloaded into a small fenced builders' yard by the slipway (stacked timber, sacks, a container). The flatbed
   truck loads there and drives to the site, and the yard looks fuller while several sites are under way. Purely
   visual: nothing is counted or gated, and construction time is unchanged, driven only by the stage clock and

@@ -10,6 +10,35 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Phase 5, last slice: the car ferry. A ro-ro ferry (Kenney Watercraft cargo ship) calls at a slipway beside the
+  pier at 07:00, 12:00 and 17:00, waits about half an hour with its ramp down and sails again. Visiting cars now
+  arrive on it and drive into town, and drive back to the slipway to leave when the town has more than enough;
+  a resident who owns a car gets it off the next sailing after moving in, and it drives to their kerb. A builders'
+  yard by the slipway, fenced, with a container and a sign, holds stacked timber, sacks and crates that grow with
+  the number of sites under way, and delivery trucks load there. Purely visual: construction time is unchanged,
+  taxis stay island-based, and if no street joins the slipway to town the cars wait aboard and a notice says so
+- Phase 5, third slice: the hill plot market. Once the hill is open and a street reaches it, the town takes up
+  terrace plots on its own. If the hill has no street of its own the town lays one short lane along a terrace
+  from the top of an island slope. A settled household, everyone employed or commuting and two days in town,
+  has a villa built on the highest free plot: a wide single storey under a hip-and-gable kawara roof with a deep
+  engawa, lattice windows, a walled garden, stone lantern and pruned pine. When it is finished the household moves
+  up and their old home is let again. Once people are walking up the hill, a tea house opens on the plot nearest
+  the shrine path: kawara roof, shōji front, cushions on the veranda, a noren and a lantern. The player can still
+  zone terrace plots as before
+- Phase 5, second slice: a light economy, shown never counted. Shops count their customers each day (the card
+  shows today and yesterday), bigger shops draw people from further away (a supermarket or arcade reaches most of
+  the town, a corner bakery its own streets), a busy shop hangs nobori banners at its door (a supermarket flies sale
+  flags along its roof), and a shop nobody visits for three days, in a town with at least three shops, closes and
+  reopens as another trade of its size: shutters down and a "coming soon" board while the fit-out happens, then a
+  notice when the new shop opens. The town's last shops never close
+- Phase 5, first slice: size tiers. The number of cells you drag decides what a block becomes, and a label under the
+  tool bar says so while you drag. Homes: one cell is a detached or narrow house, two a pair of terrace houses or
+  low apartments, three an apartment building (manshon) with a lobby, balconies, stair core and rooftop tank, the
+  only home that adds a fourth floor at level 2. Shops: one cell is a konbini, bakery, florist, bookshop or ramen
+  counter; two a café, restaurant (shokudō with noren, lanterns and a menu stand) or grocery; three a supermarket
+  with a long lit fascia and trolleys, or a shotengai arcade of stalls under one glazed canopy. Workspaces: one
+  cell a studio or small office, two a workshop or office, three a factory with a saw-tooth roof and chimney, or
+  an office block. Capacities follow the tier, and all units of a block share one look
 - Phase 4.95, building variety. Detached homes come in three looks chosen from the seed: the cottage, a machiya
   townhouse with slatted timber walls, a lattice window, an engawa step and a pent roof over the ground floor,
   and a modern render box with a second light volume, a flat parapet roof in the block's roof colour, a corner window and a balcony on the side

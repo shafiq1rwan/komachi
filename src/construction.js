@@ -121,7 +121,9 @@ function runTask(k, dh, simDt, realT) {
 }
 
 const site = b => b.units[0];
-const stationRoads = () => roadNeighbors(STATION.anchor.cell);
+let yardStart = null;   // the ferry's slipway, once it exists: trucks load at the builders' yard there
+function setYardStart(fn) { yardStart = fn; }
+const stationRoads = () => { const y = yardStart && yardStart(); return y ? [y] : roadNeighbors(STATION.anchor.cell); };
 const activeSites = () => blocks.filter(b => b.type !== 'station' && b.stage < DONE);
 
 function spawnWorker(b) {
@@ -168,8 +170,9 @@ setProgressRate(b => { const n = b.crew.filter(k => k.state === 'working').lengt
 
 // materials: one kei truck from the station whenever a site enters a new stage (daytime only)
 function sendTruck(b) {
-  const u = site(b), path = routeCells(stationRoads(), frontRoad(u)); if (!path) return;
-  const start = stationRoads()[0], from = { x: start.i - blocks.length * 0, z: 0 }; void from;
+  const u = site(b); let start = stationRoads()[0], path = routeCells(stationRoads(), frontRoad(u));
+  if (!path) { const st = roadNeighbors(STATION.anchor.cell); path = routeCells(st, frontRoad(u)); start = st[0]; }   // the yard is cut off from town: the truck comes from the station side instead
+  if (!path) return;
   const startPos = unitLocal({ cell: start, facing: 0 }, 0, 0, 0.08);
   const kerb = unitLocal(u, -0.2, 0.88, 0.08);   // on the asphalt in front of the plot, clear of the pavement
   const mesh = makeCar(pick(CARS), 'truck'); mesh.visible = true;
@@ -216,4 +219,4 @@ function updateConstruction(dh, simDt, realT) {
   }
 }
 
-export { updateConstruction, workers, trucks };
+export { updateConstruction, workers, trucks, setYardStart };

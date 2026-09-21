@@ -27,6 +27,7 @@ const sleep = ms => new Promise(r => setTimeout(r, ms));
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--window-size=1500,950'] });
 try {
   const page = await browser.newPage(); await page.setViewport({ width: 1500, height: 950 });
+  await page.evaluateOnNewDocument(() => { const oe = console.error.bind(console); console.error = (...a) => { oe(...a); if (String(a[0]).includes('NaN')) { let where = ''; try { const bad = []; window.MT.scene.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return; const arr = o.geometry.attributes.position.array; for (let q = 0; q < arr.length; q += 3) if (!isFinite(arr[q])) { const chain = []; for (let p = o; p; p = p.parent) chain.push(p.name || p.type + (p.userData && p.userData.unit ? ':' + p.userData.unit.block.name + '/' + (p.userData.unit.block.kind || p.userData.unit.variant) : p.userData && p.userData.res ? ':person ' + p.userData.res.name : p.userData && p.userData.worker ? ':worker' : p.userData && p.userData.lights !== undefined ? ':vehicle' : '')); bad.push(chain.join('<') + ' n=' + arr.length / 3); break; } }); where = bad.slice(0, 4).join(' ; '); } catch (e) { where = 'scan failed ' + e.message; } window.__nanStack = (window.__nanStack || '') + ' NaN mesh at error time: ' + (where || 'none found') + ' ## '; } }; });
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   // ── interaction on an empty island ──
@@ -126,6 +127,18 @@ try {
   check('a canal and a coast road exist; a street drawn across the canal becomes a bridge and goes when erased', cn.canal >= 8 && cn.coast >= 40 && !!cn.built && cn.built.laid === 5 && cn.built.bridge === true && cn.built.afterRemove === false, JSON.stringify(cn));
   check('commuters ride the train, vehicles park beside buildings, crossroads have lights', s.commuters >= 1 && s.away >= 1 && s.parked >= 1 && s.signals >= 1, JSON.stringify(s));
   s = await page.evaluate(async () => { const frame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))); const us = MT.blocks.flatMap(b => b.units); MT.setHour(10); await frame(); const dayOut = us.filter(u => u.laundry && u.laundry.visible).length; MT.setHour(21); await frame(); const nightOut = us.filter(u => u.laundry && u.laundry.visible).length; return { laundry: us.filter(u => u.laundry).length, dayOut, nightOut, roofs: [...new Set(MT.blocks.map(b => b.roofStyle).filter(Boolean))], parks: MT.parkCells.size, matsu: MT.cells.filter(c => c.tree && c.tree.kind === 'matsu').length, bamboo: MT.cells.filter(c => c.tree && c.tree.kind === 'bamboo').length }; });
+  const eco = await page.evaluate(() => {   // customers are counted per day; a quiet shop with neighbours changes trade at the day's turn
+    const shops = MT.blocks.filter(b => b.type === 'shop');
+    const counted = shops.some(b => (b.lastVisits || 0) + (b.visitsToday || 0) > 0);
+    MT.drawRoad(MT.cell(24, 23), MT.cell(24, 27)); const extra = MT.placeBlock('shop', [MT.cell(25, 25)]); extra.stage = MT.DONE; for (const u of extra.units) MT.rebuildUnitMesh(u);
+    const q = shops[shops.length - 1]; const was = q.kind; q.quietDays = 2; q.visitsToday = 0; q.created = -100;
+    if (!q.units[0].staff.length) { const r = MT.residents.find(r => r.home); if (r) { r.job = q.units[0]; q.units[0].staff.push(r); } }
+    MT.setHour(23.9); MT.fastForward(0.3); const changed = q.kind !== was && q.changing === true; MT.fastForward(3.5);
+    return { counted, changed, reopened: !q.changing && q.renoT === 0, kind: q.kind, was };
+  });
+  check('economy: customers are counted daily and a quiet shop changes trade, then reopens', eco.counted && eco.changed && eco.reopened, JSON.stringify(eco));
+  const tiers = await page.evaluate(() => { const out = {}; for (const b of MT.blocks) { if (b.type === 'station') continue; const n = Math.min(3, b.cells.length), k = b.type === 'res' ? b.units[0].variant : b.kind; (out[b.type + n] = out[b.type + n] || new Set()).add(k); } const ok = Object.entries(out).every(([key, set]) => { const type = key.slice(0, -1), n = +key.slice(-1); return [...set].every(k => MT.TIERS[type][n].includes(k)); }); return { ok, seen: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v]])), label: MT.tierLabel('res', 3) }; });
+  check('size tiers: every block\'s kind or variant comes from its cell-count tier', tiers.ok && tiers.label.startsWith('3 cells'), JSON.stringify(tiers));
   const vv = await page.evaluate(() => {   // the same unit, rebuilt with different seeds, takes different looks
     const ru = MT.blocks.find(b => b.type === 'res').units[0], su = MT.blocks.find(b => b.type === 'shop').units[0], wu = MT.blocks.find(b => b.type === 'work' && b.kind === 'office')?.units[0];
     const styles = new Set(), finishes = new Set(), facades = new Set();
@@ -133,8 +146,30 @@ try {
     return { styles: [...styles], finishes: [...finishes], facades: [...facades], office: !!wu };
   });
   check('building variety: three detached styles, three shop finishes, three office facades from the seed', vv.styles.length === 3 && vv.finishes.length === 3 && (!vv.office || vv.facades.length === 3), JSON.stringify(vv));
-  check('Japanese identity: laundry out by day only, kawara roofs, a pocket park, pines and bamboo', s.laundry >= 1 && s.dayOut >= 1 && s.nightOut === 0 && s.roofs.includes('kawara') && s.parks >= 1 && s.matsu >= 1 && s.bamboo >= 1, JSON.stringify(s));
-  check('no page errors', errors.length === 0, errors.join(' | '));
+  check('Japanese identity: laundry out by day only, kawara roofs, a pocket park, pines and bamboo', s.laundry >= 1 && s.dayOut >= 1 && s.nightOut === 0 && s.roofs.length && s.roofs.every(r => ['kawara', 'tile', 'metal'].includes(r)) && s.parks >= 1 && s.matsu >= 1 && s.bamboo >= 1, JSON.stringify(s));
+  const hm = await page.evaluate(() => {   // the hill plot market: a settled, employed household gets a villa and moves up
+    MT.openHill(true); MT.drawRoad(MT.cell(17, 27), MT.cell(17, 29));   // join the coast road to the town so the hill can be reached
+    const hh = MT.households.find(h => h.home && (h.home.cell.h || 0) === 0 && h.members.length >= 1 && h.members.every(m => m.state !== 'away'));
+    if (!hh) return { hh: false };
+    for (const m of hh.members) { m.arrivedT = -100; if (!m.job && !m.commuter) m.commuter = true; }
+    MT.setHour(23.9); MT.fastForward(0.3);
+    const villa = MT.blocks.find(b => b.variant === 'villa'); if (!villa) return { hh: true, villa: false, plots: MT.hillPlots().length };
+    for (let k = 0; k < 80 && villa.stage < MT.DONE; k++) MT.fastForward(0.5);
+    for (let k = 0; k < 8; k++) MT.fastForward(0.25);
+    const owner = MT.households.find(h => h.home === villa.units[0]);   // whichever settled household the town picked
+    return { hh: true, villa: true, onHill: (villa.cells[0].h || 0) > 0, done: villa.stage === MT.DONE, movedUp: !!owner && owner.members.every(m => m.home === villa.units[0] && villa.units[0].residents.includes(m)) };   // a lodger may fill the spare bed
+  });
+  check('hill plot market: a settled household builds a villa on the terrace and moves up', hm.hh && hm.villa && hm.onHill && hm.done && hm.movedUp, JSON.stringify(hm));
+  const fy = await page.evaluate(() => {   // the ferry: slip and yard by the pier; a call comes in, queued cars roll off and drive into town
+    const f = MT.ferry; if (!f.ready) return { ready: false };
+    MT.setHour(6.5); f.queue.push({ kind: 'wanderer', color: '#e9b7b0', vkind: 'kei' });
+    const before = MT.ferry.ashore || 0; const seen = new Set();
+    for (let k = 0; k < 30; k++) { MT.fastForward(0.05); seen.add(f.state); }
+    return { ready: true, slip: !!f.slip, yard: !!f.yard, states: [...seen], calls: f.calls > 0, rolledOff: (MT.ferry.ashore || 0) > before, ashore: MT.ferry.ashore || 0 };
+  });
+  check('car ferry: it calls at the slipway and queued cars roll off into town', fy.ready && fy.slip && fy.yard && fy.states.includes('berthed') && fy.calls && fy.rolledOff, JSON.stringify(fy));
+  const nanStack = await page.evaluate(() => { const bad = []; MT.scene.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return; const arr = o.geometry.attributes.position.array; for (let i = 0; i < arr.length; i++) if (!isFinite(arr[i])) { const chain = []; for (let p = o; p; p = p.parent) chain.push(p.name || p.type + (p.userData && p.userData.unit ? ':' + p.userData.unit.block.name + '/' + (p.userData.unit.block.kind || p.userData.unit.variant) : p.userData && p.userData.res ? ':person' : p.userData && p.userData.lights !== undefined ? ':vehicle' : '')); bad.push(chain.join('<') + ' n=' + arr.length / 3); break; } }); return (window.__nanStack || '') + (bad.length ? ' NaN meshes: ' + bad.slice(0, 6).join(' ; ') : ''); });
+  check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();
 }

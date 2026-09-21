@@ -34,7 +34,7 @@ function renderStation(b) {
   return html;
 }
 function growthRow(b) {
-  if (b.level >= 3) return '';
+  if (b.level >= 3 || b.variant === 'villa') return '';
   const p = clamp(b.occT / 20, 0, 1);
   if (p >= 1 && !growthAllowed(b)) return `<div class="empty">Ready to grow once the town is bigger${b.level === 1 ? ' (3+ blocks, with homes and jobs)' : ' (6+ blocks of every kind)'}</div>`;
   return `<div class="row"><span>Growing</span><b>${Math.round(100 * p)}%</b></div><div class="bar"><i style="width:${100 * p}%"></i></div>`;
@@ -73,7 +73,13 @@ function renderInspect(target, follow = null) {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
         html += `<div class="row"><span>${type === 'shop' ? 'Staff' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
         html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;
-        if (type === 'shop') html += `<div class="row"><span>Popularity</span><b>${'★'.repeat(clamp(Math.round(b.visitScore / (2 * b.level)), 0, 5)) || '–'}</b></div>`;
+        if (type === 'shop') {
+          html += `<div class="row"><span>Popularity</span><b>${'★'.repeat(clamp(Math.round(b.visitScore / (2 * b.level)), 0, 5)) || '–'}</b></div>`;
+          html += `<div class="row"><span>Customers</span><b>${b.visitsToday || 0} today · ${b.lastVisits === undefined ? '–' : b.lastVisits} yesterday</b></div>`;
+          if (b.changing) html += `<div class="empty">Changing trade: shutters down while the new shop is fitted out</div>`;
+          else if (b.popular) html += `<div class="empty">Busy enough to fly banners</div>`;
+          else if (b.quietDays >= 2) html += `<div class="empty">Quiet lately; the owner is thinking of a change</div>`;
+        }
         html += growthRow(b);
         html += `<div class="divider"></div><ul>`;
         for (const r of staffIn) html += personLi(r, r.activity);

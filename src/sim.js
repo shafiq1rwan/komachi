@@ -1,6 +1,6 @@
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
-import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS } from './palette.js';
+import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS, SHOP_NAMES, uniqueName } from './palette.js';
 import { rand, pick, clamp, smooth } from './utils.js';
 import { S } from './state.js';
 import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } from './scene.js';
@@ -9,7 +9,8 @@ import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork } from './world.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, TIERS, KIND_LABEL, hillPlots, placeBlock, drawRoad } from './world.js';
+import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { unitLocal } from './buildings.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
@@ -350,7 +351,7 @@ function enterUnit(r, u) {
   if (r.movingIn && u === r.home) {   // the car or bike arrives with the household
     r.movingIn = false; u.incoming = Math.max(0, u.incoming - 1); r.activity = 'unpacking boxes'; r.actKind = 'home'; r.next = S.T + rand(0.5, 1);
     if (!r.commuter && Math.random() < 0.25) { r.commuter = true; r.workStart = rand(7, 8.6); r.workEnd = rand(17.2, 19); }   // a quarter keep a job in the city and commute by train
-    if (r.hasCar) { r.carAt = u; if (!r.car) r.car = makeCar(r.carColor, r.carKind); parkVehicle(r.car, u, 'car'); }
+    if (r.hasCar) { if (r.car) { r.carAt = u; parkVehicle(r.car, u, 'car'); } else if (vehicleSource) { r.carOrdered = true; vehicleSource.orderCar(r); } else { r.carAt = u; r.car = makeCar(r.carColor, r.carKind); parkVehicle(r.car, u, 'car'); } }   // the car comes off the next ferry
     if (r.hasBike) { r.bikeAt = u; if (!r.bike) r.bike = makeBike(r); parkVehicle(r.bike, u, 'bike'); }
   }
 }
@@ -527,7 +528,8 @@ function arrive(r) {
   const endPos = tr.pts[tr.pts.length - 1];
   if (!tr.dest) {   // strolled to a road cell: turn around and head home
     if (!r.home) { returnToStation(r, endPos); return; }
-    const c = cellAt(endPos); const path = c ? routeCells([c], frontRoad(r.home)) : null;
+    const c = cellAt(endPos); if (c && (c.h || 0) > 0) hillVisits++;   // a stroll up the hill counts too
+    const path = c ? routeCells([c], frontRoad(r.home)) : null;
     if (path) startTrip(r, path, endPos.clone().setY(0), entryPts(r.home), r.home, 'heading home');
     else { r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
     return;
@@ -540,20 +542,24 @@ function arrive(r) {
     departForCity(r); return;
   }
   if (tr.dest === STATION.anchor) { r.mesh.position.copy(endPos); arriveAtStation(r); return; }
+  if ((tr.dest.cell.h || 0) > 0) hillVisits++;   // someone made it up the hill
   if (tr.dest.removed) { returnToStation(r, endPos); return; }
   enterUnit(r, tr.dest);
-  if (tr.dest.block.type === 'shop' && tr.dest !== r.job) { tr.dest.block.visitScore += 1; }
+  if (tr.dest.block.type === 'shop' && tr.dest !== r.job) { tr.dest.block.visitScore += 1; tr.dest.block.visitsToday = (tr.dest.block.visitsToday || 0) + 1; }
 }
 function cellAt(p) { return cell(Math.floor(p.x + HALF), Math.floor(p.z + HALF)); }
 
-const FOODIE = { cafe: 1, bakery: 0.9, ramen: 1.1, grocery: 0.5, konbini: 0.8, florist: 0.15, books: 0.25 };
-const GROCER = { grocery: 1.2, konbini: 1.1, bakery: 0.7, florist: 0.6, books: 0.6, cafe: 0.4, ramen: 0.3 };
+const FOODIE = { cafe: 1, bakery: 0.9, ramen: 1.1, grocery: 0.5, konbini: 0.8, florist: 0.15, books: 0.25, restaurant: 1.25, supermarket: 0.6, arcade: 0.9, teahouse: 0.95 };
+const GROCER = { grocery: 1.2, konbini: 1.1, bakery: 0.7, florist: 0.6, books: 0.6, cafe: 0.4, ramen: 0.3, restaurant: 0.3, supermarket: 1.5, arcade: 1.0, teahouse: 0.2 };
 /** the best reachable shop for a purpose: weight by kind, discount by distance, add a little whim */
+const REACH = { teahouse: 22, supermarket: 26, arcade: 24, restaurant: 17, cafe: 16, grocery: 15, konbini: 13, ramen: 14, bakery: 12, florist: 11, books: 12 };
 function pickShop(r, from, weights) {
   let best = null, bs = 0;
   for (const u of shopUnits()) {
-    if (u === r.job) continue; const w = weights[u.block.kind] || 0.5; const p = routeUnits(from, u); if (!p) continue;
-    const sc = w * (1 + Math.random() * 0.6) / (1 + p.length / 14); if (sc > bs) { bs = sc; best = u; }
+    if (u === r.job || u.block.renoT > 0 && u.block.changing) continue;   // a shop changing trade is shuttered
+    const w = weights[u.block.kind] || 0.5; const p = routeUnits(from, u); if (!p) continue;
+    const reach = REACH[u.block.kind] || 12;   // a supermarket or arcade draws people from further than a corner bakery
+    const sc = w * (1 + Math.random() * 0.6) / (1 + p.length / reach); if (sc > bs) { bs = sc; best = u; }
   }
   return best;
 }
@@ -695,8 +701,12 @@ function updateResidents(simDt, realT) {
 
 // ───────────────────────────── ambient wanderers (cars, cats & neighbourhood Shibas) ─────────────────────────────
 function roadCellsList() { return cells.filter(c => c.type === 'road'); }
+let vehicleSource = null;   // the ferry registers here; cars then arrive and leave by sea
+function setVehicleSource(src) { vehicleSource = src; }
+function adoptWanderer(w) { wanderers.push(w); }
 function spawnWanderer(kind) {
   const roads = roadCellsList(); if (!roads.length) return;
+  if (kind === 'car' && vehicleSource) { if (!wanderers.some(w => w.kind === 'car' && w.fromFerry === 'queued')) { vehicleSource.requestWanderer(pick(CARS), pick(['kei', 'van', 'truck', 'hatch', 'suv', 'delivery'])); wanderers.push({ kind: 'car', fromFerry: 'queued', mesh: null, trip: null, pause: 0, dead: false }); } return; }
   const c = pick(roads);
   if (kind === 'car' && carMeshes.some(m => m.visible && Math.hypot(m.position.x - cx(c.i), m.position.z - cz(c.j)) < 0.6)) return;   // do not spawn onto another car
   const mesh = kind === 'car' ? makeCar(pick(CARS), pick(['kei', 'van', 'truck', 'truck', 'taxi', 'hatch', 'suv', 'delivery'])) : kind === 'dog' ? makeDog(pick(DOG_COATS)) : makeCat(pick(CAT_COATS));
@@ -720,7 +730,16 @@ function updateWanderers(simDt) {
   for (let k = wanderers.length - 1; k >= 0; k--) {
     const w = wanderers[k];
     const excess = (w.kind === 'car' && cars.length > wantCars) || (w.kind === 'cat' && cats.length > wantCats) || (w.kind === 'dog' && dogs.length > wantDogs);
-    if (w.dead || (excess && !w.trip)) { peopleGroup.remove(w.mesh); disposeGroup(w.mesh); const ci = carMeshes.indexOf(w.mesh); if (ci >= 0) carMeshes.splice(ci, 1); wanderers.splice(k, 1); continue; }
+    if (w.fromFerry === 'queued') { if (wanderers.some(x => x !== w && x.kind === 'car' && x.fromFerry === true && !x.seen)) { wanderers.splice(k, 1); const nw = wanderers.find(x => x.kind === 'car' && x.fromFerry === true && !x.seen); if (nw) nw.seen = true; } continue; }   // waiting for the sailing
+    if (!w.mesh) { wanderers.splice(k, 1); continue; }
+    if (w.dead || (excess && !w.trip && !w.leaving && !vehicleSource)) { peopleGroup.remove(w.mesh); disposeGroup(w.mesh); const ci = carMeshes.indexOf(w.mesh); if (ci >= 0) carMeshes.splice(ci, 1); wanderers.splice(k, 1); continue; }
+    if (excess && !w.trip && !w.leaving && vehicleSource && w.kind === 'car') {   // time to go: drive to the slipway and wait for the ferry
+      const slip = vehicleSource.slip ? vehicleSource.slip() : null; const path = slip && w.cell ? routeCells([w.cell], [slip]) : null;
+      if (path && path.length >= 2) { const pts = buildPoints(path, w.mesh.position.clone().setY(0.08), new THREE.Vector3(cx(slip.i), 0.08, cz(slip.j)), 0.17, 0.08, -1); w.trip = { pts, i: 0, t: 0, speed: rand(2.0, 2.6), last: slip, cells: path }; w.leaving = true; }
+      else { w.dead = true; }
+      continue;
+    }
+    if (w.leaving && !w.trip) { vehicleSource.boardCar(w.mesh); wanderers.splice(k, 1); continue; }
     if (w.kind === 'cat') updateCat(w.mesh, simDt, w.pause <= 0 && !!w.trip);
     if (w.kind === 'dog') updateDog(w.mesh, simDt, w.pause <= 0 && !!w.trip, w.pause > 3, w.pause > 0 && w.pause <= 3);
     if (w.pause > 0) { w.pause -= simDt; continue; }
@@ -743,8 +762,88 @@ function growthAllowed(b) {
   if (b.level === 2) return town.length >= 6 && types.size === 3;
   return false;
 }
+/** at the turn of the day: a shop's customers become its standing. Busy shops hang nobori banners; a shop nobody visits
+ *  for three days, in a town with other shops, closes and reopens as another trade of its size (never the town's last shop). */
+function reckonShops() {
+  const shops = blocks.filter(b => b.type === 'shop' && b.stage === DONE);
+  for (const b of shops) {
+    b.lastVisits = b.visitsToday || 0; b.visitsToday = 0;
+    const staffed = b.units.some(u => u.staff.length);
+    const popular = b.lastVisits >= 5 * b.level;
+    if (popular !== !!b.popular) { b.popular = popular; for (const u of b.units) rebuildUnitMesh(u); }
+    if (b.renoT > 0) continue;
+    if (b.lastVisits < b.level && staffed && S.T - b.created > 30 && shops.length >= 3) b.quietDays = (b.quietDays || 0) + 1; else b.quietDays = 0;
+    if (b.quietDays >= 3) changeTrade(b);
+  }
+}
+function changeTrade(b) {
+  const pool = (TIERS.shop[Math.min(3, b.cells.length)] || []).filter(k => k !== b.kind); if (!pool.length) return;
+  const old = b.name;
+  for (const u of b.units) for (const r of u.staff.slice()) { r.job = null; r.returnTo = null; if (r.at === u) r.next = S.T; } for (const u of b.units) u.staff.length = 0;
+  b.kind = pick(pool); b.name = uniqueName(SHOP_NAMES[b.kind]); b.visitScore = 0; b.quietDays = 0; b.popular = false; b.occT = 0;
+  b.renoT = 3; b.changing = true;   // shutters down and scaffold up while the fit-out happens
+  for (const u of b.units) rebuildUnitMesh(u, true);
+  toast(`${old} has closed. A ${(KIND_LABEL[b.kind] || b.kind).toLowerCase()} is opening in its place`);
+}
+let hillVisits = 0, hillVisitsYesterday = 0;
+/** the hill plot market: a settled, fully employed household builds a villa with a view; once people walk up, a tea house opens */
+function hillMarket() {
+  hillVisitsYesterday = hillVisits; hillVisits = 0;
+  if (!hill.open) return;
+  if (!hillPlots().length) layTerraceLane();   // with streets first, the hill has only its slopes: the town lays one short lane along a terrace
+  const plots = hillPlots(); if (!plots.length) return;
+  const villas = blocks.filter(b => b.type === 'res' && b.variant === 'villa');
+  const settled = hh => hh.home && !hh.home.removed && (hh.home.cell.h || 0) === 0 && hh.members.length && hh.members.every(m => (m.job || m.commuter) && S.T - m.arrivedT > 48 && m.state !== 'away');
+  if (!blocks.some(b => b.type === 'res' && b.variant === 'villa' && b.stage < DONE)) {   // one villa going up at a time
+    const hh = pick(households.filter(settled).concat([null]).slice(0, -1) || []) || null;
+    if (hh && (Math.random() < 0.6 || !villas.length)) {   // the first villa comes as soon as someone qualifies
+      const plot = plots.sort((a, b) => (b.h - a.h) || (Math.hypot(cx(b.i), cz(b.j)) - Math.hypot(cx(a.i), cz(a.j))))[0];   // the highest plot with the widest view
+      const b = placeBlock('res', [plot], { variant: 'villa', name: `${hh.surname} Villa`, summoned: true, villaFor: hh.id, roofStyle: 'kawara' });
+      if (b) toast(`The ${hh.surname} household is building a villa on the hill`);
+    }
+  }
+  const tea = blocks.some(b => b.type === 'shop' && b.kind === 'teahouse');
+  if (!tea && villas.length >= 1 && (hillVisitsYesterday >= 6 || window.__forceVisits)) {
+    if (!hillPlots().length) layTerraceLane();
+    const left = hillPlots(); if (!left.length) return;
+    const plot = left.sort((a, b) => Math.hypot(cx(a.i) - hillCentre.x, cz(a.j) - hillCentre.z) - Math.hypot(cx(b.i) - hillCentre.x, cz(b.j) - hillCentre.z))[0];   // nearest the shrine path
+    const b = placeBlock('shop', [plot], { kind: 'teahouse', roofStyle: 'kawara' }); if (b) b.name = uniqueName(SHOP_NAMES.teahouse);   // named for its trade, not the tier's draw
+    if (b) toast(`${b.name} is being built on the hill, where the walkers go`);
+  }
+}
+/** a short permanent lane along a terrace from the top of an island slope, so the hill has plots the town can take up */
+function layTerraceLane() {
+  for (const r of cells) {
+    if (!r.ramp || !r.keep) continue;
+    const { di, dj, h1 } = r.ramp, H = cell(r.i + di, r.j + dj); if (!H || H.type !== 'road') continue;
+    for (const [pi, pj] of [[-dj, di], [dj, -di]]) {
+      // the lane may run through the terrace woods: those cells are cleared first, and so are the plots either side of it
+      const ok = c => !!c && !c.keep && !c.ramp && Math.abs((c.h || 0) - h1) < 1e-6 && (c.type === 'empty' || c.type === 'hill' || c.type === 'road');
+      const run = []; for (let k = 1; k <= 3; k++) { const c = cell(H.i + pi * k, H.j + pj * k); if (!ok(c)) break; run.push(c); }
+      if (run.length < 2) continue;
+      for (const c of run) if (c.type === 'hill') { c.type = 'empty'; c.tree = null; }
+      if (!drawRoad(run[0], run[run.length - 1])) continue;
+      for (const c of run) for (const [a, b] of DIR4) { const n = cell(c.i + a, c.j + b); if (n && n.type === 'hill' && !n.keep && !n.ramp && Math.abs((n.h || 0) - h1) < 1e-6) { n.type = 'empty'; n.tree = null; } }
+      refreshWorld(); toast('A lane was laid along the terrace, and plots cleared beside it'); return true;
+    }
+  }
+  return false;
+}
+/** a household moves up to its finished villa; their old home frees up for newcomers */
+function moveUp(hh, u) {
+  const old = hh.home; hh.home = u;
+  for (const r of hh.members) {
+    if (old && old.residents.includes(r)) old.residents.splice(old.residents.indexOf(r), 1);
+    r.home = u; u.residents.push(r); u.incoming++; r.movingIn = true; r.returnTo = null; r.until = 0;
+    if (r.carAt === old) { r.carAt = u; if (r.car) parkVehicle(r.car, u, 'car'); }
+    if (r.bikeAt === old) { r.bikeAt = u; if (r.bike) parkVehicle(r.bike, u, 'bike'); }
+    if (r.state === 'inside' && r.at) { if (!go(r, u, 'moving up to the villa')) r.next = S.T; } else r.next = S.T;
+  }
+  if (old) old.lastMoveIn = S.T;
+  toast(`The ${hh.surname} household has moved up to ${u.block.name}`);
+}
 function updateBlocks(dh) {
-  const day = dayOf(); if (day !== lastDay) { lastDay = day; for (const b of blocks) b.visitScore *= 0.5; }
+  const day = dayOf(); if (day !== lastDay) { lastDay = day; for (const b of blocks) b.visitScore *= 0.5; reckonShops(); hillMarket(); }
   if (!hill.open && residents.filter(r => r.home).length >= HILL_UNLOCK) openHill();
   if (STATION.block) updateStation();
   for (const b of blocks) {
@@ -752,10 +851,16 @@ function updateBlocks(dh) {
     if (b.stage < DONE) {
       b.stageT += dh * progressRate(b);
       if (b.type === 'res' && b.stage === DONE - 1 && !b.summoned) { b.summoned = true; for (const u of b.units) for (const size of splitHouseholds(unitCap(u))) bookings.push({ hh: makeHousehold(size, u) }); }
-      if (b.stageT >= stageHours(b)[b.stage]) { b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) toast(`${b.name} is finished`); }
+      if (b.stageT >= stageHours(b)[b.stage]) {
+        b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) toast(`${b.name} is finished`);
+        if (b.stage === DONE && b.villaFor) {   // the household that ordered the villa moves up; if they are gone, it is let like any home
+          const hh = households.find(h => h.id === b.villaFor); b.villaFor = null;
+          if (hh && hh.home && hh.members.length) moveUp(hh, b.units[0]); else b.summoned = false;
+        }
+      }
       continue;
     }
-    if (b.renoT > 0) { b.renoT -= dh; if (b.renoT <= 0) { b.renoT = 0; for (const u of b.units) rebuildUnitMesh(u); } }
+    if (b.renoT > 0) { b.renoT -= dh; if (b.renoT <= 0) { b.renoT = 0; if (b.changing) { b.changing = false; toast(`${b.name} is open`); } for (const u of b.units) rebuildUnitMesh(u); } }
     let occ = 0;
     if (b.type === 'res') {
       let n = 0, capSum = 0;
@@ -777,7 +882,7 @@ function updateBlocks(dh) {
       const staff = b.units.reduce((s, u) => s + u.staff.length, 0); occ = (staff > 0 ? 0.5 : 0) + 0.5 * clamp(b.visitScore / (4 * b.level), 0, 1);
     }
     if (occ >= 0.6) b.occT += dh; else b.occT = Math.max(0, b.occT - dh * 0.5);
-    if (b.occT >= 20 && b.level < 3 && growthAllowed(b)) { b.level++; b.occT = 0; b.renoT = 2.5; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} is being extended`); }
+    if (b.occT >= 20 && b.level < 3 && b.variant !== 'villa' && growthAllowed(b)) { b.level++; b.occT = 0; b.renoT = 2.5; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} is being extended`); }
   }
 }
 
@@ -822,6 +927,6 @@ onWorldChange(() => {   // a street removed or built over: ambient traffic on it
   }
 });
 
-export { HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
+export { setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
   roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, trafficFactor, unitPos, setProgressRate, onTrain };

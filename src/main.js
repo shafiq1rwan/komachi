@@ -3,16 +3,17 @@ import * as THREE from 'three';
 import { lerp, hash } from './utils.js';
 import { S } from './state.js';
 import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
-import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason } from './world.js';
+import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, hillPlots } from './world.js';
 import { updateConstruction, workers } from './construction.js';
 import { updateCharacters, characterAvailable } from './characters.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import { updateSea } from './sea.js';
+import { initFerry, updateFerry, ferry } from './ferry.js';
 import { canalCells } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
-import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, moveAlong, carMeshes, wanderers } from './sim.js';
+import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
@@ -27,7 +28,7 @@ const followV = new THREE.Vector3();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
-  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); }
+  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); }
   // camera easing + keyboard panning
   const k = 1 - Math.exp(-dt * 9); cam.view = lerp(cam.view, cam.tView, k); cam.yaw = lerp(cam.yaw, cam.tYaw, k);
   const mv = dt * cam.view * 0.9;
@@ -53,15 +54,16 @@ function frame(now) {
 /** Step the simulation forward by a number of game hours without rendering. */
 function fastForward(hours) {
   const stepH = 0.04, stepS = stepH / HPS;
-  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); }
+  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); }
 }
 function demoTown() {
   const o = HALF - 17;   // layout was authored around a station at cell 17; every block shares a road with the station ring
   const put = (type, list) => placeBlock(type, list.map(([i, j]) => cell(i + o, j + o)));
   const road = (a, b) => drawRoad(cell(a[0] + o, a[1] + o), cell(b[0] + o, b[1] + o));
   road([14, 19], [14, 23]); road([19, 13], [19, 14]);   // two side streets off the ring for the shop row and the workshop
+  road([14, 24], [14, 26]);                             // and on down to the coast road, so the ferry's cars can reach town
   put('res', [[14, 16], [14, 17]]); put('res', [[20, 16], [20, 17], [20, 18]]); put('res', [[16, 14], [17, 14]]);
-  put('shop', [[14, 20]]); put('shop', [[19, 20]]);
+  put('shop', [[13, 20]]); put('shop', [[19, 20]]);   // the first shop stands beside the side street, not on it
   put('work', [[20, 13], [20, 14]]); put('work', [[16, 20], [17, 20]]);
   for (const b of blocks) { if (b.type !== 'station') { b.stage = DONE; for (const u of b.units) rebuildUnitMesh(u); } }
   cam.target.set(cx(HALF), 0, cz(HALF)); cam.tView = cam.view = 14;
@@ -71,13 +73,13 @@ function demoTown() {
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
-  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers,
+  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, hillMarket, hillPlots, ferry,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };
 
 resize(); rebuildDecor(); rebuildRoads();
-placeStation();
+placeStation(); initFerry();   // the slipway and yard beside the pier; cars and materials arrive by sea from here on
 {
   const saved = !S.fresh && loadData();
   if (saved && saved.seed === S.seed && saved.biome === S.biome) { const n = restore(saved); lastSave = S.T; if (n) toast('Welcome back to Komachi'); document.getElementById('intro')?.remove(); setTool('explore'); }

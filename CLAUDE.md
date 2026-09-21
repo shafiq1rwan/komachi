@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 25 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 29 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -51,6 +51,21 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   relative path, so the loader's URL modifier points them at the bundled copy.
 - Vehicles are Kenney Car Kit models via `src/vehicles.js` (same atlas-bake and repaint idea; `attachVehicle`
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
+- Ferry (Phase 5, `src/ferry.js`): cars arrive/leave by sea. sim.js never creates ambient or resident cars itself when a
+  vehicle source is registered (`setVehicleSource`); `r.carOrdered` marks a car awaiting the next sailing. Trucks start at
+  the yard (`setYardStart`) with a station fallback. `c.yard` cells are neither zonable nor drawable. Timetable `CALLS`
+  in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
+- Hill plot market (Phase 5): `hillMarket` in sim.js at the day's turn places a `villa` (res variant, `villaFor` = household
+  id, `summoned: true`) on `hillPlots()` for a settled household and `moveUp`s them when it finishes; a `teahouse` shop kind
+  follows once trips end up the hill (`hillVisits`). `layTerraceLane` draws a 3-cell permanent lane from an island slope top
+  when the hill has no plots. The demo town's first shop stands beside its side street (streets-first).
+- Economy (Phase 5): `reckonShops` in sim.js runs at the day's turn: `visitsToday` → `lastVisits`, `popular` (banners),
+  `quietDays` → `changeTrade` (new kind from the tier, `changing` + `renoT` shows shutters). `REACH` per kind scales
+  the distance customers will travel. Never let the town's last shops close (needs ≥ 3 shops).
+- Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
+  detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
+  `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
+  `b.units.indexOf(u)`. The tier label (`#tier`) shows under the tool bar while dragging.
 - Detached homes pick a style from the seed (`u.style`: cottage | machiya | modern), shops a finish (`u.finish`), offices a
   facade (`u.facade`); `sub(seed, k)` in buildings.js gives independent per-unit values for details.
 - Roof styles: `kawara` (grey tiles, irimoya from level 2), `tile`, `metal`; the kit's Japanese parts are
@@ -140,8 +155,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    4.9 ✅ Streets first: the player draws streets (Road tool, key 5) and zones beside them, lights only at
        through-street crossings, walkers wait at the red
    4.95 ✅ Building variety pass: three detached styles, shop finishes/awnings/signs, three office facades, props from the seed
-5. Economy and dynamic business selection (first: size tiers by drag length, 1/2/3 cells → house/apartments/manshon,
-   konbini/café/supermarket, studio/workshop/factory; then hill plot market: villas, tea house, later ryokan; car ferry at
+5. ✅ Economy and dynamic business selection (✅ size tiers by drag length shipped 2026-09-21: 1/2/3 cells → house/terrace or
+   apartments/manshon, konbini/café or restaurant/supermarket or arcade, studio/workshop/factory; ✅ light economy (customers, banners, trade changes) shipped 2026-09-21; ✅ hill plot market and ✅ car ferry with builders' yard shipped 2026-09-21; Phase 5 complete. Next: Phase 5.5 civic zone: villas, tea house, later ryokan; car ferry at
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
 6. Weather, gentle events, festivals, tourism

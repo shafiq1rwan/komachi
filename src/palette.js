@@ -32,11 +32,16 @@ export const SHOP_NAMES = {
   konbini: [['Nico','Mart'],['Hoshi','Store'],['Yoru','Mart'],['Poko','Mart']],
   florist: [['Kumo','Florist'],['Sumire','Flowers'],['Hana','Hana']],
   books: [['Yuzu','Books'],['Hoshi','Records'],['Ao','Books'],['Fune','Bookshop']],
+  restaurant: [['Kaede','Shokudō'],['Umi','Kitchen'],['Tsuki','Teishoku'],['Hinata','Diner'],['Matsu','Izakaya']],
+  supermarket: [['Maru','Super'],['Fresh','Oka'],['Nico','Foods'],['Yasai','Land']],
+  arcade: [['Hinode','Shotengai'],['Sakura','Arcade'],['Kawa','Dōri'],['Ginza','Shotengai']],
+  teahouse: [['Yamabiko','Tea House'],['Tsukimi','Chaya'],['Matsukaze','Tea House'],['Kumo no Ue','Chaya']],
 };
 export const WORK_NAMES = {
   office: [['Hikari','Labs'],['Tanaka','Design'],['Sakura','Press'],['Umi','Logistics'],['Aozora','Architects'],['Minato','Software'],['Midori','Clinic'],['Kawa','Accounting'],['Sora','Post Office']],
   workshop: [['Take','Workshop'],['Kaze','Textiles'],['Tetsu','Works'],['Tsubame','Engineering'],['Kiba','Joinery']],
   studio: [['Kumo','Studio'],['Hoshizora','Animation'],['Yume','Games'],['Ao','Pottery'],['Niwa','Studio']],
+  factory: [['Tetsu','Precision'],['Komachi','Foods'],['Kaze','Textiles'],['Hikari','Electric'],['Sora','Packaging']],
 };
 export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];
 export const PLACE = ['Sakura','Momiji','Sumire','Tsubaki','Ajisai','Fuji','Kaede','Yanagi','Botan','Kiku','Ume','Matsu','Hinode','Kawa','Oka','Hoshi'];

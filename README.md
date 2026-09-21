@@ -44,7 +44,7 @@ Other scripts:
 | Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove |
 | Remove | Click a building, or click or drag along a street (a street a building opens onto stays) |
 | Draw a street | Road tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
-| Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it |
+| Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it. One, two or three cells decide what it becomes: house, terrace pair or apartment building; konbini, café or supermarket; studio, workshop or factory. A label says so while you drag |
 | Inspect | Hover any building or person. In Explore mode, click to pin the card |
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
@@ -53,6 +53,10 @@ Other scripts:
 
 Some things worth knowing:
 
+- **Cars come by sea.** A ferry calls at the slipway beside the pier three times a day. Visiting cars roll off
+  it and drive back to it to leave, a household's car comes off the next sailing after they move in, and the
+  builders' yard by the slipway fills with timber and sacks while sites are under way. Draw a street from town
+  to the coast road so the cars can reach you.
 - **Everyone arrives by train.** Komachi Station sits at the centre of the island and cannot be
   removed. A quarter of households commute to the city by train and come home in the evening rush;
   households moving to a distant home take a taxi from the rank on the plaza. A train pulls in every hour and a half between 6:00 and 23:30. When a home is close to
@@ -67,6 +71,9 @@ Some things worth knowing:
   land edge onto the beach. Waves lap
   the beaches, fish leap and a fishing boat circles offshore. Zoom out to see all of it; nothing can be
   built in the water.
+- **The hill fills on its own.** Once a street reaches the open hill, a settled household has a villa built on
+  the highest free plot and moves up, freeing their old home, and once people are walking up there a tea house
+  opens near the shrine path. You can still zone the terraces yourself.
 - **Build up the hill.** The hill stays wild until 60 people live in town; then its slope roads open and
   the shrine path is lit. The hill rises in three terraces. Each terrace cell is a plot at its own
   height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. A hill
@@ -91,6 +98,9 @@ Some things worth knowing:
   was placed against. A street a building opens onto cannot be removed until the building goes. The
   town lays no streets of its own on the flat; on the hill it still builds a slope for a terrace
   street that has no way down.
+- **Shops live and die by their customers.** Each shop counts who comes in every day. Busy ones hang nobori
+  banners by the door; a shop nobody visits for three days closes and reopens as another kind of its size, with
+  shutters down while the new place is fitted out. Bigger shops draw people from further away.
 - **Builders come by train.** Zone a block and a crew rides in on the next train, walks to the
   site and works until 18:00. Nothing is built without them. Buildings pass through five visible
   stages (survey, foundations with a digger, frame, scaffolding, finishing) while kei trucks bring

@@ -140,8 +140,12 @@ to keep the streets alive.
 ## Buildings
 
 `buildings.js` picks a generator from the block's type and the unit's `variant` (residential:
-detached / narrow / apartment) or the block's `kind` (shops: café, bakery, ramen, grocery,
-konbini, florist, books; workspaces: office, workshop, studio). Generators are built from the
+detached / narrow / terrace / apartment / manshon) or the block's `kind` (shops: café, bakery, ramen,
+grocery, konbini, florist, books, restaurant, supermarket, arcade; workspaces: office, workshop, studio,
+factory). `TIERS` in `world.js` maps a block's cell count (1–3) to the pool its kind or variant is drawn
+from, `tierLabel` describes a tier for the drag label, and `CAP_BONUS` adds capacity per kind. All
+units of a block share one variant; multi-cell generators use the unit's index in the block (lobby on
+the middle unit, chimney or stair core on an end). Generators are built from the
 shared parts in `kit.js` and must set `u.door` so trips start and end at the right doorstep.
 Roof style (kawara, tile or metal) and wall colour are chosen per block; small details (bicycles,
 pots, signs) vary per unit from its seed; `sub(seed, k)` derives further independent values from it, which pick a
@@ -165,6 +169,18 @@ nudged by their crew slot so three builders spread out; they leave at 18:00 and 
 they walk to the station and are removed. Trucks are plain meshes driven along `buildPoints`
 routes from the station road to the site kerb and back. Households are summoned when a home
 enters the finishing stage. `renoT` puts a scaffold overlay on a finished building after a level-up.
+
+## Ferry
+
+`ferry.js` owns the slipway (the coast-road cell nearest a point a little round the shore from the pier), the
+beach landing, the berth and an offshore point, the builders' yard on the inland neighbour cell (`c.yard`, not
+zonable or drawable) and the ferry mesh (a Kenney `ship-cargo-a.glb` over a procedural hull fallback). A state
+machine `away → arriving → berthed → leaving` follows the `CALLS` timetable in game hours. `sim.js` asks a
+registered vehicle source (`setVehicleSource`) for ambient cars and residents' cars instead of creating them; the
+ferry queues those requests and puts one ashore every few minutes while berthed (`launch` → `offPath`: deck,
+landing, slip cell, then the road network). Excess ambient cars drive to the slip and board (`boardCar`). The
+yard's stock mesh is rebuilt when the count of active sites changes, and `construction.js` starts delivery trucks
+from the yard (`setYardStart`), falling back to the station side if the yard is cut off from town.
 
 ## Rendering
 

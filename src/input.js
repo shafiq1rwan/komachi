@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
-import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit, hill, HILL_UNLOCK, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason, joinedToTown } from './world.js';
+import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit, hill, HILL_UNLOCK, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason, joinedToTown, tierLabel } from './world.js';
 import { clearSave } from './save.js';
 import { removeBlock, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
@@ -140,8 +140,11 @@ const prevPool = []; for (let k = 0; k < 20; k++) { const m = new THREE.Mesh(new
 const ringMat = new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.7, depthWrite: false });
 // one ring per cell: blocks hold up to 3, the station 9
 const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 1.06), ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
+const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
+  const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work');
+  if (zoneDrag) { const t = tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work';
   if (zone && !ptr.panning) {
