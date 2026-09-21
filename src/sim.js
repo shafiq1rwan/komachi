@@ -8,6 +8,8 @@ import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
+import { equipCharacterProp, clearCharacterProp } from './character-props.js';
+const CARRY_HOME = new Set(['grocery', 'supermarket', 'konbini', 'arcade', 'bakery']);   // shops you leave with a bag
 import { attachVehicle } from './vehicles.js';
 import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, TIERS, KIND_LABEL, hillPlots, placeBlock, drawRoad } from './world.js';
 import { hillCentre } from './island.js';
@@ -338,13 +340,14 @@ function makeBike(r) {
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
+  if (r.mesh.userData.char && r.mesh.userData.char.accessory) clearCharacterProp(r.mesh.userData.char);   // the bag comes indoors with them
   if (r.car && r.carAt === u && !u.removed) parkVehicle(r.car, u, 'car'); else if (r.car) r.car.visible = false;
   if (r.bike && r.bikeAt === u && !u.removed) parkVehicle(r.bike, u, 'bike'); else if (r.bike) r.bike.visible = false;
   if (u.removed) { returnToStation(r, r.mesh.position); return; }
   r.at = u; u.inside.add(r); r.state = 'inside'; r.next = S.T; r.until = 0;
   const p = r.purpose; r.purpose = null;
   if (p === 'eat') { r.actKind = 'eat'; r.activity = pick(hourOf() < 10.5 ? BREAKFAST_ACTS : hourOf() < 15.5 ? LUNCH_ACTS : DINNER_ACTS); r.until = S.T + rand(0.5, 0.8); }
-  else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); }
+  else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); r.bagPending = CARRY_HOME.has(u.block.kind); }   // they will leave with a bag
   else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); }
   else if (u === r.job) r.actKind = 'work';
   else if (u === r.home) r.actKind = 'home';
@@ -357,6 +360,7 @@ function enterUnit(r, u) {
 }
 /** Lost their home (or their destination vanished): head back to the station and wait again. */
 function returnToStation(r, fromPos) {
+  if (r.mesh.userData.char) clearCharacterProp(r.mesh.userData.char);
   r.home = null; r.movingIn = false; r.returnTo = null; r.until = 0; r.purpose = null; r.carAt = null; r.bikeAt = null; r.commuter = false; if (r.car) r.car.visible = false; if (r.bike) r.bike.visible = false; if (r.hh) r.hh.home = null;
   if (r.job) { r.job.staff.splice(r.job.staff.indexOf(r), 1); r.job = null; }
   const c = cellAt(fromPos); let start = fromPos.clone().setY(0), path = null;
@@ -508,6 +512,9 @@ function go(r, dest, label, purpose = null) {
   if (!path) { r.next = S.T + rand(0.4, 0.9); return false; }
   const start = from === STATION.anchor ? [r.mesh.position.clone().setY(0.12), ...plazaDetour(r.mesh.position, new THREE.Vector3(cx(path[0].i), 0, cz(path[0].j)))] : exitPts(from);
   if (from === STATION.anchor) freeSpot(r);
+  const ch = r.mesh.userData.char;
+  if (ch && r.bagPending && from.block && from.block.type === 'shop') equipCharacterProp(ch, 'shopping-bag', from.block.awning ? from.block.awning[0] : undefined);   // shopping done: carry the bag home
+  r.bagPending = false;
   from.inside.delete(r); r.at = null; r.purpose = purpose; r.until = 0; r.actKind = 'travel'; r.plan = label;
   startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label, from); return true;
 }

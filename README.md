@@ -98,6 +98,8 @@ Some things worth knowing:
   was placed against. A street a building opens onto cannot be removed until the building goes. The
   town lays no streets of its own on the flat; on the hill it still builds a slope for a terrace
   street that has no way down.
+- **Small things in hand.** People drink from a can at the vending machines and carry a paper bag home from
+  the grocer, supermarket, konbini, arcade or bakery.
 - **Shops live and die by their customers.** Each shop counts who comes in every day. Busy ones hang nobori
   banners by the door; a shop nobody visits for three days closes and reopens as another kind of its size, with
   shutters down while the new place is fitted out. Bigger shops draw people from further away.

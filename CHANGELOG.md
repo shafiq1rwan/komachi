@@ -10,6 +10,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- People carry a paper shopping bag home from the grocery, supermarket, konbini, arcade or bakery, using the
+  new hand props (assets/props); it goes indoors with them
 - Phase 5, last slice: the car ferry. A ro-ro ferry (Kenney Watercraft cargo ship) calls at a slipway beside the
   pier at 07:00, 12:00 and 17:00, waits about half an hour with its ramp down and sails again. Visiting cars now
   arrive on it and drive into town, and drive back to the slipway to leave when the town has more than enough;

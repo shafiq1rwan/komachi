@@ -55,6 +55,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   vehicle source is registered (`setVehicleSource`); `r.carOrdered` marks a car awaiting the next sailing. Trucks start at
   the yard (`setYardStart`) with a station fallback. `c.yard` cells are neither zonable nor drawable. Timetable `CALLS`
   in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
+- Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
+  kinds shopping-bag | briefcase | umbrella | folder) and the tea can via `holdItem`. Shoppers leave grocer-type shops
+  (`CARRY_HOME` in sim.js) with a bag (`r.bagPending` set on entering) and drop it indoors.
 - Hill plot market (Phase 5): `hillMarket` in sim.js at the day's turn places a `villa` (res variant, `villaFor` = household
   id, `summoned: true`) on `hillPlots()` for a settled household and `moveUp`s them when it finishes; a `teahouse` shop kind
   follows once trips end up the hill (`hillVisits`). `layTerraceLane` draws a 3-cell permanent lane from an island slope top
