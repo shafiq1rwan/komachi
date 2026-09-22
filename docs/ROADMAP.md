@@ -225,7 +225,9 @@ effect through the town instead.
 
 ## ⬜ Phase 6 — Weather, events, festivals, tourism
 
-- Weather: soft rain with umbrellas and puddles, overcast light, snow that whitens roofs
+- ✅ Weather, first slice (2026-09-22): a weather clock of clear, overcast, light rain and rain spells; drifting cloud shade
+  (the clouds themselves are not drawn); overcast light; rain streaks that wet the streets; umbrellas on the walk. Still to come: puddles, snow
+  that whitens roofs
 - Seasons for the trees and the sakura biome
 - Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
 - Tourists arriving by train for festivals and the shore, staying a day

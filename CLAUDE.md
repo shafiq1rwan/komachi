@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 34 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 35 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -61,7 +61,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   the yard (`setYardStart`) with a station fallback. `c.yard` and `c.slip` cells (yard, slip road cell and the lane's ground) are neither zonable nor drawable. The slip is chosen lane-first (`layout` in placeSlip): a straight
   coast-road cell whose grid lane reaches water within 2.5 units, landing on a sand/grass shore (`shoreKind` not rock at ±0.1 rad), clear of the pier
   (0.45 rad) and every canal mouth (0.55 rad), with no `seaRocks` boulder within r+0.9 of the berth or sailing line; landing, berth and horizon are
-  measured from the beach edge (`beachExtra`). Departure: astern, a turn about, away bow first with a fade (`setFade`, transparent only mid-fade). Timetable `CALLS`
+  measured from the beach edge (`beachExtra`). The lane is real road cells (`c.slip`, `c.keep`, up to six, every cell whose centre is on land) ending at
+  `ferry.lane`; `ferry.laneEnd` is its far kerb, a flat strip bridges any gap to the land edge `ferry.edge`, and the concrete slope runs from there to the landing;
+  launches, boarding and the trucks' yard start from the lane end. Grid directions only, never radial. Departure: astern, a turn about, away bow first with a fade (`setFade`, transparent only mid-fade). Timetable `CALLS`
   in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
 - Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
   kinds shopping-bag | briefcase | umbrella | folder), the tea can via `holdItem`, and `src/hand-items.js` (wraps the modelled src/phone.js and src/newspaper.js as `userData.handItem` Groups; held in the character group like the tea can, placed
@@ -121,6 +123,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
 - Sea life lives in src/sea.js: fish leaps and splashes, the pier boat's wake, a dolphin pod (`pod`, src/dolphins.js) and the waterfall splash
   (`fallFeet` exported by island.js; puffs and mist in `updateSplash`). The ferry's own wake is in ferry.js (`updateWake`).
+- Weather (Phase 6, src/weather.js): `W = { kind, until, cover, rain, wind }`, spells clear | cloudy | drizzle | rain (`SPELLS`, `NEXT`), `setWeather(kind, hours)`
+  (also a dev hook), `updateWeather(dt, dh)` in the main loop and fastForward; clouds are a pool of 12 invisible shadow-only planes (cloud alpha masks, colorWrite false) at y 6.5 scaled in/out by cover, so only their shade shows,
+  rain a LineSegments field round `cam.target`; daynight.js dims/greys by `W.cover` and calls `setWet` (world.js tints the road mesh); sim.js
+  equips an umbrella on `startTrip` while `W.rain > 0.25`. Saved as `weather`.
 - Tool labels (2026-09-22): Explore, Homes (res), Shops (shop), Work (work), Civic, Streets (road), Parking (park), Clear (remove). Code names are
   unchanged; player-facing strings say "Streets tool" and "Clear".
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
@@ -208,7 +214,7 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 ✅ Civic zone (2026-09-22): substation, water works, recycling centre, public bath, town hall with registration, clinic, fire station,
        community centre with the town chronicle; visible effects only, nothing gated
-6. Weather, gentle events, festivals, tourism
+6. Weather, gentle events, festivals, tourism (slice 1 weather shipped 2026-09-22: spells, clouds with shade, overcast light, rain, umbrellas)
 7. Farming and fishing
 8. Mobile quality levels, PWA, Electron desktop app
 9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)

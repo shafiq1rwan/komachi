@@ -37,7 +37,6 @@ function placeSlip() {
     dirs.sort((a, b) => coastDist(x + a[0], z + a[1]) - coastDist(x + b[0], z + b[1]));   // the side where the coast is nearer
     const [dx, dz] = dirs[0], n1 = cell(c.i + dx, c.j + dz);
     if (n1 && (n1.type === 'road' || n1.canal || n1.block || (n1.h || 0) > 0)) return null;
-    if (coastDist(x + dx * 2.5, z + dz * 2.5) > -0.2) return null;   // the lane must actually reach the water within a few units, not run along the shore
     return [dx, dz];
   };
   const clear = th => canalMouths.every(m => angDiff(m, th) > 0.55) && angDiff(base, th) > 0.45;   // away from every waterfall and from the pier itself
@@ -47,8 +46,10 @@ function placeSlip() {
    *  stretch at the landing, a waterfall or the pier close by, or a sea boulder on the berth or the sailing line */
   const layout = (c, ux, uz, strict) => {
     const x0 = cx(c.i), z0 = cz(c.j);
-    const [ex, ez] = marchFrom(x0, z0, ux, uz, 0.12); const thE = Math.atan2(ez / SZ, ex / SX), be = beachExtra(thE);
+    const [ex, ez] = marchFrom(x0, z0, ux, uz, -0.12); const thE = Math.atan2(ez / SZ, ex / SX), be = beachExtra(thE);   // the edge sits just past the land's bevel, so the slope starts clear of it
     if (coastDist(ex, ez) > 0.2) return null;   // never reached the shore
+    const dl = Math.hypot(ex - x0, ez - z0); if (dl > 6.5) return null;   // the lane must reach the shore within a few cells, not run along it
+    for (let k = 1; k <= Math.ceil(dl); k++) { const n = cell(c.i + ux * k, c.j + uz * k); if (!n) break; if (coastDist(cx(n.i), cz(n.j)) < 0.35) break; if (n.type !== 'empty' || (n.h || 0) > 0 || n.canal || n.block) return null; }   // and cross only free flat ground
     if (strict && (shoreKind(thE) === 'rock' || shoreKind(thE + 0.1) === 'rock' || shoreKind(thE - 0.1) === 'rock')) return null;
     if (strict && !clear(thE)) return null;
     const [lx, lz] = marchFrom(x0, z0, ux, uz, -be + 0.12), [bx, bz] = marchFrom(x0, z0, ux, uz, -be - 1.55), [ox, oz] = marchFrom(x0, z0, ux, uz, -be - 7);
@@ -69,28 +70,34 @@ function placeSlip() {
     }
     if (best && bd < 2.2) break;
   }
-  if (!best) {   // no clean straight stretch: any coast road cell whose radial lane reaches clear water, strict first, then anything
+  if (!best) {   // no clean straight stretch: any coast road cell, any of the four grid directions whose lane reaches clear water; strict first
     for (const strict of [true, false]) {
       for (const c of cells) {
         if (!c.coast || c.bridge || c.type !== 'road') continue; const x0 = cx(c.i), z0 = cz(c.j), th = Math.atan2(z0 / SZ, x0 / SX);
-        let ux = Math.cos(th) * SX, uz = Math.sin(th) * SZ; const l = Math.hypot(ux, uz); ux /= l; uz /= l;
-        const lay = layout(c, ux, uz, strict); if (!lay) continue;
-        const d = Math.hypot(x0 - coastPoint(base + 0.34, -0.6)[0], z0 - coastPoint(base + 0.34, -0.6)[1]); if (d < bd) { bd = d; best = { c, th, lay }; }
+        for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          const n1 = cell(c.i + ux, c.j + uz); if (n1 && (n1.type === 'road' || n1.canal || n1.block || (n1.h || 0) > 0)) continue;
+          const lay = layout(c, ux, uz, strict); if (!lay) continue;
+          const d = Math.hypot(x0 - coastPoint(base + 0.34, -0.6)[0], z0 - coastPoint(base + 0.34, -0.6)[1]); if (d < bd) { bd = d; best = { c, th, lay }; }
+        }
       }
       if (best) break;
     }
     if (!best) return false;
   }
   ferry.slip = best.c; best.c.slip = true;   // the streets pass: no stop sign or car park on the slipway cell
-  const x0 = cx(best.c.i), z0 = cz(best.c.j), { ex, ez, lx, lz, bx, bz, ox, oz, ux, uz } = best.lay;
+  const { ex, ez, lx, lz, bx, bz, ox, oz, ux, uz } = best.lay;
+  // the lane: grid cells from the slip road toward the sea become real road cells (kept, not zonable), so cars drive a street
+  let last = best.c;
+  for (let k = 1; k <= 6; k++) { const c = cell(best.c.i + ux * k, best.c.j + uz * k); if (!c || c.type !== 'empty' || (c.h || 0) > 0 || c.canal || c.block || coastDist(cx(c.i), cz(c.j)) < 0.05) break; c.type = 'road'; c.slip = true; c.keep = true; c.tree = null; last = c; }   // every cell whose centre is on land
+  ferry.lane = last;
+  ferry.laneEnd = new THREE.Vector3(cx(last.i) + ux * 0.5, 0.08, cz(last.j) + uz * 0.5);   // the far kerb of the last lane cell; a short flat strip may run on from here to the land edge
   ferry.theta = Math.atan2(ez / SZ, ex / SX);
   ferry.edge = new THREE.Vector3(ex, 0.08, ez);          // the last of the grass: the flat lane ends here
   ferry.land = new THREE.Vector3(lx, -0.5, lz);          // the landing on the beach, where the ship's ramp comes down
   ferry.berth = new THREE.Vector3(bx, WATER_Y, bz); ferry.offshore = new THREE.Vector3(ox, WATER_Y, oz);
-  for (let k = 1; k <= 3; k++) { const c = cell(best.c.i + Math.round(ux * k), best.c.j + Math.round(uz * k)); if (c && c.type === 'empty' && Math.hypot(cx(c.i) - x0, cz(c.j) - z0) <= Math.hypot(ex - x0, ez - z0) + 0.6) { c.tree = null; c.slip = true; } }   // the lane's ground: cleared, and reserved
   // the yard: the inland neighbour of the slip cell that is free ground
-  const dx = Math.sign(cx(best.c.i) - lx), dz = Math.sign(cz(best.c.j) - lz);
-  const cand = [cell(best.c.i + dx, best.c.j), cell(best.c.i, best.c.j + dz), cell(best.c.i + dx, best.c.j + dz)].filter(n => n && n.type === 'empty' && !(n.h > 0));
+  const c0 = best.c, l1 = cell(c0.i + ux, c0.j + uz);   // the inland neighbour opposite the lane first, then the cells beside the lane's first cell, then beside the slip
+  const cand = [cell(c0.i - ux, c0.j - uz), l1 && cell(l1.i - uz, l1.j + ux), l1 && cell(l1.i + uz, l1.j - ux), cell(c0.i - uz, c0.j + ux), cell(c0.i + uz, c0.j - ux)].filter(n => n && n.type === 'empty' && !(n.h > 0) && !n.canal && !n.slip);
   if (cand.length) { ferry.yard = cand[0]; ferry.yard.yard = true; ferry.yard.tree = null; }
   return true;
 }
@@ -98,12 +105,10 @@ function placeSlip() {
 let slipMesh = null, yardMesh = null, yardCount = -1;
 function buildSlip() {
   const g = [], s = ferry.slip, x0 = cx(s.i), z0 = cz(s.j), E = ferry.edge, L = ferry.land;
-  const ang = Math.atan2(E.x - x0, E.z - z0), ux = Math.sin(ang), uz = Math.cos(ang), flat = Math.max(0.3, Math.hypot(E.x - x0, E.z - z0)), drop = Math.hypot(L.x - E.x, L.z - E.z);
-  // a flat asphalt lane with cream kerbs from the coast road across the grass to the edge
-  g.push(box(0.8, 0.08, flat + 0.2, PAL.asphalt, (x0 + E.x) / 2, 0.04, (z0 + E.z) / 2, ang));
-  for (const sd of [-1, 1]) g.push(box(0.1, 0.1, flat + 0.2, PAL.sidewalk, (x0 + E.x) / 2 + Math.cos(ang) * sd * 0.44, 0.05, (z0 + E.z) / 2 - Math.sin(ang) * sd * 0.44, ang));
-  for (let k = 0; k < Math.floor(flat / 0.5); k++) g.push(box(0.025, 0.004, 0.2, PAL.cream2, x0 + ux * (0.4 + k * 0.5), 0.082, z0 + uz * (0.4 + k * 0.5), ang));
-  // the ramp down the beach edge to the landing
+  const ang = Math.atan2(E.x - x0, E.z - z0), ux = Math.sin(ang), uz = Math.cos(ang), drop = Math.max(0.3, Math.hypot(L.x - E.x, L.z - E.z));
+  const LE = ferry.laneEnd || E, gap = Math.hypot(E.x - LE.x, E.z - LE.z);
+  if (gap > 0.05) { g.push(box(0.8, 0.08, gap + 0.06, PAL.asphalt, (LE.x + E.x) / 2, 0.04, (LE.z + E.z) / 2, ang)); for (const sd of [-1, 1]) g.push(box(0.1, 0.1, gap + 0.06, PAL.sidewalk, (LE.x + E.x) / 2 + Math.cos(ang) * sd * 0.44, 0.05, (LE.z + E.z) / 2 - Math.sin(ang) * sd * 0.44, ang)); }   // the last strip of land before the edge
+  // the street itself is real road cells (drawn by rebuildRoads); from its end a concrete slope runs down the beach to the landing
   const rampLen = Math.hypot(drop, 0.58), tilt = Math.atan2(0.58, drop);
   const ramp = new THREE.BoxGeometry(0.8, 0.06, rampLen + 0.1); ramp.rotateX(tilt); ramp.rotateY(ang); ramp.translate((E.x + L.x) / 2, (0.08 - 0.5) / 2 + 0.01, (E.z + L.z) / 2); g.push(colorize(ramp, PAL.concrete));
   for (const sd of [-1, 1]) { const kerb = new THREE.BoxGeometry(0.06, 0.06, rampLen + 0.1); kerb.rotateX(tilt); kerb.rotateY(ang); kerb.translate((E.x + L.x) / 2 + Math.cos(ang) * sd * 0.4, (0.08 - 0.5) / 2 + 0.05, (E.z + L.z) / 2 - Math.sin(ang) * sd * 0.4); g.push(colorize(kerb, PAL.cream2)); }
@@ -153,16 +158,16 @@ const RAMP_UP = -Math.PI / 2, RAMP_DOWN = 0.18;   // the bow ramp: raised agains
 function deckPoint(k = 0) { const p = ferry.deck.clone(); p.x -= k * 0.42; p.applyAxisAngle(new THREE.Vector3(0, 1, 0), ferry.mesh.rotation.y); return p.add(ferry.mesh.position).setY(WATER_Y + 0.02 + 0.245 * FERRY_SCALE); }   // the deck plane, 0.24 above the waterline in the model
 /** the drive from the deck down the ramp onto the slipway and then along the streets; returns trip points */
 function offPath(dest, endPos) {
-  const road = routeCells([ferry.slip], dest); if (!road) return null;
-  const s = ferry.slip, top = new THREE.Vector3(cx(s.i), 0.08, cz(s.j));
+  const road = routeCells([ferry.lane || ferry.slip], dest); if (!road) return null;   // from the top of the slope, along the lane street
+  const s = ferry.lane || ferry.slip, top = new THREE.Vector3(cx(s.i), 0.08, cz(s.j));
   const onRoad = buildPoints(road, top, endPos, 0.17, 0.08, -1);
-  return { pts: [deckPoint(), ferry.land.clone(), ferry.edge.clone(), ...onRoad], cells: road };
+  return { pts: [deckPoint(), ferry.land.clone(), ferry.edge.clone(), ...onRoad], cells: road };   // deck → landing → top of the slope → along the lane
 }
 function requestWanderer(color, vkind) { ferry.queue.push({ kind: 'wanderer', color, vkind }); }
 function orderCar(r) { if (!ferry.queue.some(q => q.kind === 'carFor' && q.r === r)) ferry.queue.push({ kind: 'carFor', r }); }
 /** a visiting car heading home: it drives to the slip, waits at the landing if the ferry is out, and boards when it is in */
 function boardCar(mesh) {   // wait in a line down the slipway lane until the ferry is in
-  mesh.userData.parked = true; const k = ferry.boarding.length; const s = ferry.slip, top = new THREE.Vector3(cx(s.i), 0.08, cz(s.j));
+  mesh.userData.parked = true; const k = ferry.boarding.length; const s = ferry.lane || ferry.slip, top = new THREE.Vector3(cx(s.i), 0.08, cz(s.j));
   mesh.position.lerpVectors(top, ferry.edge, Math.min(0.9, 0.3 + 0.22 * k)); mesh.position.y = 0.085; mesh.rotation.set(0, Math.atan2(ferry.edge.x - top.x, ferry.edge.z - top.z), 0);
   ferry.boarding.push({ mesh, t: 0 });
 }
@@ -190,7 +195,7 @@ function launch(q) {
 export function initFerry() {
   if (ferry.ready || !placeSlip()) return;
   buildSlip(); buildFerry(); buildYardStock(); ferry.ready = true;
-  setVehicleSource({ requestWanderer, orderCar, boardCar, slip: () => ferry.slip });
+  setVehicleSource({ requestWanderer, orderCar, boardCar, slip: () => ferry.lane || ferry.slip });
   setYardStart(() => ferry.slip);
   ferry.state = 'away';
   refreshWorld();
@@ -230,13 +235,13 @@ export function updateFerry(dh, simDt) {
     ferry.t += dh / SAIL; const k = Math.min(1, ferry.t), e = 1 - Math.pow(1 - k, 2);
     m.position.lerpVectors(ferry.offshore, ferry.berth, e); m.rotation.y = Math.atan2(ferry.land.x - m.position.x, ferry.land.z - m.position.z) - Math.PI / 2;
     setFade(m, Math.min(1, k / 0.2));   // out of the haze
-    if (k >= 1) { ferry.state = 'berthed'; ferry.t = 0; ferry.calls++; if (ferry.calls === 1) record('The Komachi Maru made her first call at the slipway'); if (ferry.queue.length || ferry.boarding.length) toast(ferry.queue.length ? 'The ferry is in, and cars are rolling off' : 'The ferry is in'); }
+    if (k >= 1) { ferry.state = 'berthed'; ferry.t = 0; ferry.calls++; if (ferry.calls === 1) record('The Komachi Maru made her first call at the slipway'); toast('The ferry is in'); ferry.rolled = false; }
   } else if (ferry.state === 'berthed') {
     ferry.t += dh; ramp.rotation.x += (RAMP_DOWN - ramp.rotation.x) * Math.min(1, simDt * 4);
     const next = ferry.queue.find(q => !q.tried);
     if (next && ferry.t > 0.04 * (1 + (ferry.launched || 0))) {
       ferry.launched = (ferry.launched || 0) + 1;
-      if (launch(next)) { ferry.queue.splice(ferry.queue.indexOf(next), 1); ferry.ashore = (ferry.ashore || 0) + 1; }
+      if (launch(next)) { ferry.queue.splice(ferry.queue.indexOf(next), 1); ferry.ashore = (ferry.ashore || 0) + 1; if (!ferry.rolled) { ferry.rolled = true; if (next.kind === 'wanderer') toast('Cars are rolling off the ferry'); } }
       else { next.tried = true; ferry.failed = (ferry.failed || 0) + 1; if (!ferry.warned) { ferry.warned = true; toast('The ferry is in, but no street joins the slipway to town yet; the cars wait aboard'); } }
     }
     for (let k = ferry.boarding.length - 1; k >= 0; k--) { const b = ferry.boarding[k]; b.mesh.visible = false; const ci = carMeshes.indexOf(b.mesh); if (ci >= 0) carMeshes.splice(ci, 1); peopleGroup.remove(b.mesh); ferry.boarding.splice(k, 1); }   // aboard and gone

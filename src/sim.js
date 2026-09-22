@@ -10,6 +10,7 @@ import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { createPhone, createNewspaper } from './hand-items.js';
 import { record } from './chronicle.js';
+import { W } from './weather.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
@@ -561,7 +562,8 @@ function findJob(r) {
   else if (!r.commuter && Math.random() < 0.35) { r.commuter = true; r.workStart = rand(7, 8.6); r.workEnd = rand(17.2, 19); }   // no work in town: take the train to the city instead
 }
 function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
-  clearFidget(r); r.outside = 0;   // whatever they were doing on the bench (phone, paper, chat) or in the garden stops before they set off
+  clearFidget(r); r.outside = 0;
+  { const ch = r.mesh.userData.char; if (ch && W.rain > 0.25 && !ch.accessory && !r.hasCar) equipCharacterProp(ch, 'umbrella', pick([PAL.roofTeal, PAL.roofRose, PAL.indigo, PAL.cream2])); }   // rain: an umbrella for the walk, unless the hands are full   // whatever they were doing on the bench (phone, paper, chat) or in the garden stops before they set off
   const toUnit = destUnit && destUnit !== STATION.anchor;
   const drive = r.hasCar && cellPath.length > 6 && toUnit && from && from === r.carAt;
   const ride = !drive && r.hasBike && cellPath.length > 3 && toUnit && from && from === r.bikeAt;

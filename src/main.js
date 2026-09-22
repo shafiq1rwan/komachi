@@ -10,10 +10,11 @@ import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import { updateSea } from './sea.js';
 import { initFerry, updateFerry, ferry } from './ferry.js';
-import { canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse } from './island.js';
+import { canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { chronicle } from './chronicle.js';
+import { W, setWeather, updateWeather } from './weather.js';
 import { HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
@@ -44,7 +45,7 @@ function frame(now) {
   updateCharacters(simDt);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBars();
+  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); updateWeather(dt, simDt * HPS); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBars();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
   renderer.render(scene, camera);
@@ -55,7 +56,7 @@ function frame(now) {
 /** Step the simulation forward by a number of game hours without rendering. */
 function fastForward(hours) {
   const stepH = 0.04, stepS = stepH / HPS;
-  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); }
+  for (let h = 0; h < hours; h += stepH) { S.T += stepH; updateWeather(stepS, stepH); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); }
 }
 function demoTown() {
   const o = HALF - 17;   // layout was authored around a station at cell 17; every block shares a road with the station ring
@@ -74,7 +75,7 @@ function demoTown() {
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
-  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry,
+  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };

@@ -388,7 +388,7 @@ function rebuildRoads() {
     lg.push(cyl(0.012, 0.014, 0.4, PAL.lamp, sx, gy + 0.3, sz, 6)); lg.push(box(0.12, 0.14, 0.015, c.park === 'taxi' ? '#e8cf7a' : PAL.roofBlue, sx, gy + 0.55, sz, Math.atan2(ex, ez))); lg.push(box(0.05, 0.08, 0.005, PAL.cream2, sx + ex * 0.01, gy + 0.55, sz + ez * 0.01, Math.atan2(ex, ez)));
     for (const s of [-1, 1]) g.push(blob(0.1, s < 0 ? PAL.bush : PAL.bush2, x - ex * 0.4 + (-ez) * s * 0.36, gy + 0.16, z - ez * 0.4 + ex * s * 0.36, 0, 0.8));   // hedges at the back corners
   }
-  roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; scene.add(roadMesh); }
+  roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; roadMesh.material = roadMesh.material.clone(); roadMesh.material.color.setScalar(1 - 0.28 * wetK); scene.add(roadMesh); }
   lampMesh = mergeMesh(lg, false, true); if (lampMesh) scene.add(lampMesh);
   for (const k in lampGeo) if (lampGeo[k].length) { const m = mergeMesh(lampGeo[k], false, false); m.material = lampMats[k]; m.castShadow = false; scene.add(m); signalMeshes.push(m); }
   if (cones.length) { coneMesh = mergeMesh(cones, false, false); coneMesh.material = coneMat; coneMesh.receiveShadow = false; coneMesh.renderOrder = 6; scene.add(coneMesh); }
@@ -724,9 +724,12 @@ function refreshCivicFlags() {
     if (now !== !!b.watered) { b.watered = now; if (b.stage >= DONE) for (const u of b.units) if (u.mesh) rebuildUnitMesh(u); }
   }
 }
+let wetK = 0;
+/** rain darkens the streets: 0 dry, 1 soaked */
+function setWet(k) { if (Math.abs(k - wetK) < 0.01) return; wetK = k; if (roadMesh) roadMesh.material.color.setScalar(1 - 0.28 * k); }
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

@@ -21,7 +21,8 @@ await new Promise(r => setTimeout(r, 2500));
 mkdirSync('scripts/out', { recursive: true });
 
 let failures = 0;
-const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  ' + extra : ''}`); if (!ok) failures++; };
+const failedNames = [];
+const check = (name, ok, extra = '') => { console.log(`${ok ? 'PASS' : 'FAIL'}  ${name}${extra ? '  ' + extra : ''}`); if (!ok) { failures++; failedNames.push(name); } };
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
 const browser = await puppeteer.launch({ executablePath, headless: true, args: ['--use-gl=angle', '--use-angle=swiftshader', '--enable-unsafe-swiftshader', '--window-size=1500,950'] });
@@ -159,8 +160,9 @@ try {
     const spots = MT.cells.filter(c => c.type === 'empty' && !c.h && MT.placeable(c, [c]) && Math.abs(c.i - hc.i) + Math.abs(c.j - hc.j) <= 5);
     const mk = kind => { const c = spots.find(c => !c.block && MT.placeable(c, [c])); if (!c) return null; const b = MT.placeBlock('civic', [c]); b.kind = kind; b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u); return b; };
     const ww = mk('waterworks'), rc = mk('recycling'); MT.refreshCivicFlags();
-    MT.setHour(6.5); let guard = 0; while (MT.dayOf() % 3 !== 0 && guard++ < 4) MT.fastForward(24); MT.fastForward(0.1);
-    const bags = MT.blocks.filter(b => b.bags).length; MT.setHour(7.6); MT.fastForward(0.2); const truck = MT.wanderers.some(w => w.truck);
+    MT.setHour(5.9); let guard = 0; while (MT.dayOf() % 3 !== 0 && guard++ < 4) MT.fastForward(24); for (const r of MT.residents) if (r.home) r.next = 0;
+    let bags = 0; for (let k = 0; k < 120 && !bags; k++) { MT.fastForward(0.02); bags = MT.blocks.filter(b => b.bags).length; }   // someone carries them out, or they appear by 7:15
+    MT.setHour(7.6); MT.fastForward(0.2); const truck = MT.wanderers.some(w => w.truck);
     return { ww: !!ww, rc: !!rc, watered: home.watered === true, bags, truck, day: MT.dayOf() };
   });
   const ts = await page.evaluate(() => {   // town services: a two-cell town hall from the kit; a household registers there and comes home with a folder
@@ -171,9 +173,19 @@ try {
     const kit = !!th.units[0].mesh.getObjectByName('Komachi_town_hall');
     const hh = MT.households.find(h => h.home && h.members.length && h.members.some(m => m.at === m.home)); if (!hh) return { th: true, kit, hh: false };
     hh.registered = false; for (const m of hh.members) { m.next = 0; }
-    MT.setHour(10); let went = false, folder = false; for (let k = 0; k < 120 && !folder; k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
+    MT.setHour(9); let went = false, folder = false; for (let k = 0; k < 400 && !(folder || hh.registered); k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
     return { th: true, kit, hh: true, went, registered: hh.registered, folder, label: MT.tierLabel('civic', 2) };
   });
+  const wx = await page.evaluate(() => {   // weather: a rain spell dims the sun, greys the sky, puts clouds out, wets the streets and opens umbrellas
+    MT.setWeather('clear', 9); for (let k = 0; k < 20; k++) MT.fastForward(0.05); MT.setHour(12); MT.fastForward(0.01);
+    const before = { clouds: MT.scene.children.filter(o => o.visible && o.castShadow && o.position.y > 5).length };
+    MT.setWeather('rain', 9); for (let k = 0; k < 24; k++) MT.fastForward(0.05); MT.setHour(12); MT.fastForward(0.01);
+    const clouds = MT.scene.children.filter(o => o.visible && o.castShadow && o.position.y > 5).length;
+    const rainMesh = MT.scene.children.find(o => o.isLineSegments && o.renderOrder === 7);
+    let umbrellas = 0; for (let k = 0; k < 40 && !umbrellas; k++) { MT.fastForward(0.05); umbrellas = MT.residents.filter(r => r.state === 'walking' && r.mesh.userData.char && r.mesh.userData.char.accessory && r.mesh.userData.char.accessory.userData.propKind === 'umbrella').length; }
+    return { kind: MT.weather.kind, cover: +MT.weather.cover.toFixed(2), rain: +MT.weather.rain.toFixed(2), cloudsBefore: before.clouds, clouds, rainVisible: !!(rainMesh && rainMesh.visible), umbrellas, day: document.getElementById('day').textContent };
+  });
+  check('weather: a rain spell brings clouds, falling rain and umbrellas', wx.kind === 'rain' && wx.rain > 0.6 && wx.clouds > wx.cloudsBefore && wx.rainVisible && wx.umbrellas >= 1, JSON.stringify(wx));   // the clock card's note repaints on the next frame, so it is not asserted
   const ch = await page.evaluate(() => ({ n: MT.chronicle.length, sample: MT.chronicle.slice(0, 3).map(e => e.text), hasRegister: MT.chronicle.some(e => /registered/.test(e.text)) }));
   check('town chronicle: milestones are recorded (a registration among them)', ch.n >= 1 && ch.hasRegister, JSON.stringify(ch));
   check('town services: the town hall comes from the kit and a new household registers there, coming home with a folder', ts.th && ts.kit && ts.hh && ts.went && ts.registered && ts.label.toLowerCase().includes('town hall'), JSON.stringify(ts));

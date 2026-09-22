@@ -47,6 +47,15 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Clouds are no longer drawn as shapes; what shows is their shade. Each cloud is an invisible cloud-shaped shadow caster,
+  so soft patches of shade drift over the town with the wind, more of them under a heavy sky.
+- The slipway is a proper street: the lane from the coast road to the shore is real road cells on the grid (kept, not
+  zonable), drawn like any street, ending in a concrete slope down to the beach; no slanted lanes. The berth notice says
+  cars are rolling off only once one has. The smoke summary names any failed checks.
+- Phase 6 begins, weather (src/weather.js): a weather clock runs spells of clear, overcast, light rain and rain in game
+  hours, easing between them. Clouds drift over the island with the wind and cast moving shade, more and greyer the
+  heavier the sky; overcast greys the sky and softens the sun; rain falls as streaks that follow the camera, darkens the
+  streets, and walkers open umbrellas for the trip. The clock card notes the spell. Weather is saved with the town.
 - Houses grow like houses: a detached home's second storey is lower than its ground floor (0.4 against 0.5) instead
   of a second full floor, so it no longer towers like a block of flats; detached, narrow and terrace homes stop at two
   storeys and a two-storey house holds a family of three rather than two households; apartments and the manshon still
