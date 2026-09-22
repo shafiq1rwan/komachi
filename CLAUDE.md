@@ -222,7 +222,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 ✅ Civic zone (2026-09-22): substation, water works, recycling centre, public bath, town hall with registration, clinic, fire station,
        community centre with the town chronicle; visible effects only, nothing gated
-6. Weather, gentle events, festivals, tourism (slice 1 weather shipped 2026-09-22: spells, clouds with shade, overcast light, rain, umbrellas)
+6. Weather, gentle events, festivals, tourism (shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
+   speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. Farming and fishing
 8. Mobile quality levels, PWA, Electron desktop app
 9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)

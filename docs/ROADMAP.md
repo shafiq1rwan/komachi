@@ -230,13 +230,21 @@ effect through the town instead.
   that whitens roofs
 - ✅ Seasons for the trees and the sakura biome (2026-09-22): a 24-day year; canopies turn with the season, leaves and
   petals fall; winter brings snow on the ground, roofs and crowns, and snowflakes in place of rain
+- Speech bubbles (agreed 2026-09-22): a small cream bubble over the head, drawn as a 2D overlay like the name tags, with
+  pulsing dots or a small pictogram (rice bowl, house, cloud, shop front), never text; bubbles alternate between two
+  speakers. Shown for bench chats, household visits, passers-by who know each other and stop a moment on the pavement,
+  and later stall vendors and customers. Hidden when zoomed far out
+- Puddles on the streets after a shower, drying over an hour
 - Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
-- Tourists arriving by train for festivals and the shore, staying a day
+  (models in assets/festival: three yatai, lantern string, taiko, bunting, banner, mikoshi; fireworks over the sea in code)
+- Tourist bus (assets/destinations) on a weekend loop between the shore and the plaza, stopping at the bus shelter
+- Tourists arriving by train for festivals and the shore, staying a day; they walk out to a landmark, take a photo (camera
+  hand prop, built in code), buy something and leave on an evening train
 - A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
 
-- **Landmarks**: a lighthouse on the rocky headland, a red arched bridge as a special canal crossing, festival
-  lanterns along the shrine path, a park pavilion under cherry trees (sakura biome); tourists arriving by train
-  walk out to see them
+- **Landmarks** (models in assets/destinations): a lighthouse on the rocky headland with a sweeping lens, a red arched
+  bridge as a special canal crossing walkers follow along its curve, festival lanterns along the shrine path, a park
+  pavilion with seats under cherry trees (sakura biome); tourists arriving by train walk out to see them
 
 ## ⬜ Phase 7 — Farming and fishing
 
@@ -268,11 +276,16 @@ effect through the town instead.
 Nothing is scored or punitive, so achievement has to be felt through the town itself. Ideas to weave into
 the phases above, roughly in order of payoff:
 
+- **Milestone announcements** (agreed 2026-09-22): a milestone gets more than the slim notice. A larger cream card slides
+  in at the top centre with a title, one line and a pictogram, stays about ten seconds or until dismissed, and offers a
+  button to go and look; the camera glides to the place for a few seconds while the change plays out, then returns. The
+  hill opening is the first: the lanterns light one by one along the shrine path and the road crew stands at the top a
+  moment before walking down. Later milestones (first festival, hundredth resident, ferry's first call) reuse the card.
 - **Milestones that change the world**: the hill opening at 60 residents is the model. Add more of them:
   the station gains a second platform canopy and an express service at 100, the coast road gets lamps and
   a promenade at 150, the town name goes up on a plaque at the station once ten households live here.
-- **A town chronicle**: a card that lists what happened and when, in the residents' words. First family,
-  first shop, first festival, the day the hill opened. Photo mode (Phase 9) saves a picture with each entry.
+- ✅ **A town chronicle** (2026-09-22, src/chronicle.js): milestones with the day, shown in the community centre's
+  display case on its card and saved with the town. First family, first shop, first festival, the day the hill opened. Photo mode (Phase 9) saves a picture with each entry.
 - **Residents who remember**: long-time residents mention how the town used to be, and the first household's
   home gets a small memorial plaque. Children born here (Phase 6) grow up and take jobs.
 - **Visible growth on the street**: shops that are popular get bigger signs and queues, homes that have been
