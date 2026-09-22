@@ -153,6 +153,8 @@ src/
   neighbourhood-kits.js standalone utility, shop facade and home yard kits (19 GLBs, including the city bicycle)
   civic-kit.js        standalone substation, water tower, recycling row, path torii, notice board, hydrant and hose box
   subway-station.js   one-cell open stair pavilion, hip-and-gable kawara roof, clock and four independent light materials
+  phone.js            standalone handheld smartphone with a separate screen material
+  newspaper.js        standalone folded newspaper with layered paper and geometry-only print
   tea-can.js          labelled tea can and mouth-aligned drinking pose
   bikes.js            original city bicycle, basket, rotating wheels and resident riding pose
   dogs.js             original low-poly Shiba Inu, four poses and ambient street behaviour

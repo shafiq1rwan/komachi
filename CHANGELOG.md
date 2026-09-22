@@ -10,6 +10,12 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Standalone folded newspaper prop with layered cream paper, KOMACHI masthead, front-page
+  town illustration and printed back columns; includes GLB and front/rear previews.
+
+- Standalone handheld smartphone GLB with rounded sage case, camera lenses, geometry-only
+  home screen and independent screen material; includes front/rear previews.
+
 - Standalone subway pavilion within a 0.9-by-0.9 footprint and 0.7 ridge height: open descending
   stairs with no pit floor, tiled hip-and-gable roof, clock and independent Window_Band,
   Name_Board, Lamp_L and Lamp_R materials. Includes GLB, night/cutaway previews and clearance checks.
@@ -40,6 +46,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   fills up a notice says so once, and the building's card shows "Cars line the kerb outside" until a car park takes them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
+- Bench life: people waiting on the plaza benches no longer sit like statues. They shift their weight, follow passers-by
+  with their eyes, watch the stairs when a train is due, take out a phone or a folded newspaper (src/hand-items.js), chat
+  with a neighbour on the same bench (one nods), and now and then stand up to stretch their legs. The card shows what
+  they are doing.
+- Zoom goes in more than twice as close as before (wheel and pinch), enough to watch one doorstep.
 - Plaza: the cream paving squares are gone and two flower planters stand at the kerb in front of the station, either side
   of the way in. Toolbar order: Car park sits beside Road, Remove last. The ferry is a size up (1.3×) from the
   pier's boat and berths a little further out.

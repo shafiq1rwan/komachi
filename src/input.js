@@ -80,7 +80,7 @@ canvas.addEventListener('pointermove', e => {
   if (touches.has(e.pointerId)) touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (gesture && touches.size >= 2) {
     const [a, b] = [...touches.values()]; const dist = Math.hypot(b.x - a.x, b.y - a.y), ang = Math.atan2(b.y - a.y, b.x - a.x);
-    cam.tView = clamp(gesture.view * (gesture.dist / Math.max(20, dist)), 7, 42);
+    cam.tView = clamp(gesture.view * (gesture.dist / Math.max(20, dist)), 3, 42);
     let da = ang - gesture.ang; da = Math.atan2(Math.sin(da), Math.cos(da)); cam.tYaw = gesture.yaw - da;
     return;
   }
@@ -123,7 +123,7 @@ function endPointer(e) {
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('wheel', e => { e.preventDefault(); cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 7, 42); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 3, 42); }, { passive: false });
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return; keys.add(e.code);
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park');

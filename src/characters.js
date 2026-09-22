@@ -145,7 +145,7 @@ export function attachCharacter(grp, look) {
   const idle = act('idle'), walk = act('walk'), sit = act('sit');
   for (const a of [idle, walk, sit]) if (a) { a.play(); a.setEffectiveWeight(0); }
   if (idle) idle.setEffectiveWeight(1); mixer.setTime(Math.random() * 2);
-  const head = inst.getObjectByName('head'), armR = inst.getObjectByName('arm-right');
+  const head = inst.getObjectByName('head'), armR = inst.getObjectByName('arm-right'), armL = inst.getObjectByName('arm-left');
   if (look.builder && head && !v.builder) {   // fallback only, if the dedicated builder asset failed to load
     const top = v.headTop - 0.343;   // the head bone sits ~0.343 up the model; the head is ~0.3 wide
     // a chibi head is the whole figure seen from above, so the helmet perches small on top rather than covering it
@@ -154,7 +154,7 @@ export function attachCharacter(grp, look) {
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 14), hat.material); brim.position.set(0, top - 0.005, 0.04); brim.rotation.x = -0.12; head.add(brim);
   }
   const seated = !!(grp.userData.res && grp.userData.res.spot && grp.userData.res.spot.kind === 'seat');   // swapped in while already on a bench
-  const char = { root: inst, mixer, idle, walk, sit, head, armR, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
+  const char = { root: inst, mixer, idle, walk, sit, head, armR, armL, fidget: null, gaze: 0, gazeBlend: 0, fidgetT: Math.random() * 20, nodT: 0, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
   grp.add(inst); grp.userData.char = char; grp.userData.legs = null; grp.userData.upper = null; chars.push(char); return char;
 }
 /** put a tool mesh (built for the box people, world scale) into the character's right hand */
@@ -164,7 +164,7 @@ export function holdTool(char, mesh) {
 }
 /** a small thing carried in the right hand (a can, a bag); replaces whatever was held */
 export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else holdTool(char, mesh); }
-export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan){char.item.geometry.dispose();char.item.material.dispose();} char.item = null; } }
+export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan||char.item.userData.handItem){char.item.geometry.dispose();char.item.material.dispose();} char.item = null; } }
 export function detachCharacter(grp) {
   clearCharacterProp(grp.userData.char);
   if(grp.userData.char)dropItem(grp.userData.char);
@@ -172,7 +172,7 @@ export function detachCharacter(grp) {
   const p = pendingSwap.findIndex(x => x.grp === grp); if (p >= 0) pendingSwap.splice(p, 1);
 }
 
-const X = new THREE.Vector3(1, 0, 0), qNod = new THREE.Quaternion();
+const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), qNod = new THREE.Quaternion(), qTurn = new THREE.Quaternion();
 /** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
 export function updateCharacters(simDt) {
   for (const c of chars) {
@@ -198,6 +198,17 @@ export function updateCharacters(simDt) {
     if (c.poseName === 'drink' && c.head) { c.sipT = (c.sipT || 0) + simDt; const sip = Math.max(0, Math.sin(c.sipT * 1.6) - 0.35) / 0.65; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, -0.5 * sip)); if (c.armR) c.armR.rotation.x -= 0.9 * sip; }   // a sip: head tips back, the can comes up
     else c.sipT = 0;
     if(c.item?.userData.teaCan)updateTeaDrink(c,c.poseName==='drink'?Math.max(0,Math.sin(c.sipT*1.6)-.35)/.65:0);
+    // bench life: nobody sits like a statue. Slow weight shifts, a glance (c.gaze, radians to the side), and a small
+    // business set by sim.js: phone (head down, arm up), paper (both arms), nod (chatting)
+    if (c.sitting && c.sitBlend > 0.5) {
+      c.fidgetT += simDt; const w = c.fidgetT;
+      c.root.rotation.y = Math.sin(w * 0.45) * 0.06 + Math.sin(w * 0.13) * 0.05; c.root.position.x = Math.sin(w * 0.3) * 0.008;
+      c.gazeBlend += ((c.gaze ? 1 : 0) - c.gazeBlend) * Math.min(1, simDt * 4); if (c.gaze) c.gazeHeld = c.gaze;
+      if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
+      if (c.fidget === 'phone' && c.head) { c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42)); if (c.armR) c.armR.rotation.x -= 1.25; }
+      else if (c.fidget === 'paper' && c.head) { c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.3)); if (c.armR) c.armR.rotation.x -= 1.05; if (c.armL) c.armL.rotation.x -= 1.05; }
+      else if (c.fidget === 'nod' && c.head) { c.nodT += simDt; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, Math.sin(c.nodT * 7) * 0.18)); }
+    } else { c.root.rotation.y = 0; c.root.position.x = 0; c.gazeBlend = 0; c.nodT = 0; }
     updateCharacterProp(c);
   }
 }

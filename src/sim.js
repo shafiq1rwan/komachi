@@ -7,6 +7,7 @@ import { N, HALF, cx, cz, townGroup, peopleGroup, disposeGroup, cam, camera } fr
 import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
+import { createPhone, createNewspaper } from './hand-items.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
@@ -220,15 +221,47 @@ function spawnNewcomer(hh = null) {
 }
 /** next decision time for someone waiting at the station: never sleeps past the 22:00 last train */
 const waitNext = dt => { const t = S.T + dt, lastTrain = Math.floor(S.T / 24) * 24 + 22.02; return hourOf() < 22 ? Math.min(t, lastTrain) : t; };
-function freeSpot(r) { if (r.spot) { r.spot.taken = null; r.spot = null; } if (r.vendingAt) { r.vendingAt.taken = null; r.vendingAt = null; } r.sipAt = 0; const ch = r.mesh && r.mesh.userData.char; if (ch && (ch.item || ch.pose === 'press' || ch.pose === 'drink')) { dropItem(ch); ch.pose = null; } }
+function freeSpot(r) { clearFidget(r); if (r.spot) { r.spot.taken = null; r.spot = null; } if (r.vendingAt) { r.vendingAt.taken = null; r.vendingAt = null; } r.sipAt = 0; const ch = r.mesh && r.mesh.userData.char; if (ch && (ch.item || ch.pose === 'press' || ch.pose === 'drink')) { dropItem(ch); ch.pose = null; } }
 function takeSpot(r) {
   const spot = STATION.seats.find(s => !s.taken) || STATION.stands.find(s => !s.taken);
   if (spot) { spot.taken = r; r.spot = spot; } return spot;
 }
+// ── bench life: a seated person shifts, glances, checks a phone, reads, chats with a bench neighbour, stretches ──
+const PHONE_ACTS = ['checking messages', 'scrolling the news', 'texting a friend', 'looking up train times'];
+function gazeTo(r, p) { let a = Math.atan2(p.x - r.mesh.position.x, p.z - r.mesh.position.z) - r.mesh.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); return clamp(a, -0.9, 0.9) || 0.001; }
+function benchNeighbour(r) { const s = r.spot; if (!s) return null; const n = STATION.seats.find(o => o !== s && o.taken && o.taken.state === 'inside' && o.taken.mesh.visible && Math.abs(o.pos.x - s.pos.x) < 0.2 && Math.abs(o.pos.z - s.pos.z) < 0.01); return n ? n.taken : null; }
+function clearFidget(r) {
+  const ch = r.mesh && r.mesh.userData.char; if (!r.fidget) { if (ch) ch.gaze = 0; return; }
+  const f = r.fidget; r.fidget = null;
+  if (ch) { if (ch.item && ch.item.userData.handItem) dropItem(ch); ch.fidget = null; ch.gaze = 0; }
+  if (f.kind === 'stretch' && r.spot) { r.mesh.position.copy(r.spot.pos); setPose(r, true); }
+  if (f.base !== undefined) r.activity = f.base;
+  if (f.partner && f.partner.fidget && f.partner.fidget.kind === 'chat') clearFidget(f.partner);
+}
+function tickSitter(r) {
+  const ch = r.mesh.userData.char; if (!ch) return;
+  if (r.fidget) { if (S.T >= r.fidget.until) clearFidget(r); else if (r.fidget.at && r.fidget.at.mesh) ch.gaze = gazeTo(r, r.fidget.at.mesh.position); return; }
+  if (S.T < (r.fidgetAt || 0)) {   // between things: eyes follow whoever walks past
+    const passer = residents.find(x => x !== r && x.state === 'walking' && x.mesh.visible && x.mesh.position.distanceTo(r.mesh.position) < 0.8);
+    ch.gaze = passer ? gazeTo(r, passer.mesh.position) : 0; return;
+  }
+  const nb = benchNeighbour(r), opts = [['phone', 3], ['paper', 1.5], ['stairs', 2], ['stretch', 1]]; if (nb && !nb.fidget) opts.push(['chat', 4]);
+  let t = Math.random() * opts.reduce((s, o) => s + o[1], 0), kind = opts[0][0]; for (const [k, w] of opts) { t -= w; if (t <= 0) { kind = k; break; } }
+  const dur = rand(0.25, 0.7), f = { kind, until: S.T + dur, base: r.activity };
+  if (kind === 'phone') { holdItem(ch, createPhone()); ch.fidget = 'phone'; r.activity = pick(PHONE_ACTS); }
+  else if (kind === 'paper') { holdItem(ch, createNewspaper()); ch.fidget = 'paper'; r.activity = 'reading the paper'; }
+  else if (kind === 'stairs') { ch.gaze = gazeTo(r, STATION.entrance); r.activity = 'watching the stairs for the next train'; }
+  else if (kind === 'stretch') { setPose(r, false); r.mesh.position.copy(r.spot.pos).add(new THREE.Vector3(Math.sin(r.spot.rot) * 0.14, 0, Math.cos(r.spot.rot) * 0.14)); r.activity = 'stretching their legs'; f.until = S.T + rand(0.15, 0.3); }
+  else if (kind === 'chat') {
+    const nch = nb.mesh.userData.char; f.partner = nb; f.at = nb; ch.fidget = 'nod'; r.activity = 'chatting about the town';
+    nb.fidget = { kind: 'chat', until: f.until, base: nb.activity, at: r, partner: r }; if (nch) nch.gaze = gazeTo(nb, r.mesh.position); nb.activity = 'chatting about the town';
+  }
+  r.fidget = f; r.fidgetAt = f.until + rand(0.3, 1.4);
+}
 function sitDown(r) {
   const s = r.spot; if (!s) { r.state = 'inside'; r.next = S.T; return; }
   r.mesh.visible = true; r.mesh.position.copy(s.pos); r.mesh.rotation.y = s.rot; setPose(r, s.kind === 'seat');
-  r.state = 'inside'; r.trip = null; r.activity = s.kind === 'seat' ? 'waiting for a home' : 'waiting by the planters'; r.next = waitNext(rand(0.3, 0.9));
+  r.state = 'inside'; r.trip = null; r.activity = s.kind === 'seat' ? 'waiting for a home' : 'waiting by the planters'; r.next = waitNext(rand(0.3, 0.9)); r.fidgetAt = S.T + rand(0.15, 0.6);
 }
 function freeSpots() { return STATION.seats.filter(s => !s.taken).length + STATION.stands.filter(s => !s.taken).length; }
 /** A short walk that ignores roads (inside the plaza, or across the grass), with a callback on arrival. */
@@ -245,6 +278,7 @@ function plazaDetour(from, to) {
   return pts;
 }
 function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
+  clearFidget(r);
   const pts = [from.clone().setY(y), ...plazaDetour(from, to).map(p => p.setY(y)), to.clone().setY(y)];
   r.trip = { pts, i: 0, t: 0, dest: null, drive: false, speed: 0.85 * rand(0.9, 1.1), baseY: y, onArrive };
   r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]); setPose(r, false);
@@ -697,6 +731,7 @@ function updateResidents(simDt, realT) {
   for (const r of residents) {
     if (r.state === 'away' || r.state === 'riding') continue;
     if (r.state === 'inside') {
+      if (r.spot && r.spot.kind === 'seat' && r.mesh.visible && !r.vendingAt) tickSitter(r);
       if (r.sipAt && S.T >= r.sipAt) { r.sipAt = 0; const ch = r.mesh.userData.char; if (ch && r.vendingAt) { holdItem(ch, makeCan(r)); ch.pose = 'drink'; r.activity = pick(DRINK_ACTS); r.mesh.rotation.y = r.vendingAt.rot + Math.PI * 0.85; } }   // turn from the machine and drink
       if (S.T >= r.next) decide(r);
       if (r.home && !r.job && S.T >= r.jobSearchAt) { findJob(r); r.jobSearchAt = S.T + rand(1.5, 3); }

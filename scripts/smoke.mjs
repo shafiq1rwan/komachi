@@ -172,7 +172,7 @@ try {
     const f = MT.ferry; if (!f.ready) return { ready: false };
     MT.setHour(6.5); f.queue.push({ kind: 'wanderer', color: '#e9b7b0', vkind: 'kei' });
     const before = MT.ferry.ashore || 0; const seen = new Set();
-    for (let k = 0; k < 30; k++) { MT.fastForward(0.05); seen.add(f.state); }
+    for (let k = 0; k < 80 && (MT.ferry.ashore || 0) <= before; k++) { MT.fastForward(0.05); seen.add(f.state); }   // poll until a car is ashore (the larger hull berths further out), never a fixed count
     return { ready: true, slip: !!f.slip, yard: !!f.yard, states: [...seen], calls: f.calls > 0, rolledOff: (MT.ferry.ashore || 0) > before, ashore: MT.ferry.ashore || 0 };
   });
   check('car ferry: it calls at the slipway and queued cars roll off into town', fy.ready && fy.slip && fy.yard && fy.states.includes('berthed') && fy.calls && fy.rolledOff, JSON.stringify(fy));
