@@ -123,7 +123,8 @@ function runTask(k, dh, simDt, realT) {
 const site = b => b.units[0];
 let yardStart = null;   // the ferry's slipway, once it exists: trucks load at the builders' yard there
 function setYardStart(fn) { yardStart = fn; }
-const stationRoads = () => { const y = yardStart && yardStart(); return y ? [y] : roadNeighbors(STATION.anchor.cell); };
+const stationRoads = () => { const y = yardStart && yardStart(); return y ? [y] : roadNeighbors(STATION.anchor.cell); };   // trucks: the yard
+const crewRoads = () => roadNeighbors(STATION.anchor.cell);   // crews come and go by train, never via the yard
 const activeSites = () => blocks.filter(b => b.type !== 'station' && b.stage < DONE);
 
 function spawnWorker(b) {
@@ -140,12 +141,12 @@ function removeWorker(k) {
 function walkToSite(k, from) {
   const u = site(k.site), [lx, lz] = SPOTS[Math.max(0, k.site.crew.indexOf(k)) % SPOTS.length];
   const dest = unitLocal(u, lx, lz, 0.1); k.spotPos = dest; k.faceTo = unitLocal(u, 0, 0, 0.1);
-  const path = routeCells(stationRoads(), frontRoad(u));
+  const path = routeCells(crewRoads(), frontRoad(u));
   const pts = path ? buildPoints(path, from.setY(0.12), dest, 0.34, 0.1) : [from.clone().setY(0.12), dest.clone()];
   k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toSite'; k.activity = 'walking to the site'; k.mesh.visible = true; k.mesh.position.copy(pts[0]);
 }
 function walkToStation(k, why) {
-  const u = site(k.site), path = routeCells(frontRoad(u), stationRoads());
+  const u = site(k.site), path = routeCells(frontRoad(u), crewRoads());
   const pts = path ? buildPoints(path, k.mesh.position.clone().setY(0.12), STATION.entrance.clone(), 0.34, 0.1) : [k.mesh.position.clone().setY(0.12), STATION.entrance.clone().setY(0.12)];
   k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toStation'; k.activity = why;
 }

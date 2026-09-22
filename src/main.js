@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { lerp, hash } from './utils.js';
 import { S } from './state.js';
 import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
-import { cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, hillPlots } from './world.js';
+import { placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots } from './world.js';
 import { updateConstruction, workers } from './construction.js';
 import { updateCharacters, characterAvailable } from './characters.js';
 import { rebuildUnitMesh } from './buildings.js';
@@ -13,7 +13,7 @@ import { initFerry, updateFerry, ferry } from './ferry.js';
 import { canalCells } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
-import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
+import { HPS, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
@@ -64,7 +64,7 @@ function demoTown() {
   road([14, 24], [14, 26]);                             // and on down to the coast road, so the ferry's cars can reach town
   put('res', [[14, 16], [14, 17]]); put('res', [[20, 16], [20, 17], [20, 18]]); put('res', [[16, 14], [17, 14]]);
   put('shop', [[13, 20]]); put('shop', [[19, 20]]);   // the first shop stands beside the side street, not on it
-  put('work', [[20, 13], [20, 14]]); put('work', [[16, 20], [17, 20]]);
+  put('work', [[20, 13], [20, 14]]); put('work', [[15, 20], [16, 20]]);   // one cell west of the taxis' car park across from the entrance
   for (const b of blocks) { if (b.type !== 'station') { b.stage = DONE; for (const u of b.units) rebuildUnitMesh(u); } }
   cam.target.set(cx(HALF), 0, cz(HALF)); cam.tView = cam.view = 14;
   fastForward(30); S.T = Math.floor(S.T / 24) * 24 + 13;
@@ -73,7 +73,7 @@ function demoTown() {
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
-  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, hillMarket, hillPlots, ferry,
+  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };

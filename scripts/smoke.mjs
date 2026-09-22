@@ -137,8 +137,16 @@ try {
     return { counted, changed, reopened: !q.changing && q.renoT === 0, kind: q.kind, was };
   });
   check('economy: customers are counted daily and a quiet shop changes trade, then reopens', eco.counted && eco.changed && eco.reopened, JSON.stringify(eco));
-  const tiers = await page.evaluate(() => { const out = {}; for (const b of MT.blocks) { if (b.type === 'station') continue; const n = Math.min(3, b.cells.length), k = b.type === 'res' ? b.units[0].variant : b.kind; (out[b.type + n] = out[b.type + n] || new Set()).add(k); } const ok = Object.entries(out).every(([key, set]) => { const type = key.slice(0, -1), n = +key.slice(-1); return [...set].every(k => MT.TIERS[type][n].includes(k)); }); return { ok, seen: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v]])), label: MT.tierLabel('res', 3) }; });
+  const tiers = await page.evaluate(() => { const out = {}; for (const b of MT.blocks) { if (b.type === 'station' || b.summoned) continue; const n = Math.min(3, b.cells.length), k = b.type === 'res' ? b.units[0].variant : b.kind; (out[b.type + n] = out[b.type + n] || new Set()).add(k); } const ok = Object.entries(out).every(([key, set]) => { const type = key.slice(0, -1), n = +key.slice(-1); return [...set].every(k => MT.TIERS[type][n].includes(k)); }); return { ok, seen: Object.fromEntries(Object.entries(out).map(([k, v]) => [k, [...v]])), label: MT.tierLabel('res', 3) }; });
   check('size tiers: every block\'s kind or variant comes from its cell-count tier', tiers.ok && tiers.label.startsWith('3 cells'), JSON.stringify(tiers));
+  const cp = await page.evaluate(() => {   // Car park tool: a cell beside a street becomes a car park and a nearby home's car takes a bay
+    MT.drawRoad(MT.cell(24, 23), MT.cell(24, 29)); const spots = []; for (const i of [23, 25]) for (let j = 23; j <= 29; j++) { const c = MT.cell(i, j); if (MT.placeable(c, [c])) spots.push(c); }
+    const home = MT.placeBlock('res', [spots[0]]); home.stage = MT.DONE; for (const u of home.units) MT.rebuildUnitMesh(u);
+    const pc = spots.find(c => !c.block && MT.placeable(c, [c])); const park = pc && MT.placeCarPark([pc]); const r = MT.residents.find(r => r.car); let bay = null;
+    if (r && pc) { r.carAt = home.units[0]; MT.parkVehicle(r.car, home.units[0], 'car'); bay = r.car.userData.bayCell === pc ? r.car.userData.bay : null; }
+    return { spots: spots.length, placed: !!park, flag: pc && pc.park, count: MT.carParks.length, bay, label: MT.tierLabel('park', 2), station: !!MT.scene.getObjectByName('Komachi_Subway_Station') };
+  });
+  check('car park tool: a cell beside a street takes four bays and a nearby home parks there; kit station pavilion present', cp.placed && cp.flag === 'public' && cp.bay !== null && cp.label.includes('8 bays') && cp.station, JSON.stringify(cp));
   const vv = await page.evaluate(() => {   // the same unit, rebuilt with different seeds, takes different looks
     const ru = MT.blocks.find(b => b.type === 'res').units[0], su = MT.blocks.find(b => b.type === 'shop').units[0], wu = MT.blocks.find(b => b.type === 'work' && b.kind === 'office')?.units[0];
     const styles = new Set(), finishes = new Set(), facades = new Set();

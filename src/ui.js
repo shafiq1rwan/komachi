@@ -59,6 +59,7 @@ function renderInspect(target, follow = null) {
       if (type === 'res') {
         html += `<div class="row"><span>Residents</span><b>${u.residents.length} / ${unitCap(u)}</b></div>`;
         html += growthRow(b);
+        if (b.kerbFull) html += `<div class="empty">Cars line the kerb outside: a car park nearby would give them room (Car park tool, 7)</div>`;
         // residents grouped by household: who is home, who is out and what they are up to
         const groups = new Map(); for (const r of u.residents) { if (!groups.has(r.hh)) groups.set(r.hh, []); groups.get(r.hh).push(r); }
         for (const [hh, members] of groups) {
@@ -81,6 +82,7 @@ function renderInspect(target, follow = null) {
           else if (b.quietDays >= 2) html += `<div class="empty">Quiet lately; the owner is thinking of a change</div>`;
         }
         html += growthRow(b);
+        if (b.kerbFull) html += `<div class="empty">Cars line the kerb outside: a car park nearby would give them room (Car park tool, 7)</div>`;
         html += `<div class="divider"></div><ul>`;
         for (const r of staffIn) html += personLi(r, r.activity);
         for (const r of u.staff.filter(r => r.at !== u)) html += personLi(r, whereIs(r));

@@ -9,9 +9,10 @@ import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
+const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
 const CARRY_HOME = new Set(['grocery', 'supermarket', 'konbini', 'arcade', 'bakery']);   // shops you leave with a bag
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, TIERS, KIND_LABEL, hillPlots, placeBlock, drawRoad } from './world.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { unitLocal } from './buildings.js';
@@ -274,11 +275,13 @@ function waitDecide(r) {
 const taxis = [];
 function makeTaxis() {
   for (const side of [-0.3, 0.3]) {
-    const mesh = makeCar('#e8cf7a', 'taxi'); const t = { mesh, state: 'rank', passengers: [], dest: null, trip: null, departAt: 0, slot: side };
+    const mesh = makeCar('#e8cf7a', 'taxi'); const t = { mesh, state: 'rank', passengers: [], dest: null, trip: null, departAt: 0, slot: side, bay: side < 0 ? 0 : 1 };
     parkTaxi(t); taxis.push(t);
   }
 }
-function parkTaxi(t) { const p = unitLocal(STATION.anchor, t.slot, 0.22, 0.12); t.mesh.position.copy(p); t.mesh.rotation.set(0, 0, 0); t.mesh.visible = true; t.mesh.userData.parked = true; t.state = 'rank'; t.dest = null; t.trip = null; }
+/** where a taxi waits: a bay in the car park across the ring road, else the old rank on the plaza edge */
+function rankPos(t) { const c = STATION.taxiPark; if (!c) return { p: unitLocal(STATION.anchor, t.slot, 0.22, 0.12), rot: 0 }; const b = parkBay(c, t.bay); return { p: new THREE.Vector3(b.x, 0.085, b.z), rot: b.rot }; }
+function parkTaxi(t) { const { p, rot } = rankPos(t); t.mesh.position.copy(p); t.mesh.rotation.set(0, rot, 0); t.mesh.visible = true; t.mesh.userData.parked = true; t.state = 'rank'; t.dest = null; t.trip = null; }
 function boardTaxi(r, u, path) {
   let t = taxis.find(t => t.state === 'boarding' && t.dest === u && t.passengers.length < 3) || taxis.find(t => t.state === 'rank');
   if (!t) return false;
@@ -297,9 +300,9 @@ function updateTaxis(simDt) {
         const kerb = t.trip.pts[t.trip.pts.length - 1];
         for (const r of t.passengers) { r.taxi = null; r.mesh.position.copy(kerb); r.state = 'walking'; if (t.dest.removed) returnToStation(r, kerb); else enterUnit(r, t.dest); }
         t.passengers.length = 0;
-        const back = routeCells(frontRoad(t.dest), roadNeighbors(STATION.anchor.cell));
+        const back = routeCells(frontRoad(t.dest), STATION.taxiPark ? [STATION.taxiPark.parkRoad] : roadNeighbors(STATION.anchor.cell));
         if (!back) { parkTaxi(t); continue; }
-        const rank = unitLocal(STATION.anchor, t.slot, 0.22, 0.12);
+        const rank = rankPos(t).p;
         t.trip = { pts: buildPoints(back, kerb.clone(), [rank], 0.17, 0.08, -1), i: 0, t: 0, speed: 2.4 }; t.state = 'back';
       } else parkTaxi(t);
     }
@@ -319,11 +322,22 @@ const PARK_SLOTS = [[0.33, 0.2], [-0.33, 0.2], [0.33, -0.22], [-0.33, -0.22]];
 function parkVehicle(mesh, u, kind) {
   const veh = x => kind === 'car' ? x.car : x.bike, at = x => kind === 'car' ? x.carAt : x.bikeAt;
   const used = new Set(residents.filter(x => veh(x) && veh(x) !== mesh && at(x) === u && veh(x).userData.slot !== undefined).map(x => veh(x).userData.slot));
+  if (kind === 'car') {   // the nearest of the player's car parks within reach with a free bay, nose-in from its street
+    const near = carParks.filter(c => Math.abs(c.i - u.cell.i) + Math.abs(c.j - u.cell.j) <= PARK_REACH).sort((a, b) => Math.abs(a.i - u.cell.i) + Math.abs(a.j - u.cell.j) - Math.abs(b.i - u.cell.i) - Math.abs(b.j - u.cell.j));
+    for (const c of near) {
+      const usedB = new Set(residents.filter(x => x.car && x.car !== mesh && x.car.userData.bayCell === c).map(x => x.car.userData.bay));
+      const bay = [0, 1, 2, 3].find(k => !usedB.has(k)); if (bay === undefined) continue;
+      const p = parkBay(c, bay); mesh.position.set(p.x, 0.085 + p.h, p.z); mesh.rotation.set(0, p.rot, 0); mesh.visible = true; mesh.userData.parked = true; mesh.userData.bay = bay; mesh.userData.bayCell = c; mesh.userData.slot = undefined; u.block.kerbFull = false; return;
+    }
+  }
+  mesh.userData.bay = undefined; mesh.userData.bayCell = undefined;
   if (kind === 'car') {   // the plot is too small for a car: it waits at the kerb of the street in front, half on the pavement, with the home on its left
     const road = frontRoad(u)[0];
     if (road) {
       const dx = Math.sign(u.cell.i - road.i), dz = Math.sign(u.cell.j - road.j);   // from the street toward the home
-      let slot = [0, 1].find(k => !used.has(k)); if (slot === undefined) slot = 0;
+      let slot = [0, 1].find(k => !used.has(k));
+      if (slot === undefined) { slot = 0; u.block.kerbFull = true; if (!u.block.parkHint) { u.block.parkHint = true; toast(`Cars are lining the kerb outside ${u.block.name}. A car park nearby would give them room (Car park tool, 7)`); } }
+      else u.block.kerbFull = false;
       const along = (slot ? -1 : 1) * 0.28, ax = -dz, az = dx;   // two bays along the kerb
       mesh.position.set(cx(road.i) + dx * 0.42 + ax * along, 0.085 + (road.h || 0), cz(road.j) + dz * 0.42 + az * along);
       mesh.rotation.set(0, Math.atan2(-dz, dx), 0);   // heading with the home on the driver's left (Japan keeps left)
@@ -341,13 +355,14 @@ function makeBike(r) {
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
   if (r.mesh.userData.char && r.mesh.userData.char.accessory) clearCharacterProp(r.mesh.userData.char);   // the bag comes indoors with them
+  if (r.mesh.userData.char && r.mesh.userData.char.item && !r.vendingAt) dropItem(r.mesh.userData.char);   // the empty can goes in the bin at the door
   if (r.car && r.carAt === u && !u.removed) parkVehicle(r.car, u, 'car'); else if (r.car) r.car.visible = false;
   if (r.bike && r.bikeAt === u && !u.removed) parkVehicle(r.bike, u, 'bike'); else if (r.bike) r.bike.visible = false;
   if (u.removed) { returnToStation(r, r.mesh.position); return; }
   r.at = u; u.inside.add(r); r.state = 'inside'; r.next = S.T; r.until = 0;
   const p = r.purpose; r.purpose = null;
   if (p === 'eat') { r.actKind = 'eat'; r.activity = pick(hourOf() < 10.5 ? BREAKFAST_ACTS : hourOf() < 15.5 ? LUNCH_ACTS : DINNER_ACTS); r.until = S.T + rand(0.5, 0.8); }
-  else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); r.bagPending = CARRY_HOME.has(u.block.kind); }   // they will leave with a bag
+  else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); r.canPending = u.block.kind === 'konbini' && Math.random() < 0.5; r.bagPending = !r.canPending && CARRY_HOME.has(u.block.kind); }   // they will leave with a bag, or a can from the konbini
   else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); }
   else if (u === r.job) r.actKind = 'work';
   else if (u === r.home) r.actKind = 'home';
@@ -514,7 +529,8 @@ function go(r, dest, label, purpose = null) {
   if (from === STATION.anchor) freeSpot(r);
   const ch = r.mesh.userData.char;
   if (ch && r.bagPending && from.block && from.block.type === 'shop') equipCharacterProp(ch, 'shopping-bag', from.block.awning ? from.block.awning[0] : undefined);   // shopping done: carry the bag home
-  r.bagPending = false;
+  else if (ch && r.canPending && from.block && from.block.type === 'shop') { holdItem(ch, makeCan(r)); if (label && !label.includes('can')) label += ' with a can of tea'; }   // a small purchase, sipped on the way
+  r.bagPending = false; r.canPending = false;
   from.inside.delete(r); r.at = null; r.purpose = purpose; r.until = 0; r.actKind = 'travel'; r.plan = label;
   startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label, from); return true;
 }
@@ -564,6 +580,7 @@ function pickShop(r, from, weights) {
   let best = null, bs = 0;
   for (const u of shopUnits()) {
     if (u === r.job || u.block.renoT > 0 && u.block.changing) continue;   // a shop changing trade is shuttered
+    if (u.block.quietDays && hourOf() >= 19) continue;   // a quiet shop shutters early
     const w = weights[u.block.kind] || 0.5; const p = routeUnits(from, u); if (!p) continue;
     const reach = REACH[u.block.kind] || 12;   // a supermarket or arcade draws people from further than a corner bakery
     const sc = w * (1 + Math.random() * 0.6) / (1 + p.length / reach); if (sc > bs) { bs = sc; best = u; }
@@ -721,11 +738,13 @@ function spawnWanderer(kind) {
   w.mesh.visible = true; w.mesh.position.set(cx(c.i), (c.h || 0) + (kind === 'car' ? 0.08 : 0.1), cz(c.j)); wanderers.push(w);
 }
 function wanderPick(w) {
-  const roads = roadCellsList(); for (let k = 0; k < 6; k++) {
-    const t = pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
+  const roads = roadCellsList();
+  const homes = w.kind === 'car' && Math.random() < 0.15 ? blocks.filter(b => b.type === 'res' && b.stage === DONE && b.street && b.street.length) : null;
+  for (let k = 0; k < 6; k++) {
+    const t = homes && homes.length ? pick(pick(homes).street) : pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
     const y = w.kind === 'car' ? 0.08 : 0.1, side = w.kind === 'car' ? 0.17 : 0.36;
     const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y, w.kind === 'car' ? -1 : (w.lane || (w.lane = Math.random() < 0.5 ? 1 : -1))); pts.pop();
-    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t, cells: path }; return;
+    w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t, cells: path, delivery: !!homes }; return;
   }
   w.pause = rand(1, 4);
 }
@@ -751,7 +770,7 @@ function updateWanderers(simDt) {
     if (w.kind === 'dog') updateDog(w.mesh, simDt, w.pause <= 0 && !!w.trip, w.pause > 3, w.pause > 0 && w.pause <= 3);
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
-    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) { w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : rand(0.2, 1.5); }
+    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) { const dl = w.trip.delivery; w.cell = w.trip.last; w.trip = null; w.pause = w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : dl ? rand(6, 12) : rand(0.2, 1.5); }   // a delivery van waits at the kerb a while
     if (w.kind === 'cat') { w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1; if (!w.trip) updateCat(w.mesh, 0, false); }
     if (w.kind === 'dog') w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + .1;
   }
@@ -784,10 +803,10 @@ function reckonShops() {
   }
 }
 function changeTrade(b) {
-  const pool = (TIERS.shop[Math.min(3, b.cells.length)] || []).filter(k => k !== b.kind); if (!pool.length) return;
+  const next = chooseKind('shop', b.cells, b.kind); if (!next) return;   // whatever the neighbourhood lacks
   const old = b.name;
   for (const u of b.units) for (const r of u.staff.slice()) { r.job = null; r.returnTo = null; if (r.at === u) r.next = S.T; } for (const u of b.units) u.staff.length = 0;
-  b.kind = pick(pool); b.name = uniqueName(SHOP_NAMES[b.kind]); b.visitScore = 0; b.quietDays = 0; b.popular = false; b.occT = 0;
+  b.kind = next; b.name = uniqueName(SHOP_NAMES[b.kind]); b.visitScore = 0; b.quietDays = 0; b.popular = false; b.occT = 0;
   b.renoT = 3; b.changing = true;   // shutters down and scaffold up while the fit-out happens
   for (const u of b.units) rebuildUnitMesh(u, true);
   toast(`${old} has closed. A ${(KIND_LABEL[b.kind] || b.kind).toLowerCase()} is opening in its place`);
@@ -894,6 +913,14 @@ function updateBlocks(dh) {
 }
 
 // ───────────────────────────── removing a block ─────────────────────────────
+/** the Remove tool on a car park: its cars go back to their homes' kerbs, then the ground is cleared */
+function removeCarPark(c) {
+  if (c.park !== 'public') return false;
+  const cars = residents.filter(r => r.car && r.car.userData.bayCell === c);
+  clearCarPark(c);
+  for (const r of cars) { r.car.userData.bayCell = undefined; if (r.carAt && !r.carAt.removed && r.car.visible) parkVehicle(r.car, r.carAt, 'car'); }
+  return true;
+}
 function removeBlock(block) {
   if (block.type === 'station') return;
   for (const u of block.units) {
@@ -934,6 +961,6 @@ onWorldChange(() => {   // a street removed or built over: ambient traffic on it
   }
 });
 
-export { setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
+export { removeCarPark, setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
   roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, trafficFactor, unitPos, setProgressRate, onTrain };

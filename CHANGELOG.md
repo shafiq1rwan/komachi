@@ -10,6 +10,62 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Standalone subway pavilion within a 0.9-by-0.9 footprint and 0.7 ridge height: open descending
+  stairs with no pit floor, tiled hip-and-gable roof, clock and independent Window_Band,
+  Name_Board, Lamp_L and Lamp_R materials. Includes GLB, night/cutaway previews and clearance checks.
+
+- Standalone civic model kit: substation frame, elevated water tank, four-bin recycling row,
+  shrine-path torii, roofed community notice board, fire hydrant and hinged hose cabinet.
+  Includes seven GLBs, placement metadata and front/rear previews.
+
+- Standalone neighbourhood model kits: three utility pieces, eight shop facade pieces and
+  eight home yard pieces (including the existing city bicycle). Includes 19 GLBs, placement
+  metadata, a gate hinge pivot, separate laundry, and front/rear previews.
+
+- Standalone street-furniture model kit: vending machine, bench, bus shelter, horizontal traffic
+  light, directional signs, flower planter and bike rack. Includes GLBs and front/rear previews.
+
+- Trees in the town now come from the nature kit (src/nature-kit.js): matsu, bamboo, pine, broadleaf (cherry in
+  the sakura biome) and shore rocks, one deterministic model per cell, scaled 0.85 to 1.25 and tinted from the biome.
+- The summit shrine is now the landmark kit's shrine set (src/landmark-kit.js: hall with lattice doors, offering box, bell
+  rope, paper ornaments, stone lanterns and its own torii), facing the town as before, with the kit's larger torii gate at
+  the foot of the lantern path on the terrace below. The lit path lanterns are unchanged.
+- Slipway: the ferry's slip is chosen on a straight stretch of coast road with a clean shore (no rocky stretch, no canal
+  mouth and waterfall nearby), the lane leaves the road at right angles along the grid instead of on a ray from the
+  island's centre, and the ground it crosses is cleared of rocks and reserved. Stop signs stand on the kerb strip, never on
+  the slipway or in the yard.
+- Car park tool (key 7): the player drags one or two cells beside a street and gets a small car park with four bays a
+  cell, a sign and hedges. Homes and workplaces within six cells park their cars there nose-in before falling back to the
+  kerb, so the stack of cars in front of a block of flats or an office goes once a car park stands nearby. When a kerb
+  fills up a notice says so once, and the building's card shows "Cars line the kerb outside" until a car park takes them.
+  The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
+  road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
+- Plaza: the cream paving squares are gone and two flower planters stand at the kerb in front of the station, either side
+  of the way in. Toolbar order: Car park sits beside Road, Remove last. The ferry is a size up (1.3×) from the
+  pier's boat and berths a little further out.
+- The station pavilion is the subway station model (src/subway-station.js): open descending stairs, four pillars, back
+  wall with window band, kawara hip-and-gable roof, name board, clock and two paper lamps. Its window band, name board and
+  lamps take the unit's window glow at night. The plaza furniture around it is unchanged.
+- Fixed: builders walked from the train to the ferry yard before heading to the site (the crew routes shared the trucks' yard start since Phase 5). Crews now route from the station roads; only trucks start at the yard.
+- Phase 5 leftovers: a new shop's kind (and a trade change) is the kind of its tier the neighbourhood lacks
+  (`chooseKind`); busy shops put up a striped awning and stack crates of stock by the door, quiet shops go dark at
+  19:00 and customers stop calling; half the konbini shoppers walk home holding a can of tea; passing cars and vans
+  sometimes pull up at a home's kerb and wait, as a delivery would.
+- Street furniture from the kit (src/street-furniture.js): the station plaza's benches, vending machines (header strip
+  lit after dark), flower planters and small kit trees in the corner planters; hoop bike racks with bicycles in the bays;
+  horizontal Japanese signal heads on two corners of every signalled crossing, lenses toggled by the town phase; an
+  inverted-triangle stop sign on the left kerb before every T-junction. The bus shelter waits for a bus line.
+- Standalone landmark models: torii gate and shrine set, small Buddhist temple, kōban and
+  public bath with chimney. Includes self-contained GLBs and front/rear orbit previews.
+
+- Standalone original nature model kit: layered and Japanese pines, bamboo grove, flowering cherry,
+  broadleaf tree, rock cluster and flooded rice-paddy tile. Includes GLBs and an orbit preview;
+  the game's existing scenery remains unchanged.
+
+- Broom, fishing rod and watering can models with Kenney character carrying poses, standalone
+  GLBs and an outdoor-props preview. The rod includes a separate line/float; the watering can
+  has an open fill opening and perforated rose, ready for future activity effects.
+
 - People carry a paper shopping bag home from the grocery, supermarket, konbini, arcade or bakery, using the
   new hand props (assets/props); it goes indoors with them
 - Phase 5, last slice: the car ferry. A ro-ro ferry (Kenney Watercraft cargo ship) calls at a slipway beside the

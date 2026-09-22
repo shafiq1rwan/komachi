@@ -28,9 +28,10 @@ function envUpdate(realT) {
   const shopOpen = h >= 7 && h < 22;
   for (const u of units.values()) {
     const occ = u.inside.size > 0, b = u.block;
-    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (shopOpen ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);
+    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? ((b.quietDays ? h >= 8 && h < 19 : shopOpen) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
     const flick = 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);
     u.winMat.emissiveIntensity = night * base * flick;
+    if (u.stationLit) for (const m of u.stationLit) m.material.emissiveIntensity = u.winMat.emissiveIntensity;   // the kit pavilion's window band, name board and lamps
     u.glowMat.opacity = night * (b.type === 'station' ? 0.7 : base > 0.5 ? 0.5 : 0.08) * (b.stage < DONE ? 0 : 1);
     if (u.laundry) u.laundry.visible = h >= 8 && h < 17;   // washing goes out after breakfast and comes in before dusk
     if (u.pop > 0) { u.pop = Math.max(0, u.pop - 0.016 * 1.6); const p = 1 - u.pop; const sy = 0.5 + 0.5 * (1 - Math.pow(1 - p, 3)) + 0.12 * Math.sin(p * Math.PI) * (1 - p); u.mesh.scale.set(1 + (1 - sy) * 0.3, sy, 1 + (1 - sy) * 0.3); }

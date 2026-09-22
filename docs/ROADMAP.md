@@ -148,7 +148,7 @@ gets several distinct generators per size, and every building varies its details
 - Stays procedural in the current kit style; no building pack
 - Phase 5 then reuses these generators when its size tiers decide role and capacity
 
-## ⬜ Phase 5 — Economy and dynamic businesses
+## ✅ Phase 5 — Economy and dynamic businesses (complete 2026-09-22)
 
 - ✅ **Light economy** (shipped 2026-09-21): shops count customers per day; reach by kind (`REACH` in sim.js);
   busy shops (5 visits per level a day) fly nobori banners; a staffed shop with under one visit per level a day
@@ -165,10 +165,12 @@ gets several distinct generators per size, and every building varies its details
   design office; 3 = small factory, warehouse by the coast road (fed by the ferry's cargo later) or office
   block (most jobs). Kinds within a tier still vary by roof style and colour, but shape and scale are fixed
   by the tier. These tiers are what the economy picks between when a business opens or closes
-- Gentle economy shown through behaviour: a shop with customers gets a new awning and stock, one
-  without goes quiet, shutters early, and eventually changes what it sells
-- Shop kind chosen from what the neighbourhood lacks rather than at random
-- Household spending seen as shopping bags, deliveries and small purchases
+- ✅ Gentle economy shown through behaviour (2026-09-22): a shop with customers flies banners, puts up a striped awning
+  and stacks stock by the door; one without goes quiet, shutters at 19:00, and eventually changes what it sells
+- ✅ Shop kind chosen from what the neighbourhood lacks rather than at random (2026-09-22, `chooseKind` in world.js:
+  the kind of the tier whose nearest example is furthest away, for new blocks and trade changes)
+- ✅ Household spending seen as shopping bags, deliveries and small purchases (2026-09-22): bags from grocer-type
+  shops, a can of tea carried home from the konbini, and passing vans that pull up at a home's kerb for a while
 - No bankruptcies or fail states; a business that struggles simply becomes something else
 - ✅ **Hill plot market** (shipped 2026-09-21): terrace plots are taken up by the town on demand, and the
   player may still zone them too. `hillMarket` runs at the day's turn: a settled household (all employed or

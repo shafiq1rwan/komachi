@@ -3,6 +3,9 @@ import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
 import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry.js';
+import { addFurniture } from './street-furniture.js';
+import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
+import { addNature } from './nature-kit.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
 const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
@@ -238,7 +241,8 @@ function genShop(b, u, g, wg) {
   const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : -0.24;
   u.door = { x: doorX, z: d / 2 + 0.02 };
   g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
-  const finish = u.finish = sub(u.seed, 2) < 0.34 ? 'timber' : sub(u.seed, 2) < 0.67 ? 'tile' : 'render', awnShape = sub(u.seed, 3);
+  const finish = u.finish = sub(u.seed, 2) < 0.34 ? 'timber' : sub(u.seed, 2) < 0.67 ? 'tile' : 'render', awnShape = b.popular ? 0.5 : sub(u.seed, 3);   // a busy shop has put up a new striped awning
+  if (b.popular) { const sx = doorX > 0 ? -0.3 : 0.3; for (let q = 0; q < 3; q++) g.push(box(0.14, 0.09, 0.12, q === 2 ? PAL.wood : K.frame, sx + (q === 2 ? 0 : (q - 0.5) * 0.15), y0 + 0.045 + (q === 2 ? 0.09 : 0), d / 2 + 0.14)); for (let q = 0; q < 4; q++) g.push(blob(0.03, [PAL.roofPeach, K.red, PAL.treeGreen, PAL.cream2][q], sx - 0.05 + q * 0.035, y0 + 0.16, d / 2 + 0.14, 0, 0.9)); }   // and stock in crates by the door
   if (b.popular) for (const x of [-0.44, 0.44]) { g.push(cyl(0.012, 0.012, 0.6, K.metal2, x, y0 + 0.3, 0.46, 5)); g.push(box(0.09, 0.42, 0.012, x < 0 ? a1 : K.red, x + (x < 0 ? 0.05 : -0.05), y0 + 0.4, 0.46)); g.push(box(0.11, 0.012, 0.012, K.metal2, x + (x < 0 ? 0.05 : -0.05), y0 + 0.6, 0.46)); for (let q = 0; q < 3; q++) g.push(box(0.045, 0.045, 0.006, PAL.cream2, x + (x < 0 ? 0.05 : -0.05), y0 + 0.52 - q * 0.1, 0.467)); }   // nobori banners: a busy shop
   if (finish === 'timber') slatWall(g, w, d, y0 + 0.08, y0 + H - 0.06, sub(u.seed, 4) > 0.5 ? 'x' : '-x', PAL.wood, 0.085);
   else if (finish === 'tile') tileBand(g, w, d, y0, 0.22, b.roof);
@@ -558,18 +562,11 @@ function unitLocal(u, lx, lz, y = 0) { const ry = u.facing || 0, s = Math.sin(ry
 // ───────────────────────────── the station plaza ─────────────────────────────
 const RAIL = '#4f6b66', PIT = '#3f3a38';
 function bench(g, x, z, rot) {   // faces local +z before rotation
-  const parts = [];
-  // people are ~0.36 tall with hips at 0.09, so the seat sits at hip height (top 0.10 above the plinth)
-  parts.push(box(0.34, 0.03, 0.12, PAL.wood, 0, 0.12 + 0.085, 0));
-  parts.push(box(0.34, 0.09, 0.02, PAL.wood, 0, 0.12 + 0.16, -0.055));
-  for (const lx of [-0.14, 0.14]) parts.push(box(0.03, 0.07, 0.1, PAL.lamp, lx, 0.12 + 0.035, 0));
-  for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); }
+  addFurniture(g, 'bench', x, 0.12, z, rot);   // the kit bench: seat 0.114 above the plinth, hip height for a 0.31 walker
 }
 function vendingMachine(g, wg, x, z, rot, color) {   // front faces local +z before rotation
-  // a real machine stands a head taller than a person: ~0.42 against a 0.36 walker
-  const parts = [box(0.23, 0.42, 0.18, color, 0, 0.12 + 0.21, 0), box(0.25, 0.03, 0.2, PAL.concrete, 0, 0.12 + 0.015, 0), box(0.18, 0.07, 0.02, PAL.cream2, 0, 0.12 + 0.09, 0.095)];
-  const win = box(0.16, 0.2, 0.02, PAL.window, -0.01, 0.12 + 0.28, 0.095);
-  for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); }
+  addFurniture(g, 'vending-machine', x, 0.12, z, rot, color);   // the kit machine, 0.41 tall: a head over a walker
+  const win = box(0.14, 0.018, 0.01, PAL.window, -0.022, 0.12 + 0.386, 0.108);   // its header strip glows after dark
   win.rotateY(rot); win.translate(x, 0, z); wg.push(win);
 }
 /** kōban: a tiny police box facing the plaza, cream with a teal roof, a red lamp and a lit window after dark */
@@ -587,34 +584,14 @@ function genStation(b, u, g, wg) {
   const { di, dj } = u, y0 = 0.12;
   if (di === 0 && dj === 0) {
     // stairwell down to the platform, open toward +z (south)
+    // the pavement round the stairwell, the pit walls and floor; the kit pavilion (src/subway-station.js) with its open
+    // stairs is attached in rebuildUnitMesh. Clearance the kit needs: x ±0.235, z -0.34..0.36, nothing under the treads
     g.push(box(0.24, 0.12, 0.98, PAL.sidewalk, -0.37, 0.06, 0)); g.push(box(0.24, 0.12, 0.98, PAL.sidewalk, 0.37, 0.06, 0));
-    g.push(box(0.5, 0.12, 0.19, PAL.sidewalk, 0, 0.06, -0.395)); g.push(box(0.5, 0.12, 0.04, PAL.sidewalk, 0, 0.06, 0.47));
-    g.push(box(0.5, 0.02, 0.76, PIT, 0, -0.3, 0.075));
-    for (const sx of [-0.25, 0.25]) g.push(box(0.02, 0.44, 0.76, PAL.cream2, sx, -0.1, 0.075));
-    g.push(box(0.5, 0.44, 0.02, PAL.cream2, 0, -0.1, -0.3));
-    for (let k = 0; k < 7; k++) g.push(box(0.5, 0.06, 0.11, PAL.concrete, 0, y0 - 0.03 - k * 0.06, 0.4 - k * 0.11));
-    g.push(box(0.5, 0.02, 0.12, '#e6c25c', 0, y0 + 0.005, 0.455));   // tactile strip
-    for (const sx of [-0.29, 0.29]) {
-      g.push(box(0.06, 0.28, 0.8, PAL.cream2, sx, y0 + 0.14, 0.05)); g.push(box(0.03, 0.03, 0.8, RAIL, sx, y0 + 0.34, 0.05));
-      for (const rz of [-0.3, 0.05, 0.4]) g.push(box(0.025, 0.1, 0.025, RAIL, sx, y0 + 0.29, rz));
-    }
-    // an open pavilion over the stairwell: four square pillars, a cream back wall with a window band, and a hipped
-    // kawara roof with deep eaves; the station name board hangs on the front eave, with a clock and two paper lamps
-    const H = 0.6, dark = '#4a4340';
-    for (const px of [-0.42, 0.42]) for (const pz of [-0.4, 0.42]) { g.push(box(0.08, H, 0.08, PAL.cream2, px, y0 + H / 2, pz)); g.push(box(0.1, 0.04, 0.1, PAL.concrete, px, y0 + 0.02, pz)); }
-    g.push(box(0.86, H - 0.04, 0.05, PAL.cream2, 0, y0 + (H - 0.04) / 2, -0.42));                                   // back wall
-    g.push(box(0.7, 0.16, 0.02, K.frame, 0, y0 + 0.42, -0.4)); wg.push(box(0.66, 0.12, 0.03, PAL.window, 0, y0 + 0.42, -0.395));   // window band, lit at night
-    for (const px of [-0.42, 0.42]) g.push(box(0.05, H - 0.04, 0.82, PAL.cream2, px, y0 + (H - 0.04) / 2, 0));       // low side screens along the stairwell
-    kawaraRoof(g, 0.86, 0.86, H + 0.06, y0, PAL.kawara, true);                                                       // hip-and-gable tiled roof
-    g.push(box(0.9, 0.05, 0.9, PAL.cream2, 0, y0 + H + 0.02, 0));                                                    // ceiling board under the eaves
-    // station name board on the front eave: white with a dark frame, a sage band and glyph blocks; lit from inside after dark
-    g.push(box(0.64, 0.19, 0.02, dark, 0, y0 + H - 0.1, 0.5)); wg.push(box(0.6, 0.15, 0.03, PAL.window, 0, y0 + H - 0.1, 0.505));
-    g.push(box(0.6, 0.035, 0.035, PAL.roofSage, 0, y0 + H - 0.17, 0.51)); for (let k = 0; k < 3; k++) g.push(box(0.07, 0.07, 0.01, dark, -0.16 + k * 0.16, y0 + H - 0.08, 0.525));
-    const clock = new THREE.CylinderGeometry(0.07, 0.07, 0.02, 14); clock.rotateX(Math.PI / 2); clock.translate(0.3, y0 + 0.36, 0.44); g.push(colorize(clock, PAL.cream2));
-    const rim = new THREE.TorusGeometry(0.07, 0.008, 6, 14); rim.translate(0.3, y0 + 0.36, 0.45); g.push(colorize(rim, dark));
-    g.push(box(0.008, 0.05, 0.006, dark, 0.3, y0 + 0.385, 0.455)); g.push(box(0.035, 0.008, 0.006, dark, 0.315, y0 + 0.36, 0.455));   // hands
-    for (const lx of [-0.3, 0.3]) { g.push(box(0.01, 0.06, 0.01, dark, lx, y0 + H - 0.03, 0.3)); wg.push(box(0.09, 0.1, 0.09, PAL.window, lx, y0 + H - 0.11, 0.3)); g.push(box(0.1, 0.012, 0.1, dark, lx, y0 + H - 0.055, 0.3)); }   // square paper lamps
-    g.push(box(0.3, 0.06, 0.015, PAL.cream2, 0, y0 + 0.5, -0.395)); g.push(box(0.2, 0.02, 0.01, PAL.roofRose, 0, y0 + 0.5, -0.387));   // a small sign inside over the stairs
+    g.push(box(0.5, 0.12, 0.13, PAL.sidewalk, 0, 0.06, -0.425)); g.push(box(0.5, 0.12, 0.04, PAL.sidewalk, 0, 0.06, 0.47));
+    g.push(box(0.5, 0.02, 0.8, PIT, 0, -0.37, 0.05));
+    for (const sx of [-0.25, 0.25]) g.push(box(0.02, 0.5, 0.8, PAL.cream2, sx, -0.13, 0.05));
+    g.push(box(0.5, 0.5, 0.02, PAL.cream2, 0, -0.13, -0.35));
+    g.push(box(0.5, 0.02, 0.06, '#e6c25c', 0, y0 + 0.005, 0.44));   // tactile strip at the top of the stairs
     return;
   }
   if (di === 0) {   // north edge: benches facing the entrance; south edge (in front of the stairs) stays open; a bin and planter on both
@@ -625,8 +602,7 @@ function genStation(b, u, g, wg) {
       g.push(box(0.56, 0.22, 0.02, PAL.cream2, 0, y0 + 0.46, -0.45)); g.push(box(0.58, 0.24, 0.012, '#4a4340', 0, y0 + 0.46, -0.455));
       g.push(box(0.56, 0.035, 0.022, PAL.roofSage, 0, y0 + 0.54, -0.449)); for (let k = 0; k < 4; k++) g.push(box(0.06, 0.06, 0.01, '#4a4340', -0.18 + k * 0.12, y0 + 0.45, -0.438)); g.push(box(0.4, 0.012, 0.01, '#4a4340', 0, y0 + 0.385, -0.438));
     }
-    g.push(box(0.2, 0.1, 0.2, PAL.wood, -0.42, y0 + 0.05, -dj * 0.38)); g.push(blob(0.1, PAL.bush2, -0.42, y0 + 0.16, -dj * 0.38, 0, 0.8)); g.push(blob(0.04, PAL.flower, -0.38, y0 + 0.22, -dj * 0.34, 0, 1));
-    for (const tx of [-0.3, 0.1]) g.push(box(0.3, 0.005, 0.3, PAL.cream2, tx, y0 + 0.003, -dj * 0.1));
+    if (dj > 0) for (const px of [-0.3, 0.3]) addFurniture(g, 'planter', px, y0, 0.38, 0, PAL.cream2);   // two kit flower planters at the kerb in front of the station, either side of the way in
     return;
   }
   if (dj === 0) {   // east / west edges: vending machines facing the plaza
@@ -640,16 +616,14 @@ function genStation(b, u, g, wg) {
       g.push(box(0.14, 0.03, 0.005, '#4a4340', 0.4, y0 + 0.99, 0.476)); g.push(box(0.14, 0.03, 0.005, '#4a4340', 0.4, y0 + 0.99, 0.404));
     }
     else { vendingMachine(g, wg, -0.3, -0.2, rot, PAL.sky2); koban(g, wg, -0.28, 0.26, rot); }
-    g.push(box(0.3, 0.005, 0.3, PAL.cream2, -di * 0.1, y0 + 0.003, 0.35));
     return;
   }
   // corners: planter with a little tree, and a lamp
   g.push(box(0.36, 0.14, 0.36, PAL.wood, di * 0.25, y0 + 0.07, dj * 0.25));
-  g.push(cyl(0.035, 0.045, 0.3, PAL.wood2, di * 0.25, y0 + 0.28, dj * 0.25, 5)); g.push(blob(0.24, u.seed < 0.5 ? PAL.treePeach : PAL.treeSage, di * 0.25, y0 + 0.5, dj * 0.25, 0, 0.9));
+  addNature(g, 'broadleaf', di * 0.25, y0 + 0.13, dj * 0.25, 0.6, u.seed, u.seed < 0.5 ? PAL.treePeach : PAL.treeSage);   // a small kit tree in the planter
   g.push(blob(0.09, PAL.bush, di * 0.08, y0 + 0.18, dj * 0.3, 0, 0.8));
   // (the plaza is lit by the street lamps on its ring road and the pavilion's paper lamps; the old tall corner lamps are gone)
   if (di === dj) g.push(cyl(0.07, 0.06, 0.2, RAIL, -di * 0.32, y0 + 0.1, dj * 0.3, 8));   // a bin tucked by the lamp in two corners
-  g.push(box(0.3, 0.005, 0.3, PAL.cream2, -di * 0.15, y0 + 0.003, dj * 0.15));
 }
 
 function rebuildUnitMesh(u, pop = false) {
@@ -667,7 +641,12 @@ function rebuildUnitMesh(u, pop = false) {
   if (LG.length && b.stage >= DONE) { const lm = mergeMesh(LG, false); grp.add(lm); u.laundry = lm; }   // hung out in the morning, taken in before dusk (daynight.js)
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
-    const spots = (!u.di && !u.dj) ? [[-0.3, 0.3, 0.9], [0.3, 0.3, 0.9]] : [];   // the pavilion's two paper lamps
+    const spots = (!u.di && !u.dj) ? [[-0.285, 0.353, 0.9], [0.285, 0.353, 0.9]] : [];   // the pavilion's two paper lamps
+    if (isEntrance) {   // the kit pavilion over the stairwell; its four light meshes take the unit's window glow at night
+      const st = createSubwayStation(); st.position.y = 0.12; grp.add(st);
+      u.stationLit = STATION_LIGHT_MESHES.map(n => st.getObjectByName(n)).filter(Boolean);
+      for (const m of u.stationLit) { m.material.color.copy(u.winMat.color); m.material.emissive.copy(u.winMat.emissive); m.material.emissiveIntensity = u.winMat.emissiveIntensity; m.castShadow = false; }
+    }
     for (const [gx, gz, gs] of spots) { const gl = makeGlow(gx, 0.135, gz, gs); gl.material = u.glowMat; grp.add(gl); if (!u.glow) u.glow = gl; }
   }
   grp.position.set(cx(u.cell.i), u.cell.h || 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;

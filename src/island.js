@@ -7,6 +7,7 @@ import { S } from './state.js';
 import { mat, blob, cyl, box, mergeMesh, swayMat, colorize } from './geometry.js';
 import { scene, HALF, N, cx, cz } from './scene.js';
 import { biome } from './biome.js';
+import { createLandmark } from './landmark-kit.js';
 
 function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rng = mulberry(S.seed);
@@ -174,29 +175,11 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
     }
   }
   const tm = mergeMesh(g, true); if (tm) { tm.receiveShadow = true; scene.add(tm); }
-  const wg = [];
-  // the summit shrine: stone platform, a hall with red pillars under a stepped roof, a torii with upturned
-  // beam ends facing the town, stone lanterns and an offering box on a flagged path
-  const fx = shrineDir[0], fz = shrineDir[1], rx = -fz, rz = fx, ang = Math.atan2(fx, fz), y0 = hillTop;
-  const put = (geo, fwd, side, y) => { geo.translate(HX + fx * fwd + rx * side, y, HZ + fz * fwd + rz * side); wg.push(geo); };
-  const rot = geo => { geo.rotateY(ang); return geo; };
-  put(rot(box(1.4, 0.08, 1.1, PAL.concrete)), -0.7, 0, y0 + 0.04);                       // platform
-  put(rot(box(0.72, 0.42, 0.56, PAL.cream2)), -0.75, 0, y0 + 0.08 + 0.21);               // hall
-  for (const sx of [-0.36, 0.36]) for (const fz2 of [-0.28, 0.28]) put(cyl(0.03, 0.03, 0.44, PAL.roofRose, 0, 0, 0, 6), -0.75 + fz2, sx, y0 + 0.08 + 0.22);
-  put(rot(box(0.24, 0.3, 0.04, PAL.wood2)), -0.46, 0, y0 + 0.08 + 0.15);                 // doors
-  put(rot(box(1.02, 0.06, 0.86, PAL.roofSage)), -0.75, 0, y0 + 0.53);                    // stepped roof
-  put(rot(box(0.84, 0.1, 0.7, PAL.roofSage)), -0.75, 0, y0 + 0.6);
-  put(rot(box(0.6, 0.1, 0.5, PAL.roofSage)), -0.75, 0, y0 + 0.69);
-  put(rot(box(0.7, 0.05, 0.07, PAL.wood2)), -0.75, 0, y0 + 0.77);                        // ridge beam
-  for (const side of [-0.4, 0.4]) put(cyl(0.045, 0.05, 0.78, PAL.roofRose, 0, 0, 0, 8), 0.55, side, y0 + 0.39);   // torii pillars
-  put(rot(box(1.12, 0.08, 0.1, PAL.roofRose)), 0.55, 0, y0 + 0.81);                       // kasagi
-  for (const side of [-0.56, 0.56]) { const cap = new THREE.BoxGeometry(0.14, 0.08, 0.1); cap.rotateZ(side > 0 ? 0.35 : -0.35); put(rot(colorize(cap, PAL.roofRose)), 0.55, side, y0 + 0.84); }
-  put(rot(box(0.95, 0.05, 0.08, PAL.roofRose)), 0.55, 0, y0 + 0.64);                      // nuki
-  put(rot(box(0.1, 0.14, 0.04, PAL.cream2)), 0.55, 0, y0 + 0.72);                         // plaque
-  put(rot(box(0.46, 0.02, 1.5, PAL.concrete)), 0.0, 0, y0 + 0.01);                        // flagged path
-  for (const side of [-0.55, 0.55]) { put(cyl(0.04, 0.05, 0.3, PAL.concrete, 0, 0, 0, 6), 0.15, side, y0 + 0.15); put(rot(box(0.16, 0.12, 0.16, PAL.concrete)), 0.15, side, y0 + 0.36); put(rot(box(0.22, 0.03, 0.22, PAL.concrete)), 0.15, side, y0 + 0.43); }
-  put(rot(box(0.22, 0.12, 0.16, PAL.wood)), -0.28, 0, y0 + 0.14);                         // offering box
-  const hm = mergeMesh(wg, true); if (hm) scene.add(hm);
+  // the summit shrine set from the landmark kit (hall, offering box, bell rope, stone lanterns, its own torii), facing
+  // the town along the slope roads' axis, and a second, larger torii at the foot of the lantern path on the terrace below
+  const fx = shrineDir[0], fz = shrineDir[1], ang = Math.atan2(fx, fz), y0 = hillTop;
+  const shrine = createLandmark('shrine'); shrine.position.set(HX - fx * 0.25, y0, HZ - fz * 0.25); shrine.rotation.y = ang; scene.add(shrine);
+  const gx = HX + fx * 2.3, gz = HZ + fz * 2.3, gate = createLandmark('torii'); gate.scale.setScalar(0.9); gate.position.set(gx, hillLevel(gx, gz) * TERRACE, gz); gate.rotation.y = ang; scene.add(gate);
 }
 
 const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hillTop };
@@ -205,7 +188,7 @@ const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hill
 //    town centre and the hill. Cells are keyed "i,j". The coast road follows the beach just inland, one cell
 //    wide, breaking only at the hill; where it meets the canal it crosses on a bridge. ──
 const key = (i, j) => i + ',' + j;
-const canalCells = new Set(), canalOrder = [], coastCells = new Set();
+const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMouths = [];   // canalMouths: shore angles of the waterfalls
 {
   // the coast road: sixteen points just inside the beach joined by L-shaped runs (grid roads cannot go diagonal, and
   // long straight runs with a few corners read far better than a one-cell sawtooth). Hill cells break the road.
@@ -265,7 +248,7 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
     nb.forEach((open, k) => { const [di, dj] = DIRS[k]; if (open) { g.push(box(di ? 0.11 : 0.78, 0.02, di ? 0.78 : 0.11, PAL.canal, x + di * 0.445, WATER, z + dj * 0.445));   // butts against the cell's water without overlapping it
         if (!isCanal(i + di, j + dj) && k !== mouthK) { g.push(box(di ? 0.11 : 1, TOP, di ? 1 : 0.11, wall, x + di * 0.445, TOP / 2, z + dj * 0.445)); g.push(box(di ? 0.13 : 1, 0.025, di ? 1 : 0.13, coping, x + di * 0.445, TOP + 0.012, z + dj * 0.445)); }   // a second sea-facing side is walled
         if (!isCanal(i + di, j + dj) && k === mouthK) {   // the mouth: a waterfall off the land edge
-          const L = mouthL, theta = Math.atan2((z + dj * L) / SZ, (x + di * L) / SX);
+          const L = mouthL, theta = Math.atan2((z + dj * L) / SZ, (x + di * L) / SX); canalMouths.push(theta);
           const across = (w, len, h, col, px, py, pz) => g.push(box(di ? len : w, h, di ? w : len, col, px, py, pz));   // a box aligned with the flow
           // does the spillway have to cross a street (the coast road) to reach the edge? then it runs in a culvert instead
           let culvert = false; for (let d = 1; d < L + 0.5; d++) if (isCoastRoad(i + di * d, j + dj * d) && !isCanal(i + di * d, j + dj * d)) culvert = true;   // only the coast road exists when the island is built
@@ -332,4 +315,4 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
 }
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;
-export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells };
+export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths };

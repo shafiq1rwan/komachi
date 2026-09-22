@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 29 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 30 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -40,7 +40,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
   Cars keep left; walkers pick one sidewalk. Vehicles persist: `carAt`/`bikeAt` say where a resident's
   vehicle is parked (`parkVehicle`: bikes on the plot, cars at the kerb of the street in front), and
-  `userData.parked` vehicles are ignored by traffic. Signals:
+  `userData.parked` vehicles are ignored by traffic.
+  Car parks are the player's (Car park tool, key 7, decided 2026-09-22 over an automatic claim): `placeCarPark(sel)` in world.js marks
+  `c.park = 'public'` (`c.parkRoad` = entry street, list `carParks`), `parkBay(c, k)` places four nose-in bays, `parkVehicle` in sim.js uses
+  the nearest car park within `PARK_REACH` (6) cells before the kerb, `b.kerbFull`/`b.parkHint` drive the card line and the one-off notice,
+  `removeCarPark` (sim) re-parks the cars. `STATION.taxiPark` is the taxis' automatic car park across the ring road. Saves v3 carry parks. Signals:
   `signalCells` in world.js, one town-wide phase on `S.T`; `trafficFactor` in sim.js does queueing,
   give-way and red lights.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
@@ -53,7 +57,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
 - Ferry (Phase 5, `src/ferry.js`): cars arrive/leave by sea. sim.js never creates ambient or resident cars itself when a
   vehicle source is registered (`setVehicleSource`); `r.carOrdered` marks a car awaiting the next sailing. Trucks start at
-  the yard (`setYardStart`) with a station fallback. `c.yard` cells are neither zonable nor drawable. Timetable `CALLS`
+  the yard (`setYardStart`) with a station fallback. `c.yard` and `c.slip` cells (yard, slip road cell and the lane's ground) are neither zonable nor drawable. The slip is chosen on a
+  straight coast-road cell with a clean shore (`shoreKind` not rock, no `canalMouths` within 0.45 rad) and the lane runs seaward along the grid. Timetable `CALLS`
   in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
 - Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
   kinds shopping-bag | briefcase | umbrella | folder) and the tea can via `holdItem`. Shoppers leave grocer-type shops
@@ -65,6 +70,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Economy (Phase 5): `reckonShops` in sim.js runs at the day's turn: `visitsToday` → `lastVisits`, `popular` (banners),
   `quietDays` → `changeTrade` (new kind from the tier, `changing` + `renoT` shows shutters). `REACH` per kind scales
   the distance customers will travel. Never let the town's last shops close (needs ≥ 3 shops).
+  `chooseKind(type, sel, skip)` in world.js picks the kind of the tier the neighbourhood lacks (new blocks and `changeTrade`);
+  `b.popular` adds a striped awning and stock crates, `b.quietDays` closes the shop at 19:00 (daynight + `pickShop`).
+  `r.canPending` (konbini) mirrors `r.bagPending`; wanderer trips flagged `delivery` pause at a home's kerb.
 - Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
@@ -78,6 +86,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   Road flags: `keep` (island), `drawn` (player), `dyn`/`link` (hill slopes/links the town builds), `bridge`,
   `coast`. Roads are never built over; `eraseRoad` refuses a cell a building opens onto (`roadKeepReason`).
   Signals only where two through-streets cross. `hill` cells are the wild wooded ones; terrace plots are plain `empty` with `c.h`.
+- Trees and rocks in rebuildDecor come from src/nature-kit.js (addNature(out, kind, x, y, z, scale, seed, color)); its geometry carries
+  position/normal/uv/color so it merges with the kit. Paddy is reserved for Phase 7.
+  The station pavilion is `createSubwayStation()` from src/subway-station.js, attached in rebuildUnitMesh at plinth height; its
+  `STATION_LIGHT_MESHES` are stored as `u.stationLit` and daynight.js copies the window emissive onto them.
+  Landmarks come from src/landmark-kit.js (`createLandmark(kind)`, kinds torii | shrine | temple | koban | bathhouse, front +Z, ground 0,
+  `userData.entrance`); island.js places the summit shrine set and a torii gate below it. Temple, kōban and bath house wait for Phase 5.5.
+  Street furniture likewise comes from src/street-furniture.js: addFurniture(out, kind, x, y, z, rot, color) merges; furnitureGeometry returns named
+  pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
 
@@ -158,7 +174,7 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    4.9 ✅ Streets first: the player draws streets (Road tool, key 5) and zones beside them, lights only at
        through-street crossings, walkers wait at the red
    4.95 ✅ Building variety pass: three detached styles, shop finishes/awnings/signs, three office facades, props from the seed
-5. ✅ Economy and dynamic business selection (✅ size tiers by drag length shipped 2026-09-21: 1/2/3 cells → house/terrace or
+5. ✅ Economy and dynamic business selection (leftovers closed 2026-09-22: neighbourhood kinds, thriving/quiet visuals, cans and deliveries) (✅ size tiers by drag length shipped 2026-09-21: 1/2/3 cells → house/terrace or
    apartments/manshon, konbini/café or restaurant/supermarket or arcade, studio/workshop/factory; ✅ light economy (customers, banners, trade changes) shipped 2026-09-21; ✅ hill plot market and ✅ car ferry with builders' yard shipped 2026-09-21; Phase 5 complete. Next: Phase 5.5 civic zone: villas, tea house, later ryokan; car ferry at
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)

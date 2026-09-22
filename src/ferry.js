@@ -10,7 +10,7 @@ import { S } from './state.js';
 import { scene, peopleGroup, cx, cz, HALF } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { cells, cell, blocks, DONE, refreshWorld } from './world.js';
-import { coastPoint, pierAngle, islandEllipse } from './island.js';
+import { coastPoint, pierAngle, islandEllipse, coastDist, shoreKind, canalMouths } from './island.js';
 const [SX, SZ] = islandEllipse;
 import { makeCar, moveAlong, buildPoints, routeCells, roadNeighbors, frontRoad, carMeshes, parkVehicle, adoptWanderer, setVehicleSource, hourOf } from './sim.js';
 import { setYardStart } from './construction.js';
@@ -20,26 +20,52 @@ import shipMapUrl from '../assets/watercraft/Textures/colormap.png?url';
 const CALLS = [7, 12, 17];          // sailings arrive on these hours; the ferry waits about half an hour each time
 const SAIL = 0.35, WAIT = 0.45;     // game hours: the run in from the horizon, and the time at the berth
 const WATER_Y = -0.78;
+const FERRY_SCALE = 1.3;   // the ro-ro is a size up from the pier's fishing boat
 export const ferry = { state: 'away', t: 0, mesh: null, pos: new THREE.Vector3(), queue: [], runs: [], boarding: [], slip: null, yard: null, berth: null, land: null, deck: null, theta: 0, calls: 0, ready: false };
 const rand = (a, b) => a + Math.random() * (b - a), pick = a => a[Math.floor(Math.random() * a.length)];
 
 /** the slipway beside the pier: a coast-road cell near the berth, the beach landing and the berth out on the water */
 function placeSlip() {
   const base = pierAngle(); if (base === null) return false;
+  // candidates: straight coast-road cells (two road neighbours opposite each other) whose seaward side, along the grid,
+  // is clear ground with a clean shore: no rocky stretch and no canal mouth (its waterfall) within a quarter turn
+  const angDiff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
+  const seaward = c => {   // the grid direction from a straight road cell toward the sea, or null
+    const x = cx(c.i), z = cz(c.j), ns = [cell(c.i, c.j - 1), cell(c.i, c.j + 1)].every(n => n && n.type === 'road'), ew = [cell(c.i - 1, c.j), cell(c.i + 1, c.j)].every(n => n && n.type === 'road');
+    if (ns === ew) return null;
+    const dirs = ns ? [[1, 0], [-1, 0]] : [[0, 1], [0, -1]];
+    dirs.sort((a, b) => coastDist(x + a[0], z + a[1]) - coastDist(x + b[0], z + b[1]));   // the side where the coast is nearer
+    const [dx, dz] = dirs[0], n1 = cell(c.i + dx, c.j + dz);
+    if (n1 && (n1.type === 'road' || n1.canal || n1.block || (n1.h || 0) > 0)) return null;
+    return [dx, dz];
+  };
+  const okShore = (x, z) => { const th = Math.atan2(z / SZ, x / SX); return shoreKind(th) !== 'rock' && canalMouths.every(m => angDiff(m, th) > 0.45); };
   let best = null, bd = 1e9;
-  for (const dth of [0.34, -0.34, 0.5, -0.5, 0.7, -0.7]) {   // a little round the shore from the pier, whichever side has coast road
+  for (const dth of [0.34, -0.34, 0.5, -0.5, 0.7, -0.7, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6, 2.0, -2.0]) {   // a little round the shore from the pier, whichever side has coast road
     const th = base + dth, [lx, lz] = coastPoint(th, -0.6);
-    for (const c of cells) { if (!c.coast || c.bridge || c.type !== 'road') continue; const d = Math.hypot(cx(c.i) - lx, cz(c.j) - lz); if (d < bd) { bd = d; best = { c, th }; } }
+    for (const c of cells) {
+      if (!c.coast || c.bridge || c.type !== 'road') continue;
+      const dir = seaward(c); if (!dir) continue;
+      const [sx, sz] = coastPoint(Math.atan2(cz(c.j) / SZ, cx(c.i) / SX), 0.3); if (!okShore(sx, sz)) continue;
+      const d = Math.hypot(cx(c.i) - lx, cz(c.j) - lz); if (d < bd) { bd = d; best = { c, th, dir }; }
+    }
     if (best && bd < 2.2) break;
   }
-  if (!best) return false;
-  ferry.slip = best.c;
-  // every point of the slipway lies on the ray from the island's centre through the slip cell, so the lane runs straight out
-  const th = Math.atan2(cz(best.c.j) / SZ, cx(best.c.i) / SX); ferry.theta = th;
-  const [ex, ez] = coastPoint(th, -0.12), [lx, lz] = coastPoint(th, 0.55), [bx, bz] = coastPoint(th, 1.75), [ox, oz] = coastPoint(th, 9);
+  if (!best) {   // no clean straight stretch: the old rule, nearest coast road cell to the pier's side
+    for (const c of cells) { if (!c.coast || c.bridge || c.type !== 'road') continue; const d = Math.hypot(cx(c.i) - coastPoint(base + 0.34, -0.6)[0], cz(c.j) - coastPoint(base + 0.34, -0.6)[1]); if (d < bd) { bd = d; best = { c, th: base + 0.34, dir: null }; } }
+    if (!best) return false;
+  }
+  ferry.slip = best.c; best.c.slip = true;   // the streets pass: no stop sign or car park on the slipway cell
+  const x0 = cx(best.c.i), z0 = cz(best.c.j);
+  // the lane leaves the road at right angles along the grid (or, failing a straight cell, along the ray from the island's centre)
+  let ux, uz; if (best.dir) { [ux, uz] = best.dir; } else { const th = Math.atan2(z0 / SZ, x0 / SX); ux = Math.cos(th) * SX; uz = Math.sin(th) * SZ; const l = Math.hypot(ux, uz); ux /= l; uz /= l; }
+  const march = target => { let t = 0; while (t < 14 && coastDist(x0 + ux * t, z0 + uz * t) > target) t += 0.02; return [x0 + ux * t, z0 + uz * t]; };   // the first point along the lane where the shore distance drops to `target`
+  const [ex, ez] = march(0.12), [lx, lz] = march(-0.55), [bx, bz] = march(-2.05), [ox, oz] = march(-9);   // the berth sits a little further out for the larger hull
+  ferry.theta = Math.atan2(ez / SZ, ex / SX);
   ferry.edge = new THREE.Vector3(ex, 0.08, ez);          // the last of the grass: the flat lane ends here
   ferry.land = new THREE.Vector3(lx, -0.5, lz);          // the landing on the beach, where the ship's ramp comes down
   ferry.berth = new THREE.Vector3(bx, WATER_Y, bz); ferry.offshore = new THREE.Vector3(ox, WATER_Y, oz);
+  for (let k = 1; k <= 3; k++) { const c = cell(best.c.i + Math.round(ux * k), best.c.j + Math.round(uz * k)); if (c && c.type === 'empty' && Math.hypot(cx(c.i) - x0, cz(c.j) - z0) <= Math.hypot(ex - x0, ez - z0) + 0.6) { c.tree = null; c.slip = true; } }   // the lane's ground: cleared, and reserved
   // the yard: the inland neighbour of the slip cell that is free ground
   const dx = Math.sign(cx(best.c.i) - lx), dz = Math.sign(cz(best.c.j) - lz);
   const cand = [cell(best.c.i + dx, best.c.j), cell(best.c.i, best.c.j + dz), cell(best.c.i + dx, best.c.j + dz)].filter(n => n && n.type === 'empty' && !(n.h > 0));
@@ -98,7 +124,7 @@ function buildFerry() {
   g.push(box(0.02, 0.4, 0.02, PAL.lamp, -0.6, 0.84, 0.2)); g.push(box(0.14, 0.08, 0.01, K_RED, -0.6, 1.0, 0.2));            // mast and flag
   const hull = mergeMesh(g, true); hull.castShadow = true; grp.add(hull);
   const ramp = new THREE.Mesh(colorize(new THREE.BoxGeometry(0.5, 0.03, 0.8), PAL.concrete2), hull.material); ramp.position.set(1.28, 0.25, 0); ramp.rotation.z = 1.2; grp.add(ramp); grp.userData.ramp = ramp;
-  grp.userData.deck = new THREE.Vector3(0.3, 0.26, 0); ferry.deck = grp.userData.deck;
+  grp.userData.deck = new THREE.Vector3(0.3, 0.26, 0); grp.scale.setScalar(FERRY_SCALE); ferry.deck = grp.userData.deck.clone().multiplyScalar(FERRY_SCALE);
   grp.position.copy(ferry.offshore); grp.visible = false; scene.add(grp); ferry.mesh = grp;
   const ships = import.meta.glob('../assets/watercraft/ship-*.glb', { eager: true, query: '?url', import: 'default' });
   const url = ships[Object.keys(ships).find(k => k.includes('ship-cargo-a'))] || Object.values(ships)[0];   // the open-decked cargo ship reads best as a ro-ro
@@ -109,7 +135,7 @@ function buildFerry() {
 const K_RED = '#c9564b';
 
 /** the world-space point for a spot on the deck, given the ferry's heading */
-function deckPoint(k = 0) { const p = ferry.deck.clone(); p.x -= k * 0.42; p.applyAxisAngle(new THREE.Vector3(0, 1, 0), ferry.mesh.rotation.y); return p.add(ferry.mesh.position).setY(-0.5); }
+function deckPoint(k = 0) { const p = ferry.deck.clone(); p.x -= k * 0.42; p.applyAxisAngle(new THREE.Vector3(0, 1, 0), ferry.mesh.rotation.y); return p.add(ferry.mesh.position).setY(WATER_Y + 0.275 * FERRY_SCALE); }
 /** the drive from the deck down the ramp onto the slipway and then along the streets; returns trip points */
 function offPath(dest, endPos) {
   const road = routeCells([ferry.slip], dest); if (!road) return null;

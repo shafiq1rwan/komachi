@@ -41,7 +41,8 @@ Other scripts:
 | Pan | Drag (any button in Explore mode, right or middle button in any mode), or WASD / arrow keys |
 | Zoom | Mouse wheel |
 | Rotate | Q / E in 45° steps |
-| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove |
+| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove · 7 Car park |
+| Car park | Drag one or two cells beside a street. Homes and workplaces within six cells park there instead of lining the kerb; a full kerb is called out on the building's card |
 | Remove | Click a building, or click or drag along a street (a street a building opens onto stays) |
 | Draw a street | Road tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
 | Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it. One, two or three cells decide what it becomes: house, terrace pair or apartment building; konbini, café or supermarket; studio, workshop or factory. A label says so while you drag |
@@ -145,6 +146,13 @@ src/
   ambient.js          bird flocks, gulls, butterflies
   cats.js             original low-poly cats, coat colours and walk/idle motion
   character-props.js  shopping bag, briefcase, folding umbrella and registration folder
+  outdoor-props.js    broom, fishing rod and watering can with Kenney carry grips
+  nature-kit.js       pines, matsu, bamboo, cherry/broadleaf trees, rocks and rice paddy; the town's decor draws from it
+  landmark-kit.js     standalone torii/shrine, Buddhist temple, koban and public bath
+  street-furniture.js standalone vending machine, bench, bus stop, signals, signs, planter and bike rack
+  neighbourhood-kits.js standalone utility, shop facade and home yard kits (19 GLBs, including the city bicycle)
+  civic-kit.js        standalone substation, water tower, recycling row, path torii, notice board, hydrant and hose box
+  subway-station.js   one-cell open stair pavilion, hip-and-gable kawara roof, clock and four independent light materials
   tea-can.js          labelled tea can and mouth-aligned drinking pose
   bikes.js            original city bicycle, basket, rotating wheels and resident riding pose
   dogs.js             original low-poly Shiba Inu, four poses and ambient street behaviour

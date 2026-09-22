@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { PAL, SHIRTS } from './palette.js';
 import { box, blob, cyl, prism, colorize } from './geometry.js';
+import { addFurniture } from './street-furniture.js';
 
 export const K = {
   metal: '#7d8a94', metal2: '#8fa3ad', rail: '#4f6b66', railDark: '#3f4f4c', grille: '#8a9096', concrete2: '#c9c3b6',
@@ -66,11 +67,9 @@ export function bicycle(g, x, z, rot, color = K.bike[0]) {
 }
 /** a small bike rack with `n` parked bicycles, arranged along local x */
 export function bikeRack(g, x, z, n, rot = 0, seed = 0.5) {
-  const parts = [];
-  parts.push(box(0.12 * n + 0.04, 0.012, 0.012, K.metal, 0, 0.12 + 0.12, 0));
-  for (let k = 0; k < n; k++) parts.push(box(0.012, 0.12, 0.012, K.metal, (k - (n - 1) / 2) * 0.12, 0.18, 0));
-  for (const p of parts) { p.rotateY(rot); p.translate(x, 0, z); g.push(p); }
-  for (let k = 0; k < n; k++) { if ((seed * 7 + k * 1.7) % 1 < 0.75) { const lx = (k - (n - 1) / 2) * 0.12; bicycle(g, x + Math.cos(rot) * lx, z - Math.sin(rot) * lx, rot, K.bike[(k + Math.floor(seed * 5)) % K.bike.length]); } }
+  addFurniture(g, 'bike-rack', x, 0.12, z, rot);   // the kit rack: three hoops 0.19 apart
+  n = 3;
+  for (let k = 0; k < n; k++) { if ((seed * 7 + k * 1.7) % 1 < 0.75) { const lx = (k - 1) * 0.19; bicycle(g, x + Math.cos(rot) * lx, z - Math.sin(rot) * lx, rot, K.bike[(k + Math.floor(seed * 5)) % K.bike.length]); } }
 }
 /** a shop sign board on the front wall: board colour, accent stripe, optional glow strip at night */
 export function signBoard(g, wg, x, y, z, w, color, accent, glow = false) {
