@@ -181,7 +181,7 @@ gets several distinct generators per size, and every building varies its details
   hotel waits for Phase 6 tourism. No money changes hands; demand is the trigger
 
 - ✅ **Car ferry** (agreed 2026-09-17, shipped 2026-09-21; `src/ferry.js`): nothing on wheels appears out of thin air any more. A small ro-ro ferry
-  (Kenney Watercraft cargo ship, repainted) calls at the pier a few times a day and lowers a ramp onto a
+  (the Komachi Maru, an original island ro-ro since 2026-09-22; a repainted Kenney cargo ship before that) calls at the pier a few times a day and lowers a ramp onto a
   slipway joined to the coast road. Residents order a car once they have a job and have settled in; it rolls
   off the next sailing, drives to their street and parks at the kerb. Visiting cars and delivery vans arrive the
   same way and drive back to the pier to leave. The taxis belong to the island: the first two are delivered by

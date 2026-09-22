@@ -47,6 +47,9 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- The ferry is the Komachi Maru (小町丸, src/island-ferry-model.js): a small island ro-ro with an open single-lane car
+  deck, stern wheelhouse, banded funnel and name boards, in place of the Kenney cargo ship. Its hinged bow ramp lowers
+  onto the beach at the berth and rises before sailing; cars stand on its deck.
 - Waterfalls splash at the foot: foam puffs pulse on the water where each fall lands and a fine mist rises and fades.
 - A pod of two or three dolphins swims round the island offshore, surfacing in arcs and diving with a splash (the Komachi
   dolphin model, first use).

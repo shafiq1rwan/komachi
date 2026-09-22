@@ -174,7 +174,7 @@ enters the finishing stage. `renoT` puts a scaffold overlay on a finished buildi
 
 `ferry.js` owns the slipway (the coast-road cell nearest a point a little round the shore from the pier), the
 beach landing, the berth and an offshore point, the builders' yard on the inland neighbour cell (`c.yard`, not
-zonable or drawable) and the ferry mesh (a Kenney `ship-cargo-a.glb` over a procedural hull fallback). A state
+zonable or drawable) and the ferry mesh (the Komachi Maru from `island-ferry-model.js`, an original island ro-ro; bow +Z, turned into the +X hull frame). A state
 machine `away → arriving → berthed → leaving` follows the `CALLS` timetable in game hours. `sim.js` asks a
 registered vehicle source (`setVehicleSource`) for ambient cars and residents' cars instead of creating them; the
 ferry queues those requests and puts one ashore every few minutes while berthed (`launch` → `offPath`: deck,

@@ -1,0 +1,24 @@
+{
+  "passed": true,
+  "triangles": 2708,
+  "deck": [
+    0,
+    0.24,
+    0.72
+  ],
+  "rampPivot": [
+    0,
+    0.24,
+    1.05
+  ],
+  "loweredRampTip": [
+    0,
+    0.24,
+    1.85
+  ],
+  "wakePoint": [
+    0,
+    0,
+    -1.05
+  ]
+}

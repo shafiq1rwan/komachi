@@ -4,7 +4,6 @@
 // the slipway that the delivery trucks load from. Everything here is visual and demand-driven: nothing is counted or
 // gated, and construction time is untouched (the yard only looks fuller while more sites are under way).
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { S } from './state.js';
 import { scene, peopleGroup, cx, cz, HALF } from './scene.js';
@@ -15,7 +14,7 @@ const [SX, SZ] = islandEllipse;
 import { makeCar, moveAlong, buildPoints, routeCells, roadNeighbors, frontRoad, carMeshes, parkVehicle, adoptWanderer, setVehicleSource, hourOf } from './sim.js';
 import { setYardStart } from './construction.js';
 import { toast } from './toast.js';
-import shipMapUrl from '../assets/watercraft/Textures/colormap.png?url';
+import { createIslandFerry } from './island-ferry-model.js';
 
 const CALLS = [7, 12, 17];          // sailings arrive on these hours; the ferry waits about half an hour each time
 const SAIL = 0.35, WAIT = 0.45;     // game hours: the run in from the horizon, and the time at the berth
@@ -114,28 +113,20 @@ function buildYardStock() {
 }
 /** the ferry itself: a flat-decked ro-ro with a wheelhouse aft and a bow ramp; a Kenney ship-*.glb replaces the hull if present */
 function buildFerry() {
-  const grp = new THREE.Group(); const g = [];
-  g.push(box(2.1, 0.22, 0.95, PAL.cream2, 0, 0.11, 0)); g.push(box(2.14, 0.05, 0.99, PAL.roofTeal, 0, 0.14, 0));            // hull and waterline stripe
-  const bow = new THREE.BoxGeometry(0.5, 0.22, 0.7); bow.rotateY(Math.PI / 4); bow.translate(1.05, 0.11, 0); g.push(colorize(bow, PAL.cream2));
-  g.push(box(2.0, 0.03, 0.86, PAL.concrete2, 0, 0.24, 0));                                                                   // car deck
-  for (const sd of [-1, 1]) g.push(box(2.0, 0.08, 0.03, PAL.cream2, 0, 0.28, sd * 0.43));                                   // bulwarks
-  g.push(box(0.5, 0.36, 0.7, PAL.cream2, -0.75, 0.42, 0)); g.push(box(0.54, 0.04, 0.74, PAL.roofTeal, -0.75, 0.62, 0));       // wheelhouse
-  g.push(box(0.36, 0.14, 0.02, PAL.window, -0.5, 0.5, 0)); g.push(cyl(0.05, 0.06, 0.3, PAL.cream2, -0.9, 0.78, 0, 8)); g.push(box(0.1, 0.03, 0.1, K_RED, -0.9, 0.94, 0));   // windows, funnel
-  g.push(box(0.02, 0.4, 0.02, PAL.lamp, -0.6, 0.84, 0.2)); g.push(box(0.14, 0.08, 0.01, K_RED, -0.6, 1.0, 0.2));            // mast and flag
-  const hull = mergeMesh(g, true); hull.castShadow = true; grp.add(hull);
-  const ramp = new THREE.Mesh(colorize(new THREE.BoxGeometry(0.5, 0.03, 0.8), PAL.concrete2), hull.material); ramp.position.set(1.28, 0.25, 0); ramp.rotation.z = 1.2; grp.add(ramp); grp.userData.ramp = ramp;
-  grp.userData.deck = new THREE.Vector3(0.3, 0.26, 0); grp.scale.setScalar(FERRY_SCALE); ferry.deck = grp.userData.deck.clone().multiplyScalar(FERRY_SCALE);
+  const grp = new THREE.Group();
+  // the Komachi Maru: bow +Z in the model, so an inner group turns it to the sim's +X hull frame (heading maths unchanged)
+  const model = createIslandFerry(); const inner = new THREE.Group(); inner.rotation.y = Math.PI / 2; inner.add(model); grp.add(inner);
+  model.traverse(o => { if (o.isMesh) o.castShadow = true; });
+  const ramp = model.getObjectByName('Ramp'); ramp.rotation.x = RAMP_UP; grp.userData.ramp = ramp;
+  const d = model.userData.deck || [0, 0.24, 0.72];
+  grp.userData.deck = new THREE.Vector3(d[2], d[1], -d[0]);   // model (x, y, z) → hull frame (z, y, -x)
+  grp.scale.setScalar(FERRY_SCALE); ferry.deck = grp.userData.deck.clone().multiplyScalar(FERRY_SCALE);
   grp.position.copy(ferry.offshore); grp.visible = false; scene.add(grp); ferry.mesh = grp;
-  const ships = import.meta.glob('../assets/watercraft/ship-*.glb', { eager: true, query: '?url', import: 'default' });
-  const url = ships[Object.keys(ships).find(k => k.includes('ship-cargo-a'))] || Object.values(ships)[0];   // the open-decked cargo ship reads best as a ro-ro
-  // the kit ship is long along z, the hull here along x, so the model is turned a quarter
-  const manager = new THREE.LoadingManager(); manager.setURLModifier(u => /colormap\.png$/i.test(u) ? shipMapUrl : u);
-  if (url) new GLTFLoader(manager).loadAsync(url).then(gltf => { const bb = new THREE.Box3().setFromObject(gltf.scene); const size = bb.getSize(new THREE.Vector3()); const s = 2.2 / Math.max(size.x, size.z); gltf.scene.scale.setScalar(s); gltf.scene.rotation.y = -Math.PI / 2; gltf.scene.position.y = -bb.min.y * s; gltf.scene.traverse(o => { if (o.isMesh) o.castShadow = true; }); hull.visible = false; grp.add(gltf.scene); }).catch(() => {});
 }
-const K_RED = '#c9564b';
+const RAMP_UP = -Math.PI / 2, RAMP_DOWN = 0.18;   // the bow ramp: raised against the bow, and lowered a little past level onto the beach
 
 /** the world-space point for a spot on the deck, given the ferry's heading */
-function deckPoint(k = 0) { const p = ferry.deck.clone(); p.x -= k * 0.42; p.applyAxisAngle(new THREE.Vector3(0, 1, 0), ferry.mesh.rotation.y); return p.add(ferry.mesh.position).setY(WATER_Y + 0.275 * FERRY_SCALE); }
+function deckPoint(k = 0) { const p = ferry.deck.clone(); p.x -= k * 0.42; p.applyAxisAngle(new THREE.Vector3(0, 1, 0), ferry.mesh.rotation.y); return p.add(ferry.mesh.position).setY(WATER_Y + 0.02 + 0.245 * FERRY_SCALE); }   // the deck plane, 0.24 above the waterline in the model
 /** the drive from the deck down the ramp onto the slipway and then along the streets; returns trip points */
 function offPath(dest, endPos) {
   const road = routeCells([ferry.slip], dest); if (!road) return null;
@@ -215,7 +206,7 @@ export function updateFerry(dh, simDt) {
     m.position.lerpVectors(ferry.offshore, ferry.berth, e); m.rotation.y = Math.atan2(ferry.land.x - m.position.x, ferry.land.z - m.position.z) - Math.PI / 2;
     if (k >= 1) { ferry.state = 'berthed'; ferry.t = 0; ferry.calls++; if (ferry.queue.length || ferry.boarding.length) toast(ferry.queue.length ? 'The ferry is in, and cars are rolling off' : 'The ferry is in'); }
   } else if (ferry.state === 'berthed') {
-    ferry.t += dh; ramp.rotation.z += (0.05 - ramp.rotation.z) * Math.min(1, simDt * 4);
+    ferry.t += dh; ramp.rotation.x += (RAMP_DOWN - ramp.rotation.x) * Math.min(1, simDt * 4);
     const next = ferry.queue.find(q => !q.tried);
     if (next && ferry.t > 0.04 * (1 + (ferry.launched || 0))) {
       ferry.launched = (ferry.launched || 0) + 1;
@@ -225,7 +216,7 @@ export function updateFerry(dh, simDt) {
     for (let k = ferry.boarding.length - 1; k >= 0; k--) { const b = ferry.boarding[k]; b.mesh.visible = false; const ci = carMeshes.indexOf(b.mesh); if (ci >= 0) carMeshes.splice(ci, 1); peopleGroup.remove(b.mesh); ferry.boarding.splice(k, 1); }   // aboard and gone
     if (ferry.t >= WAIT + 0.04 * Math.min(6, ferry.queue.length)) { ferry.state = 'leaving'; ferry.t = 0; ferry.launched = 0; for (const q of ferry.queue) q.tried = false; }   // sails on time; anything not yet ashore comes back next call
   } else if (ferry.state === 'leaving') {
-    ferry.t += dh / SAIL; const k = Math.min(1, ferry.t); ramp.rotation.z += (1.2 - ramp.rotation.z) * Math.min(1, simDt * 4);
+    ferry.t += dh / SAIL; const k = Math.min(1, ferry.t); ramp.rotation.x += (RAMP_UP - ramp.rotation.x) * Math.min(1, simDt * 4);
     m.position.lerpVectors(ferry.berth, ferry.offshore, k * k);
     if (k >= 1) { ferry.state = 'away'; m.visible = false; }
   }

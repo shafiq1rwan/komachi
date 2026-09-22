@@ -55,7 +55,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   relative path, so the loader's URL modifier points them at the bundled copy.
 - Vehicles are Kenney Car Kit models via `src/vehicles.js` (same atlas-bake and repaint idea; `attachVehicle`
   fills a +z-forward group; box cars are the fallback). Kinds: kei, hatch, suv, van, truck, taxi, delivery, garbage.
-- Ferry (Phase 5, `src/ferry.js`): cars arrive/leave by sea. sim.js never creates ambient or resident cars itself when a
+- Ferry (Phase 5, `src/ferry.js`): the Komachi Maru from src/island-ferry-model.js (bow +Z, wrapped in an inner group turned +PI/2 so the
+  sim's +X hull frame still holds; `Ramp` rotation.x between RAMP_UP and RAMP_DOWN; deck from the model's `userData.deck`). Cars arrive/leave by sea. sim.js never creates ambient or resident cars itself when a
   vehicle source is registered (`setVehicleSource`); `r.carOrdered` marks a car awaiting the next sailing. Trucks start at
   the yard (`setYardStart`) with a station fallback. `c.yard` and `c.slip` cells (yard, slip road cell and the lane's ground) are neither zonable nor drawable. The slip is chosen on a
   straight coast-road cell with a clean shore (`shoreKind` not rock, no `canalMouths` within 0.45 rad) and the lane runs seaward along the grid. Timetable `CALLS`

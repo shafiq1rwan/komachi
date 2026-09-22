@@ -1,0 +1,13 @@
+import { mkdir, writeFile } from 'node:fs/promises';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { Box3, Vector3 } from 'three';
+import { createIslandFerry } from '../src/island-ferry-model.js';
+globalThis.FileReader=class{readAsArrayBuffer(blob){blob.arrayBuffer().then(result=>{this.result=result;this.onloadend?.();});}};
+const out=new URL('../assets/island-ferry/',import.meta.url);await mkdir(out,{recursive:true});
+const model=createIslandFerry();let triangles=0;
+model.traverse(o=>{if(o.isMesh)triangles+=(o.geometry.index?.count??o.geometry.attributes.position.count)/3;});
+if(triangles>=3000)throw Error(`Triangle budget exceeded: ${triangles}`);
+const bounds=new Box3().setFromObject(model),binary=await new GLTFExporter().parseAsync(model,{binary:true});
+await writeFile(new URL('komachi-island-ferry.glb',out),Buffer.from(binary));
+const manifest={file:'komachi-island-ferry.glb',triangles,bytes:binary.byteLength,size:bounds.getSize(new Vector3()).toArray(),bounds:{min:bounds.min.toArray(),max:bounds.max.toArray()},...model.userData};
+await writeFile(new URL('manifest.json',out),JSON.stringify(manifest,null,2)+'\n');console.log(manifest);
