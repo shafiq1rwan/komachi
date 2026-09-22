@@ -164,7 +164,7 @@ export function holdTool(char, mesh) {
   mesh.scale.setScalar(s); mesh.position.set(...HAND.pos); mesh.rotation.set(...HAND.rot); char.armR.add(mesh);
 }
 /** a small thing carried in the right hand (a can, a bag); replaces whatever was held */
-export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else if(mesh.userData.handItem){clearCharacterProp(char);mesh.scale.setScalar(0.85);mesh.position.set(-0.05,0.125,0.1);char.grp.add(mesh);}else holdTool(char, mesh); }
+export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else if(mesh.userData.handItem){clearCharacterProp(char);mesh.scale.setScalar(0.85);mesh.position.set(-0.04,0.16,0.085);char.grp.add(mesh);}else holdTool(char, mesh); }
 export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan){char.item.geometry.dispose();char.item.material.dispose();} else if(char.item.userData.handItem){char.item.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material&&o.material.dispose)o.material.dispose();}});} char.item = null; } }
 export function detachCharacter(grp) {
   clearCharacterProp(grp.userData.char);
@@ -208,10 +208,10 @@ export function updateCharacters(simDt) {
       if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
       const it = c.item && c.item.userData.handItem ? c.item : null;
       if (c.fidget === 'phone' && it) {   // the phone held in front of the chest, screen tilted up to the face; the right arm reaches to it
-        it.position.set(-0.05, 0.125, 0.1); it.rotation.set(-0.95, 0.15, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);
+        it.position.set(-0.04, 0.16, 0.085); it.rotation.set(0.65, Math.PI, 0);   // chest height, turned round: the screen faces the reader, tilted up to the face c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42));
       } else if (c.fidget === 'paper' && it) {   // the paper open in both hands
-        it.position.set(0, 0.125, 0.115); it.rotation.set(-0.7, 0, 0); c.grp.updateWorldMatrix(true, true);
+        it.position.set(0, 0.155, 0.1); it.rotation.set(0.5, Math.PI, 0);   // front page toward the reader c.grp.updateWorldMatrix(true, true);
         if (c.armR) aimArm(c, c.armR, it.position.clone().add(new THREE.Vector3(-0.045, -0.02, 0))); if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.045, -0.02, 0)), true);
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.3));
       }
