@@ -154,7 +154,7 @@ export function attachCharacter(grp, look) {
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 14), hat.material); brim.position.set(0, top - 0.005, 0.04); brim.rotation.x = -0.12; head.add(brim);
   }
   const seated = !!(grp.userData.res && grp.userData.res.spot && grp.userData.res.spot.kind === 'seat');   // swapped in while already on a bench
-  const char = { root: inst, mixer, idle, walk, sit, head, armR, armL, headRest: head ? head.quaternion.clone() : null, armRRest: armR ? armR.quaternion.clone() : null, armLRest: armL ? armL.quaternion.clone() : null, fidget: null, gaze: 0, gazeBlend: 0, fidgetT: Math.random() * 20, nodT: 0, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
+  const char = { root: inst, mixer, idle, walk, sit, head, armR, armL, headTop: v.headTop, helmet: null, helmetColor: look.hatColor, headRest: head ? head.quaternion.clone() : null, armRRest: armR ? armR.quaternion.clone() : null, armLRest: armL ? armL.quaternion.clone() : null, fidget: null, gaze: 0, gazeBlend: 0, fidgetT: Math.random() * 20, nodT: 0, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
   grp.add(inst); grp.userData.char = char; grp.userData.legs = null; grp.userData.upper = null; chars.push(char); return char;
 }
 /** put a tool mesh (built for the box people, world scale) into the character's right hand */
@@ -174,6 +174,17 @@ export function detachCharacter(grp) {
 }
 
 const X = new THREE.Vector3(1, 0, 0), Y = new THREE.Vector3(0, 1, 0), qNod = new THREE.Quaternion(), qTurn = new THREE.Quaternion();
+/** a cycling helmet in head-bone space: a shallow shell with a vent stripe, a short peak and a chin strap (model units) */
+const helmetMat = new Map();
+function makeHelmet(top, color) {
+  if (!helmetMat.has(color)) helmetMat.set(color, new THREE.MeshStandardMaterial({ color, roughness: 0.6 }));
+  const g = new THREE.Group(), m = helmetMat.get(color), dark = new THREE.MeshStandardMaterial({ color: '#4a4340', roughness: 0.9 });
+  const shell = new THREE.Mesh(new THREE.SphereGeometry(0.2, 12, 8, 0, Math.PI * 2, 0, Math.PI * 0.55), m); shell.scale.set(1, 0.72, 1.08); shell.position.set(0, top - 0.06, -0.01); g.add(shell);
+  const vent = new THREE.Mesh(new THREE.BoxGeometry(0.03, 0.04, 0.3), dark); vent.position.set(0, top + 0.06, -0.02); g.add(vent);
+  const peak = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.02, 0.09), dark); peak.position.set(0, top - 0.02, 0.2); peak.rotation.x = 0.25; g.add(peak);
+  const strap = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.22, 0.02), dark); for (const s of [-1, 1]) { const st = strap.clone(); st.position.set(s * 0.19, top - 0.2, 0.02); g.add(st); }
+  g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return g;
+}
 /** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
 export function updateCharacters(simDt) {
   for (const c of chars) {
@@ -181,7 +192,8 @@ export function updateCharacters(simDt) {
     const owner = g.userData.res || g.userData.worker;
     const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
     c.blend += ((moving ? 1 : 0) - c.blend) * Math.min(1, simDt * 8);
-    c.sitBlend += ((c.sitting ? 1 : 0) - c.sitBlend) * Math.min(1, simDt * 8);
+    const riding = !!(owner?.trip?.ride && owner.bike);
+    c.sitBlend += (((c.sitting || riding) ? 1 : 0) - c.sitBlend) * Math.min(1, simDt * 8);   // a rider sits on the saddle
     const s = c.sit ? c.sitBlend : 0;
     if (c.walk) { c.walk.setEffectiveWeight(c.blend * (1 - s)); c.walk.setEffectiveTimeScale(1.6 * (owner && owner.trip && owner.trip.speed ? owner.trip.speed / 0.9 : 1)); }
     if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s));
@@ -196,7 +208,9 @@ export function updateCharacters(simDt) {
     // bones the clips may not drive (head, arms) go back to rest before the mixer runs, so the per-frame turns below never accumulate
     if (c.head) c.head.quaternion.copy(c.headRest); if (c.armR) c.armR.quaternion.copy(c.armRRest); if (c.armL) c.armL.quaternion.copy(c.armLRest);
     c.mixer.update(simDt);
-    if (owner?.trip?.ride && owner.bike) poseBikeRider(c.root, owner.bike);
+    c.root.rotation.x = riding ? 0.22 : 0;   // a lean over the bars
+    if (riding) { poseBikeRider(c.root, owner.bike); if (!c.helmet && c.head && c.headTop) { c.helmet = makeHelmet(c.headTop - 0.343, c.helmetColor); c.head.add(c.helmet); } }
+    if (c.helmet) c.helmet.visible = riding;
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));
     if (c.poseName === 'drink' && c.head) { c.sipT = (c.sipT || 0) + simDt; const sip = Math.max(0, Math.sin(c.sipT * 1.6) - 0.35) / 0.65; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, -0.5 * sip)); if (c.armR) c.armR.rotation.x -= 0.9 * sip; }   // a sip: head tips back, the can comes up
     else c.sipT = 0;

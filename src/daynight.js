@@ -14,7 +14,7 @@ function refreshPowered() {
 import { hourOf, dayOf, daylight, carMeshes } from './sim.js';
 import { ui } from './ui.js';
 import { W, weatherWord } from './weather.js';
-const GREY = new THREE.Color('#b8c3c8');
+const GREY = new THREE.Color('#b8c3c8'), COLD = new THREE.Color('#dfe8ee');
 
 const C = { skyDay: new THREE.Color(PAL.skyDay), skyDusk: new THREE.Color(PAL.skyDusk), skyNight: new THREE.Color(PAL.skyNight),
   hemiDay: new THREE.Color('#dff1ea'), hemiNight: new THREE.Color('#7b88a8'), gDay: new THREE.Color('#e9d5b8'), gNight: new THREE.Color('#545a70'),
@@ -24,7 +24,7 @@ function envUpdate(realT) {
   const h = hourOf(), d = daylight(), dusk = 4 * d * (1 - d), night = 1 - d;
   C.tmp.copy(C.skyNight).lerp(C.skyDay, d).lerp(C.skyDusk, dusk * 0.55);
   const over = Math.max(0, W.cover - 0.3) / 0.7 * d;   // overcast: the sky greys and the sun softens, by day
-  C.tmp.lerp(GREY, over * 0.7);
+  C.tmp.lerp(GREY, over * 0.7); C.tmp.lerp(COLD, W.snow * 0.25 * d);   // under snow the sky pales and cools
   renderer.setClearColor(C.tmp); scene.fog.color.copy(C.tmp);
   hemi.color.copy(C.hemiNight).lerp(C.hemiDay, d); hemi.groundColor.copy(C.gNight).lerp(C.gDay, d); hemi.intensity = lerp(0.72, 0.9, d);
   // the sun's arc, held at the horizon outside daylight, slides over to the moon's place as the light fades: shadows never snap
@@ -34,7 +34,7 @@ function envUpdate(realT) {
   sun.intensity = lerp(0.55, 1.6, d) * (1 - 0.55 * over - 0.15 * W.rain * d); C.tmp2.copy(C.sunDay).lerp(C.sunDusk, dusk * 0.7); sun.color.copy(C.moon).lerp(C.tmp2, d);
   fill.intensity = lerp(0.3, 0.35, d);
   renderer.toneMappingExposure = lerp(1.0, 1.05, d) - 0.06 * over;
-  setWet(W.rain);
+  setWet(W.winter ? 0 : W.rain);   // snow does not darken the streets like rain
   lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness
   const shopOpen = h >= 7 && h < 22;
   if (realT - poweredT > 2) { poweredT = realT; refreshPowered(); }

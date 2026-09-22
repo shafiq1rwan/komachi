@@ -52,6 +52,16 @@ Phases 4 and 4.5 plus the polish that went with them.
 - The slipway is a proper street: the lane from the coast road to the shore is real road cells on the grid (kept, not
   zonable), drawn like any street, ending in a concrete slope down to the beach; no slanted lanes. The berth notice says
   cars are rolling off only once one has. The smoke summary names any failed checks.
+- Winter looks like winter: snow settles on every upward face drawn with the town's materials (ground, roofs, bushes,
+  tree crowns; dark asphalt takes less), building over a couple of hours at the turn and melting in spring; rain spells
+  fall as slow, wandering snowflakes; the sky pales and cools under snow; the clock card says snow.
+- Seasons (src/seasons.js): a 24-day year of spring, summer, autumn and winter. Broadleaf and cherry canopies take the
+  season's colour at the turn (fresh in spring, full in summer, turning orange and red in autumn, bare brown-grey in
+  winter; pines, matsu and bamboo stay green), a notice and a chronicle line mark each turn, and leaves drift down from
+  the trees with the wind: petals under the sakura in spring, a few leaves in summer, a steady fall in autumn, nothing
+  in winter.
+- Cyclists ride like cyclists: seated on the saddle with a lean over the bars, hands on the grips, legs pedalling with
+  the cranks, and a helmet in their hat colour that appears for the ride and is put away on dismounting.
 - Phase 6 begins, weather (src/weather.js): a weather clock runs spells of clear, overcast, light rain and rain in game
   hours, easing between them. Clouds drift over the island with the wind and cast moving shade, more and greyer the
   heavier the sky; overcast greys the sky and softens the sun; rain falls as streaks that follow the camera, darkens the

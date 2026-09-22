@@ -1,0 +1,65 @@
+{
+  "passed": true,
+  "models": [
+    {
+      "kind": "yatai-food",
+      "kit": "festival",
+      "triangles": 3128
+    },
+    {
+      "kind": "yatai-games",
+      "kit": "festival",
+      "triangles": 3096
+    },
+    {
+      "kind": "yatai-sweets",
+      "kit": "festival",
+      "triangles": 2080
+    },
+    {
+      "kind": "lantern-string",
+      "kit": "festival",
+      "triangles": 4332
+    },
+    {
+      "kind": "taiko",
+      "kit": "festival",
+      "triangles": 4080
+    },
+    {
+      "kind": "bunting",
+      "kit": "festival",
+      "triangles": 480
+    },
+    {
+      "kind": "festival-banner",
+      "kit": "festival",
+      "triangles": 620
+    },
+    {
+      "kind": "mikoshi",
+      "kit": "festival",
+      "triangles": 1000
+    },
+    {
+      "kind": "lighthouse",
+      "kit": "destinations",
+      "triangles": 1532
+    },
+    {
+      "kind": "arched-bridge",
+      "kit": "destinations",
+      "triangles": 3632
+    },
+    {
+      "kind": "park-pavilion",
+      "kit": "destinations",
+      "triangles": 520
+    },
+    {
+      "kind": "tourist-bus",
+      "kit": "destinations",
+      "triangles": 1108
+    }
+  ]
+}

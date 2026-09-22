@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 35 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 37 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -68,6 +68,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
   kinds shopping-bag | briefcase | umbrella | folder), the tea can via `holdItem`, and `src/hand-items.js` (wraps the modelled src/phone.js and src/newspaper.js as `userData.handItem` Groups; held in the character group like the tea can, placed
   per frame in characters.js with `aimArm` from tea-can.js pointing the arms at them).
+  Riding: characters.js treats `owner.trip.ride` as seated (sit clip), leans the root 0.22 rad, calls `poseBikeRider` (bikes.js aims the arms at the grips
+  and swings the legs with the crank phase on top of the seated pose) and shows a `makeHelmet` group on the head bone only while riding.
   Bench life: `tickSitter` in sim.js runs for seated residents (`r.fidget = {kind, until, base, at, partner}`, kinds phone | paper | stairs |
   stretch | chat); characters.js reads `char.fidget` (phone | paper | nod) and `char.gaze` (radians) on top of the sit clip. `clearFidget` on any move. Shoppers leave grocer-type shops
   (`CARRY_HOME` in sim.js) with a bag (`r.bagPending` set on entering) and drop it indoors.
@@ -123,6 +125,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
 - Sea life lives in src/sea.js: fish leaps and splashes, the pier boat's wake, a dolphin pod (`pod`, src/dolphins.js) and the waterfall splash
   (`fallFeet` exported by island.js; puffs and mist in `updateSplash`). The ferry's own wake is in ferry.js (`updateWake`).
+- Snow: `snowUniform`/`setSnow` in geometry.js; `withSnow(material)` injects a fragment whitening of upward faces into `mat()`, `vcMat`, `vcMatFlat`
+  and `swayMat` (cache keys differ), so kit Groups with their own materials do not take snow. weather.js eases `W.snow` toward 0.9 while `W.winter`
+  (set each frame by main.js from `seasonOf`), draws flakes instead of streaks, and daynight.js cools the sky and skips the wet-road tint.
+- Seasons (Phase 6, src/seasons.js): `seasonOf(day)` over `SEASON_DAYS` 6 (a 24-day year), `leafColor(hex, season)` used by world.js for broadleaf/cherry
+  (and the station's planter trees); `updateSeasons(dt, onTurn)` in the main loop and fastForward rebuilds decor at the turn (main.js `onSeasonTurn`),
+  toasts and records it, and runs the leaf pool from `treeSpots` (set by rebuildDecor). Rates: autumn 0.35, sakura spring 0.4 (petals), summer 0.03, winter 0.
 - Weather (Phase 6, src/weather.js): `W = { kind, until, cover, rain, wind }`, spells clear | cloudy | drizzle | rain (`SPELLS`, `NEXT`), `setWeather(kind, hours)`
   (also a dev hook), `updateWeather(dt, dh)` in the main loop and fastForward; clouds are a pool of 12 invisible shadow-only planes (cloud alpha masks, colorWrite false) at y 6.5 scaled in/out by cover, so only their shade shows,
   rain a LineSegments field round `cam.target`; daynight.js dims/greys by `W.cover` and calls `setWet` (world.js tints the road mesh); sim.js

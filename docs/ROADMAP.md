@@ -228,7 +228,8 @@ effect through the town instead.
 - ✅ Weather, first slice (2026-09-22): a weather clock of clear, overcast, light rain and rain spells; drifting cloud shade
   (the clouds themselves are not drawn); overcast light; rain streaks that wet the streets; umbrellas on the walk. Still to come: puddles, snow
   that whitens roofs
-- Seasons for the trees and the sakura biome
+- ✅ Seasons for the trees and the sakura biome (2026-09-22): a 24-day year; canopies turn with the season, leaves and
+  petals fall; winter brings snow on the ground, roofs and crowns, and snowflakes in place of rain
 - Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
 - Tourists arriving by train for festivals and the shore, staying a day
 - A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)

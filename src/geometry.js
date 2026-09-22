@@ -3,18 +3,38 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PAL } from './palette.js';
 
+// snow: one shared amount (0 bare, 1 deep winter) whitens upward faces in every town material; darker surfaces (asphalt) take less
+const snowUniform = { value: 0 };
+function setSnow(v) { snowUniform.value = v; }
+function withSnow(material) {
+  const prev = material.onBeforeCompile;
+  material.onBeforeCompile = sh => {
+    if (prev) prev(sh);
+    sh.uniforms.uSnow = snowUniform;
+    sh.fragmentShader = sh.fragmentShader
+      .replace('#include <common>', `#include <common>
+uniform float uSnow;`)
+      .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
+ float snowUp = smoothstep(0.45, 0.85, dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)));
+ float snowLum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
+ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.95, 0.975), uSnow * snowUp * (0.35 + 0.65 * smoothstep(0.15, 0.5, snowLum)));`);
+  };
+  material.customProgramCacheKey = () => 'snow' + (prev ? '+' : '');
+  return material;
+}
 const matCache = new Map();
 function mat(hex, flat = false) {
   const key = hex + (flat ? 'f' : '');
-  if (!matCache.has(key)) matCache.set(key, new THREE.MeshStandardMaterial({ color: hex, roughness: 0.95, metalness: 0, flatShading: flat }));
+  if (!matCache.has(key)) matCache.set(key, withSnow(new THREE.MeshStandardMaterial({ color: hex, roughness: 0.95, metalness: 0, flatShading: flat })));
   return matCache.get(key);
 }
-const vcMat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 });
-const vcMatFlat = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, flatShading: true });
+const vcMat = withSnow(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0 }));
+const vcMatFlat = withSnow(new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.95, metalness: 0, flatShading: true }));
 // vegetation material: vertices above knee height sway gently in the wind (merged geometry is in world space)
 const swayUniform = { value: 0 };
 const swayMat = vcMatFlat.clone();
 swayMat.onBeforeCompile = sh => {
+  vcMatFlat.onBeforeCompile(sh);   // snow on the crowns too
   sh.uniforms.uTime = swayUniform;
   sh.vertexShader = sh.vertexShader
     .replace('#include <common>', `#include <common>
@@ -25,6 +45,7 @@ uniform float uTime;`)
  transformed.x += (sin(uTime * 1.5 + transformed.z * 0.6 + transformed.x * 0.4) * 0.07 + 0.03) * swayH * gust;
  transformed.z += cos(uTime * 1.15 + transformed.x * 0.5) * 0.045 * swayH * gust;`);
 };
+swayMat.customProgramCacheKey = () => 'snow+sway';
 function setSwayTime(t) { swayUniform.value = t; }
 function colorize(geom, hex) {
   const c = new THREE.Color(hex); const n = geom.attributes.position.count; const arr = new Float32Array(n * 3);
@@ -86,4 +107,4 @@ function lightCone(x, yTop, z, rTop, rBottom, hex) {
   g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.translate(x, 0.1 + h / 2, z); return g;
 }
 
-export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };
+export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, setSnow, snowUniform, withSnow, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };

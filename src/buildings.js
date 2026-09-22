@@ -10,6 +10,7 @@ import { createCivicProp } from './civic-kit.js';
 import { createLandmark } from './landmark-kit.js';
 import { createTownService } from './town-services-kit.js';
 import { addNature } from './nature-kit.js';
+import { leafColor } from './seasons.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
 const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
@@ -652,7 +653,7 @@ function genStation(b, u, g, wg) {
   }
   // corners: planter with a little tree, and a lamp
   g.push(box(0.36, 0.14, 0.36, PAL.wood, di * 0.25, y0 + 0.07, dj * 0.25));
-  addNature(g, 'broadleaf', di * 0.25, y0 + 0.13, dj * 0.25, 0.6, u.seed, u.seed < 0.5 ? PAL.treePeach : PAL.treeSage);   // a small kit tree in the planter
+  addNature(g, 'broadleaf', di * 0.25, y0 + 0.13, dj * 0.25, 0.6, u.seed, leafColor(u.seed < 0.5 ? PAL.treePeach : PAL.treeSage));   // a small kit tree in the planter
   g.push(blob(0.09, PAL.bush, di * 0.08, y0 + 0.18, dj * 0.3, 0, 0.8));
   // (the plaza is lit by the street lamps on its ring road and the pavilion's paper lamps; the old tall corner lamps are gone)
   if (di === dj) g.push(cyl(0.07, 0.06, 0.2, RAIL, -di * 0.32, y0 + 0.1, dj * 0.3, 8));   // a bin tucked by the lamp in two corners

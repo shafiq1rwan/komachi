@@ -109,7 +109,7 @@ export function poseBikeRider(rider, bike) {
       aim.set(s * .064, .22, .018); bike.localToWorld(aim); arm.parent.worldToLocal(aim); aim.sub(arm.position).normalize();
       hand.set(s * .145, -.01, .03).normalize(); arm.quaternion.setFromUnitVectors(hand, aim);
     }
-    if (leg) leg.rotation.set(-.28 + s * .24 * Math.sin(phase), 0, s * -.05);
+    if (leg) leg.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), s * .38 * Math.sin(phase)));   // pedalling, on top of the seated pose
   }
 }
 

@@ -176,6 +176,17 @@ try {
     MT.setHour(9); let went = false, folder = false; for (let k = 0; k < 400 && !(folder || hh.registered); k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
     return { th: true, kit, hh: true, went, registered: hh.registered, folder, label: MT.tierLabel('civic', 2) };
   });
+  const se = await page.evaluate(() => {   // seasons: the calendar turns every six days; autumn brings falling leaves and a chronicle line
+    const day0 = MT.dayOf(), s0 = MT.seasonOf(); MT.setWeather('clear', 40);
+    let turned = false; for (let k = 0; k < 8 && !turned; k++) { MT.fastForward(24); turned = MT.seasonOf() !== s0; }
+    while (MT.seasonOf() !== 'autumn') MT.fastForward(24);
+    MT.setHour(12); MT.setSpeed(1); return { day0, s0, s1: MT.seasonOf(), turned, chron: MT.chronicle.some(e => /came to Komachi/.test(e.text)) };
+  });
+  await sleep(1500);
+  const leaves = await page.evaluate(() => { MT.setSpeed(0); return MT.scene.children.filter(o => o.visible && o.renderOrder === 6 && o.geometry && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters.width < 0.1).length; });
+  check('seasons: the calendar turns and autumn leaves fall', se.turned && se.s1 === 'autumn' && se.chron && leaves >= 3, JSON.stringify({ ...se, leaves }));
+  const sn = await page.evaluate(() => { while (MT.seasonOf() !== 'winter') MT.fastForward(24); MT.fastForward(6); return { season: MT.seasonOf(), snow: +MT.weather.snow.toFixed(2), winter: MT.weather.winter }; });
+  check('winter: snow settles over the town', sn.season === 'winter' && sn.winter && sn.snow > 0.5, JSON.stringify(sn));
   const wx = await page.evaluate(() => {   // weather: a rain spell dims the sun, greys the sky, puts clouds out, wets the streets and opens umbrellas
     MT.setWeather('clear', 9); for (let k = 0; k < 20; k++) MT.fastForward(0.05); MT.setHour(12); MT.fastForward(0.01);
     const before = { clouds: MT.scene.children.filter(o => o.visible && o.castShadow && o.position.y > 5).length };

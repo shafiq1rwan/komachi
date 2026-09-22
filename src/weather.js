@@ -5,15 +5,16 @@ import * as THREE from 'three';
 import { rand, pick } from './utils.js';
 import { S } from './state.js';
 import { scene, cam } from './scene.js';
+import { setSnow } from './geometry.js';
 
-export const W = { kind: 'clear', until: 0, cover: 0.15, rain: 0, tCover: 0.15, tRain: 0, wind: new THREE.Vector2(0.06, 0.03) };
+export const W = { kind: 'clear', until: 0, cover: 0.15, rain: 0, tCover: 0.15, tRain: 0, wind: new THREE.Vector2(0.06, 0.03), winter: false, snow: 0 };   // winter is set by main.js from the season; snow is the cover on the ground
 const SPELLS = { clear: { cover: 0.12, rain: 0, hours: [5, 12] }, cloudy: { cover: 0.7, rain: 0, hours: [3, 8] }, rain: { cover: 0.9, rain: 0.8, hours: [1.5, 4] }, drizzle: { cover: 0.75, rain: 0.35, hours: [1.5, 3] } };
 const NEXT = { clear: ['clear', 'clear', 'cloudy', 'cloudy', 'drizzle'], cloudy: ['clear', 'clear', 'rain', 'drizzle', 'cloudy'], rain: ['cloudy', 'cloudy', 'clear', 'drizzle'], drizzle: ['cloudy', 'clear', 'rain'] };
 /** force a spell (dev hook and tests) */
 export function setWeather(kind, hours) { const sp = SPELLS[kind]; if (!sp) return false; W.kind = kind; W.tCover = sp.cover; W.tRain = sp.rain; W.until = S.T + (hours ?? rand(sp.hours[0], sp.hours[1])); W.wind.set(rand(-0.08, 0.08), rand(-0.08, 0.08)); if (W.wind.length() < 0.03) W.wind.set(0.06, 0.03); return true; }
 export function restoreWeather(d) { if (!d) return; setWeather(d.kind || 'clear', 0); W.until = d.until || S.T; W.cover = W.tCover; W.rain = W.tRain; }
 export function weatherSnapshot() { return { kind: W.kind, until: W.until }; }
-export function weatherWord() { return W.kind === 'rain' ? 'rain' : W.kind === 'drizzle' ? 'light rain' : W.kind === 'cloudy' ? 'overcast' : ''; }
+export function weatherWord() { return W.kind === 'rain' ? (W.winter ? 'snow' : 'rain') : W.kind === 'drizzle' ? (W.winter ? 'light snow' : 'light rain') : W.kind === 'cloudy' ? 'overcast' : ''; }
 
 // ── clouds: a fixed pool, each a cluster of soft lobes; how many show follows the cover ──
 const CLOUDS = [], CLOUD_N = 12, CLOUD_Y = 6.5;
@@ -45,6 +46,8 @@ export function updateWeather(dt, dh) {
   if (S.T >= W.until) setWeather(pick(NEXT[W.kind] || ['clear']));
   const k = Math.min(1, dh * 1.6);   // targets are reached over about half a game hour
   W.cover += (W.tCover - W.cover) * k; W.rain += (W.tRain - W.rain) * k;
+  // snow cover: builds through winter (faster while it snows), melts away in spring
+  const snowT = W.winter ? 0.9 : 0, ks = Math.min(1, dh * (W.winter ? 0.45 + W.rain * 0.8 : 0.35)); W.snow += (snowT - W.snow) * ks; setSnow(W.snow);
   // clouds: the first `want` of the pool are out; each grows in or shrinks away, drifts with the wind and wraps
   const want = Math.round(W.cover * CLOUD_N), grey = 1 - 0.32 * Math.max(0, W.cover - 0.4) / 0.6 - 0.15 * W.rain;
   CLOUDS.forEach((c, i) => {
@@ -55,13 +58,15 @@ export function updateWeather(dt, dh) {
   });
   void grey;
   // rain
-  const rain = W.rain; rainMesh.visible = rain > 0.02; rainMat.opacity = 0.35 * rain;
+  const rain = W.rain, flakes = W.winter; rainMesh.visible = rain > 0.02; rainMat.opacity = flakes ? 0.8 * rain : 0.35 * rain; rainMat.color.set(flakes ? '#f4f7fa' : '#c9d9e6');
   if (rainMesh.visible) {
-    rainT += dt * 7; const cx0 = cam.target.x, cz0 = cam.target.z, wx = W.wind.x * 4, wz = W.wind.y * 4;
+    rainT += dt * (flakes ? 1.6 : 7);   // snow drifts down slowly
+    const cx0 = cam.target.x, cz0 = cam.target.z, wx = W.wind.x * 4, wz = W.wind.y * 4;
     for (let i = 0; i < RAIN_N; i++) {
       const s = rainSeed[i]; if (i / RAIN_N > rain) { rainPos.set([0, -9, 0, 0, -9, 0], i * 6); continue; }   // lighter rain shows fewer streaks
       const y = RAIN_H - ((s.y + rainT) % RAIN_H); const x = cx0 + s.x + wx * y * 0.08, z = cz0 + s.z + wz * y * 0.08;
-      rainPos.set([x, y, z, x - wx * 0.02, y + s.len, z - wz * 0.02], i * 6);
+      const len = flakes ? 0.045 : s.len, fx = flakes ? Math.sin(rainT * 0.7 + i) * 0.08 : 0;   // flakes: short, wandering
+      rainPos.set([x + fx, y, z, x + fx - wx * 0.02, y + len, z - wz * 0.02], i * 6);
     }
     rainGeo.attributes.position.needsUpdate = true;
   }

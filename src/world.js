@@ -14,6 +14,7 @@ import { addNature } from './nature-kit.js';
 import { furnitureGeometry, addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
 import { record } from './chronicle.js';
+import { leafColor, setTreeSpots } from './seasons.js';
 
 const cells = [];
 for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false, canal: false, bridge: false, coast: false });
@@ -125,6 +126,7 @@ function rebuildDecor() {
     for (let k = 0; k < 4; k++) gh.push(blob(0.1, k % 2 ? PAL.bush : PAL.bush2, x - 0.36 + k * 0.24, 0.08, z - 0.42, 0, 0.7));   // hedge along the back
     gh.push(cyl(0.03, 0.04, 0.3, PAL.wood2, x + 0.34, 0.15, z + 0.32, 5)); gh.push(blob(0.2, biome.treeColors[0], x + 0.34, 0.4, z + 0.32, 0, 0.9));
   }
+  const treeSpots = [];   // crowns the season's leaves fall from: broadleaf and cherry only
   for (const c of cells) {
     if (c.type !== 'empty' || !c.tree || parkCells.has(c)) continue;
     const g0 = g.length;
@@ -140,7 +142,8 @@ function rebuildDecor() {
       addNature(g, 'bamboo', x, 0, z, ks, seed, t.c < 0.5 ? '#9db87f' : '#a9c08a');
     } else if (kind === 'tree') {
       const tc = biome.treeColors, col = tc[Math.min(tc.length - 1, Math.floor(t.c * tc.length))];
-      addNature(g, biome.blossom && t.c < 0.85 ? 'cherry' : 'broadleaf', x, 0, z, ks, seed, col);
+      addNature(g, biome.blossom && t.c < 0.85 ? 'cherry' : 'broadleaf', x, 0, z, ks, seed, leafColor(col));
+      treeSpots.push({ x, z, y: (c.h || 0) + 0.72 * ks, s: ks, color: col });
     } else if (t.kind === 'pine') {
       addNature(g, 'pine', x, 0, z, ks, seed, t.c < 0.5 ? '#7f9b7a' : '#8fae78');
     } else if (t.kind === 'reed') {
@@ -158,6 +161,7 @@ function rebuildDecor() {
     }
     if (c.h) { for (let k = g0; k < g.length; k++) { g[k].translate(0, c.h, 0); gh.push(g[k]); } g.length = g0; }   // raised plots do not sway
   }
+  setTreeSpots(treeSpots);
   decorMesh = mergeMesh(g, true); if (decorMesh) { decorMesh.material = swayMat; townGroup.add(decorMesh); }
   hillDecorMesh = mergeMesh(gh, true); if (hillDecorMesh) townGroup.add(hillDecorMesh);
 }

@@ -1,0 +1,211 @@
+[
+  {
+    "kit": "festival",
+    "kind": "yatai-food",
+    "file": "komachi-yatai-food.glb",
+    "triangles": 3128,
+    "bytes": 339176,
+    "size": [
+      0.8550000190734863,
+      0.8859999784827233,
+      0.6959999799728394
+    ],
+    "minY": -8.940696516468449e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "vendorPoint": [
+      0,
+      0,
+      -0.12
+    ],
+    "customerPoint": [
+      0,
+      0,
+      0.43
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "yatai-games",
+    "file": "komachi-yatai-games.glb",
+    "triangles": 3096,
+    "bytes": 335700,
+    "size": [
+      0.8550000190734863,
+      0.8859999784827233,
+      0.6959999799728394
+    ],
+    "minY": -8.940696516468449e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "vendorPoint": [
+      0,
+      0,
+      -0.12
+    ],
+    "customerPoint": [
+      0,
+      0,
+      0.43
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "yatai-sweets",
+    "file": "komachi-yatai-sweets.glb",
+    "triangles": 2080,
+    "bytes": 225988,
+    "size": [
+      0.8550000190734863,
+      0.8859999784827233,
+      0.6959999799728394
+    ],
+    "minY": -8.940696516468449e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "vendorPoint": [
+      0,
+      0,
+      -0.12
+    ],
+    "customerPoint": [
+      0,
+      0,
+      0.43
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "lantern-string",
+    "file": "komachi-lantern-string.glb",
+    "triangles": 4332,
+    "bytes": 470048,
+    "size": [
+      1.8899999856948853,
+      1.0027680398896337,
+      0.09130142629146576
+    ],
+    "minY": -1.8626451769865326e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "cableEnds": [
+      [
+        -0.9,
+        1,
+        0
+      ],
+      [
+        0.9,
+        1,
+        0
+      ]
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "taiko",
+    "file": "komachi-taiko.glb",
+    "triangles": 4080,
+    "bytes": 441956,
+    "size": [
+      0.39500001072883606,
+      0.515754103846848,
+      0.3296084403991699
+    ],
+    "minY": -1.8626451769865326e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "playerPoint": [
+      0,
+      0,
+      0.34
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "bunting",
+    "file": "komachi-bunting.glb",
+    "triangles": 480,
+    "bytes": 54028,
+    "size": [
+      1.8899999856948853,
+      0.8427679540589452,
+      0.09000000357627869
+    ],
+    "minY": -1.8626451769865326e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "cableEnds": [
+      [
+        -0.9,
+        0.84,
+        0
+      ],
+      [
+        0.9,
+        0.84,
+        0
+      ]
+    ]
+  },
+  {
+    "kit": "festival",
+    "kind": "festival-banner",
+    "file": "komachi-festival-banner.glb",
+    "triangles": 620,
+    "bytes": 68244,
+    "size": [
+      0.33500000834465027,
+      0.9399999978020788,
+      0.09000000357627869
+    ],
+    "minY": -1.8626451769865326e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true
+  },
+  {
+    "kit": "festival",
+    "kind": "mikoshi",
+    "file": "komachi-mikoshi.glb",
+    "triangles": 1000,
+    "bytes": 109352,
+    "size": [
+      0.6000000238418579,
+      0.7747434385120868,
+      1.0299999713897705
+    ],
+    "minY": -7.450580707946131e-10,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "carryPoints": [
+      [
+        -0.2,
+        0.14,
+        -0.4
+      ],
+      [
+        0.2,
+        0.14,
+        -0.4
+      ],
+      [
+        -0.2,
+        0.14,
+        0.4
+      ],
+      [
+        0.2,
+        0.14,
+        0.4
+      ]
+    ]
+  }
+]
