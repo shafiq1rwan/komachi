@@ -154,7 +154,7 @@ export function attachCharacter(grp, look) {
     const brim = new THREE.Mesh(new THREE.CylinderGeometry(0.19, 0.19, 0.02, 14), hat.material); brim.position.set(0, top - 0.005, 0.04); brim.rotation.x = -0.12; head.add(brim);
   }
   const seated = !!(grp.userData.res && grp.userData.res.spot && grp.userData.res.spot.kind === 'seat');   // swapped in while already on a bench
-  const char = { root: inst, mixer, idle, walk, sit, head, armR, armL, fidget: null, gaze: 0, gazeBlend: 0, fidgetT: Math.random() * 20, nodT: 0, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
+  const char = { root: inst, mixer, idle, walk, sit, head, armR, armL, headRest: head ? head.quaternion.clone() : null, armRRest: armR ? armR.quaternion.clone() : null, armLRest: armL ? armL.quaternion.clone() : null, fidget: null, gaze: 0, gazeBlend: 0, fidgetT: Math.random() * 20, nodT: 0, blend: 0, sitBlend: seated ? 1 : 0, sitting: seated, hammer: 0, grp, pose: null, poseBlend: 0, poseAct: null, poseName: null, act };
   grp.add(inst); grp.userData.char = char; grp.userData.legs = null; grp.userData.upper = null; chars.push(char); return char;
 }
 /** put a tool mesh (built for the box people, world scale) into the character's right hand */
@@ -193,6 +193,8 @@ export function updateCharacters(simDt) {
     if (c.poseAct) c.poseAct.setEffectiveWeight(c.poseBlend);
     if (c.idle) c.idle.setEffectiveWeight((1 - c.blend) * (1 - s) * (1 - c.poseBlend));
     c.root.position.y = SIT_LIFT * s;
+    // bones the clips may not drive (head, arms) go back to rest before the mixer runs, so the per-frame turns below never accumulate
+    if (c.head) c.head.quaternion.copy(c.headRest); if (c.armR) c.armR.quaternion.copy(c.armRRest); if (c.armL) c.armL.quaternion.copy(c.armLRest);
     c.mixer.update(simDt);
     if (owner?.trip?.ride && owner.bike) poseBikeRider(c.root, owner.bike);
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));

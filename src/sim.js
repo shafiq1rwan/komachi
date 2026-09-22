@@ -370,7 +370,7 @@ function parkVehicle(mesh, u, kind) {
     if (road) {
       const dx = Math.sign(u.cell.i - road.i), dz = Math.sign(u.cell.j - road.j);   // from the street toward the home
       let slot = [0, 1].find(k => !used.has(k));
-      if (slot === undefined) { slot = 0; u.block.kerbFull = true; if (!u.block.parkHint) { u.block.parkHint = true; toast(`Cars are lining the kerb outside ${u.block.name}. A car park nearby would give them room (Car park tool, 7)`); } }
+      if (slot === undefined) { slot = 0; u.block.kerbFull = true; if (!u.block.parkHint) { u.block.parkHint = true; toast(`Cars are lining the kerb outside ${u.block.name}. A car park nearby would give them room (Parking tool, 7)`); } }
       else u.block.kerbFull = false;
       const along = (slot ? -1 : 1) * 0.28, ax = -dz, az = dx;   // two bays along the kerb
       mesh.position.set(cx(road.i) + dx * 0.42 + ax * along, 0.085 + (road.h || 0), cz(road.j) + dz * 0.42 + az * along);
@@ -542,6 +542,7 @@ function findJob(r) {
   else if (!r.commuter && Math.random() < 0.35) { r.commuter = true; r.workStart = rand(7, 8.6); r.workEnd = rand(17.2, 19); }   // no work in town: take the train to the city instead
 }
 function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
+  clearFidget(r);   // whatever they were doing on the bench (phone, paper, chat) stops before they set off
   const toUnit = destUnit && destUnit !== STATION.anchor;
   const drive = r.hasCar && cellPath.length > 6 && toUnit && from && from === r.carAt;
   const ride = !drive && r.hasBike && cellPath.length > 3 && toUnit && from && from === r.bikeAt;

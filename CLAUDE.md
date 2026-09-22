@@ -41,7 +41,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   Cars keep left; walkers pick one sidewalk. Vehicles persist: `carAt`/`bikeAt` say where a resident's
   vehicle is parked (`parkVehicle`: bikes on the plot, cars at the kerb of the street in front), and
   `userData.parked` vehicles are ignored by traffic.
-  Car parks are the player's (Car park tool, key 7, decided 2026-09-22 over an automatic claim): `placeCarPark(sel)` in world.js marks
+  Car parks are the player's (Parking tool, key 7, decided 2026-09-22 over an automatic claim): `placeCarPark(sel)` in world.js marks
   `c.park = 'public'` (`c.parkRoad` = entry street, list `carParks`), `parkBay(c, k)` places four nose-in bays, `parkVehicle` in sim.js uses
   the nearest car park within `PARK_REACH` (6) cells before the kerb, `b.kerbFull`/`b.parkHint` drive the card line and the one-off notice,
   `removeCarPark` (sim) re-parks the cars. `STATION.taxiPark` is the taxis' automatic car park across the ring road. Saves v3 carry parks. Signals:

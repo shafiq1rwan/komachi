@@ -106,7 +106,7 @@ function endPointer(e) {
   if (ptr.panning) {
     ptr.panning = false;
     if (ptr.moved < 6 && ptr.button === 0) {
-      if (tool === 'remove') { const c = groundCell(); if (c && c.park === 'public') { removeCarPark(c); toast('Car park removed'); } else if (c && c.block) { if (c.block.type === 'station') toast('The station is here to stay'); else { const n = c.block.name; removeBlock(c.block); toast(`${n} was removed`); } } else if (c && c.type === 'road') { const why = roadKeepReason(c); if (!why) { eraseRoad(c); toast('Street removed'); } else toast(why === 'needed' ? 'A building still opens onto this street' : why === 'island' ? "The island's road stays" : "The station's ring stays"); } }
+      if (tool === 'remove') { const c = groundCell(); if (c && c.park === 'public') { removeCarPark(c); toast('Parking removed'); } else if (c && c.block) { if (c.block.type === 'station') toast('The station is here to stay'); else { const n = c.block.name; removeBlock(c.block); toast(`${n} was removed`); } } else if (c && c.type === 'road') { const why = roadKeepReason(c); if (!why) { eraseRoad(c); toast('Street removed'); } else toast(why === 'needed' ? 'A building still opens onto this street' : why === 'island' ? "The island's road stays" : "The station's ring stays"); } }
       else if (tool === 'explore') { updateHover(); pinned = hovered; }
     }
     return;

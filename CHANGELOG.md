@@ -46,6 +46,13 @@ Phases 4 and 4.5 plus the polish that went with them.
   fills up a notice says so once, and the building's card shows "Cars line the kerb outside" until a car park takes them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
+- The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Tool bar: each tool has a proper icon on a tinted chip (magnifier, house, store, briefcase, road, P sign, eraser)
+  instead of an abstract swatch.
+- Inspect card: household heading, its divider and its people sit closer together.
+- Fixed: a seated head could spin like a rotor (the gaze and nod turned a bone the clip never reset; head and arms now
+  return to rest before each animation step), and someone leaving a bench by an ordinary trip carried the phone or paper
+  off with them, reading as a cane at walking pose.
 - Neighbourhood kits wired in (src/neighbourhood-kits.js): the kit's concrete utility pole with transformer and lamp on
   every pole corner (cables hang from its crossarm), the kit street lamp everywhere a lamp stood (town lens, beam and
   pool of light kept), shop fronts use the kit noren, chōchin, tate-kanban, awning and hanging sign recoloured to each
