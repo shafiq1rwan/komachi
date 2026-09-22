@@ -47,7 +47,7 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - Bench life: people waiting on the plaza benches no longer sit like statues. They shift their weight, follow passers-by
-  with their eyes, watch the stairs when a train is due, take out a phone or a folded newspaper (src/hand-items.js), chat
+  with their eyes, watch the stairs when a train is due, take out a phone or a folded newspaper (the modelled props, src/phone.js and src/newspaper.js, via src/hand-items.js), chat
   with a neighbour on the same bench (one nods), and now and then stand up to stretch their legs. The card shows what
   they are doing.
 - Zoom goes in more than twice as close as before (wheel and pinch), enough to watch one doorstep.

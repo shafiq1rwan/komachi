@@ -10,7 +10,7 @@ import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { S } from './state.js';
 import { poseBikeRider } from './bikes.js';
 import { updateCharacterProp, clearCharacterProp } from './character-props.js';
-import { updateTeaDrink } from './tea-can.js';
+import { updateTeaDrink, aimArm } from './tea-can.js';
 
 const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
 const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); seats sit 0.09 above the group
@@ -160,11 +160,12 @@ export function attachCharacter(grp, look) {
 /** put a tool mesh (built for the box people, world scale) into the character's right hand */
 export function holdTool(char, mesh) {
   if (!char.armR) { char.root.add(mesh); return; }
-  mesh.scale.setScalar(1.5 / SCALE); mesh.position.set(...HAND.pos); mesh.rotation.set(...HAND.rot); char.armR.add(mesh);   // tools read better a little oversized in chibi hands
+  const s = 1.5 / SCALE;   // tools read better a little oversized in chibi hands
+  mesh.scale.setScalar(s); mesh.position.set(...HAND.pos); mesh.rotation.set(...HAND.rot); char.armR.add(mesh);
 }
 /** a small thing carried in the right hand (a can, a bag); replaces whatever was held */
-export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else holdTool(char, mesh); }
-export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan||char.item.userData.handItem){char.item.geometry.dispose();char.item.material.dispose();} char.item = null; } }
+export function holdItem(char, mesh) { dropItem(char); char.item = mesh; if(mesh.userData.teaCan){clearCharacterProp(char);char.grp.add(mesh);updateTeaDrink(char,0);}else if(mesh.userData.handItem){clearCharacterProp(char);mesh.scale.setScalar(0.85);mesh.position.set(-0.05,0.125,0.1);char.grp.add(mesh);}else holdTool(char, mesh); }
+export function dropItem(char) { if (char.item) { if (char.item.parent) char.item.parent.remove(char.item); if(char.item.userData.teaCan){char.item.geometry.dispose();char.item.material.dispose();} else if(char.item.userData.handItem){char.item.traverse(o=>{if(o.isMesh){o.geometry.dispose();if(o.material&&o.material.dispose)o.material.dispose();}});} char.item = null; } }
 export function detachCharacter(grp) {
   clearCharacterProp(grp.userData.char);
   if(grp.userData.char)dropItem(grp.userData.char);
@@ -205,8 +206,15 @@ export function updateCharacters(simDt) {
       c.root.rotation.y = Math.sin(w * 0.45) * 0.06 + Math.sin(w * 0.13) * 0.05; c.root.position.x = Math.sin(w * 0.3) * 0.008;
       c.gazeBlend += ((c.gaze ? 1 : 0) - c.gazeBlend) * Math.min(1, simDt * 4); if (c.gaze) c.gazeHeld = c.gaze;
       if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
-      if (c.fidget === 'phone' && c.head) { c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42)); if (c.armR) c.armR.rotation.x -= 1.25; }
-      else if (c.fidget === 'paper' && c.head) { c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.3)); if (c.armR) c.armR.rotation.x -= 1.05; if (c.armL) c.armL.rotation.x -= 1.05; }
+      const it = c.item && c.item.userData.handItem ? c.item : null;
+      if (c.fidget === 'phone' && it) {   // the phone held in front of the chest, screen tilted up to the face; the right arm reaches to it
+        it.position.set(-0.05, 0.125, 0.1); it.rotation.set(-0.95, 0.15, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);
+        if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42));
+      } else if (c.fidget === 'paper' && it) {   // the paper open in both hands
+        it.position.set(0, 0.125, 0.115); it.rotation.set(-0.7, 0, 0); c.grp.updateWorldMatrix(true, true);
+        if (c.armR) aimArm(c, c.armR, it.position.clone().add(new THREE.Vector3(-0.045, -0.02, 0))); if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.045, -0.02, 0)), true);
+        if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.3));
+      }
       else if (c.fidget === 'nod' && c.head) { c.nodT += simDt; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, Math.sin(c.nodT * 7) * 0.18)); }
     } else { c.root.rotation.y = 0; c.root.position.x = 0; c.gazeBlend = 0; c.nodT = 0; }
     updateCharacterProp(c);

@@ -48,6 +48,11 @@ export function createTeaCan() {
 }
 
 const mouth=new THREE.Vector3(),aim=new THREE.Vector3(),palm=new THREE.Vector3(-.155,-.01,.035),top=new THREE.Vector3();
+/** aim a rigid Kenney arm at a point given in the character group's space (left arm: mirrored palm) */
+export function aimArm(char, arm, target, left = false) {
+  aim.copy(target); char.grp.localToWorld(aim); arm.parent.worldToLocal(aim); aim.sub(arm.position).normalize();
+  const p = palm.clone(); if (left) p.x *= -1; arm.quaternion.setFromUnitVectors(p.normalize(), aim);
+}
 /** Keep the rim at the mouth during a sip and aim the rigid Kenney arm at the can. */
 export function updateTeaDrink(char,sip) {
   const can=char.item;if(!can?.userData.teaCan||!char.armR||!char.head)return;

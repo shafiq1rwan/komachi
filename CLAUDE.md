@@ -61,7 +61,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   straight coast-road cell with a clean shore (`shoreKind` not rock, no `canalMouths` within 0.45 rad) and the lane runs seaward along the grid. Timetable `CALLS`
   in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
 - Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
-  kinds shopping-bag | briefcase | umbrella | folder), the tea can via `holdItem`, and `src/hand-items.js` (phone, newspaper, `userData.handItem`).
+  kinds shopping-bag | briefcase | umbrella | folder), the tea can via `holdItem`, and `src/hand-items.js` (wraps the modelled src/phone.js and src/newspaper.js as `userData.handItem` Groups; held in the character group like the tea can, placed
+  per frame in characters.js with `aimArm` from tea-can.js pointing the arms at them).
   Bench life: `tickSitter` in sim.js runs for seated residents (`r.fidget = {kind, until, base, at, partner}`, kinds phone | paper | stairs |
   stretch | chat); characters.js reads `char.fidget` (phone | paper | nod) and `char.gaze` (radians) on top of the sit clip. `clearFidget` on any move. Shoppers leave grocer-type shops
   (`CARRY_HOME` in sim.js) with a bag (`r.bagPending` set on entering) and drop it indoors.
