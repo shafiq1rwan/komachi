@@ -4,6 +4,7 @@ import { S } from './state.js';
 import { blocks, cells, cell, placeBlock, placeCarPark, STATION, unitCap, hill, openHill, rebuildNetwork } from './world.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { residents, households, restoreResident, restoreHousehold } from './sim.js';
+import { chronicle, restoreChronicle } from './chronicle.js';
 
 export const SAVE_KEY = 'komachi.save';
 const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor'];
@@ -15,7 +16,7 @@ export function snapshot() {
   const town = blocks.filter(b => b.type !== 'station');
   const ref = u => { if (!u) return null; const bi = town.indexOf(u.block); return bi < 0 ? null : [bi, u.block.units.indexOf(u)]; };
   return {
-    v: 3, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open,
+    v: 3, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, chronicle: chronicle.slice(),
     roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     parks: cells.filter(c => c.park === 'public').map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),
@@ -33,6 +34,7 @@ export const isResetting = () => resetting;
 export function restore(d) {
   S.T = d.T; S.nextId = Math.max(S.nextId, d.nextId || 0); if (STATION.block) STATION.block.trains = d.trains || 0;
   if (d.hillOpen) openHill(true);
+  restoreChronicle(d.chronicle);
   for (const [i, j] of d.roads || []) { const c = cell(i, j); if (c && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep)) && !c.ramp) { if (c.type === 'canal') c.bridge = true; c.type = 'road'; c.tree = null; c.drawn = true; } }
   if ((d.roads || []).length) rebuildNetwork();
   const town = [];

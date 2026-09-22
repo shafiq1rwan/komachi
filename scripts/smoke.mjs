@@ -174,6 +174,8 @@ try {
     MT.setHour(10); let went = false, folder = false; for (let k = 0; k < 120 && !folder; k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
     return { th: true, kit, hh: true, went, registered: hh.registered, folder, label: MT.tierLabel('civic', 2) };
   });
+  const ch = await page.evaluate(() => ({ n: MT.chronicle.length, sample: MT.chronicle.slice(0, 3).map(e => e.text), hasRegister: MT.chronicle.some(e => /registered/.test(e.text)) }));
+  check('town chronicle: milestones are recorded (a registration among them)', ch.n >= 1 && ch.hasRegister, JSON.stringify(ch));
   check('town services: the town hall comes from the kit and a new household registers there, coming home with a folder', ts.th && ts.kit && ts.hh && ts.went && ts.registered && ts.label.toLowerCase().includes('town hall'), JSON.stringify(ts));
   check('civic effects: a water works greens nearby gardens; collection day puts bags at the kerb and the truck sets out', fx.ww && fx.rc && fx.watered && fx.bags >= 1 && fx.truck, JSON.stringify(fx));
   check('civic zone: utilities come from the civic kit, distinct kinds first, two workers, a notice board each', cv.kinds.length >= 2 && cv.distinct && cv.inPool && cv.kits.every(Boolean) && cv.boards.every(Boolean) && cv.cap === 2 && cv.label.includes('public bath'), JSON.stringify(cv));

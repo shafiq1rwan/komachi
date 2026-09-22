@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 33 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 34 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -58,8 +58,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Ferry (Phase 5, `src/ferry.js`): the Komachi Maru from src/island-ferry-model.js (bow +Z, wrapped in an inner group turned +PI/2 so the
   sim's +X hull frame still holds; `Ramp` rotation.x between RAMP_UP and RAMP_DOWN; deck from the model's `userData.deck`). Cars arrive/leave by sea. sim.js never creates ambient or resident cars itself when a
   vehicle source is registered (`setVehicleSource`); `r.carOrdered` marks a car awaiting the next sailing. Trucks start at
-  the yard (`setYardStart`) with a station fallback. `c.yard` and `c.slip` cells (yard, slip road cell and the lane's ground) are neither zonable nor drawable. The slip is chosen on a
-  straight coast-road cell with a clean shore (`shoreKind` not rock, no `canalMouths` within 0.45 rad) and the lane runs seaward along the grid. Timetable `CALLS`
+  the yard (`setYardStart`) with a station fallback. `c.yard` and `c.slip` cells (yard, slip road cell and the lane's ground) are neither zonable nor drawable. The slip is chosen lane-first (`layout` in placeSlip): a straight
+  coast-road cell whose grid lane reaches water within 2.5 units, landing on a sand/grass shore (`shoreKind` not rock at ±0.1 rad), clear of the pier
+  (0.45 rad) and every canal mouth (0.55 rad), with no `seaRocks` boulder within r+0.9 of the berth or sailing line; landing, berth and horizon are
+  measured from the beach edge (`beachExtra`). Departure: astern, a turn about, away bow first with a fade (`setFade`, transparent only mid-fade). Timetable `CALLS`
   in game hours; `nextCall` re-syncs if the clock jumps (tests use setHour).
 - Hand props: `src/character-props.js` (`equipCharacterProp(char, kind, color)` / `clearCharacterProp`, field `char.accessory`,
   kinds shopping-bag | briefcase | umbrella | folder), the tea can via `holdItem`, and `src/hand-items.js` (wraps the modelled src/phone.js and src/newspaper.js as `userData.handItem` Groups; held in the character group like the tea can, placed
@@ -85,10 +87,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   prop); daynight.js keeps a `powered` set near substations (steady, warm emissive); `updateCollection` in sim.js runs collection day
   (`b.bags` at the kerb, a `truck` wanderer with a `plan`, `driveTo`); `bathUnits` + purpose 'bath' for evening visits; strolls may
   target a civic corner and hold (`trip.holdAtEnd`) to read the notice board.
+  Chronicle: src/chronicle.js (`record(text)`, one line per event, saved as `chronicle`); the community centre card lists the last six.
+  Collection morning: `b.bagsDue`/`b.bagsBy`, `carryBags(r)` walks a resident to the kerb with a pale bag before `putBags`.
   Town services (src/town-services-kit.js, `createTownService`): civic kinds townhall (2 cells) | clinic | firestation | community; `chooseKind`
   picks townhall first and keeps townhall/firestation/community single. Registration: `hh.registered` (saved), purpose 'register' →
   `r.folderPending` → the folder prop on leaving; kōban (STATION.anchor) stands in without a town hall. Purposes 'clinic' (energy) and
   'chronicle'. `updateFireRound` runs the kei truck (`w.fire`) at 8:30 and hides `u.parkedTruck` while `b.truckOut`.
+- Growth: `maxLevel(b)` in world.js caps houses (detached | narrow | terrace) at two storeys, apartments/manshon at three, civic at one;
+  `unitCap` gives a two-storey house 3. Detached generators use `floorY(f)` (ground 0.5, upper `UPPER` 0.4) from buildings.js.
 - Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
@@ -200,7 +206,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 5. ✅ Economy and dynamic business selection (leftovers closed 2026-09-22: neighbourhood kinds, thriving/quiet visuals, cans and deliveries) (✅ size tiers by drag length shipped 2026-09-21: 1/2/3 cells → house/terrace or
    apartments/manshon, konbini/café or restaurant/supermarket or arcade, studio/workshop/factory; ✅ light economy (customers, banners, trade changes) shipped 2026-09-21; ✅ hill plot market and ✅ car ferry with builders' yard shipped 2026-09-21; Phase 5 complete. Next: Phase 5.5 civic zone: villas, tea house, later ryokan; car ferry at
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
-   5.5 Civic zone: substation, water works, recycling centre (visible effects only, nothing gated)
+   5.5 ✅ Civic zone (2026-09-22): substation, water works, recycling centre, public bath, town hall with registration, clinic, fire station,
+       community centre with the town chronicle; visible effects only, nothing gated
 6. Weather, gentle events, festivals, tourism
 7. Farming and fishing
 8. Mobile quality levels, PWA, Electron desktop app

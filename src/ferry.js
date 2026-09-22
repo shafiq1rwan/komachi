@@ -9,11 +9,12 @@ import { S } from './state.js';
 import { scene, peopleGroup, cx, cz, HALF } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { cells, cell, blocks, DONE, refreshWorld } from './world.js';
-import { coastPoint, pierAngle, islandEllipse, coastDist, shoreKind, canalMouths } from './island.js';
+import { coastPoint, pierAngle, islandEllipse, coastDist, shoreKind, canalMouths, beachExtra, seaRocks } from './island.js';
 const [SX, SZ] = islandEllipse;
 import { makeCar, moveAlong, buildPoints, routeCells, roadNeighbors, frontRoad, carMeshes, parkVehicle, adoptWanderer, setVehicleSource, hourOf } from './sim.js';
 import { setYardStart } from './construction.js';
 import { toast } from './toast.js';
+import { record } from './chronicle.js';
 import { createIslandFerry } from './island-ferry-model.js';
 
 const CALLS = [7, 12, 17];          // sailings arrive on these hours; the ferry waits about half an hour each time
@@ -36,30 +37,52 @@ function placeSlip() {
     dirs.sort((a, b) => coastDist(x + a[0], z + a[1]) - coastDist(x + b[0], z + b[1]));   // the side where the coast is nearer
     const [dx, dz] = dirs[0], n1 = cell(c.i + dx, c.j + dz);
     if (n1 && (n1.type === 'road' || n1.canal || n1.block || (n1.h || 0) > 0)) return null;
+    if (coastDist(x + dx * 2.5, z + dz * 2.5) > -0.2) return null;   // the lane must actually reach the water within a few units, not run along the shore
     return [dx, dz];
   };
-  const okShore = (x, z) => { const th = Math.atan2(z / SZ, x / SX); return shoreKind(th) !== 'rock' && canalMouths.every(m => angDiff(m, th) > 0.45); };
+  const clear = th => canalMouths.every(m => angDiff(m, th) > 0.55) && angDiff(base, th) > 0.45;   // away from every waterfall and from the pier itself
+  /** march from a road cell along a direction until the shore distance drops to `target` (radial units) */
+  const marchFrom = (x0, z0, ux, uz, target) => { let t = 0; while (t < 30 && coastDist(x0 + ux * t, z0 + uz * t) > target) t += 0.02; return [x0 + ux * t, z0 + uz * t]; };
+  /** the full slipway geometry for a road cell and a lane direction, or null when the shore there is no good: a rocky
+   *  stretch at the landing, a waterfall or the pier close by, or a sea boulder on the berth or the sailing line */
+  const layout = (c, ux, uz, strict) => {
+    const x0 = cx(c.i), z0 = cz(c.j);
+    const [ex, ez] = marchFrom(x0, z0, ux, uz, 0.12); const thE = Math.atan2(ez / SZ, ex / SX), be = beachExtra(thE);
+    if (coastDist(ex, ez) > 0.2) return null;   // never reached the shore
+    if (strict && (shoreKind(thE) === 'rock' || shoreKind(thE + 0.1) === 'rock' || shoreKind(thE - 0.1) === 'rock')) return null;
+    if (strict && !clear(thE)) return null;
+    const [lx, lz] = marchFrom(x0, z0, ux, uz, -be + 0.12), [bx, bz] = marchFrom(x0, z0, ux, uz, -be - 1.55), [ox, oz] = marchFrom(x0, z0, ux, uz, -be - 7);
+    if (strict) for (const r of seaRocks) {   // distance from the boulder to the sailing line between berth and horizon, and to the berth itself
+      const dx = ox - bx, dz = oz - bz, L2 = dx * dx + dz * dz || 1, t = Math.max(0, Math.min(1, ((r.x - bx) * dx + (r.z - bz) * dz) / L2));
+      const px = bx + dx * t, pz = bz + dz * t; if (Math.hypot(r.x - px, r.z - pz) < r.r + 0.9) return null;
+    }
+    return { ex, ez, lx, lz, bx, bz, ox, oz, thE, ux, uz };
+  };
   let best = null, bd = 1e9;
-  for (const dth of [0.34, -0.34, 0.5, -0.5, 0.7, -0.7, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6, 2.0, -2.0]) {   // a little round the shore from the pier, whichever side has coast road
+  for (const dth of [0.34, -0.34, 0.5, -0.5, 0.7, -0.7, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6, 2.0, -2.0, 2.4, -2.4, 2.8, -2.8]) {   // round the shore from the pier, nearest first
     const th = base + dth, [lx, lz] = coastPoint(th, -0.6);
     for (const c of cells) {
       if (!c.coast || c.bridge || c.type !== 'road') continue;
       const dir = seaward(c); if (!dir) continue;
-      const [sx, sz] = coastPoint(Math.atan2(cz(c.j) / SZ, cx(c.i) / SX), 0.3); if (!okShore(sx, sz)) continue;
-      const d = Math.hypot(cx(c.i) - lx, cz(c.j) - lz); if (d < bd) { bd = d; best = { c, th, dir }; }
+      const lay = layout(c, dir[0], dir[1], true); if (!lay) continue;
+      const d = Math.hypot(cx(c.i) - lx, cz(c.j) - lz); if (d < bd) { bd = d; best = { c, th, lay }; }
     }
     if (best && bd < 2.2) break;
   }
-  if (!best) {   // no clean straight stretch: the old rule, nearest coast road cell to the pier's side
-    for (const c of cells) { if (!c.coast || c.bridge || c.type !== 'road') continue; const d = Math.hypot(cx(c.i) - coastPoint(base + 0.34, -0.6)[0], cz(c.j) - coastPoint(base + 0.34, -0.6)[1]); if (d < bd) { bd = d; best = { c, th: base + 0.34, dir: null }; } }
+  if (!best) {   // no clean straight stretch: any coast road cell whose radial lane reaches clear water, strict first, then anything
+    for (const strict of [true, false]) {
+      for (const c of cells) {
+        if (!c.coast || c.bridge || c.type !== 'road') continue; const x0 = cx(c.i), z0 = cz(c.j), th = Math.atan2(z0 / SZ, x0 / SX);
+        let ux = Math.cos(th) * SX, uz = Math.sin(th) * SZ; const l = Math.hypot(ux, uz); ux /= l; uz /= l;
+        const lay = layout(c, ux, uz, strict); if (!lay) continue;
+        const d = Math.hypot(x0 - coastPoint(base + 0.34, -0.6)[0], z0 - coastPoint(base + 0.34, -0.6)[1]); if (d < bd) { bd = d; best = { c, th, lay }; }
+      }
+      if (best) break;
+    }
     if (!best) return false;
   }
   ferry.slip = best.c; best.c.slip = true;   // the streets pass: no stop sign or car park on the slipway cell
-  const x0 = cx(best.c.i), z0 = cz(best.c.j);
-  // the lane leaves the road at right angles along the grid (or, failing a straight cell, along the ray from the island's centre)
-  let ux, uz; if (best.dir) { [ux, uz] = best.dir; } else { const th = Math.atan2(z0 / SZ, x0 / SX); ux = Math.cos(th) * SX; uz = Math.sin(th) * SZ; const l = Math.hypot(ux, uz); ux /= l; uz /= l; }
-  const march = target => { let t = 0; while (t < 14 && coastDist(x0 + ux * t, z0 + uz * t) > target) t += 0.02; return [x0 + ux * t, z0 + uz * t]; };   // the first point along the lane where the shore distance drops to `target`
-  const [ex, ez] = march(0.12), [lx, lz] = march(-0.55), [bx, bz] = march(-2.05), [ox, oz] = march(-9);   // the berth sits a little further out for the larger hull
+  const x0 = cx(best.c.i), z0 = cz(best.c.j), { ex, ez, lx, lz, bx, bz, ox, oz, ux, uz } = best.lay;
   ferry.theta = Math.atan2(ez / SZ, ex / SX);
   ferry.edge = new THREE.Vector3(ex, 0.08, ez);          // the last of the grass: the flat lane ends here
   ferry.land = new THREE.Vector3(lx, -0.5, lz);          // the landing on the beach, where the ship's ramp comes down
@@ -118,6 +141,7 @@ function buildFerry() {
   const model = createIslandFerry(); const inner = new THREE.Group(); inner.rotation.y = Math.PI / 2; inner.add(model); grp.add(inner);
   model.traverse(o => { if (o.isMesh) o.castShadow = true; });
   const ramp = model.getObjectByName('Ramp'); ramp.rotation.x = RAMP_UP; grp.userData.ramp = ramp;
+  const mats = new Set(); model.traverse(o => { if (o.isMesh) mats.add(o.material); }); grp.userData.mats = [...mats];
   const d = model.userData.deck || [0, 0.24, 0.72];
   grp.userData.deck = new THREE.Vector3(d[2], d[1], -d[0]);   // model (x, y, z) → hull frame (z, y, -x)
   grp.scale.setScalar(FERRY_SCALE); ferry.deck = grp.userData.deck.clone().multiplyScalar(FERRY_SCALE);
@@ -191,6 +215,7 @@ function updateWake(simDt, moving) {
   const wash = Math.min(1, speed / 1.2);
   for (const s of bowWash) { s.visible = wash > 0.02; if (!s.visible) continue; const side = s.userData.side; s.position.set(m.position.x + fx * L * 0.75 - fz * side * 0.32 * FERRY_SCALE, WATER_Y + 0.012, m.position.z + fz * L * 0.75 + fx * side * 0.32 * FERRY_SCALE); const k = 0.45 + wash * 0.5; s.scale.set(k, k * 0.7, 1); s.material.opacity = 0.35 * wash; }
 }
+function setFade(m, a) { for (const mt of m.userData.mats || []) { mt.opacity = a; mt.transparent = a < 1; mt.needsUpdate = mt.transparent !== mt.userData.wasT; mt.userData.wasT = mt.transparent; } }   // opaque unless mid-fade, so the hull sorts like any solid
 export function updateFerry(dh, simDt) {
   if (!ferry.ready) return;
   buildYardStock();
@@ -204,7 +229,8 @@ export function updateFerry(dh, simDt) {
   else if (ferry.state === 'arriving') {
     ferry.t += dh / SAIL; const k = Math.min(1, ferry.t), e = 1 - Math.pow(1 - k, 2);
     m.position.lerpVectors(ferry.offshore, ferry.berth, e); m.rotation.y = Math.atan2(ferry.land.x - m.position.x, ferry.land.z - m.position.z) - Math.PI / 2;
-    if (k >= 1) { ferry.state = 'berthed'; ferry.t = 0; ferry.calls++; if (ferry.queue.length || ferry.boarding.length) toast(ferry.queue.length ? 'The ferry is in, and cars are rolling off' : 'The ferry is in'); }
+    setFade(m, Math.min(1, k / 0.2));   // out of the haze
+    if (k >= 1) { ferry.state = 'berthed'; ferry.t = 0; ferry.calls++; if (ferry.calls === 1) record('The Komachi Maru made her first call at the slipway'); if (ferry.queue.length || ferry.boarding.length) toast(ferry.queue.length ? 'The ferry is in, and cars are rolling off' : 'The ferry is in'); }
   } else if (ferry.state === 'berthed') {
     ferry.t += dh; ramp.rotation.x += (RAMP_DOWN - ramp.rotation.x) * Math.min(1, simDt * 4);
     const next = ferry.queue.find(q => !q.tried);
@@ -215,10 +241,15 @@ export function updateFerry(dh, simDt) {
     }
     for (let k = ferry.boarding.length - 1; k >= 0; k--) { const b = ferry.boarding[k]; b.mesh.visible = false; const ci = carMeshes.indexOf(b.mesh); if (ci >= 0) carMeshes.splice(ci, 1); peopleGroup.remove(b.mesh); ferry.boarding.splice(k, 1); }   // aboard and gone
     if (ferry.t >= WAIT + 0.04 * Math.min(6, ferry.queue.length)) { ferry.state = 'leaving'; ferry.t = 0; ferry.launched = 0; for (const q of ferry.queue) q.tried = false; }   // sails on time; anything not yet ashore comes back next call
-  } else if (ferry.state === 'leaving') {
-    ferry.t += dh / SAIL; const k = Math.min(1, ferry.t); ramp.rotation.x += (RAMP_UP - ramp.rotation.x) * Math.min(1, simDt * 4);
-    m.position.lerpVectors(ferry.berth, ferry.offshore, k * k);
-    if (k >= 1) { ferry.state = 'away'; m.visible = false; }
+  } else if (ferry.state === 'leaving') {   // astern off the berth, a turn about, then away bow first into the haze
+    ferry.t += dh / (SAIL * 1.4); const k = Math.min(1, ferry.t); ramp.rotation.x += (RAMP_UP - ramp.rotation.x) * Math.min(1, simDt * 4);
+    const B = ferry.berth, O = ferry.offshore, away = Math.atan2(O.x - B.x, O.z - B.z), toLand = away + Math.PI;
+    const px = -(O.z - B.z), pz = O.x - B.x, pl = Math.hypot(px, pz) || 1;   // sideways, for the turning arc
+    const T1 = B.clone().lerp(O, 0.16), T2 = B.clone().lerp(O, 0.24).add(new THREE.Vector3(px / pl * 0.9, 0, pz / pl * 0.9));
+    if (k < 0.3) { const q = k / 0.3; m.position.lerpVectors(B, T1, q * q); m.rotation.y = toLand - Math.PI / 2; }
+    else if (k < 0.6) { const q = (k - 0.3) / 0.3, s = q * q * (3 - 2 * q); m.position.lerpVectors(T1, T2, s); m.rotation.y = toLand - Math.PI / 2 + Math.PI * s; }
+    else { const q = (k - 0.6) / 0.4; m.position.lerpVectors(T2, O, q * q); m.rotation.y = away - Math.PI / 2; setFade(m, 1 - Math.max(0, (q - 0.55) / 0.45)); }
+    if (k >= 1) { ferry.state = 'away'; m.visible = false; setFade(m, 1); }
   }
   m.position.y = WATER_Y + 0.02 + Math.sin(S.T * 40) * 0.01;
   // cars on their way from the ferry to a driveway

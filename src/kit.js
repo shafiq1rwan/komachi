@@ -167,7 +167,7 @@ export function noren(g, x, y, z, w, color = PAL.indigo, accent = PAL.cream2) { 
 }
 /** a row of chōchin lanterns: red paper with cream bands that glow at night */
 export function chochin(g, wg, x, y, z, n, color = K.lantern) {   // a row of the kit's paper lanterns in the shop's colour
-  for (let k = 0; k < n; k++) kitPart(g, 'chochin', { x: x + (k - (n - 1) / 2) * 0.13, y: y - 0.075, z, scale: 0.75 }, { roofPeach: color });
+  for (let k = 0; k < n; k++) { const lx = x + (k - (n - 1) / 2) * 0.13; kitPart(g, 'chochin', { x: lx, y: y - 0.075, z, scale: 0.75 }, { roofPeach: color }); wg.push(cyl(0.041, 0.041, 0.09, PAL.window, lx, y + 0.005, z, 8)); }   // a lit core shows through the paper after dark
 }
 /** washing on a balcony: a pole with shirts and towels, and a futon airing over the rail. Pushed to `lg` so it can be shown by the hour. */
 export function laundry(lg, x, y, z, w, seed) {

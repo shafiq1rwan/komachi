@@ -13,6 +13,7 @@ import { rebuildUnitMesh } from './buildings.js';
 import { addNature } from './nature-kit.js';
 import { furnitureGeometry, addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
+import { record } from './chronicle.js';
 
 const cells = [];
 for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false, canal: false, bridge: false, coast: false });
@@ -356,6 +357,13 @@ function rebuildRoads() {
   // between them is road, and each pole takes at most one neighbour in each direction
   const pos = [];
   const roadBetween = (a, b) => { const di = Math.sign(b.i - a.i), dj = Math.sign(b.j - a.j); const h = (cell(a.i, a.j).h || 0); for (let i = a.i + di, j = a.j + dj; i !== b.i || j !== b.j; i += di, j += dj) { const c = cell(i, j); if (!c || c.type !== 'road' || c.ramp || Math.abs((c.h || 0) - h) > 1e-6) return false; } return true; };
+  for (const b of blocks) {   // a finished substation strings cables from its crossarm to the two nearest poles within reach
+    if (b.type !== 'civic' || b.kind !== 'substation' || b.stage < DONE || !b.units[0]) continue;
+    const u = b.units[0], f = u.facing || 0, ax = -0.02, az = -0.04 - 0.19;   // the frame's crossarm (model z -0.19 in unit space)
+    const sx = cx(u.cell.i) + ax * Math.cos(f) + az * Math.sin(f), sz = cz(u.cell.j) - ax * Math.sin(f) + az * Math.cos(f), S0 = new THREE.Vector3(sx, (u.cell.h || 0) + 0.12 + 0.778, sz);
+    const near = poles.map(P => ({ P, d: P.p.distanceTo(S0) })).filter(o => o.d < 4.5).sort((a, b) => a.d - b.d).slice(0, 2);
+    for (const { P } of near) { const segs = 8; for (let s = 0; s < segs; s++) for (const t of [s / segs, (s + 1) / segs]) { const sag = Math.sin(t * Math.PI) * 0.12; pos.push(S0.x + (P.p.x - S0.x) * t, S0.y + (P.p.y - S0.y) * t - sag, S0.z + (P.p.z - S0.z) * t); } }
+  }
   for (let a = 0; a < poles.length; a++) {
     const A0 = poles[a];
     const cands = poles.map((P, k) => ({ k, di: P.i - A0.i, dj: P.j - A0.j })).filter(o => o.k !== a && ((o.di === 0) !== (o.dj === 0)) && Math.abs(o.di + o.dj) <= 5 && (o.di + o.dj) > 0 && roadBetween(A0, poles[o.k]));
@@ -412,7 +420,13 @@ const STAGE_NAMES = ['Surveying the plot', 'Laying foundations', 'Raising the fr
 const stageHours = b => b.type === 'res' ? RES_STAGE_HOURS : STAGE_HOURS;
 const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', civic: 'Civic', station: 'Station' };
 const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, civic: '#7d6fa3', station: PAL.roofSage };
-function unitCap(u) { return CAP[u.block.type][u.block.level] + (CAP_BONUS[u.variant] || 0) + (CAP_BONUS[u.block.kind] || 0); }
+/** how many storeys a block can grow to: houses and terraces two, apartments and the manshon three, everything else three */
+const HOUSE_VARIANTS = new Set(['detached', 'narrow', 'terrace']);
+function maxLevel(b) { return b.type === 'res' && HOUSE_VARIANTS.has(b.variant) ? 2 : b.type === 'civic' ? 1 : 3; }
+function unitCap(u) {
+  const b = u.block, house = b.type === 'res' && HOUSE_VARIANTS.has(u.variant) && b.level >= 2;   // a two-storey house holds a family of three, not two households
+  return CAP[b.type][b.level] + (CAP_BONUS[u.variant] || 0) + (CAP_BONUS[b.kind] || 0) - (house ? 1 : 0);
+}
 const SHOP_KINDS = ['cafe', 'bakery', 'ramen', 'grocery', 'konbini', 'florist', 'books'];
 const WORK_KINDS = ['office', 'workshop', 'studio'];
 const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', townhall: 'Town hall', clinic: 'Clinic', firestation: 'Fire station', community: 'Community centre', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
@@ -440,7 +454,7 @@ function openHill(quiet = false) {
   }
   lanternMesh = mergeMesh(g, false); if (lanternMesh) scene.add(lanternMesh);
   refreshWorld();
-  if (!quiet) toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.');
+  if (!quiet) { toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.'); record('The hill opened and the shrine path was lit'); }
 }
 function placeable(c, sel = []) {
   if (!c || c.type !== 'empty' || c.ramp || c.yard || c.park || c.slip) return false;   // buildings stand on empty ground, beside a street
@@ -713,6 +727,6 @@ function refreshCivicFlags() {
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

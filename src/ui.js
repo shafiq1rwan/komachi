@@ -1,8 +1,9 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
 import { S } from './state.js';
-import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions } from './world.js';
+import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions, maxLevel } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
+import { chronicle } from './chronicle.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
   pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), seek: document.getElementById('s-seek'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
@@ -34,7 +35,7 @@ function renderStation(b) {
   return html;
 }
 function growthRow(b) {
-  if (b.level >= 3 || b.variant === 'villa') return '';
+  if (b.level >= maxLevel(b) || b.variant === 'villa') return '';
   const p = clamp(b.occT / 20, 0, 1);
   if (p >= 1 && !growthAllowed(b)) return `<div class="empty">Ready to grow once the town is bigger${b.level === 1 ? ' (3+ blocks, with homes and jobs)' : ' (6+ blocks of every kind)'}</div>`;
   return `<div class="row"><span>Growing</span><b>${Math.round(100 * p)}%</b></div><div class="bar"><i style="width:${100 * p}%"></i></div>`;
@@ -74,6 +75,12 @@ function renderInspect(target, follow = null) {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
         html += `<div class="row"><span>${type === 'shop' ? 'Staff' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
         html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;
+        if (type === 'civic' && b.kind === 'community') {   // the town chronicle in the centre's display case
+          html += `<div class="divider"></div><div class="hh">Town chronicle<span>${chronicle.length ? chronicle.length + ' entries' : 'nothing yet'}</span></div><ul>`;
+          for (const e of chronicle.slice(-6).reverse()) html += `<li class="chron"><span class="d">Day ${e.day}</span>${esc(e.text)}</li>`;
+          if (!chronicle.length) html += `<li class="empty">The first pages are still blank</li>`;
+          html += `</ul>`;
+        }
         if (type === 'shop') {
           html += `<div class="row"><span>Popularity</span><b>${'★'.repeat(clamp(Math.round(b.visitScore / (2 * b.level)), 0, 5)) || '–'}</b></div>`;
           html += `<div class="row"><span>Customers</span><b>${b.visitsToday || 0} today · ${b.lastVisits === undefined ? '–' : b.lastVisits} yesterday</b></div>`;

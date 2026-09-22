@@ -47,6 +47,19 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Houses grow like houses: a detached home's second storey is lower than its ground floor (0.4 against 0.5) instead
+  of a second full floor, so it no longer towers like a block of flats; detached, narrow and terrace homes stop at two
+  storeys and a two-storey house holds a family of three rather than two households; apartments and the manshon still
+  grow to three. The card's growth row hides once a home is at its cap.
+- Fixed: on some islands the ferry berthed under the sand beside the waterfall and the pier. The slip now keeps clear of
+  the pier and every canal mouth on every path, and the landing, berth and horizon are measured from the beach edge, so
+  the hull floats off wide beaches too. The ferry now backs off the berth, turns about and sails away bow first, fading
+  into the haze, and fades in on the way back.
+- Phase 5.5 closed: on collection morning a resident steps out with the bags, sets them at the kerb and goes back in
+  (unclaimed bags appear by 7:15); a finished substation strings cables to its two nearest poles; shop lanterns glow at
+  night again; and the town keeps a chronicle (src/chronicle.js) of milestones (first home, shop and workplace, the hill
+  opening, the ferry's first call, registrations, civic openings, a block growing to three storeys), shown in the
+  community centre's display case on its card and saved with the town.
 - The ferry is the Komachi Maru (小町丸, src/island-ferry-model.js): a small island ro-ro with an open single-lane car
   deck, stern wheelhouse, banded funnel and name boards, in place of the Kenney cargo ship. Its hinged bow ramp lowers
   onto the beach at the berth and rises before sailing; cars stand on its deck.

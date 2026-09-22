@@ -67,7 +67,7 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
-let pierTheta = null, shoreVeg = [];
+let pierTheta = null, shoreVeg = []; const seaRocks = [];   // seaRocks: boulders out in the water {x, z, r}, for the ferry to steer clear of
 {
   const solid = [], veg = [];
   pierTheta = null;
@@ -99,7 +99,8 @@ let pierTheta = null, shoreVeg = [];
     solid.push(box(0.24, 0.04, 0.42, '#8fb0c9', boatX, -0.62, boatZ, ang)); solid.push(box(0.16, 0.14, 0.16, '#8fb0c9', boatX - fx * 0.1, -0.54, boatZ - fz * 0.1, ang)); solid.push(box(0.12, 0.06, 0.1, PAL.window, boatX - fx * 0.1 + fx * 0.05, -0.52, boatZ - fz * 0.1 + fz * 0.05, ang));
   }
   // pebbles further out in the water
-  for (let k = 0; k < 14; k++) { const t = rng() * TAU; const [x, z] = coastPoint(t, 2.4 + rng() * 3); solid.push(blob(0.25 + rng() * 0.45, biome.rock[1], x, -0.76, z, 0, 0.5)); }
+  seaRocks.length = 0;
+  for (let k = 0; k < 14; k++) { const t = rng() * TAU; const [x, z] = coastPoint(t, 2.4 + rng() * 3), r = 0.25 + rng() * 0.45; solid.push(blob(r, biome.rock[1], x, -0.76, z, 0, 0.5)); seaRocks.push({ x, z, r }); }
   const sm = mergeMesh(solid, true); if (sm) scene.add(sm);
   shoreVeg = veg;   // merged once the canal is known, so nothing grows in its mouth
 }
@@ -316,4 +317,4 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
 }
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;
-export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet };
+export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet, seaRocks };

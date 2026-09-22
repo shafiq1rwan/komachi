@@ -16,8 +16,10 @@ const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.545
 import { DONE } from './world.js';
 
 let LG = [];   // laundry geometry for the unit being built (its own mesh, shown in the daytime; see rebuildUnitMesh)
+const UPPER = 0.4;   // a detached home's upper storey height; the ground floor is 0.5
+const floorY = f => f === 0 ? 0 : 0.5 + (f - 1) * UPPER;   // the floor line of storey f in a detached home
 function dims(type, level) {
-  if (type === 'res') return { w: 0.72, d: 0.6, H: 0.52 * level + 0.06 };
+  if (type === 'res') return { w: 0.72, d: 0.6, H: 0.5 + (level - 1) * UPPER + 0.06 };   // a 0.5 ground floor and a lower upper storey, as a house has
   if (type === 'shop') return { w: 0.78, d: 0.66, H: 0.62 + (level >= 2 ? 0.5 : 0) };
   return { w: 0.8, d: 0.7, H: 0.95 + (level - 1) * 0.55 };
 }
@@ -58,13 +60,13 @@ function genResidential(b, u, g, wg) {
   } else kawaraRoof(g, w, d, H, y0, kawara ? (u.seed > 0.5 ? PAL.kawara : PAL.kawara2) : b.roof, L >= 2);   // tile courses and a ridge cap; hip-and-gable from level 2
   door(g, -0.16, y0, d / 2 + 0.005, 0.16, 0.27, PAL.wood, kawara ? PAL.kawara2 : b.roof); genkan(g, -0.16, y0, d / 2 + 0.02);
   for (let f = 0; f < L; f++) {
-    const y = y0 + f * 0.52 + (f === 0 ? 0.3 : 0.28);
+    const y = y0 + floorY(f) + (f === 0 ? 0.3 : 0.2);
     for (const x of (f === 0 ? [0.18] : [-0.16, 0.18])) windowPane(g, wg, x, y, d / 2 + 0.005, 0.16, 0.16);
     windowPane(g, wg, w / 2 + 0.005, y, 0.1, 0.16, 0.16, Math.PI / 2);
     if (f === 0) { g.push(box(0.24, 0.05, 0.08, PAL.wood, 0.18, y - 0.12, d / 2 + 0.04)); g.push(blob(0.06, PAL.bush, 0.14, y - 0.06, d / 2 + 0.04, 0, 0.8)); g.push(blob(0.05, PAL.flower, 0.23, y - 0.06, d / 2 + 0.04, 0, 0.8)); }
   }
-  if (L >= 2) { g.push(box(0.1, 0.28, 0.1, PAL.concrete, -0.2, y0 + H + 0.12, -0.12)); balcony(g, 0.04, y0 + 0.54, d / 2 + 0.08, 0.42, 0.16, PAL.wood2); if (u.seed > 0.3) laundry(LG, 0.04, y0 + 0.54, d / 2 + 0.16, 0.42, u.seed); }
-  for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.14, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
+  if (L >= 2) { g.push(box(0.1, 0.28, 0.1, PAL.concrete, -0.2, y0 + H + 0.12, -0.12)); balcony(g, 0.04, y0 + 0.52, d / 2 + 0.08, 0.42, 0.16, PAL.wood2); if (u.seed > 0.3) laundry(LG, 0.04, y0 + 0.52, d / 2 + 0.16, 0.42, u.seed); }
+  for (let f = 0; f < L; f++) { const y = y0 + floorY(f) + (f === 0 ? 0.3 : 0.2); windowPane(g, wg, 0.14, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
   acUnit(g, w / 2 + 0.05, y0 + 0.2, -0.18, Math.PI / 2); pipe(g, -w / 2 - 0.02, y0, y0 + H - 0.05, -d / 2 + 0.05);
   if (u.seed > 0.5) { blockWall(g, 0.02, 0.45, 0.9, true, [-0.3, -0.02]); blockWall(g, -0.45, -0.02, 0.86, false); }   // block wall with the gate slid open in front of the door
   else { fence(g, 0.1, 0.45, 0.6, true, PAL.wood); fence(g, -0.45, 0, 0.8, false, PAL.wood); }
@@ -84,9 +86,9 @@ function genMachiya(b, u, g, wg) {
   hisashi(g, w, d, y0 + 0.46, tile);
   door(g, -0.18, y0, d / 2 + 0.005, 0.16, 0.3, PAL.wood2); genkan(g, -0.18, y0, d / 2 + 0.02, 0.2);
   latticeWindow(g, wg, 0.16, y0 + 0.26, d / 2 + 0.005, 0.3, 0.2, 0, PAL.wood);
-  for (let f = 1; f < L; f++) { const y = y0 + f * 0.52 + 0.2; for (const x of [-0.18, 0.16]) { windowPane(g, wg, x, y, d / 2 + 0.005, 0.18, 0.16); g.push(box(0.22, 0.012, 0.03, PAL.wood2, x, y - 0.1, d / 2 + 0.02)); } }   // plain upper windows with a timber sill
+  for (let f = 1; f < L; f++) { const y = y0 + floorY(f) + 0.18; for (const x of [-0.18, 0.16]) { windowPane(g, wg, x, y, d / 2 + 0.005, 0.18, 0.16); g.push(box(0.22, 0.012, 0.03, PAL.wood2, x, y - 0.1, d / 2 + 0.02)); } }   // plain upper windows with a timber sill
   if (L === 1) for (const x of [-0.2, 0.0, 0.2]) g.push(box(0.05, 0.1, 0.02, PAL.cream2, x, y0 + H - 0.14, d / 2 + 0.03));   // mushiko-mado slits under the eaves
-  for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.12, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
+  for (let f = 0; f < L; f++) { const y = y0 + floorY(f) + (f === 0 ? 0.3 : 0.18); windowPane(g, wg, 0.12, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
   engawa(g, w, d, y0);
   acUnit(g, -w / 2 - 0.05, y0 + 0.2, -0.2, -Math.PI / 2); pipe(g, w / 2 + 0.02, y0, y0 + H - 0.05, -d / 2 + 0.05);
   pots(g, 0.3, 0.44, 2); g.push(box(0.9, 0.12, 0.08, PAL.bush, 0, 0.18, -0.43)); yardProps(g, LG, sub(u.seed, 7), w, d);
@@ -103,11 +105,11 @@ function genModern(b, u, g, wg) {
   windowPane(g, wg, side * 0.17, y0 + 0.3, d / 2 + 0.005, 0.24, 0.3);                                     // tall ground-floor window
   wg.push(box(0.03, 0.3, 0.2, PAL.window, side * (w / 2 + 0.005), y0 + 0.3, 0.2)); g.push(box(0.02, 0.34, 0.24, K.frame, side * (w / 2 + 0.005), y0 + 0.3, 0.2));   // wraps the corner
   for (let f = 1; f < L; f++) {
-    const y = y0 + f * 0.52 + 0.28;
+    const y = y0 + floorY(f) + 0.2;
     windowPane(g, wg, -side * 0.12, y, d / 2 + 0.005, 0.44, 0.2);
-    balcony(g, side * 0.2, y0 + f * 0.52 + 0.06, d / 2 + 0.08, 0.34, 0.16, K.rail); if (sub(u.seed, 6) > 0.4) laundry(LG, side * 0.2, y0 + f * 0.52 + 0.06, d / 2 + 0.16, 0.34, sub(u.seed, f));
+    balcony(g, side * 0.2, y0 + floorY(f) + 0.02, d / 2 + 0.08, 0.34, 0.16, K.rail); if (sub(u.seed, 6) > 0.4) laundry(LG, side * 0.2, y0 + floorY(f) + 0.02, d / 2 + 0.16, 0.34, sub(u.seed, f));
   }
-  for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.1, y, -d / 2 - 0.005, 0.3, 0.16, Math.PI); windowPane(g, wg, -side * (w / 2 + 0.005), y, -0.1, 0.16, 0.16, side > 0 ? -Math.PI / 2 : Math.PI / 2); }
+  for (let f = 0; f < L; f++) { const y = y0 + floorY(f) + (f === 0 ? 0.3 : 0.2); windowPane(g, wg, 0.1, y, -d / 2 - 0.005, 0.3, 0.16, Math.PI); windowPane(g, wg, -side * (w / 2 + 0.005), y, -0.1, 0.16, 0.16, side > 0 ? -Math.PI / 2 : Math.PI / 2); }
   acUnit(g, -side * (w / 2 + 0.05), y0 + 0.2, -0.2, -side * Math.PI / 2); pipe(g, side * (w / 2 + 0.02), y0, y0 + H, -d / 2 + 0.06);
   if (sub(u.seed, 5) > 0.5) dish(g, -side * 0.2, y0 + H + 0.08, -0.2, 0.4);
   fence(g, 0, 0.45, 0.9, true, K.metal2, 0.09); fence(g, side * 0.45, 0, 0.8, false, K.metal2, 0.09);

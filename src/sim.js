@@ -9,12 +9,13 @@ import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { createPhone, createNewspaper } from './hand-items.js';
+import { record } from './chronicle.js';
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
 const CARRY_HOME = new Set(['grocery', 'supermarket', 'konbini', 'arcade', 'bakery']);   // shops you leave with a bag
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags } from './world.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { unitLocal } from './buildings.js';
@@ -408,7 +409,7 @@ function enterUnit(r, u) {
   else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); r.canPending = u.block.kind === 'konbini' && Math.random() < 0.5; r.bagPending = !r.canPending && CARRY_HOME.has(u.block.kind); }   // they will leave with a bag, or a can from the konbini
   else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); }
   else if (p === 'bath') { r.actKind = 'bath'; r.activity = pick(BATH_ACTS); r.until = S.T + rand(0.5, 0.9); u.block.visitsToday = (u.block.visitsToday || 0) + 1; }
-  else if (p === 'register') { r.actKind = 'visit'; r.activity = 'registering at the town office'; r.until = S.T + rand(0.15, 0.3); r.folderPending = true; if (r.hh) r.hh.registered = true; toast(`${r.name.split(' ')[0]} ${r.hh && r.hh.kind !== 'solo' ? 'registered the ' + r.hh.surname + ' household' : 'registered as a resident'} at ${u.block.name}`); }
+  else if (p === 'register') { r.actKind = 'visit'; r.activity = 'registering at the town office'; r.until = S.T + rand(0.15, 0.3); r.folderPending = true; if (r.hh) r.hh.registered = true; const line = `${r.name.split(' ')[0]} ${r.hh && r.hh.kind !== 'solo' ? 'registered the ' + r.hh.surname + ' household' : 'registered as a resident'} at ${u.block.name}`; toast(line); record(line); }
   else if (p === 'clinic') { r.actKind = 'clinic'; r.activity = pick(CLINIC_ACTS); r.until = S.T + rand(0.3, 0.6); u.block.visitsToday = (u.block.visitsToday || 0) + 1; }
   else if (p === 'chronicle') { r.actKind = 'visit'; r.activity = pick(CHRONICLE_ACTS); r.until = S.T + rand(0.25, 0.5); u.block.visitsToday = (u.block.visitsToday || 0) + 1; }
   else if (u === r.job) r.actKind = 'work';
@@ -700,6 +701,7 @@ function decide(r) {
   if (!atWork && h >= 10 && h < 19 && n.fun < 0.6 && Math.random() < 0.3) { const cc = civicUnit('community'); if (cc && cc !== u && routeUnits(u, cc)) add((1 - n.fun) * 0.7 + 0.1, () => go(r, cc, 'going to read the town chronicle', 'chronicle')); }
   if (!atWork && h >= 17 && h < 21 && n.fun < 0.65 && r.bathDay !== day) { const bu = bathUnits().find(x => x !== u && routeUnits(u, x)); if (bu) add((1 - n.fun) * 1.2 + 0.3, () => { r.bathDay = day; return go(r, bu, 'off to the bath house', 'bath'); }); }   // an evening soak
   if (!atWork && h >= 10 && h < 20.5 && n.social < 0.5) { const v = pickVisit(r); if (v) add((1 - n.social) * 1.15, () => go(r, v, `visiting ${v.block.name}`, 'visit')); }
+  if (atHome && u.block.bagsDue && r.mesh.userData.char && h >= 6 && h < 10.5) add(1.6, () => carryBags(r));   // collection morning: someone takes the bags out
   if (atHome) add(0.55 + n.fun * 0.2, () => stay(r, 'home', pick(HOME_ACTS), rand(0.6, 1.4)));
   else if (!(atWork && workHours)) add(0.5, () => go(r, r.home, 'heading home'));
   opts.sort((a, b) => b.score - a.score);
@@ -825,6 +827,17 @@ function wanderPick(w) {
 const collection = { day: -1, bagsOut: false, truck: null, truckDay: -1 };
 const recyclingCentre = () => blocks.find(b => b.type === 'civic' && b.kind === 'recycling' && b.stage === DONE);
 function bagKerb(b) { const u = b.units[0], road = frontRoad(u)[0]; if (!road) return null; const dx = Math.sign(road.i - u.cell.i), dz = Math.sign(road.j - u.cell.j); return { x: cx(u.cell.i) + dx * 0.44 - dz * 0.3, z: cz(u.cell.j) + dz * 0.44 + dx * 0.3, y: (u.cell.h || 0) + 0.1, road }; }
+/** collection morning: a resident steps out with the bags, walks to the kerb, sets them down and goes back in */
+function carryBags(r) {
+  const b = r.home.block, k = bagKerb(b); if (!k) { b.bagsDue = false; putBags(b); return true; }
+  b.bagsDue = false; const ch = r.mesh.userData.char; equipCharacterProp(ch, 'shopping-bag', PAL.sky2);
+  r.home.inside.delete(r); r.at = null; r.actKind = 'home'; r.until = 0; r.purpose = null;
+  startDirectTrip(r, exitPts(r.home)[0], new THREE.Vector3(k.x, 0.1, k.z), 'taking the bags out', () => {
+    clearCharacterProp(ch); putBags(b); r.activity = 'back inside';
+    startDirectTrip(r, r.mesh.position.clone(), exitPts(r.home)[0], 'heading back in', () => { r.mesh.visible = false; r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }, 0.1);
+  }, 0.1);
+  return true;
+}
 function putBags(b) {
   const k = bagKerb(b); if (!k || b.bags) return; const g = [], n = 1 + Math.round(hash(b.id, 3));
   for (let i = 0; i <= n; i++) g.push(blob(0.05, i % 2 ? PAL.sky2 : PAL.cream2, k.x + (i - n / 2) * 0.07, k.y + 0.05, k.z + (i % 2) * 0.03, 0, 0.8));
@@ -846,8 +859,9 @@ function updateCollection() {
   updateFireRound();
   const centre = recyclingCentre(), day = dayOf(), h = hourOf(), isDay = day % 3 === 0;
   if (!centre) { if (collection.bagsOut) { for (const b of blocks) clearBags(b); collection.bagsOut = false; } return; }
-  if (isDay && h >= 6 && h < 11 && collection.day !== day) { collection.day = day; collection.bagsOut = true; for (const b of blocks) if (b.type === 'res' && b.stage === DONE) putBags(b); }
-  if (collection.bagsOut && (h >= 11 || !isDay)) { for (const b of blocks) clearBags(b); collection.bagsOut = false; }
+  if (isDay && h >= 6 && h < 11 && collection.day !== day) { collection.day = day; collection.bagsOut = true; for (const b of blocks) if (b.type === 'res' && b.stage === DONE) { b.bagsDue = true; b.bagsBy = S.T + 1.2; } }   // someone at home carries them out; unclaimed bags appear by 7:15
+  if (collection.bagsOut) for (const b of blocks) if (b.bagsDue && S.T >= b.bagsBy) { b.bagsDue = false; putBags(b); }
+  if (collection.bagsOut && (h >= 11 || !isDay)) { for (const b of blocks) { clearBags(b); b.bagsDue = false; } collection.bagsOut = false; }
   if (collection.truck && (collection.truck.dead || !wanderers.includes(collection.truck))) collection.truck = null;
   if (isDay && h >= 7.5 && h < 10 && !collection.truck && collection.truckDay !== day) {
     const start = frontRoad(centre.units[0])[0]; if (!start) return;
@@ -998,7 +1012,7 @@ function updateBlocks(dh) {
       b.stageT += dh * progressRate(b);
       if (b.type === 'res' && b.stage === DONE - 1 && !b.summoned) { b.summoned = true; for (const u of b.units) for (const size of splitHouseholds(unitCap(u))) bookings.push({ hh: makeHousehold(size, u) }); }
       if (b.stageT >= stageHours(b)[b.stage]) {
-        b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) { toast(`${b.name} is finished`); if (b.type === 'civic') refreshCivicFlags(); }
+        b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) { toast(`${b.name} is finished`); if (b.type === 'civic') { refreshCivicFlags(); record(`${b.name} opened`); } else if (!blocks.some(x => x !== b && x.type === b.type && x.stage === DONE)) record(b.type === 'res' ? `The first home, ${b.name}, was finished` : b.type === 'shop' ? `The first shop, ${b.name}, opened` : `The first workplace, ${b.name}, opened`); }
         if (b.stage === DONE && b.villaFor) {   // the household that ordered the villa moves up; if they are gone, it is let like any home
           const hh = households.find(h => h.id === b.villaFor); b.villaFor = null;
           if (hh && hh.home && hh.members.length) moveUp(hh, b.units[0]); else b.summoned = false;
@@ -1028,7 +1042,7 @@ function updateBlocks(dh) {
       const staff = b.units.reduce((s, u) => s + u.staff.length, 0); occ = (staff > 0 ? 0.5 : 0) + 0.5 * clamp(b.visitScore / (4 * b.level), 0, 1);
     }
     if (occ >= 0.6) b.occT += dh; else b.occT = Math.max(0, b.occT - dh * 0.5);
-    if (b.occT >= 20 && b.level < 3 && b.variant !== 'villa' && growthAllowed(b)) { b.level++; b.occT = 0; b.renoT = 2.5; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} is being extended`); }
+    if (b.occT >= 20 && b.level < maxLevel(b) && b.variant !== 'villa' && growthAllowed(b)) { b.level++; b.occT = 0; b.renoT = 2.5; for (const u of b.units) rebuildUnitMesh(u, true); toast(`${b.name} is being extended`); if (b.level === 3) record(`${b.name} grew to three storeys`); }
   }
 }
 
