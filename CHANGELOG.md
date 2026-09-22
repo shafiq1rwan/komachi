@@ -47,6 +47,12 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Waterfalls splash at the foot: foam puffs pulse on the water where each fall lands and a fine mist rises and fades.
+- A pod of two or three dolphins swims round the island offshore, surfacing in arcs and diving with a splash (the Komachi
+  dolphin model, first use).
+- Tool bar: tighter gaps and side padding, a little more room above and below the icons, on desktop and small screens.
+- The ferry leaves a wake: foam puffs drop astern while it sails and spread and fade behind it, with a bow wash either
+  side of the stem; both follow its speed, so the water is still at the berth.
 - Phase 5.5 slice 3, town services from the new kit (src/town-services-kit.js): the Civic tool's one-cell pool gains a
   clinic, a fire station and a community centre, and two cells make the town hall (the town picks it before a second
   bath). A newly moved-in household sends one member to register at the town hall, who comes out with a folder and

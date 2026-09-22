@@ -112,6 +112,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `yardProps` adds mailbox/tap/tank/laundry pole to detached homes; world.js places 'utility-pole' (1.05×) and 'street-lamp' (1.5×).
   Street furniture likewise comes from src/street-furniture.js: addFurniture(out, kind, x, y, z, rot, color) merges; furnitureGeometry returns named
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
+- Sea life lives in src/sea.js: fish leaps and splashes, the pier boat's wake, a dolphin pod (`pod`, src/dolphins.js) and the waterfall splash
+  (`fallFeet` exported by island.js; puffs and mist in `updateSplash`). The ferry's own wake is in ferry.js (`updateWake`).
 - Tool labels (2026-09-22): Explore, Homes (res), Shops (shop), Work (work), Civic, Streets (road), Parking (park), Clear (remove). Code names are
   unchanged; player-facing strings say "Streets tool" and "Clear".
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.

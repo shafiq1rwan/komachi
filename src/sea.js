@@ -6,7 +6,8 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { scene } from './scene.js';
 import { box, mergeMesh } from './geometry.js';
-import { polygon, beachExtra, coastPoint, radius, islandEllipse } from './island.js';
+import { polygon, beachExtra, coastPoint, radius, islandEllipse, fallFeet } from './island.js';
+import { createDolphin, dolphinClips } from './dolphins.js';
 import boatUrl from '../assets/watercraft/boat-fishing-small.glb?url';
 import boatMapUrl from '../assets/watercraft/Textures/colormap.png?url';
 
@@ -66,7 +67,46 @@ for (let k = 0; k < 12; k++) { const m = new THREE.Mesh(trailGeo, new THREE.Mesh
 let nextRing = 0;
 
 /** advance the sea by real seconds */
+// ── waterfall splash: a ring of foam puffs at the foot of each fall, each pulsing on its own beat, and a mist that drifts up ──
+const foamTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d'); const grd = g.createRadialGradient(32, 32, 3, 32, 32, 32); grd.addColorStop(0, 'rgba(255,255,255,0.95)'); grd.addColorStop(0.5, 'rgba(255,255,255,0.4)'); grd.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = grd; g.fillRect(0, 0, 64, 64); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();
+const puffGeo = new THREE.PlaneGeometry(1, 1), splashBits = [];
+for (const f of fallFeet) {
+  const ax = -f.dz, az = f.dx;   // across the fall
+  for (let k = 0; k < 7; k++) {   // foam puffs on the water at the foot
+    const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ map: foamTex, color: PAL.foam, transparent: true, depthWrite: false, opacity: 0.6 }));
+    m.rotation.x = -Math.PI / 2; m.renderOrder = 4; const o = (k / 6 - 0.5) * f.w * 1.1, fwd = 0.04 + (k % 3) * 0.06;
+    m.position.set(f.x + ax * o + f.dx * fwd, f.y, f.z + az * o + f.dz * fwd); scene.add(m); splashBits.push({ m, phase: k * 1.7, base: 0.16 + (k % 2) * 0.05, kind: 'puff' });
+  }
+  for (let k = 0; k < 4; k++) {   // mist: upright sprites that rise and thin out, then start again at the foot
+    const m = new THREE.Mesh(puffGeo, new THREE.MeshBasicMaterial({ map: foamTex, color: PAL.foam, transparent: true, depthWrite: false, opacity: 0.3 }));
+    m.rotation.y = Math.atan2(f.dx, f.dz); m.renderOrder = 4; const o = (k / 3 - 0.5) * f.w * 0.7;
+    m.position.set(f.x + ax * o + f.dx * 0.1, f.y, f.z + az * o + f.dz * 0.1); scene.add(m); splashBits.push({ m, phase: k * 0.9, y0: f.y, kind: 'mist' });
+  }
+}
+function updateSplash(realT) {
+  for (const b of splashBits) {
+    if (b.kind === 'puff') { const p = 0.5 + 0.5 * Math.sin(realT * 5 + b.phase); const s = b.base * (0.8 + p * 0.7); b.m.scale.set(s, s * 0.7, 1); b.m.material.opacity = 0.35 + 0.4 * p; }
+    else { const p = ((realT * 0.55 + b.phase) % 1); b.m.position.y = b.y0 + p * 0.28; const s = 0.1 + p * 0.22; b.m.scale.set(s, s, 1); b.m.material.opacity = 0.32 * (1 - p) * Math.min(1, p * 6); }
+  }
+}
+// ── a pod of dolphins: two or three swim round the island offshore, surfacing in arcs and diving with a splash ──
+const pod = [];
+{ const clips = dolphinClips(), n = 2 + Math.floor(Math.random() * 2), theta0 = Math.random() * Math.PI * 2;
+  for (let k = 0; k < n; k++) { const d = createDolphin(k === 1 ? '#8fb0c9' : PAL.roofBlue, 0.19); d.visible = false; scene.add(d); const mixer = new THREE.AnimationMixer(d); mixer.clipAction(clips[0]).play(); mixer.setTime(k * 0.5);
+    pod.push({ mesh: d, mixer, theta: theta0 + k * 0.09, r: 3.2 + k * 0.35, t: k * 1.1, period: 3.6 + k * 0.3, splashed: false }); } }
+function updatePod(dt, realT) {
+  for (const d of pod) {
+    d.theta += 0.05 * dt; d.t += dt; const p = (d.t % d.period) / d.period;   // one surfacing arc per period: up out of the water and back in
+    const [x, z] = coastPoint(d.theta, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta)), [nx, nz] = coastPoint(d.theta + 0.02, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta + 0.02));
+    const up = p < 0.45 ? Math.sin(p / 0.45 * Math.PI) : 0;   // the arc lasts 45 % of the period; the rest is under water
+    d.mesh.visible = up > 0.02; if (!d.mesh.visible) { if (!d.splashed && p >= 0.45) { d.splashed = true; splash(x, z); } if (p < 0.02) d.splashed = false; continue; }
+    d.mesh.position.set(x, WATER_Y - 0.28 + up * 0.62, z);
+    d.mesh.rotation.set(0, Math.atan2(nx - x, nz - z), 0); d.mesh.rotateX(-Math.cos(p / 0.45 * Math.PI) * 0.7);   // nose up rising, down diving
+    d.mixer.update(dt);
+  }
+}
 function updateSea(dt, realT) {
+  updateSplash(realT); updatePod(dt, realT);
   waves.forEach((w, k) => { const p = 0.5 + 0.5 * Math.sin(realT * 0.8 - k * 1.5); w.material.opacity = 0.1 + 0.45 * p; const s = 1 + 0.004 * Math.sin(realT * 0.8 - k * 1.5 + 1); w.scale.set(s, s, 1); });
   nextJump -= dt; if (nextJump <= 0) { jump(realT); nextJump = rand(1.5, 4.5); }
   for (const f of fish) {

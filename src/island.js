@@ -188,7 +188,7 @@ const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hill
 //    town centre and the hill. Cells are keyed "i,j". The coast road follows the beach just inland, one cell
 //    wide, breaking only at the hill; where it meets the canal it crosses on a bridge. ──
 const key = (i, j) => i + ',' + j;
-const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMouths = [];   // canalMouths: shore angles of the waterfalls
+const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMouths = [], fallFeet = [];   // canalMouths: shore angles of the waterfalls; fallFeet: where each fall lands {x, y, z, dx, dz, w}
 {
   // the coast road: sixteen points just inside the beach joined by L-shaped runs (grid roads cannot go diagonal, and
   // long straight runs with a few corners read far better than a one-cell sawtooth). Hill cells break the road.
@@ -268,6 +268,7 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
           const sheet = new THREE.PlaneGeometry(0.66, drop); sheet.rotateY(Math.atan2(di, dj)); sheet.translate(ex + di * 0.03, top - drop / 2, ez + dj * 0.03); fall.push(colorize(sheet, PAL.canal));
           if (!culvert) { across(0.78, 0.34, 0.34, PAL.canal, x + di * (L + 0.12), WATER - 0.16, z + dj * (L + 0.12)); for (const sd of [-1, 1]) { across(0.11, 0.34, 0.44, wall, x + di * (L + 0.12) + (di ? 0 : sd * 0.445), TOP - 0.22, z + dj * (L + 0.12) + (di ? sd * 0.445 : 0)); across(0.13, 0.34, 0.025, coping, x + di * (L + 0.12) + (di ? 0 : sd * 0.445), TOP + 0.012, z + dj * (L + 0.12) + (di ? sd * 0.445 : 0)); } wat.push(flowPlane(0.78, 0.34, Math.atan2(di, dj), x + di * (L + 0.12), WATER + 0.014, z + dj * (L + 0.12), ko + L - 0.4)); }   // a solid block of water between walls over the land's bevelled edge, so no ground shows beneath the lip
           across(0.74, 0.14, 0.04, PAL.foam, ex - di * 0.02, top + 0.01, ez - dj * 0.02);   // the lip
+          fallFeet.push({ x: ex + di * 0.06, y: beachY + 0.02, z: ez + dj * 0.06, dx: di, dz: dj, w: 0.66 });   // the splash pool at the foot (sea.js animates it)
           let B = 0.2; while (B < 3 && coastDist(x + di * (L + B), z + dj * (L + B)) > -beachExtra(theta)) B += 0.1;   // the beach's width here
           // a walled channel carries the water straight across the sand and out into the sea; its walls run down into the sand
           const c0 = L + 0.22, c1 = L + B + 0.4, cm = (c0 + c1) / 2, clen = c1 - c0, chx = x + di * cm, chz = z + dj * cm, chY = beachY + 0.008;
@@ -315,4 +316,4 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
 }
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;
-export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths };
+export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet };

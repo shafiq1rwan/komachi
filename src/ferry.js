@@ -180,10 +180,31 @@ export function initFerry() {
   ferry.state = 'away';
   refreshWorld();
 }
+// ── wake: a pool of soft foam sprites; one is dropped astern every so often while the ship moves, then spreads and fades ──
+const foamTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d'); const grd = g.createRadialGradient(64, 64, 6, 64, 64, 64); grd.addColorStop(0, 'rgba(255,255,255,0.9)'); grd.addColorStop(0.45, 'rgba(255,255,255,0.45)'); grd.addColorStop(1, 'rgba(255,255,255,0)'); g.fillStyle = grd; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t; })();   // white foam, unlike the amber lamp glow
+const WAKE_N = 28, wakeMat = new THREE.MeshBasicMaterial({ map: foamTex, color: PAL.foam, transparent: true, depthWrite: false, opacity: 0.55 });
+const wakeGeo = new THREE.PlaneGeometry(1, 1), wake = [], bowWash = []; let wakeNext = 0; const lastPos = new THREE.Vector3(); let wakeInit = false;
+function ensureWake() {
+  if (wake.length) return;
+  for (let k = 0; k < WAKE_N; k++) { const s = new THREE.Mesh(wakeGeo, wakeMat.clone()); s.rotation.x = -Math.PI / 2; s.visible = false; s.renderOrder = 4; scene.add(s); wake.push({ m: s, age: 1 }); }
+  for (const side of [-1, 1]) { const s = new THREE.Mesh(wakeGeo, wakeMat.clone()); s.rotation.x = -Math.PI / 2; s.visible = false; s.renderOrder = 4; s.userData.side = side; scene.add(s); bowWash.push(s); }
+}
+function updateWake(simDt, moving) {
+  ensureWake(); const m = ferry.mesh;
+  if (!wakeInit) { lastPos.copy(m.position); wakeInit = true; }
+  const speed = moving ? lastPos.distanceTo(m.position) / Math.max(1e-4, simDt) : 0; lastPos.copy(m.position);
+  const fx = Math.cos(m.rotation.y), fz = -Math.sin(m.rotation.y);   // the hull runs along local x, bow at +x: forward in the world
+  const L = 1.05 * FERRY_SCALE;   // half the hull length
+  if (speed > 0.05) { wakeNext -= simDt; if (wakeNext <= 0) { wakeNext = 0.09; const w = wake.reduce((a, b) => a.age > b.age ? a : b); w.age = 0; w.m.position.set(m.position.x - fx * L, WATER_Y + 0.012, m.position.z - fz * L); w.m.visible = true; } }
+  for (const w of wake) { if (!w.m.visible) continue; w.age += simDt / 2.6; if (w.age >= 1) { w.m.visible = false; continue; } const s = 0.5 + w.age * 1.6; w.m.scale.set(s, s * 0.8, 1); w.m.material.opacity = 0.5 * (1 - w.age) * (1 - w.age); }
+  const wash = Math.min(1, speed / 1.2);
+  for (const s of bowWash) { s.visible = wash > 0.02; if (!s.visible) continue; const side = s.userData.side; s.position.set(m.position.x + fx * L * 0.75 - fz * side * 0.32 * FERRY_SCALE, WATER_Y + 0.012, m.position.z + fz * L * 0.75 + fx * side * 0.32 * FERRY_SCALE); const k = 0.45 + wash * 0.5; s.scale.set(k, k * 0.7, 1); s.material.opacity = 0.35 * wash; }
+}
 export function updateFerry(dh, simDt) {
   if (!ferry.ready) return;
   buildYardStock();
   const m = ferry.mesh, ramp = m.userData.ramp;
+  updateWake(simDt, m.visible && (ferry.state === 'arriving' || ferry.state === 'leaving'));
   if (ferry.state === 'away') {   // a sailing starts its run in whenever the clock enters a call's window, once per call per day (robust to time jumps)
     const h = hourOf(), day = Math.floor(S.T / 24);
     if (ferry.lastCallT !== undefined && S.T < ferry.lastCallT) ferry.lastCall = null;   // the clock went backwards (a test): that call can come again
