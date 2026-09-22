@@ -1,0 +1,24 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi · Outdoor props</title>
+<style>*{box-sizing:border-box}body{margin:0;background:#ede9df;color:#4d493f;font:16px system-ui}header{position:absolute;top:35px;left:48px;pointer-events:none}small{letter-spacing:.2em;text-transform:uppercase;font-size:11px}h1{font-size:36px;font-weight:550;margin:9px 0}p{color:#787568;font-size:14px}canvas{display:block}footer{position:absolute;bottom:28px;left:48px;right:48px;display:flex;align-items:center;justify-content:space-between}button,select{border:1px solid #c7c3b5;border-radius:20px;padding:10px 17px;background:#faf8f0;color:inherit;cursor:pointer}nav{display:flex;gap:8px}.labels{position:absolute;bottom:110px;left:8%;right:8%;display:flex;justify-content:space-around;font-size:14px;pointer-events:none}</style></head>
+<body><header><small>Komachi / Character accessories</small><h1>A little work outdoors.</h1><p>Sweep the path, wait for a bite, and water the garden.</p></header><div class="labels"><span>Broom</span><span>Fishing rod</span><span>Watering can</span></div><footer><small>Original low-poly props · drag to orbit</small><nav><select id="view"><option value="characters">With characters</option><option value="props">Props only</option></select><button id="motion">Walk</button></nav></footer>
+<script type="module">
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';
+import {characterReady,attachCharacter,updateCharacters} from '/src/characters.js';
+import {createCharacterProp,equipCharacterProp,PROP_KINDS,setUmbrellaOpen} from '/src/character-props.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#ede9df');const camera=new THREE.PerspectiveCamera(32,innerWidth/innerHeight,.01,100);camera.position.set(.45,.65,2);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(devicePixelRatio);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.23,0);controls.enableDamping=true;controls.update();scene.add(new THREE.HemisphereLight('#fff9ea','#a8b7ac',2.5));const light=new THREE.DirectionalLight('#fff4de',3.5);light.position.set(-1,3,2);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-1,right:1,top:1,bottom:-1,near:.01,far:8});light.shadow.normalBias=.001;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#ede9df',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=-.001;scene.add(floor);
+await characterReady;
+const chars=[],props=[],colors=['#7f9b7a','#8fb0c9','#d98b7a','#a98ba0'];
+for(let i=0;i<3;i++){
+ const grp=new THREE.Group();grp.position.x=(i-1)*.48;grp.userData.res={state:'inside'};scene.add(grp);
+ const char=attachCharacter(grp,{name:['Mei','Ren','Hana','Aoi'][i],skin:'#e9c2a0',shirt:colors[i],pants:'#5f6772',hair:'#6b4c3a'});equipCharacterProp(char,PROP_KINDS[i+4]);chars.push(char);
+ const prop=createCharacterProp(PROP_KINDS[i+4]);prop.position.set((i-1)*.48,.18,0);prop.rotation.y=-.35;prop.visible=false;scene.add(prop);props.push(prop);
+}
+let walking=false,open=true;
+document.querySelector('#view').onchange=e=>{const show=e.target.value==='characters';chars.forEach(c=>c.grp.visible=show);props.forEach(p=>p.visible=!show);};
+document.querySelector('#motion').onclick=e=>{walking=!walking;chars.forEach(c=>c.grp.userData.res.state=walking?'walking':'inside');e.target.textContent=walking?'Stand':'Walk';};
+const clock=new THREE.Clock();renderer.setAnimationLoop(()=>{updateCharacters(Math.min(clock.getDelta(),.05));controls.update();renderer.render(scene,camera);});addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});updateCharacters(.5);window.propsPreview={scene,camera,renderer,controls,chars,props};
+</script></body></html>
+

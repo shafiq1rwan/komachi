@@ -1,0 +1,249 @@
+[
+  {
+    "kit": "utility",
+    "kind": "utility-pole",
+    "triangles": 1736,
+    "meshes": 1,
+    "bytes": 188924,
+    "size": [
+      0.49000000953674316,
+      1.1629999756813048,
+      0.36299998313188553
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "utility",
+    "kind": "street-lamp",
+    "triangles": 192,
+    "meshes": 1,
+    "bytes": 22096,
+    "size": [
+      0.07604934275150299,
+      0.8679999707452952,
+      0.3375000134110451
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "utility",
+    "kind": "street-lamp-head",
+    "triangles": 116,
+    "meshes": 1,
+    "bytes": 13892,
+    "size": [
+      0.07604934275150299,
+      0.03700000140815973,
+      0.19500000029802322
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "noren",
+    "triangles": 472,
+    "meshes": 1,
+    "bytes": 52364,
+    "size": [
+      0.5199999809265137,
+      0.18299999739974737,
+      0.03650000039488077
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "chochin",
+    "triangles": 1640,
+    "meshes": 1,
+    "bytes": 178496,
+    "size": [
+      0.12335000187158585,
+      0.21850000275298953,
+      0.12767500057816505
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "tate-kanban",
+    "triangles": 416,
+    "meshes": 1,
+    "bytes": 46272,
+    "size": [
+      0.16099999845027924,
+      0.3889999981820583,
+      0.14000000059604645
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "awning",
+    "triangles": 332,
+    "meshes": 1,
+    "bytes": 37248,
+    "size": [
+      0.6000000238418579,
+      0.14242272824048996,
+      0.24399999901652336
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "a-board",
+    "triangles": 380,
+    "meshes": 1,
+    "bytes": 42356,
+    "size": [
+      0.18000000715255737,
+      0.2563354172743857,
+      0.16730305552482605
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "hanging-sign",
+    "triangles": 508,
+    "meshes": 1,
+    "bytes": 56272,
+    "size": [
+      0.29749999940395355,
+      0.1824999898672104,
+      0.046499998308718204
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "drink-crates",
+    "triangles": 2916,
+    "meshes": 1,
+    "bytes": 316280,
+    "size": [
+      0.296999990940094,
+      0.19300000358372926,
+      0.10400000214576721
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "shop-facade",
+    "kind": "menu-stand",
+    "triangles": 176,
+    "meshes": 1,
+    "bytes": 20296,
+    "size": [
+      0.1899999976158142,
+      0.31988474748283624,
+      0.125
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "wall-gate",
+    "triangles": 576,
+    "meshes": 2,
+    "bytes": 64544,
+    "size": [
+      0.7890000343322754,
+      0.23599999982118602,
+      0.08500000089406967
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "mailbox",
+    "triangles": 148,
+    "meshes": 1,
+    "bytes": 17312,
+    "size": [
+      0.11900000274181366,
+      0.28099998853355646,
+      0.08449999988079071
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "potted-plants",
+    "triangles": 2120,
+    "meshes": 1,
+    "bytes": 230304,
+    "size": [
+      0.24936264008283615,
+      0.17702151986956594,
+      0.16662536561489105
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "laundry-pole",
+    "triangles": 504,
+    "meshes": 2,
+    "bytes": 56712,
+    "size": [
+      0.5770000219345093,
+      0.38749998793751,
+      0.10400000214576721
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "air-con",
+    "triangles": 964,
+    "meshes": 1,
+    "bytes": 105460,
+    "size": [
+      0.23799999803304672,
+      0.14800000236928462,
+      0.12350000068545341
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "bicycle",
+    "triangles": 3300,
+    "meshes": 6,
+    "bytes": 442632,
+    "size": [
+      0.13749724626541138,
+      0.2524999979138374,
+      0.4050000011920929
+    ],
+    "minY": -2.98023217215615e-10
+  },
+  {
+    "kit": "home-yard",
+    "kind": "kerosene-tank",
+    "triangles": 324,
+    "meshes": 1,
+    "bytes": 36332,
+    "size": [
+      0.1826046258211136,
+      0.23199999210238453,
+      0.10599999874830246
+    ],
+    "minY": 0
+  },
+  {
+    "kit": "home-yard",
+    "kind": "garden-tap",
+    "triangles": 212,
+    "meshes": 1,
+    "bytes": 24272,
+    "size": [
+      0.1509999930858612,
+      0.20600000037252902,
+      0.15199999883770943
+    ],
+    "minY": 0
+  }
+]

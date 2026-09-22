@@ -2,9 +2,11 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PAL } from './palette.js';
+import { createOutdoorProp, OUTDOOR_PROP_KINDS } from './outdoor-props.js';
 
-export const PROP_KINDS = ['shopping-bag', 'briefcase', 'umbrella', 'folder'];
+export const PROP_KINDS = ['shopping-bag', 'briefcase', 'umbrella', 'folder', ...OUTDOOR_PROP_KINDS];
 export function createCharacterProp(kind, color) {
+  if (OUTDOOR_PROP_KINDS.includes(kind)) return createOutdoorProp(kind, color);
   if (!PROP_KINDS.includes(kind)) throw new Error(`Unknown character prop: ${kind}`);
   const root = new THREE.Group(); root.name = `Komachi_${kind.replaceAll('-', '_')}`;
   root.userData.propKind = kind; root.userData.grip = [0, 0, 0];
@@ -119,8 +121,11 @@ export function updateCharacterProp(char) {
   const prop = char.accessory, arm = char.armR; if (!prop || !arm) return;
   char.grp.updateWorldMatrix(true, true);
   const kind = prop.userData.propKind;
-  if (kind === 'umbrella' || kind === 'folder') {
+  if (kind === 'umbrella' || kind === 'folder' || OUTDOOR_PROP_KINDS.includes(kind)) {
     if (kind === 'umbrella') direction.set(-.17, .145, .035);
+    else if (kind === 'broom') direction.set(-.16, .19, .045);
+    else if (kind === 'fishing-rod') direction.set(-.15, .16, .08);
+    else if (kind === 'watering-can') direction.set(-.17, .13, .04);
     else direction.set(-.07, .17, .085);
     char.grp.localToWorld(direction); arm.parent.worldToLocal(direction); direction.sub(arm.position).normalize();
     arm.quaternion.setFromUnitVectors(grip.copy(palm).normalize(), direction); arm.updateWorldMatrix(true, false);
@@ -128,4 +133,5 @@ export function updateCharacterProp(char) {
   grip.copy(palm); arm.localToWorld(grip); char.grp.worldToLocal(grip); prop.position.copy(grip);
   // Thin case and folder lie alongside the leg, clear of the torso.
   prop.rotation.y = kind === 'umbrella' ? 0 : kind === 'folder' ? -.18 : Math.PI / 2;
+  if (OUTDOOR_PROP_KINDS.includes(kind)) prop.rotation.set(kind === 'fishing-rod' ? .45 : 0, kind === 'broom' ? 0 : -.35, 0);
 }

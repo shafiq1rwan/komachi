@@ -1,5 +1,27 @@
 # Everyday carry props
 
+## Outdoor set
+
+Three additional original props fit the same Kenney hand attachment helper:
+
+| Asset | Detail | Triangles |
+| --- | --- | ---: |
+| `komachi-broom.glb` | Wooden shaft, sage binding, flared straw bundles and hanging loop | 316 |
+| `komachi-fishing-rod.glb` | Tapered rod, cork grip, reel, guides, line and float | 1,200 |
+| `komachi-watering-can.glb` | Open container, carry arch, rear handle and perforated rose | 674 |
+
+Use `equipCharacterProp(char, 'broom' | 'fishing-rod' | 'watering-can', optionalColor)`.
+The existing character update places them at the palm in carrying poses. The source is
+`src/outdoor-props.js`, exposed through `src/character-props.js`. All assets use game units,
+Y-up, vertex colours and a grip at the origin. No external textures are required.
+
+`Fishing_Line` is a separate mesh so a future casting system can replace or hide it.
+The watering can provides `userData.pourPoint` in local coordinates for a future water effect.
+These are static carry props; sweeping, casting and watering activities are not implemented here.
+
+Export with `node scripts/build-props.mjs`. View `docs/outdoor-props-preview.html` through Vite,
+or run `node scripts/preview-outdoor-props.mjs` for export and walking-clearance checks plus images.
+
 Four original, matte low-poly accessories sized for the game's Kenney Mini Characters at scale 0.46.
 Each GLB is standalone with vertex colours and no external textures. +Y is up; the origin is the grip.
 

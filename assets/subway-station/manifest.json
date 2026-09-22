@@ -1,0 +1,163 @@
+{
+  "size": [
+    0.8801850080490112,
+    1.0295000076293945,
+    0.8820917010307312
+  ],
+  "min": [
+    -0.4400925040245056,
+    -0.32999998331069946,
+    -0.4410458505153656
+  ],
+  "max": [
+    0.4400925040245056,
+    0.6995000243186951,
+    0.4410458505153656
+  ],
+  "triangles": 5348,
+  "bytes": 592320,
+  "meshes": [
+    {
+      "name": "Stairwell_Sides_And_Rails",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Open_Descending_Stairs",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Pavilion_Frame",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Eaves_And_Ceiling",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Kawara_Hip_And_Gable_Roof",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Window_Frame",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Window_Band",
+      "material": "Window_Band_Material"
+    },
+    {
+      "name": "Window_Mullions",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Name_Board_Frame",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Name_Board",
+      "material": "Name_Board_Material"
+    },
+    {
+      "name": "Station_Name_Lettering",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Lamp_L_Frame",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Lamp_L",
+      "material": "Lamp_L_Material"
+    },
+    {
+      "name": "Lamp_R_Frame",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Lamp_R",
+      "material": "Lamp_R_Material"
+    },
+    {
+      "name": "Clock_Face",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Clock_Hour_Hand",
+      "material": "Pavilion_Matte"
+    },
+    {
+      "name": "Clock_Minute_Hand",
+      "material": "Pavilion_Matte"
+    }
+  ],
+  "front": "+Z",
+  "groundY": 0,
+  "placementY": 0.12,
+  "units": "game",
+  "entrance": [
+    0,
+    0,
+    0.38
+  ],
+  "stairBottom": [
+    0,
+    -0.3,
+    -0.265
+  ],
+  "stairOpening": {
+    "minX": -0.235,
+    "maxX": 0.235,
+    "minZ": -0.34,
+    "maxZ": 0.36
+  },
+  "stairTreads": [
+    {
+      "z": 0.3,
+      "y": 0,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": 0.21,
+      "y": -0.05,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": 0.12,
+      "y": -0.1,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": 0.02999999999999997,
+      "y": -0.15000000000000002,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": -0.06,
+      "y": -0.2,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": -0.14999999999999997,
+      "y": -0.25,
+      "depth": 0.09,
+      "width": 0.44
+    },
+    {
+      "z": -0.24000000000000005,
+      "y": -0.30000000000000004,
+      "depth": 0.09,
+      "width": 0.44
+    }
+  ],
+  "lightMeshes": [
+    "Window_Band",
+    "Name_Board",
+    "Lamp_L",
+    "Lamp_R"
+  ]
+}

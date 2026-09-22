@@ -1,0 +1,22 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi · Street furniture</title>
+<style>body{margin:0;background:#ede9df;color:#4d493f;font:16px system-ui}header{position:absolute;top:34px;left:48px;pointer-events:none}small{letter-spacing:.2em;text-transform:uppercase;font-size:11px}h1{font-size:36px;font-weight:550;margin:9px 0}p{color:#787568;font-size:14px}canvas{display:block}footer{position:absolute;bottom:28px;left:48px;right:48px;display:flex;align-items:center;justify-content:space-between}select{border:1px solid #c7c3b5;border-radius:20px;padding:10px 17px;background:#faf8f0;color:inherit;cursor:pointer}.label{position:absolute;transform:translate(-50%,-50%);pointer-events:none;font-size:13px;color:#635e52}</style></head>
+<body><header><small>Komachi / Street furniture</small><h1>The details between destinations.</h1><p>A place to sit, wait, park a bicycle, or buy a cold drink.</p></header><footer><small>Original low-poly models · drag to orbit</small><select id="model" aria-label="Model"><option value="all">Complete kit</option><option value="vending-machine">Vending machine</option><option value="bench">Bench</option><option value="bus-stop">Bus stop</option><option value="traffic-light">Traffic light</option><option value="street-signs">Street signs</option><option value="planter">Planter</option><option value="bike-rack">Bike rack</option></select></footer>
+<script type="module">
+import * as THREE from 'three';import {OrbitControls} from 'three/addons/controls/OrbitControls.js';import {STREET_KINDS,createStreetFurniture} from '/src/street-furniture.js';
+const scene=new THREE.Scene();scene.background=new THREE.Color('#ede9df');const camera=new THREE.PerspectiveCamera(35,innerWidth/innerHeight,.01,100);camera.position.set(0,3.3,4.9);
+const renderer=new THREE.WebGLRenderer({antialias:true,preserveDrawingBuffer:true});renderer.setSize(innerWidth,innerHeight);renderer.setPixelRatio(devicePixelRatio);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.1;document.body.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.target.set(0,.25,0);controls.enableDamping=true;controls.update();scene.add(new THREE.HemisphereLight('#fff9ea','#a8b7ac',2.5));const light=new THREE.DirectionalLight('#fff4de',3.5);light.position.set(-3,7,4);light.castShadow=true;light.shadow.mapSize.set(2048,2048);Object.assign(light.shadow.camera,{left:-5,right:5,top:5,bottom:-5,near:.1,far:15});light.shadow.normalBias=.002;scene.add(light);
+const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.MeshStandardMaterial({color:'#ede9df',roughness:1}));floor.rotation.x=-Math.PI/2;floor.receiveShadow=true;floor.position.y=-.006;scene.add(floor);
+const positions=[[-1.3,0,-.7],[-.5,0,-.7],[.5,0,-.7],[1.3,0,-.7],[-1.05,0,.65],[0,0,.65],[1.05,0,.65]];
+const names=['Vending machine','Bench','Bus stop','Traffic light','Street signs','Planter','Bike rack'];
+const models=STREET_KINDS.map((kind,i)=>{const mesh=createStreetFurniture(kind);mesh.position.fromArray(positions[i]);scene.add(mesh);const label=document.createElement('span');label.className='label';label.textContent=names[i];document.body.appendChild(label);return{kind,mesh,label,index:i};});
+function select(kind){for(const o of models){o.mesh.visible=kind==='all'||kind===o.kind;o.label.hidden=kind!=='all';o.mesh.position.fromArray(kind==='all'?positions[o.index]:[0,0,0]);}camera.position.set(...(kind==='all'?[0,3.3,4.9]:[1.15,.95,1.85]));controls.target.set(0,kind==='all'?.25:kind==='bench'||kind==='planter'||kind==='bike-rack'?.12:.30,0);controls.update();}
+document.querySelector('#model').onchange=e=>select(e.target.value);
+renderer.setAnimationLoop(()=>{controls.update();for(const o of models){if(!o.label.hidden){const p=o.mesh.position.clone().add(new THREE.Vector3(0,0,.33)).project(camera);o.label.style.left=(p.x*.5+.5)*innerWidth+'px';o.label.style.top=(-p.y*.5+.5)*innerHeight+'px';}}renderer.render(scene,camera);});addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);});window.naturePreview={scene,camera,renderer,controls,models,select};
+</script></body></html>
+
+
+
+
+
+
