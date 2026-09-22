@@ -10,6 +10,20 @@ export const NEIGHBOURHOOD_KITS = {
   'home-yard': ['wall-gate', 'mailbox', 'potted-plants', 'laundry-pole', 'air-con', 'bicycle', 'kerosene-tank', 'garden-tap'],
 };
 
+/** The town's merger wants position/normal/uv/color on every part: each named mesh, baked to world space (pivots and
+ *  the bottom alignment applied), then scaled (uniform or per axis), turned and placed. Not for 'bicycle' (the town draws its own). */
+export function neighbourhoodGeometry(kind, { x = 0, y = 0, z = 0, rot = 0, scale = 1, sx, sy, sz } = {}) {
+  const root = createNeighbourhoodProp(kind), out = {}; root.updateMatrixWorld(true);
+  root.traverse(o => {
+    if (!o.isMesh) return;
+    const g = o.geometry.clone().applyMatrix4(o.matrixWorld); o.geometry.dispose();
+    g.scale(sx ?? scale, sy ?? scale, sz ?? scale); g.rotateY(rot); g.translate(x, y, z);
+    if (!g.attributes.uv) g.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(g.attributes.position.count * 2), 2));
+    out[o.name] = g;
+  });
+  return out;
+}
+export function addNeighbourhood(out, kind, x, y, z, rot = 0, opts = {}) { const parts = neighbourhoodGeometry(kind, { x, y, z, rot, ...opts }); for (const k in parts) out.push(parts[k]); return parts; }
 export function createNeighbourhoodProp(kind) {
   if (!Object.values(NEIGHBOURHOOD_KITS).flat().includes(kind)) throw new Error(`Unknown neighbourhood prop: ${kind}`);
   if (kind === 'bicycle') return createBike();

@@ -3,7 +3,19 @@
 // vertex-coloured geometry into `g` (body) or `wg` (things that glow at night).
 import * as THREE from 'three';
 import { PAL, SHIRTS } from './palette.js';
-import { box, blob, cyl, prism, colorize } from './geometry.js';
+import { box, cyl, prism, colorize } from './geometry.js';
+import { neighbourhoodGeometry } from './neighbourhood-kits.js';
+
+/** recolour a kit part: `map` names the kit's source palette colours (keys of PAL) and the colour each becomes */
+const tmpC = new THREE.Color();
+function retint(geo, map) {
+  const col = geo.attributes.color; if (!col || !map) return geo;
+  const repl = new Map(); for (const [name, hex] of Object.entries(map)) if (hex && PAL[name]) repl.set(new THREE.Color(PAL[name]).getHexString(), new THREE.Color(hex));
+  for (let i = 0; i < col.count; i++) { const c = repl.get(tmpC.setRGB(col.getX(i), col.getY(i), col.getZ(i)).getHexString()); if (c) col.setXYZ(i, c.r, c.g, c.b); }
+  return geo;
+}
+/** one kit piece into a list, recoloured by source colour; returns the parts by name */
+function kitPart(g, kind, opts, targets = null) { const parts = neighbourhoodGeometry(kind, opts); for (const k in parts) g.push(targets ? retint(parts[k], targets) : parts[k]); return parts; }
 import { addFurniture } from './street-furniture.js';
 
 export const K = {
@@ -13,10 +25,8 @@ export const K = {
 };
 
 /** wall-mounted air-conditioning unit; ry rotates it onto a side wall */
-export function acUnit(g, x, y, z, ry = 0) {
-  g.push(box(0.14, 0.11, 0.08, PAL.concrete, x, y, z, ry));
-  g.push(box(0.1, 0.07, 0.01, K.grille, x + Math.cos(ry) * 0 + Math.sin(ry) * 0.045, y, z + Math.cos(ry) * 0.045 - Math.sin(ry) * 0, ry));
-  g.push(box(0.16, 0.02, 0.1, K.metal, x, y - 0.065, z, ry));
+export function acUnit(g, x, y, z, ry = 0) {   // the kit's outdoor unit (grille toward local +z), centred on y like the old box
+  kitPart(g, 'air-con', { x, y: y - 0.05, z, rot: ry, scale: 0.65 });
 }
 /** a vertical drain pipe hugging a wall */
 export function pipe(g, x, y0, y1, z) { g.push(cyl(0.014, 0.014, y1 - y0, K.metal2, x, (y0 + y1) / 2, z, 5)); g.push(box(0.04, 0.03, 0.04, K.metal2, x, y0 + 0.05, z)); }
@@ -48,12 +58,8 @@ export function fence(g, x, z, len, alongX, color = PAL.wood, h = 0.12) {
   g.push(box(alongX ? len : 0.015, 0.015, alongX ? 0.015 : len, color, x, 0.12 + h * 0.8, z));
 }
 /** a row of potted plants */
-export function pots(g, x, z, n, alongX = true, spacing = 0.11) {
-  for (let k = 0; k < n; k++) {
-    const px = alongX ? x + (k - (n - 1) / 2) * spacing : x, pz = alongX ? z : z + (k - (n - 1) / 2) * spacing;
-    g.push(cyl(0.035, 0.028, 0.06, k % 2 ? '#c88b6d' : PAL.cream2, px, 0.15, pz, 6));
-    g.push(blob(0.045, k % 3 === 0 ? PAL.flower : PAL.bush2, px, 0.21, pz, 0, 0.9));
-  }
+export function pots(g, x, z, n, alongX = true, spacing = 0.11) {   // the kit's three potted plants, sized to the old row
+  kitPart(g, 'potted-plants', { x, y: 0.12, z, rot: alongX ? 0 : Math.PI / 2, scale: Math.min(1.1, (n * spacing + 0.06) / 0.249) });
 }
 /** a parked bicycle, standing along its local z axis before rotation */
 export function bicycle(g, x, z, rot, color = K.bike[0]) {
@@ -77,12 +83,9 @@ export function signBoard(g, wg, x, y, z, w, color, accent, glow = false) {
   if (glow) wg.push(box(w * 0.5, 0.03, 0.02, PAL.window, x, y - 0.045, z + 0.012));
 }
 /** hanging cloth awning (plain) */
-export function plainAwning(g, x, y, z, w, color) { const a = new THREE.BoxGeometry(w, 0.025, 0.24); a.rotateX(0.5); a.translate(x, y, z + 0.1); g.push(colorize(a, color)); g.push(box(w, 0.03, 0.04, color, x, y + 0.05, z)); }
+export function plainAwning(g, x, y, z, w, color) { kitPart(g, 'awning', { x, y: y - 0.1, z: z - 0.02, sx: w / 0.6, sy: 1, sz: 1 }, { roofTeal: color, cream2: color, kawara: color }); }   // the kit awning in one colour
 /** striped awning */
-export function stripedAwning(g, x, y, z, w, c1, c2) {
-  for (let k = 0; k < 6; k++) { const a = new THREE.BoxGeometry(w / 6 + 0.005, 0.03, 0.24); a.rotateX(0.5); a.translate(x - w / 2 + w / 12 + k * (w / 6), y, z + 0.1); g.push(colorize(a, k % 2 ? c2 : c1)); }
-  g.push(box(w, 0.03, 0.04, c1, x, y + 0.05, z));
-}
+export function stripedAwning(g, x, y, z, w, c1, c2) { kitPart(g, 'awning', { x, y: y - 0.1, z: z - 0.02, sx: w / 0.6, sy: 1, sz: 1 }, { roofTeal: c1, cream2: c2, kawara: c1 }); }   // the kit's striped awning in the shop's colours
 /** window with frame; returns nothing, pushes into g and wg */
 export function windowPane(g, wg, x, y, z, w, h, ry = 0) {
   g.push(box(w + 0.04, h + 0.04, 0.02, K.frame, x, y, z, ry)); wg.push(box(w, h, 0.03, PAL.window, x, y, z + 0.005, ry));
@@ -154,25 +157,17 @@ export function genkan(g, x, y0, z, w = 0.22) {
   g.push(box(0.055, 0.03, 0.008, PAL.cream2, x + w / 2 + 0.03, y0 + 0.22, z)); g.push(box(0.03, 0.006, 0.01, K.chalk, x + w / 2 + 0.03, y0 + 0.22, z + 0.001));
 }
 /** vertical signboard hung off a front corner: a tall narrow board with stacked glyph blocks; lit behind them at night when `glow` */
-export function tateKanban(g, wg, x, y, z, color, accent, glow = false, h = 0.42) {
-  g.push(box(0.11, h, 0.035, color, x, y, z)); g.push(box(0.03, 0.03, 0.08, K.metal, x, y + h / 2 - 0.03, z - 0.04));
-  if (glow) wg.push(box(0.085, h - 0.05, 0.006, PAL.window, x, y, z + 0.019));
-  for (let k = 0; k < 3; k++) g.push(box(0.05, 0.05, 0.008, accent, x, y + h / 2 - 0.09 - k * 0.11, z + 0.024));
+export function tateKanban(g, wg, x, y, z, color, accent, glow = false, h = 0.42) {   // the kit's standing sign, board in the shop's colour
+  const s = h / 0.389; kitPart(g, 'tate-kanban', { x, y: y - h / 2, z, scale: s }, { indigo: color, roofRose: accent });
+  if (glow) wg.push(box(0.085 * s, h - 0.08, 0.006, PAL.window, x, y + 0.02, z + 0.045 * s));   // a lit strip on the face after dark
 }
 /** noren: a split cloth hung across the doorway, with a small crest */
-export function noren(g, x, y, z, w, color = PAL.indigo, accent = PAL.cream2) {
-  g.push(box(w + 0.03, 0.012, 0.012, PAL.wood2, x, y + 0.08, z));
-  for (let k = 0; k < 3; k++) g.push(box(w / 3 - 0.008, 0.16, 0.008, color, x - w / 2 + w * (k + 0.5) / 3, y, z + 0.004));
-  g.push(box(0.03, 0.03, 0.004, accent, x, y + 0.03, z + 0.009));
+export function noren(g, x, y, z, w, color = PAL.indigo, accent = PAL.cream2) {   // the kit's split curtain, cloth in the shop's colour
+  kitPart(g, 'noren', { x, y: y - 0.09, z, sx: w / 0.52, sy: 1, sz: 1 }, { indigo: color, cream2: accent });
 }
 /** a row of chōchin lanterns: red paper with cream bands that glow at night */
-export function chochin(g, wg, x, y, z, n, color = K.lantern) {
-  for (let k = 0; k < n; k++) {
-    const lx = x + (k - (n - 1) / 2) * 0.13;
-    const lan = new THREE.SphereGeometry(0.05, 8, 6); lan.scale(1, 1.3, 1); lan.translate(lx, y, z); g.push(colorize(lan, color));
-    for (const dy of [-0.022, 0.022]) wg.push(cyl(0.051, 0.051, 0.014, PAL.window, lx, y + dy, z, 8));
-    g.push(box(0.03, 0.02, 0.03, K.chalk, lx, y + 0.072, z)); g.push(box(0.03, 0.02, 0.03, K.chalk, lx, y - 0.072, z)); g.push(box(0.006, 0.06, 0.006, K.chalk, lx, y + 0.11, z));
-  }
+export function chochin(g, wg, x, y, z, n, color = K.lantern) {   // a row of the kit's paper lanterns in the shop's colour
+  for (let k = 0; k < n; k++) kitPart(g, 'chochin', { x: x + (k - (n - 1) / 2) * 0.13, y: y - 0.075, z, scale: 0.75 }, { roofPeach: color });
 }
 /** washing on a balcony: a pole with shirts and towels, and a futon airing over the rail. Pushed to `lg` so it can be shown by the hour. */
 export function laundry(lg, x, y, z, w, seed) {
@@ -180,6 +175,16 @@ export function laundry(lg, x, y, z, w, seed) {
   const n = Math.max(2, Math.floor(w / 0.09));
   for (let k = 0; k < n; k++) { if ((seed * 13 + k * 2.3) % 1 < 0.3) continue; const col = SHIRTS[(k + Math.floor(seed * 9)) % SHIRTS.length]; lg.push(box(0.055, 0.085 + (k % 2) * 0.02, 0.012, col, x - w / 2 + 0.05 + k * ((w - 0.1) / Math.max(1, n - 1)), y + 0.28, z)); }
   if (seed > 0.35) lg.push(box(0.17, 0.05, 0.05, seed > 0.7 ? PAL.pink : PAL.sky2, x + w / 2 - 0.13, y + 0.135, z));   // futon over the rail
+}
+
+/** the kit's yard props round a detached home, chosen from the seed: mailbox by the gate, garden tap, kerosene tank,
+ *  and a laundry pole whose washing (LG) goes out by day. Positions in the unit's local space, house w × d */
+export function yardProps(g, LG, seed, w, d) {
+  const pick = k => ((seed * 17 + k * 3.1) % 1);
+  if (pick(1) < 0.7) kitPart(g, 'mailbox', { x: 0.42, y: 0.12, z: 0.4 });
+  if (pick(2) < 0.6) kitPart(g, 'garden-tap', { x: -w / 2 - 0.07, y: 0.12, z: 0.3, rot: -Math.PI / 2 });
+  if (pick(3) < 0.5) kitPart(g, 'kerosene-tank', { x: -w / 2 - 0.06, y: 0.12, z: 0.06, rot: Math.PI / 2 });
+  if (pick(4) < 0.6) { const parts = neighbourhoodGeometry('laundry-pole', { x: w / 2 + 0.08, y: 0.12, z: 0.08, rot: Math.PI / 2, scale: 0.85 }); for (const k in parts) (k.includes('Cloth') ? LG : g).push(parts[k]); }
 }
 
 // ── building variety (Phase 4.95): wall finishes and small props, all in the unit's local space ──
@@ -204,10 +209,9 @@ export function boxCanopy(g, x, y, z, w, color, depth = 0.22) {
   for (const s of [-1, 1]) g.push(box(0.012, 0.012, depth - 0.02, K.metal, x + s * (w / 2 - 0.03), y + 0.03, z + depth / 2 - 0.01));
 }
 /** a small round sign hung off a bracket at a front corner */
-export function hangingSign(g, wg, x, y, z, color, accent, glow = false) {
-  g.push(box(0.16, 0.012, 0.012, K.metal, x, y + 0.11, z + 0.08)); g.push(box(0.012, 0.11, 0.012, K.metal, x, y + 0.06, z + 0.02));
-  const disc = new THREE.CylinderGeometry(0.075, 0.075, 0.018, 12); disc.rotateZ(Math.PI / 2); disc.translate(x + 0.06, y, z + 0.1); g.push(colorize(disc, color));
-  const ring = new THREE.CylinderGeometry(0.05, 0.05, 0.022, 12); ring.rotateZ(Math.PI / 2); ring.translate(x + 0.06, y, z + 0.1); (glow ? wg : g).push(colorize(ring, glow ? PAL.window : accent));
+export function hangingSign(g, wg, x, y, z, color, accent, glow = false) {   // the kit's bracket sign off the front corner: plate on the wall, sign out over the pavement
+  kitPart(g, 'hanging-sign', { x, y: y - 0.09, z, rot: -Math.PI / 2 }, { cream2: color, roofTeal: accent });
+  if (glow) wg.push(box(0.012, 0.09, 0.09, PAL.window, x + 0.005, y, z + 0.2));   // a lit face after dark
 }
 /** a satellite dish on a wall bracket, facing local +z before rotation */
 export function dish(g, x, y, z, ry = 0) {

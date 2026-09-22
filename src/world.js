@@ -12,6 +12,7 @@ import { biome } from './biome.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { addNature } from './nature-kit.js';
 import { furnitureGeometry, addFurniture } from './street-furniture.js';
+import { addNeighbourhood } from './neighbourhood-kits.js';
 
 const cells = [];
 for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false, canal: false, bridge: false, coast: false });
@@ -278,13 +279,10 @@ function rebuildRoads() {
     if (h > 0.2 && h < 0.5 && lotAdjacent4(c)) {
       const d = DIR4.find(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'lot'; });
       const px = x + d[0] * 0.42 - d[1] * 0.38, pz = z + d[1] * 0.42 + d[0] * 0.38;
-      lg.push(cyl(0.03, 0.04, 1.75, PAL.concrete, px, 0.95, pz, 6));
-      lg.push(box(0.36, 0.03, 0.03, PAL.concrete, px, 1.7, pz, d[0] ? Math.PI / 2 : 0)); lg.push(box(0.3, 0.025, 0.025, PAL.concrete, px, 1.55, pz, d[0] ? Math.PI / 2 : 0));
-      for (const o of [-0.14, 0.14]) lg.push(cyl(0.018, 0.018, 0.05, PAL.cream2, px + (d[0] ? 0 : o), 1.74, pz + (d[0] ? o : 0), 5));
-      lg.push(box(0.1, 0.16, 0.1, PAL.concrete2, px + (d[0] ? 0 : 0.05), 1.3, pz + (d[0] ? 0.05 : 0)));
-      lg.push(cyl(0.05, 0.05, 0.14, PAL.concrete2, px + (d[0] ? 0 : -0.07), 1.47, pz + (d[0] ? -0.07 : 0), 7)); lg.push(box(0.02, 0.06, 0.02, '#4a4340', px + (d[0] ? 0 : -0.07), 1.57, pz + (d[0] ? -0.07 : 0)));   // transformer drum
+      // the kit's concrete pole with crossarm, insulators, transformer drum and its own lamp; the crossarm runs across the street
+      addNeighbourhood(lg, 'utility-pole', px, 0.1, pz, d[0] ? 0 : Math.PI / 2, { scale: 1.05 });
       lg.push(box(0.075, 0.22, 0.075, '#e6c25c', px, 0.45, pz)); for (const yy of [0.39, 0.51]) lg.push(box(0.077, 0.035, 0.077, '#4a4340', px, yy, pz));   // striped guard wrap at the base
-      poles.push({ p: new THREE.Vector3(px, 1.72, pz), i: c.i, j: c.j });
+      poles.push({ p: new THREE.Vector3(px, 0.1 + 1.163 * 1.05, pz), i: c.i, j: c.j });   // cables hang from the crossarm's middle anchor
     }
     // convex traffic mirror at busier corners
     if (deg >= 3 && h > 0.54 && h <= 0.62 && lotAdjacent4(c)) {
@@ -335,13 +333,11 @@ function rebuildRoads() {
       // underneath, a soft beam fading to the ground, and a pool of light on the asphalt
       const px = x + d[0] * 0.4 + d[1] * 0.35, pz = z + d[1] * 0.4 - d[0] * 0.35;
       const ax = -d[0], az = -d[1], ry = Math.atan2(ax, az), top = 1.42;   // arm points away from the lot, over the road
-      lg.push(cyl(0.02, 0.032, top - 0.1, PAL.lamp, px, 0.1 + (top - 0.1) / 2, pz, 6));
-      lg.push(box(0.12, 0.05, 0.12, PAL.lamp, px, 0.125, pz));
-      lg.push(cyl(0.034, 0.034, 0.05, PAL.lamp, px, 0.9, pz, 6));
-      const arm = new THREE.BoxGeometry(0.03, 0.03, 0.4); arm.rotateX(-0.3); arm.rotateY(ry); arm.translate(px + ax * 0.19, top + 0.06, pz + az * 0.19); lg.push(colorize(arm, PAL.lamp));
-      const hx = px + ax * 0.4, hz = pz + az * 0.4, hy = top + 0.12;
-      const housing = new THREE.BoxGeometry(0.13, 0.05, 0.24); housing.rotateY(ry); housing.translate(hx, hy, hz); lg.push(colorize(housing, PAL.lamp));
-      const head = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.015, 0.2), lampHeadMat); head.rotation.y = ry; head.position.set(hx, hy - 0.03, hz); head.castShadow = false; scene.add(head); lampHeads.push(head);
+      // the kit's street lamp (pole, angled arm, bevelled housing) at 1.5× so its head clears the two-storey eaves; the town's
+      // emissive lens sits under the housing at the kit's light point, with the beam and the pool of light as before
+      const LS = 1.5; addNeighbourhood(lg, 'street-lamp', px, 0.1, pz, ry, { scale: LS }); void top;
+      const hx = px + ax * 0.23 * LS, hz = pz + az * 0.23 * LS, hy = 0.1 + 0.828 * LS + 0.02;
+      const head = new THREE.Mesh(new THREE.BoxGeometry(0.075, 0.012, 0.19), lampHeadMat); head.rotation.y = ry; head.position.set(hx, hy - 0.03, hz); head.castShadow = false; scene.add(head); lampHeads.push(head);
       cones.push(lightCone(hx, hy - 0.03, hz, 0.06, 0.4, PAL.lampGlow));
       const gl = makeGlow(hx, 0.125, hz, 1.5); gl.material = lampGlowMat; scene.add(gl); lampGlows.push(gl);
       }

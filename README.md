@@ -147,6 +147,7 @@ src/
   cats.js             original low-poly cats, coat colours and walk/idle motion
   character-props.js  shopping bag, briefcase, folding umbrella and registration folder
   outdoor-props.js    broom, fishing rod and watering can with Kenney carry grips
+  neighbourhood-kits.js utility pole, street lamp, shop facade and home yard pieces; the town's poles, lamps, signage and yards draw from it
   nature-kit.js       pines, matsu, bamboo, cherry/broadleaf trees, rocks and rice paddy; the town's decor draws from it
   landmark-kit.js     standalone torii/shrine, Buddhist temple, koban and public bath
   street-furniture.js standalone vending machine, bench, bus stop, signals, signs, planter and bike rack

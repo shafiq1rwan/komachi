@@ -4,9 +4,10 @@ import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
 import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry.js';
 import { addFurniture } from './street-furniture.js';
+import { addNeighbourhood } from './neighbourhood-kits.js';
 import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
 import { addNature } from './nature-kit.js';
-import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi } from './kit.js';
+import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
 const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
 import { DONE } from './world.js';
@@ -65,7 +66,7 @@ function genResidential(b, u, g, wg) {
   if (u.seed > 0.5) { blockWall(g, 0.02, 0.45, 0.9, true, [-0.3, -0.02]); blockWall(g, -0.45, -0.02, 0.86, false); }   // block wall with the gate slid open in front of the door
   else { fence(g, 0.1, 0.45, 0.6, true, PAL.wood); fence(g, -0.45, 0, 0.8, false, PAL.wood); }
   g.push(box(0.9, 0.12, 0.08, PAL.bush, 0, 0.18, -0.43));
-  pots(g, 0.3, 0.36, 2);
+  pots(g, 0.3, 0.36, 2); yardProps(g, LG, u.seed, w, d);
   if (u.seed > 0.55) bicycle(g, -0.4, 0.3, 0.1, K.bike[Math.floor(u.seed * 5) % 5]);
   if (u.seed > 0.75) g.push(box(0.05, 0.3, 0.05, PAL.lamp, 0.42, 0.27, 0.42));
 }
@@ -85,7 +86,7 @@ function genMachiya(b, u, g, wg) {
   for (let f = 0; f < L; f++) { const y = y0 + f * 0.52 + 0.3; windowPane(g, wg, 0.12, y, -d / 2 - 0.005, 0.16, 0.14, Math.PI); windowPane(g, wg, -w / 2 - 0.005, y, -0.1, 0.14, 0.14, -Math.PI / 2); }
   engawa(g, w, d, y0);
   acUnit(g, -w / 2 - 0.05, y0 + 0.2, -0.2, -Math.PI / 2); pipe(g, w / 2 + 0.02, y0, y0 + H - 0.05, -d / 2 + 0.05);
-  pots(g, 0.3, 0.44, 2); g.push(box(0.9, 0.12, 0.08, PAL.bush, 0, 0.18, -0.43));
+  pots(g, 0.3, 0.44, 2); g.push(box(0.9, 0.12, 0.08, PAL.bush, 0, 0.18, -0.43)); yardProps(g, LG, sub(u.seed, 7), w, d);
   if (sub(u.seed, 4) > 0.5) bicycle(g, -0.42, 0.28, 0.15, K.bike[Math.floor(u.seed * 5) % 5]);
 }
 /** a modern box: render with a darker volume, flat parapet roof, big corner window, balcony on the side the seed picks */
@@ -107,7 +108,7 @@ function genModern(b, u, g, wg) {
   acUnit(g, -side * (w / 2 + 0.05), y0 + 0.2, -0.2, -side * Math.PI / 2); pipe(g, side * (w / 2 + 0.02), y0, y0 + H, -d / 2 + 0.06);
   if (sub(u.seed, 5) > 0.5) dish(g, -side * 0.2, y0 + H + 0.08, -0.2, 0.4);
   fence(g, 0, 0.45, 0.9, true, K.metal2, 0.09); fence(g, side * 0.45, 0, 0.8, false, K.metal2, 0.09);
-  g.push(box(0.9, 0.1, 0.08, PAL.bush2, 0, 0.17, -0.43)); pots(g, side * 0.28, 0.4, 2);
+  g.push(box(0.9, 0.1, 0.08, PAL.bush2, 0, 0.17, -0.43)); pots(g, side * 0.28, 0.4, 2); yardProps(g, LG, sub(u.seed, 8), w, d);
   if (sub(u.seed, 4) > 0.5) bicycle(g, -side * 0.4, 0.3, 0.1, K.bike[Math.floor(u.seed * 5) % 5]);
 }
 /** a hillside villa: a wide single storey under a hip-and-gable kawara roof, a deep engawa facing the view, a walled garden with a stone lantern and a pruned pine */
@@ -300,17 +301,18 @@ function genShop(b, u, g, wg) {
       plainAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, a1);
       noren(g, doorX, y0 + 0.36, d / 2 + 0.03, 0.22, sub(u.seed, 4) > 0.5 ? PAL.indigo : K.red, PAL.cream2);
       chochin(g, wg, 0.14, y0 + 0.41, d / 2 + 0.27, 3, sub(u.seed, 5) > 0.5 ? K.lantern : PAL.cream2);
-      g.push(box(0.12, 0.2, 0.02, PAL.cream2, 0.36, y0 + 0.14, 0.44, 0.2)); g.push(box(0.1, 0.02, 0.025, K.chalk, 0.36, y0 + 0.2, 0.44, 0.2)); g.push(box(0.1, 0.02, 0.025, K.chalk, 0.36, y0 + 0.15, 0.44, 0.2));   // menu stand
+      addNeighbourhood(g, 'menu-stand', 0.36, y0, 0.41, 0.2, { scale: 0.85 });   // the kit's tilted menu stand
       for (const x of [0.06, 0.2]) g.push(cyl(0.04, 0.035, 0.12, PAL.wood2, x, y0 + 0.06, 0.4, 6));
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.5, a1, PAL.cream2, true); tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.cream2, a1, true);
     } else {   // café
       awn(0, y0 + 0.55, d / 2 + 0.02, w, a1, a2);
       if (u.seed > 0.5) noren(g, doorX, y0 + 0.36, d / 2 + 0.03, 0.2, a1, PAL.cream2);        // a kissaten hangs a noren
       tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.cream2, a1, false, 0.36);
-      g.push(cyl(0.1, 0.1, 0.02, PAL.cream2, 0.32, y0 + 0.2, 0.4, 10)); g.push(cyl(0.015, 0.015, 0.2, K.metal, 0.32, y0 + 0.1, 0.4, 5)); g.push(cyl(0.06, 0.06, 0.015, K.metal, 0.32, y0 + 0.01, 0.4, 8));
-      for (const [sx, sz] of [[0.2, 0.44], [0.44, 0.36]]) { g.push(cyl(0.04, 0.04, 0.02, PAL.wood, sx, y0 + 0.12, sz, 8)); g.push(cyl(0.012, 0.012, 0.11, K.metal, sx, y0 + 0.055, sz, 5)); }
+      // a small pavement table with two stools, kept within the strip between the front wall (z 0.33) and the plinth edge (z 0.49)
+      g.push(cyl(0.065, 0.065, 0.015, PAL.cream2, 0.3, y0 + 0.19, 0.41, 10)); g.push(cyl(0.012, 0.012, 0.19, K.metal, 0.3, y0 + 0.095, 0.41, 5)); g.push(cyl(0.045, 0.045, 0.012, K.metal, 0.3, y0 + 0.006, 0.41, 8));
+      for (const sx of [0.17, 0.43]) { g.push(cyl(0.03, 0.03, 0.018, PAL.wood, sx, y0 + 0.12, 0.41, 8)); g.push(cyl(0.01, 0.01, 0.11, K.metal, sx, y0 + 0.055, 0.41, 5)); }
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.36, PAL.cream2, a1);
-      g.push(box(0.13, 0.17, 0.02, K.chalk, -0.42, y0 + 0.09, 0.4, 0.3)); g.push(box(0.15, 0.02, 0.02, PAL.wood, -0.42, y0 + 0.18, 0.4, 0.3));
+      addNeighbourhood(g, 'a-board', -0.4, y0, 0.41, 0.3, { scale: 0.85 });   // the kit's chalk A-board by the door
       pots(g, -0.42, 0.2, 2, false);
     }
   }

@@ -95,6 +95,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `STATION_LIGHT_MESHES` are stored as `u.stationLit` and daynight.js copies the window emissive onto them.
   Landmarks come from src/landmark-kit.js (`createLandmark(kind)`, kinds torii | shrine | temple | koban | bathhouse, front +Z, ground 0,
   `userData.entrance`); island.js places the summit shrine set and a torii gate below it. Temple, kōban and bath house wait for Phase 5.5.
+  Neighbourhood kits (src/neighbourhood-kits.js, `neighbourhoodGeometry(kind, {x,y,z,rot,scale,sx,sy,sz})` / `addNeighbourhood`): kit.js's
+  acUnit, pots, awnings, tateKanban, noren, chochin, hangingSign wrap the kit pieces (`retint` recolours by source PAL colour, e.g. { indigo: color });
+  `yardProps` adds mailbox/tap/tank/laundry pole to detached homes; world.js places 'utility-pole' (1.05×) and 'street-lamp' (1.5×).
   Street furniture likewise comes from src/street-furniture.js: addFurniture(out, kind, x, y, z, rot, color) merges; furnitureGeometry returns named
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.

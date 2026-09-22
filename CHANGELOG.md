@@ -46,6 +46,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   fills up a notice says so once, and the building's card shows "Cars line the kerb outside" until a car park takes them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
+- Neighbourhood kits wired in (src/neighbourhood-kits.js): the kit's concrete utility pole with transformer and lamp on
+  every pole corner (cables hang from its crossarm), the kit street lamp everywhere a lamp stood (town lens, beam and
+  pool of light kept), shop fronts use the kit noren, chōchin, tate-kanban, awning and hanging sign recoloured to each
+  shop's colours, homes get the kit air-con unit and potted plants, the café's A-board and the restaurant's menu stand are the kit pieces and the café's pavement table set fits the strip in front of the shop instead of running into the wall and off the plinth, and detached homes gain yard props from the seed:
+  mailbox by the gate, garden tap, kerosene tank and a laundry pole whose washing goes out by day.
 - Bench life: people waiting on the plaza benches no longer sit like statues. They shift their weight, follow passers-by
   with their eyes, watch the stairs when a train is due, take out a phone or a folded newspaper (the modelled props, src/phone.js and src/newspaper.js, via src/hand-items.js), chat
   with a neighbour on the same bench (one nods), and now and then stand up to stretch their legs. The card shows what
