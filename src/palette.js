@@ -47,6 +47,10 @@ export const CIVIC_NAMES = {
   substation: [['Komachi', 'Substation'], ['Hinode', 'Substation'], ['Kawa', 'Substation']],
   waterworks: [['Komachi', 'Water Works'], ['Kawa', 'Water Works'], ['Izumi', 'Water Works']],
   recycling: [['Komachi', 'Recycling Centre'], ['Midori', 'Recycling'], ['Kaede', 'Recycling Centre']],
+  townhall: [['Komachi', 'Town Hall'], ['Komachi', 'Town Office']],
+  clinic: [['Midori', 'Clinic'], ['Hinode', 'Clinic'], ['Sakura', 'Family Clinic'], ['Kawa', 'Clinic']],
+  firestation: [['Komachi', 'Fire Station'], ['Hoshi', 'Fire Station']],
+  community: [['Komachi', 'Community Centre'], ['Kaede', 'Hall'], ['Yanagi', 'Community Centre']],
   bathhouse: [['Yuzu', 'Bath House'], ['Tsuki', 'Bath House'], ['Hoshi', 'Sento'], ['Ume', 'Sento'], ['Matsu', 'Bath House']],
 };
 export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];

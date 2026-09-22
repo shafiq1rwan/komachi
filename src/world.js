@@ -394,7 +394,7 @@ const TIERS = {
   res: [null, ['detached', 'narrow'], ['terrace', 'apartment'], ['manshon']],
   shop: [null, ['konbini', 'bakery', 'florist', 'books', 'ramen'], ['cafe', 'restaurant', 'grocery'], ['supermarket', 'arcade']],
   work: [null, ['studio', 'office'], ['workshop', 'office'], ['factory', 'office']],
-  civic: [null, ['substation', 'waterworks', 'recycling'], ['bathhouse'], ['bathhouse']],   // Phase 5.5: utilities on one cell, the public bath on two or three
+  civic: [null, ['substation', 'waterworks', 'recycling', 'clinic', 'firestation', 'community'], ['townhall', 'bathhouse'], ['bathhouse']],   // Phase 5.5: services on one cell, the town hall or bath on two, the bath on three
 };
 const CAP_BONUS = { apartment: 2, manshon: 4, villa: 2, restaurant: 1, supermarket: 2, arcade: 1, factory: 3 };   // a villa holds a whole family
 /** what a drag of n cells would make, for the placement label */
@@ -415,7 +415,7 @@ const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, 
 function unitCap(u) { return CAP[u.block.type][u.block.level] + (CAP_BONUS[u.variant] || 0) + (CAP_BONUS[u.block.kind] || 0); }
 const SHOP_KINDS = ['cafe', 'bakery', 'ramen', 'grocery', 'konbini', 'florist', 'books'];
 const WORK_KINDS = ['office', 'workshop', 'studio'];
-const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
+const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', townhall: 'Town hall', clinic: 'Clinic', firestation: 'Fire station', community: 'Community centre', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
 function makeUnit(block, c) {
   const u = { id: S.nextId++, block, cell: c, mesh: null, residents: [], staff: [], inside: new Set(), lastMoveIn: S.T, pop: 0, incoming: 0, removed: false,
     winMat: new THREE.MeshStandardMaterial({ color: PAL.window, emissive: PAL.glow, emissiveIntensity: 0, roughness: 0.4 }),
@@ -630,7 +630,12 @@ function connectHillRoads() {
 function chooseKind(type, sel, skip = null) {
   const pool = (TIERS[type] && TIERS[type][Math.min(3, sel.length)] || (type === 'shop' ? SHOP_KINDS : WORK_KINDS)).filter(k => k !== skip);
   if (!pool.length) return null;
-  if (type === 'civic') { const have = new Set(blocks.filter(b => b.type === 'civic').map(b => b.kind)); const fresh = pool.filter(k => !have.has(k)); return pick(fresh.length ? fresh : pool); }   // a utility the town lacks first
+  if (type === 'civic') {   // a service the town lacks first; the town hall before a second bath; one town hall and one fire station only
+    const have = new Set(blocks.filter(b => b.type === 'civic').map(b => b.kind)), single = ['townhall', 'firestation', 'community'];
+    const fresh = pool.filter(k => !have.has(k)), open = pool.filter(k => !(single.includes(k) && have.has(k)));
+    if (fresh.includes('townhall')) return 'townhall';
+    return pick(fresh.length ? fresh : (open.length ? open : pool));
+  }
   if (type !== 'shop') return pick(pool);
   const c0 = sel[0], others = blocks.filter(b => b.type === 'shop' && !sel.includes(b.cells[0]));
   const far = pool.map(k => { let d = Infinity; for (const b of others) if (b.kind === k) d = Math.min(d, Math.abs(b.cells[0].i - c0.i) + Math.abs(b.cells[0].j - c0.j)); return [k, d]; });
@@ -695,9 +700,19 @@ function rotateUnit(u) {
 }
 const worldListeners = [];
 function onWorldChange(fn) { worldListeners.push(fn); }
-function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); for (const fn of worldListeners) fn(); }
+const CIVIC_REACH = 6;   // cells (Manhattan): how far a utility's visible effect spreads
+/** homes near a finished water works keep greener gardens (`b.watered`); recomputed when the world or a civic block changes */
+function refreshCivicFlags() {
+  const works = blocks.filter(b => b.type === 'civic' && b.kind === 'waterworks' && b.stage === DONE);
+  for (const b of blocks) {
+    if (b.type !== 'res') continue;
+    const now = works.some(w => w.cells.some(c => b.cells.some(bc => Math.abs(c.i - bc.i) + Math.abs(c.j - bc.j) <= CIVIC_REACH)));
+    if (now !== !!b.watered) { b.watered = now; if (b.stage >= DONE) for (const u of b.units) if (u.mesh) rebuildUnitMesh(u); }
+  }
+}
+function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

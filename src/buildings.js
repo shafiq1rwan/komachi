@@ -8,6 +8,7 @@ import { addNeighbourhood } from './neighbourhood-kits.js';
 import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
 import { createCivicProp } from './civic-kit.js';
 import { createLandmark } from './landmark-kit.js';
+import { createTownService } from './town-services-kit.js';
 import { addNature } from './nature-kit.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
@@ -526,7 +527,7 @@ function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type ===
  *  attached in rebuildUnitMesh. The door is on the front edge so trips end on the pavement */
 function genCivic(b, u, g) {
   const k = Math.max(0, b.units.indexOf(u)), y0 = 0.12, kind = b.kind;
-  u.door = { x: kind === 'bathhouse' ? 0 : 0.3, z: 0.49 };
+  u.door = { x: kind === 'bathhouse' || kind === 'townhall' ? 0 : kind === 'clinic' ? -0.14 : kind === 'firestation' ? 0.29 : kind === 'community' ? -0.13 : 0.3, z: 0.49 };
   g.push(box(0.9, 0.02, 0.9, PAL.concrete2, 0, y0 + 0.01, 0));   // gravel pad
   if (kind === 'substation') {   // a low mesh fence with an opening at the front right
     for (const [x, z] of [[-0.44, -0.44], [0.44, -0.44], [-0.44, 0.44], [0.44, 0.44], [0, -0.44], [-0.44, 0], [0.44, 0]]) g.push(box(0.025, 0.3, 0.025, K.metal, x, y0 + 0.15, z));
@@ -539,8 +540,11 @@ function genCivic(b, u, g) {
   } else if (kind === 'recycling') {   // a shed behind the bins and a couple of stacked crates
     g.push(box(0.56, 0.42, 0.4, PAL.cream2, -0.18, y0 + 0.21, -0.26)); g.push(box(0.62, 0.04, 0.46, K.metal2, -0.18, y0 + 0.44, -0.26)); g.push(box(0.2, 0.28, 0.02, K.metal, -0.18, y0 + 0.14, -0.05));
     g.push(box(0.14, 0.1, 0.14, PAL.roofBlue, 0.36, y0 + 0.05, -0.32)); g.push(box(0.14, 0.1, 0.14, PAL.treeGreen, 0.36, y0 + 0.15, -0.32));
-  } else if (kind === 'bathhouse' && k > 0) {   // the bath's side yard: a bike rack and pots
+  } else if ((kind === 'bathhouse' || kind === 'townhall') && k > 0) {   // the second cell: a bike rack and pots, and the town hall's flag lawn
     bikeRack(g, -0.1, 0.42, 3, 0, u.seed); pots(g, 0.3, -0.3, 2);
+    if (kind === 'townhall') g.push(box(0.7, 0.03, 0.5, PAL.bush, 0, y0 + 0.035, -0.1));
+  } else if (kind === 'firestation') {   // a hose cabinet by the bay and cones at the exit
+    g.push(box(0.12, 0.16, 0.06, K.red, 0.42, y0 + 0.08, 0.2));
   }
 }
 
@@ -652,6 +656,12 @@ function genStation(b, u, g, wg) {
   if (di === dj) g.push(cyl(0.07, 0.06, 0.2, RAIL, -di * 0.32, y0 + 0.1, dj * 0.3, 8));   // a bin tucked by the lamp in two corners
 }
 
+/** near a water works the garden fills out: fuller green at the front corners and a spill of flowers by the door */
+function wateredGarden(g, u) {
+  const s = u.seed;
+  for (const x of [-0.42, 0.42]) { g.push(blob(0.1, '#7fb069', x, 0.2, 0.38, 0, 0.75)); g.push(blob(0.07, '#8fc078', x - Math.sign(x) * 0.1, 0.18, 0.44, 0, 0.7)); }
+  for (let k = 0; k < 5; k++) g.push(blob(0.028, k % 2 ? PAL.flower : (s > 0.5 ? PAL.pink : PAL.cream2), -0.3 + k * 0.15 + (s - 0.5) * 0.06, 0.16, 0.46 - (k % 2) * 0.03, 0, 1));
+}
 function rebuildUnitMesh(u, pop = false) {
   if (u.mesh) { townGroup.remove(u.mesh); disposeGroup(u.mesh); }
   const b = u.block, g = [], wg = [];
@@ -660,7 +670,7 @@ function rebuildUnitMesh(u, pop = false) {
   if (!isEntrance) g.push(box(0.98, 0.12, 0.98, PAL.sidewalk, 0, 0.06, 0));
   if (b.type === 'station') genStation(b, u, g, wg);
   else if (b.stage < DONE) genConstruction(b, u, g, wg);
-  else { finalGen(b, u, g, wg); if (b.renoT > 0) renovationOverlay(b, u, g); }
+  else { finalGen(b, u, g, wg); if (b.renoT > 0) renovationOverlay(b, u, g); if (b.type === 'res' && b.watered) wateredGarden(g, u); }
   const grp = new THREE.Group();
   const body = mergeMesh(g, false); grp.add(body);
   if (wg.length) { const wm = mergeMesh(wg, false, false); wm.material = u.winMat; wm.castShadow = false; grp.add(wm); }
@@ -670,6 +680,14 @@ function rebuildUnitMesh(u, pop = false) {
     if (b.kind === 'substation') { prop = createCivicProp('substation'); pos = [-0.02, 0.12, -0.04]; }
     else if (b.kind === 'waterworks') { prop = createCivicProp('water-tower'); pos = [-0.16, 0.12, 0.02]; }
     else if (b.kind === 'recycling') { prop = createCivicProp('recycling-row'); pos = [0.08, 0.12, 0.22]; }
+    else if (b.kind === 'clinic') { prop = createTownService('clinic'); s = 0.95; }
+    else if (b.kind === 'firestation') { prop = createTownService('fire-station'); s = 0.95; const pk = prop.getObjectByName('Parked_Kei_Fire_Truck'); if (pk) { pk.visible = !b.truckOut; u.parkedTruck = pk; } }
+    else if (b.kind === 'community') { prop = createTownService('community-centre'); s = 0.95; }
+    else if (b.kind === 'townhall') {   // the two-cell town hall, centred on the block, its porch to the street
+      prop = createTownService('town-hall'); s = 0.95;
+      const mx = b.cells.reduce((t, c) => t + cx(c.i), 0) / b.cells.length, mz = b.cells.reduce((t, c) => t + cz(c.j), 0) / b.cells.length, f = u.facing || 0, dx = mx - cx(u.cell.i), dz = mz - cz(u.cell.j);
+      pos = [dx * Math.cos(f) - dz * Math.sin(f), 0.12, dx * Math.sin(f) + dz * Math.cos(f)];
+    }
     else if (b.kind === 'bathhouse') {   // the landmark bath house, centred on the whole block and scaled to its depth
       prop = createLandmark('bathhouse'); s = b.units.length >= 3 ? 0.6 : 0.55;
       const mx = b.cells.reduce((t, c) => t + cx(c.i), 0) / b.cells.length, mz = b.cells.reduce((t, c) => t + cz(c.j), 0) / b.cells.length, f = u.facing || 0, dx = mx - cx(u.cell.i), dz = mz - cz(u.cell.j);

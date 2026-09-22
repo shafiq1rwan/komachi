@@ -1,0 +1,136 @@
+[
+  {
+    "kind": "town-hall",
+    "file": "komachi-town-hall.glb",
+    "size": [
+      1.899999976158142,
+      1.200000048056245,
+      0.8999999761581421
+    ],
+    "minY": -3.7252903539730653e-10,
+    "triangles": 3412,
+    "meshes": 2,
+    "bytes": 370736,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "footprintCells": [
+      2,
+      1
+    ],
+    "entrance": [
+      0,
+      0.1,
+      0.25
+    ],
+    "newcomerStop": [
+      0,
+      0.1,
+      0.35
+    ]
+  },
+  {
+    "kind": "clinic",
+    "file": "komachi-clinic.glb",
+    "size": [
+      0.9399999976158142,
+      0.8569999942183495,
+      0.9399999976158142
+    ],
+    "minY": -8.940696516468449e-10,
+    "triangles": 1284,
+    "meshes": 4,
+    "bytes": 142824,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "footprintCells": [
+      1,
+      1
+    ],
+    "entrance": [
+      -0.14,
+      0.06,
+      0.36
+    ]
+  },
+  {
+    "kind": "fire-station",
+    "file": "komachi-fire-station.glb",
+    "size": [
+      0.9599999785423279,
+      0.9409999856352806,
+      0.9599999785423279
+    ],
+    "minY": -8.940696516468449e-10,
+    "triangles": 3524,
+    "meshes": 6,
+    "bytes": 386880,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "footprintCells": [
+      1,
+      1
+    ],
+    "entrance": [
+      0.292,
+      0.045,
+      0.421
+    ],
+    "vehicleExit": [
+      -0.122,
+      0.051,
+      0.48
+    ],
+    "parkedTruckNode": "Parked_Kei_Fire_Truck"
+  },
+  {
+    "kind": "kei-fire-truck",
+    "file": "komachi-kei-fire-truck.glb",
+    "size": [
+      0.3100000023841858,
+      0.30950000721216203,
+      0.5175000131130219
+    ],
+    "minY": 1.6093254090465692e-9,
+    "triangles": 2460,
+    "meshes": 5,
+    "bytes": 270716,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "wheelAxis": "X",
+    "wheelRadius": 0.047
+  },
+  {
+    "kind": "community-centre",
+    "file": "komachi-community-centre.glb",
+    "size": [
+      0.9599999785423279,
+      0.8364999899268151,
+      0.9399999976158142
+    ],
+    "minY": -8.940696516468449e-10,
+    "triangles": 2276,
+    "meshes": 2,
+    "bytes": 248120,
+    "front": "+Z",
+    "units": "game",
+    "standalone": true,
+    "footprintCells": [
+      1,
+      1
+    ],
+    "entrance": [
+      -0.135,
+      0.05,
+      0.37
+    ],
+    "chroniclePoint": [
+      0.225,
+      0.05,
+      0.425
+    ]
+  }
+]

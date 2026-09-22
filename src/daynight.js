@@ -4,7 +4,13 @@ import { PAL } from './palette.js';
 import { lerp, clamp } from './utils.js';
 import { renderer, scene, hemi, sun, fill } from './scene.js';
 import { lampHeadMat, coneMat } from './geometry.js';
-import { units, lampGlowMat, DONE } from './world.js';
+import { units, lampGlowMat, DONE, blocks, CIVIC_REACH } from './world.js';
+// windows within reach of a finished substation glow steady and a shade warmer; recomputed every couple of seconds
+const powered = new Set(); let poweredT = -9; const WARM = '#f6c78e';
+function refreshPowered() {
+  powered.clear(); const subs = blocks.filter(b => b.type === 'civic' && b.kind === 'substation' && b.stage === DONE); if (!subs.length) return;
+  for (const u of units.values()) if (subs.some(s => s.cells.some(c => Math.abs(c.i - u.cell.i) + Math.abs(c.j - u.cell.j) <= CIVIC_REACH))) powered.add(u);
+}
 import { hourOf, dayOf, daylight, carMeshes } from './sim.js';
 import { ui } from './ui.js';
 
@@ -26,10 +32,12 @@ function envUpdate(realT) {
   renderer.toneMappingExposure = lerp(1.0, 1.05, d);
   lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness
   const shopOpen = h >= 7 && h < 22;
+  if (realT - poweredT > 2) { poweredT = realT; refreshPowered(); }
   for (const u of units.values()) {
     const occ = u.inside.size > 0, b = u.block;
     let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? ((b.quietDays ? h >= 8 && h < 19 : shopOpen) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
-    const flick = 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);
+    const steady = powered.has(u), flick = steady ? 1.08 : 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);   // the substation's neighbours: no flicker, a touch brighter
+    if (steady !== !!u.steady) { u.steady = steady; u.winMat.emissive.set(steady ? WARM : PAL.glow); }
     u.winMat.emissiveIntensity = night * base * flick;
     if (u.stationLit) for (const m of u.stationLit) m.material.emissiveIntensity = u.winMat.emissiveIntensity;   // the kit pavilion's window band, name board and lamps
     u.glowMat.opacity = night * (b.type === 'station' ? 0.7 : base > 0.5 ? 0.5 : 0.08) * (b.stage < DONE ? 0 : 1);

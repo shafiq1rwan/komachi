@@ -49,7 +49,7 @@ document.getElementById('btn-center').addEventListener('click', () => { follow =
   hintTimer = setTimeout(fold, 5000);
   document.getElementById('hint-toggle').addEventListener('click', () => { if (hint.classList.contains('collapsed')) unfold(8000); else { clearTimeout(hintTimer); fold(); } });
 }
-document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('res'); toast('Zone homes beside the station ring; draw more streets with the Road tool (5)'); });
+document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('res'); toast('Zone homes beside the station ring; draw more streets with the Streets tool (5)'); });
 
 function groundCell() {
   raycaster.setFromCamera(ptr.ndc, camera);
@@ -119,7 +119,7 @@ function endPointer(e) {
   }
   if (ptr.road) { const { a, b } = ptr.road; ptr.road = null; const laid = drawRoad(a, b); if (!laid) toast('Streets run over land on one level, or straight across the canal'); else if (laid.length === 1) toast('Drag to draw a longer street'); else if (!joinedToTown(laid[0])) toast('Join this street to the station ring so people can reach it'); return; }
   if (ptr.sel && tool === 'park') { const sel = ptr.sel; ptr.sel = null; if (sel.length && !sel.every(c => placeable(c, sel))) toast('A car park needs a street on one side'); else if (sel.length) { placeCarPark(sel); toast(sel.length > 1 ? 'A car park with eight bays. Cars from homes and workplaces nearby will use it' : 'A small car park with four bays. Cars from homes and workplaces nearby will use it'); } return; }
-  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel); if (blocks.length === 1) toast('Your first block. Draw more streets with the Road tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
+  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel); if (blocks.length === 1) toast('Your first block. Draw more streets with the Streets tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());

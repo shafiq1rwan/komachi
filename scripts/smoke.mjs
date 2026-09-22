@@ -150,10 +150,32 @@ try {
   const cv = await page.evaluate(() => {   // Civic zone: one-cell utilities from the civic kit, each a different kind first, two workers each, a notice board on the corner
     const road = MT.drawRoad(MT.cell(20, 27), MT.cell(20, 31)); const spots = []; for (const i of [19, 21]) for (let j = 27; j <= 31; j++) { const c = MT.cell(i, j); if (MT.placeable(c, [c])) spots.push(c); }
     const made = []; for (const c of spots.slice(0, 3)) { if (!MT.placeable(c, [c])) continue; const b = MT.placeBlock('civic', [c]); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u); made.push(b); }
-    const kinds = made.map(b => b.kind), names = { substation: 'Komachi_substation', waterworks: 'Komachi_water_tower', recycling: 'Komachi_recycling_row' };
+    const kinds = made.map(b => b.kind), names = { substation: 'Komachi_substation', waterworks: 'Komachi_water_tower', recycling: 'Komachi_recycling_row', clinic: 'Komachi_clinic', firestation: 'Komachi_fire_station', community: 'Komachi_community_centre' };
     const kits = made.map(b => !!b.units[0].mesh.getObjectByName(names[b.kind])), boards = made.map(b => !!b.units[0].mesh.getObjectByName('Komachi_notice_board'));
     return { road: !!road, spots: spots.length, kinds, distinct: new Set(kinds).size === kinds.length, inPool: kinds.every(k => MT.TIERS.civic[1].includes(k)), kits, boards, cap: made.length ? MT.unitCap(made[0].units[0]) : 0, label: MT.tierLabel('civic', 2) };
   });
+  const fx = await page.evaluate(() => {   // civic effects: a water works greens the homes within reach; on a collection day bags stand at the kerb and the truck sets out
+    const home = MT.blocks.find(b => b.type === 'res' && b.stage === MT.DONE); const hc = home.cells[0];
+    const spots = MT.cells.filter(c => c.type === 'empty' && !c.h && MT.placeable(c, [c]) && Math.abs(c.i - hc.i) + Math.abs(c.j - hc.j) <= 5);
+    const mk = kind => { const c = spots.find(c => !c.block && MT.placeable(c, [c])); if (!c) return null; const b = MT.placeBlock('civic', [c]); b.kind = kind; b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u); return b; };
+    const ww = mk('waterworks'), rc = mk('recycling'); MT.refreshCivicFlags();
+    MT.setHour(6.5); let guard = 0; while (MT.dayOf() % 3 !== 0 && guard++ < 4) MT.fastForward(24); MT.fastForward(0.1);
+    const bags = MT.blocks.filter(b => b.bags).length; MT.setHour(7.6); MT.fastForward(0.2); const truck = MT.wanderers.some(w => w.truck);
+    return { ww: !!ww, rc: !!rc, watered: home.watered === true, bags, truck, day: MT.dayOf() };
+  });
+  const ts = await page.evaluate(() => {   // town services: a two-cell town hall from the kit; a household registers there and comes home with a folder
+    const spots = MT.cells.filter(c => c.type === 'empty' && !c.h && MT.placeable(c, [c])); let th = null;
+    for (const a of spots) { const b2 = spots.find(o => o !== a && !o.block && Math.abs(o.i - a.i) + Math.abs(o.j - a.j) === 1 && MT.placeable(o, [a])); if (!a.block && b2 && MT.placeable(a, [a, b2])) { th = MT.placeBlock('civic', [a, b2]); break; } }
+    if (!th) return { th: false };
+    th.kind = 'townhall'; th.stage = MT.DONE; for (const u of th.units) MT.rebuildUnitMesh(u);
+    const kit = !!th.units[0].mesh.getObjectByName('Komachi_town_hall');
+    const hh = MT.households.find(h => h.home && h.members.length && h.members.some(m => m.at === m.home)); if (!hh) return { th: true, kit, hh: false };
+    hh.registered = false; for (const m of hh.members) { m.next = 0; }
+    MT.setHour(10); let went = false, folder = false; for (let k = 0; k < 120 && !folder; k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
+    return { th: true, kit, hh: true, went, registered: hh.registered, folder, label: MT.tierLabel('civic', 2) };
+  });
+  check('town services: the town hall comes from the kit and a new household registers there, coming home with a folder', ts.th && ts.kit && ts.hh && ts.went && ts.registered && ts.label.toLowerCase().includes('town hall'), JSON.stringify(ts));
+  check('civic effects: a water works greens nearby gardens; collection day puts bags at the kerb and the truck sets out', fx.ww && fx.rc && fx.watered && fx.bags >= 1 && fx.truck, JSON.stringify(fx));
   check('civic zone: utilities come from the civic kit, distinct kinds first, two workers, a notice board each', cv.kinds.length >= 2 && cv.distinct && cv.inPool && cv.kits.every(Boolean) && cv.boards.every(Boolean) && cv.cap === 2 && cv.label.includes('public bath'), JSON.stringify(cv));
   const vv = await page.evaluate(() => {   // the same unit, rebuilt with different seeds, takes different looks
     const ru = MT.blocks.find(b => b.type === 'res').units[0], su = MT.blocks.find(b => b.type === 'shop').units[0], wu = MT.blocks.find(b => b.type === 'work' && b.kind === 'office')?.units[0];

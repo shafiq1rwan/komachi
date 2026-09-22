@@ -41,11 +41,11 @@ Other scripts:
 | Pan | Drag (any button in Explore mode, right or middle button in any mode), or WASD / arrow keys |
 | Zoom | Mouse wheel |
 | Rotate | Q / E in 45° steps |
-| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove · 7 Parking · 8 Civic |
+| Tools | 1 Explore · 2 Homes · 3 Shops · 4 Work · 5 Streets · 6 Clear · 7 Parking · 8 Civic |
 | Civic | One cell: substation, water works or recycling centre. Two or three cells: public bath. Two workers each; nothing depends on them |
 | Parking | Drag one or two cells beside a street. Homes and workplaces within six cells park there instead of lining the kerb; a full kerb is called out on the building's card |
-| Remove | Click a building, or click or drag along a street (a street a building opens onto stays) |
-| Draw a street | Road tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
+| Clear | Click a building, or click or drag along a street (a street a building opens onto stays) |
+| Draw a street | Streets tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
 | Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it. One, two or three cells decide what it becomes: house, terrace pair or apartment building; konbini, café or supermarket; studio, workshop or factory. A label says so while you drag |
 | Inspect | Hover any building or person. In Explore mode, click to pin the card |
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |

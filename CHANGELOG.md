@@ -47,6 +47,21 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Phase 5.5 slice 3, town services from the new kit (src/town-services-kit.js): the Civic tool's one-cell pool gains a
+  clinic, a fire station and a community centre, and two cells make the town hall (the town picks it before a second
+  bath). A newly moved-in household sends one member to register at the town hall, who comes out with a folder and
+  walks home with the papers; the card marks the household "registered" and a notice says so. Until a town hall stands
+  the kōban takes the registration. Tired residents visit the clinic by day (energy restored). The fire station's kei
+  truck leaves its bay at 8:30 for a check round of a few corners and returns (the parked truck in the bay disappears
+  while it is out). The community centre's chronicle case draws readers. Saves carry the registered flag.
+- Tool bar labels: Homes, Shops, Work, Streets, Clear (Explore, Civic and Parking unchanged); notices say Streets tool and Clear.
+- Phase 5.5 slice 2, what the utilities do: windows within six cells of a substation glow steady and a shade warmer;
+  homes within six cells of a water works fill out with greener corners and flowers, and residents coming home in the
+  morning or evening sometimes water the garden with a watering can before going in; with a recycling centre, every
+  third day the homes put bags at the kerb at 6:00 and the centre's kei truck does a nearest-first round from 7:30,
+  clearing each kerb as it stops; the public bath draws evening bathers (fun and energy restored, one visit a day) whose
+  activities show on the card; strollers sometimes walk to a civic corner to read the notice board and stand there a
+  moment before turning for home.
 - Phase 5.5 begins: a Civic zone (tool, key 8). One cell makes a substation, water works or recycling centre from the civic
   kit (a kind the town lacks comes first), two or three cells a public bath from the landmark kit. Civic blocks employ two
   workers with their own activities, never level up, and carry a community notice board on the pavement corner. Their

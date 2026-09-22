@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 31 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 33 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -79,7 +79,15 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Civic zone (Phase 5.5, tool key 8, type `civic`): `TIERS.civic` = substation | waterworks | recycling on one cell, bathhouse on two or three;
   `CAP.civic` two workers, no level-ups (the growth code only levels res/work); `chooseKind` picks a civic kind the town lacks first;
   `genCivic` draws pad/fence/shed and rebuildUnitMesh attaches the kit model (civic-kit / landmark-kit Groups) plus a notice board on unit 0;
-  `CIVIC_ACTS` per kind in sim.js; names in `CIVIC_NAMES`. Effects are slice 2 (see docs/ROADMAP.md 5.5).
+  `CIVIC_ACTS` per kind in sim.js; names in `CIVIC_NAMES`. Effects (`CIVIC_REACH` 6 cells): `refreshCivicFlags` in world.js sets `b.watered`
+  on homes near a water works (`wateredGarden` in buildings.js; `r.outside` keeps a resident at the door watering with the watering-can
+  prop); daynight.js keeps a `powered` set near substations (steady, warm emissive); `updateCollection` in sim.js runs collection day
+  (`b.bags` at the kerb, a `truck` wanderer with a `plan`, `driveTo`); `bathUnits` + purpose 'bath' for evening visits; strolls may
+  target a civic corner and hold (`trip.holdAtEnd`) to read the notice board.
+  Town services (src/town-services-kit.js, `createTownService`): civic kinds townhall (2 cells) | clinic | firestation | community; `chooseKind`
+  picks townhall first and keeps townhall/firestation/community single. Registration: `hh.registered` (saved), purpose 'register' →
+  `r.folderPending` → the folder prop on leaving; kōban (STATION.anchor) stands in without a town hall. Purposes 'clinic' (energy) and
+  'chronicle'. `updateFireRound` runs the kei truck (`w.fire`) at 8:30 and hides `u.parkedTruck` while `b.truckOut`.
 - Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
@@ -104,6 +112,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `yardProps` adds mailbox/tap/tank/laundry pole to detached homes; world.js places 'utility-pole' (1.05×) and 'street-lamp' (1.5×).
   Street furniture likewise comes from src/street-furniture.js: addFurniture(out, kind, x, y, z, rot, color) merges; furnitureGeometry returns named
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
+- Tool labels (2026-09-22): Explore, Homes (res), Shops (shop), Work (work), Civic, Streets (road), Parking (park), Clear (remove). Code names are
+  unchanged; player-facing strings say "Streets tool" and "Clear".
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.
 

@@ -205,15 +205,17 @@ effect through the town instead.
   kit, the public bath on two or three cells from the landmark kit; two workers each; a notice board on every civic corner.
   Slice 2 is the effects below.
 
-- **Power substation**: transformers behind a fence, cables joining the utility poles; nearby lamps
-  and windows glow a little warmer and steadier
-- **Water works**: a tank and pipes; nearby homes keep greener gardens and residents water them
-- **Recycling centre**: sorting bins and a kei truck that does a morning round; residents carry
-  bags to the bins outside their homes on collection day
+- ✅ **Power substation** (2026-09-22): transformers behind a fence; windows within six cells glow steady and a
+  shade warmer (lamps unchanged for now; cables to the poles are a later touch)
+- ✅ **Water works** (2026-09-22): a tank and pump house; homes within six cells fill out with greener corners and
+  flowers, and residents water the garden with a watering can before going in
+- ✅ **Recycling centre** (2026-09-22): sorting bins and a kei truck that does a nearest-first morning round every
+  third day; bags stand at each home's kerb from 6:00 until the truck has passed (residents carrying them out is a
+  later touch)
 
-- **Landmarks**: town hall or community centre, a small clinic, a fire station with a red kei truck, a public
-  bath house with its chimney; residents visit them, so the effect shows on the street
-- **Registering as a resident** (agreed 2026-09-17): after a household moves in, one member walks to the town
+- ✅ **Landmarks** (2026-09-22): town hall, community centre with the chronicle case, clinic, fire station with its
+  kei truck's morning round, public bath with its chimney; residents visit them, so the effect shows on the street
+- ✅ **Registering as a resident** (agreed 2026-09-17, shipped 2026-09-22; the kōban stands in without a town hall): after a household moves in, one member walks to the town
   hall, spends a moment inside and comes out with a small folder ("registering at the town office"); the town
   chronicle logs it. Until the town hall exists the kōban by the station stands in. Never gated: a household
   that skips it is still at home

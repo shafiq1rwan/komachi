@@ -19,7 +19,7 @@ export function snapshot() {
     roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     parks: cells.filter(c => c.park === 'public').map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),
-    households: households.filter(hh => hh.members.length).map(hh => ({ id: hh.id, kind: hh.kind, size: hh.size, surname: hh.surname, home: ref(hh.home) })),
+    households: households.filter(hh => hh.members.length).map(hh => ({ id: hh.id, kind: hh.kind, size: hh.size, surname: hh.surname, home: ref(hh.home), registered: !!hh.registered })),
     residents: residents.map(r => ({ ...pickKeys(r, RES_KEYS), hh: r.hh.id, home: ref(r.home), job: ref(r.job), state: r.state === 'away' ? 'away' : 'here' })),
   };
 }

@@ -30,7 +30,7 @@ function renderStation(b) {
   if (!waiting.length) html += `<li class="empty">Nobody is waiting right now</li>`;
   html += `</ul>`;
   const vacancies = blocks.filter(x => x.type === 'res' && x.stage === DONE).reduce((s, x) => s + x.units.reduce((t, u) => t + Math.max(0, unitCap(u) - u.residents.length - u.incoming), 0), 0);
-  html += `<div class="empty">${vacancies > 0 ? `${vacancies} free bed${vacancies > 1 ? 's' : ''} in town. Newcomers move in as they arrive.` : 'Zone a Residential block and newcomers will move in.'}</div>`;
+  html += `<div class="empty">${vacancies > 0 ? `${vacancies} free bed${vacancies > 1 ? 's' : ''} in town. Newcomers move in as they arrive.` : 'Zone a Homes block and newcomers will move in.'}</div>`;
   return html;
 }
 function growthRow(b) {
@@ -63,7 +63,7 @@ function renderInspect(target, follow = null) {
         // residents grouped by household: who is home, who is out and what they are up to
         const groups = new Map(); for (const r of u.residents) { if (!groups.has(r.hh)) groups.set(r.hh, []); groups.get(r.hh).push(r); }
         for (const [hh, members] of groups) {
-          html += `<div class="divider"></div><div class="hh">${esc(hhName(hh))}<span>${esc(hhLabel(hh))}</span></div><ul>`;
+          html += `<div class="divider"></div><div class="hh">${esc(hhName(hh))}<span>${esc(hhLabel(hh))}${hh.registered ? ' · registered' : ''}</span></div><ul>`;
           for (const r of members.filter(r => r.at === u)) html += personLi(r, r.activity);
           for (const r of members.filter(r => r.at !== u)) html += personLi(r, whereIs(r));
           html += `</ul>`;
