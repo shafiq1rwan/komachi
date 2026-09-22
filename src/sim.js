@@ -130,6 +130,7 @@ function makeDog(color) {
 const residents = []; const wanderers = [];
 const HOME_ACTS = ['relaxing at home', 'cooking dinner', 'watering the plants', 'reading a book', 'watching TV', 'tidying up', 'playing games', 'napping'];
 const WORK_ACTS = ['working', 'in a meeting', 'on a call', 'typing away', 'sketching ideas', 'taking a tea break'];
+const CIVIC_ACTS = { substation: ['checking the transformers', 'reading the meters', 'logging the load', 'tightening a clamp'], waterworks: ['reading the gauges', 'testing the water', 'checking the pumps', 'greasing a valve'], recycling: ['sorting bottles', 'flattening boxes', 'weighing the cans', 'sweeping the pad'], bathhouse: ['stoking the boiler', 'folding towels', 'scrubbing the tubs', 'minding the counter'] };
 const SHOP_STAFF_ACTS = ['serving customers', 'restocking shelves', 'wiping tables', 'at the register'];
 const SHOP_ACTS = ['browsing', 'sipping coffee', 'buying groceries', 'chatting with the owner', 'picking a snack', 'trying samples'];
 
@@ -528,7 +529,7 @@ const isWaiting = r => !r.home && !r.movingIn && r.state === 'inside' && r.at ==
 /** households with at least one member waiting on the plaza */
 function waitingHouseholds() { return households.filter(hh => hh.members.some(isWaiting)); }
 const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === DONE).flatMap(b => b.units);
-const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop') && b.stage === DONE).flatMap(b => b.units);
+const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop' || b.type === 'civic') && b.stage === DONE).flatMap(b => b.units);
 function findJob(r) {
   let best = null, bestLen = 1e9;
   if (r.commuter) return;
@@ -662,7 +663,7 @@ function decide(r) {
   if (night || n.energy < 0.15 || (h >= 21 && n.energy < 0.5)) add((1 - n.energy) * 1.6 + (night ? 1.2 : 0.3), () => atHome ? sleep(r) : go(r, r.home, 'heading home to sleep'));
   if (workHours && !atWork && r.lastWorkDay !== day) add(1.5, () => { r.lastWorkDay = day; return go(r, r.job, 'heading to work'); });
   if (atWork && workHours) {
-    add(1.25, () => stay(r, 'work', pick(u.block.type === 'shop' ? SHOP_STAFF_ACTS : WORK_ACTS), rand(0.5, 1.2)));
+    add(1.25, () => stay(r, 'work', pick(u.block.type === 'shop' ? SHOP_STAFF_ACTS : u.block.type === 'civic' ? (CIVIC_ACTS[u.block.kind] || WORK_ACTS) : WORK_ACTS), rand(0.5, 1.2)));
     if (h >= 11.5 && h < 13.5 && n.food < 0.55 && r.lunched !== day && shops) { const sh = pickShop(r, u, FOODIE); if (sh) add((1 - n.food) * 1.5 + 0.3, () => { r.lunched = day; r.returnTo = u; return go(r, sh, 'going for lunch', 'eat'); }); }
   }
   const mealTime = (h >= 6.5 && h < 9.5) || (h >= 11.5 && h < 14) || (h >= 17.5 && h < 20.5);
@@ -820,7 +821,7 @@ function setProgressRate(fn) { progressRate = fn; }
 function growthAllowed(b) {
   const town = blocks.filter(x => x.type !== 'station');
   const types = new Set(town.filter(x => x.stage === DONE).map(x => x.type));
-  if (b.level === 1) return town.length >= 3 && (b.type === 'res' ? (types.has('work') || types.has('shop')) : types.has('res'));
+  if (b.level === 1) return town.length >= 3 && (b.type === 'res' ? (types.has('work') || types.has('shop') || types.has('civic')) : types.has('res'));
   if (b.level === 2) return town.length >= 6 && types.size === 3;
   return false;
 }

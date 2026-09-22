@@ -41,7 +41,8 @@ Other scripts:
 | Pan | Drag (any button in Explore mode, right or middle button in any mode), or WASD / arrow keys |
 | Zoom | Mouse wheel |
 | Rotate | Q / E in 45° steps |
-| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove · 7 Parking |
+| Tools | 1 Explore · 2 Residential · 3 Shop · 4 Workspace · 5 Road · 6 Remove · 7 Parking · 8 Civic |
+| Civic | One cell: substation, water works or recycling centre. Two or three cells: public bath. Two workers each; nothing depends on them |
 | Parking | Drag one or two cells beside a street. Homes and workplaces within six cells park there instead of lining the kerb; a full kerb is called out on the building's card |
 | Remove | Click a building, or click or drag along a street (a street a building opens onto stays) |
 | Draw a street | Road tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |

@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 30 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 31 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -76,6 +76,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `chooseKind(type, sel, skip)` in world.js picks the kind of the tier the neighbourhood lacks (new blocks and `changeTrade`);
   `b.popular` adds a striped awning and stock crates, `b.quietDays` closes the shop at 19:00 (daynight + `pickShop`).
   `r.canPending` (konbini) mirrors `r.bagPending`; wanderer trips flagged `delivery` pause at a home's kerb.
+- Civic zone (Phase 5.5, tool key 8, type `civic`): `TIERS.civic` = substation | waterworks | recycling on one cell, bathhouse on two or three;
+  `CAP.civic` two workers, no level-ups (the growth code only levels res/work); `chooseKind` picks a civic kind the town lacks first;
+  `genCivic` draws pad/fence/shed and rebuildUnitMesh attaches the kit model (civic-kit / landmark-kit Groups) plus a notice board on unit 0;
+  `CIVIC_ACTS` per kind in sim.js; names in `CIVIC_NAMES`. Effects are slice 2 (see docs/ROADMAP.md 5.5).
 - Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read

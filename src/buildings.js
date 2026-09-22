@@ -6,6 +6,8 @@ import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry
 import { addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
 import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
+import { createCivicProp } from './civic-kit.js';
+import { createLandmark } from './landmark-kit.js';
 import { addNature } from './nature-kit.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
@@ -518,7 +520,29 @@ function pallet(g, x, z, kind) {
 function sawhorse(g, x, z) { for (const dx of [-0.12, 0.12]) for (const dz of [-0.03, 0.03]) { const leg = new THREE.BoxGeometry(0.015, 0.16, 0.015); leg.rotateX(dz > 0 ? 0.35 : -0.35); leg.translate(x + dx, 0.2, z + dz); g.push(colorize(leg, PAL.wood2)); } g.push(box(0.34, 0.025, 0.03, PAL.wood, x, 0.28, z)); g.push(box(0.2, 0.02, 0.06, PAL.wood2, x - 0.02, 0.3, z)); }
 function cones(g, pts) { for (const [x, z] of pts) { g.push(cyl(0.012, 0.04, 0.1, CONE, x, 0.17, z, 6)); g.push(box(0.09, 0.012, 0.09, CONE, x, 0.126, z)); } }
 function siteSign(g, x, z) { g.push(cyl(0.015, 0.015, 0.36, PAL.wood2, x, 0.3, z, 4)); g.push(box(0.26, 0.16, 0.02, PAL.cream2, x, 0.5, z)); g.push(box(0.2, 0.03, 0.025, CONE, x, 0.53, z + 0.005)); g.push(box(0.16, 0.02, 0.025, K.chalk, x, 0.47, z + 0.005)); }
-function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : genWork)(b, u, g, wg); }
+function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : b.type === 'civic' ? genCivic : genWork)(b, u, g, wg); }
+
+/** civic ground: a gravel pad and what the kit model does not bring (fence, pump house, shed); the kit models themselves are
+ *  attached in rebuildUnitMesh. The door is on the front edge so trips end on the pavement */
+function genCivic(b, u, g) {
+  const k = Math.max(0, b.units.indexOf(u)), y0 = 0.12, kind = b.kind;
+  u.door = { x: kind === 'bathhouse' ? 0 : 0.3, z: 0.49 };
+  g.push(box(0.9, 0.02, 0.9, PAL.concrete2, 0, y0 + 0.01, 0));   // gravel pad
+  if (kind === 'substation') {   // a low mesh fence with an opening at the front right
+    for (const [x, z] of [[-0.44, -0.44], [0.44, -0.44], [-0.44, 0.44], [0.44, 0.44], [0, -0.44], [-0.44, 0], [0.44, 0]]) g.push(box(0.025, 0.3, 0.025, K.metal, x, y0 + 0.15, z));
+    g.push(box(0.9, 0.012, 0.012, K.metal, 0, y0 + 0.29, -0.44)); g.push(box(0.012, 0.012, 0.9, K.metal, -0.44, y0 + 0.29, 0)); g.push(box(0.012, 0.012, 0.9, K.metal, 0.44, y0 + 0.29, 0)); g.push(box(0.5, 0.012, 0.012, K.metal, -0.19, y0 + 0.29, 0.44));
+    for (const z of [-0.44, 0.44]) g.push(box(z < 0 ? 0.9 : 0.5, 0.2, 0.004, '#9aa3a8', z < 0 ? 0 : -0.19, y0 + 0.16, z)); for (const x of [-0.44, 0.44]) g.push(box(0.004, 0.2, 0.9, '#9aa3a8', x, y0 + 0.16, 0));   // mesh panels
+  } else if (kind === 'waterworks') {   // a small pump house beside the tower
+    g.push(box(0.36, 0.3, 0.3, PAL.cream2, 0.26, y0 + 0.15, -0.22)); g.push(box(0.42, 0.04, 0.36, K.metal2, 0.26, y0 + 0.32, -0.22)); g.push(box(0.12, 0.2, 0.02, PAL.wood2, 0.26, y0 + 0.1, -0.06));
+    g.push(cyl(0.02, 0.02, 0.5, PAL.sky2, 0.04, y0 + 0.02, -0.1, 6, Math.PI / 2));   // a pipe from the tower to the house
+    for (const [x, z] of [[-0.42, 0.4], [-0.3, 0.42]]) g.push(blob(0.09, PAL.bush, x, y0 + 0.08, z, 0, 0.7));
+  } else if (kind === 'recycling') {   // a shed behind the bins and a couple of stacked crates
+    g.push(box(0.56, 0.42, 0.4, PAL.cream2, -0.18, y0 + 0.21, -0.26)); g.push(box(0.62, 0.04, 0.46, K.metal2, -0.18, y0 + 0.44, -0.26)); g.push(box(0.2, 0.28, 0.02, K.metal, -0.18, y0 + 0.14, -0.05));
+    g.push(box(0.14, 0.1, 0.14, PAL.roofBlue, 0.36, y0 + 0.05, -0.32)); g.push(box(0.14, 0.1, 0.14, PAL.treeGreen, 0.36, y0 + 0.15, -0.32));
+  } else if (kind === 'bathhouse' && k > 0) {   // the bath's side yard: a bike rack and pots
+    bikeRack(g, -0.1, 0.42, 3, 0, u.seed); pots(g, 0.3, -0.3, 2);
+  }
+}
 
 function genConstruction(b, u, g, wg) {
   const st = b.stage, { w, d, H } = dims(b.type, b.level), y0 = 0.12;
@@ -641,6 +665,19 @@ function rebuildUnitMesh(u, pop = false) {
   const body = mergeMesh(g, false); grp.add(body);
   if (wg.length) { const wm = mergeMesh(wg, false, false); wm.material = u.winMat; wm.castShadow = false; grp.add(wm); }
   if (LG.length && b.stage >= DONE) { const lm = mergeMesh(LG, false); grp.add(lm); u.laundry = lm; }   // hung out in the morning, taken in before dusk (daynight.js)
+  if (b.type === 'civic' && b.stage >= DONE && Math.max(0, b.units.indexOf(u)) === 0) {   // the kit model for the zone, on the block's first unit
+    let prop = null, s = 1, pos = [0, 0.12, 0];
+    if (b.kind === 'substation') { prop = createCivicProp('substation'); pos = [-0.02, 0.12, -0.04]; }
+    else if (b.kind === 'waterworks') { prop = createCivicProp('water-tower'); pos = [-0.16, 0.12, 0.02]; }
+    else if (b.kind === 'recycling') { prop = createCivicProp('recycling-row'); pos = [0.08, 0.12, 0.22]; }
+    else if (b.kind === 'bathhouse') {   // the landmark bath house, centred on the whole block and scaled to its depth
+      prop = createLandmark('bathhouse'); s = b.units.length >= 3 ? 0.6 : 0.55;
+      const mx = b.cells.reduce((t, c) => t + cx(c.i), 0) / b.cells.length, mz = b.cells.reduce((t, c) => t + cz(c.j), 0) / b.cells.length, f = u.facing || 0, dx = mx - cx(u.cell.i), dz = mz - cz(u.cell.j);
+      pos = [dx * Math.cos(f) - dz * Math.sin(f), 0.12, dx * Math.sin(f) + dz * Math.cos(f)];
+    }
+    if (prop) { prop.scale.setScalar(s); prop.position.set(...pos); prop.traverse(o => { if (o.isMesh) o.castShadow = true; }); grp.add(prop); }
+    const nb = createCivicProp('notice-board'); nb.scale.setScalar(0.65); nb.position.set(-0.36, 0.12, 0.36); grp.add(nb);   // the community notice board on the pavement corner
+  }
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
     const spots = (!u.di && !u.dj) ? [[-0.285, 0.353, 0.9], [0.285, 0.353, 0.9]] : [];   // the pavilion's two paper lamps

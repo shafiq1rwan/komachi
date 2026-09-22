@@ -1,6 +1,6 @@
 // Komachi — the grid: cells, automatic roads, vegetation, lamp posts, and block/unit records
 import * as THREE from 'three';
-import { PAL, ROOFS, WALLS, SHOP_WALLS, WORK_WALLS, AWNINGS, FAMILY, HOME_SUFFIX, PLACE, SHOP_NAMES, WORK_NAMES, uniqueName } from './palette.js';
+import { PAL, ROOFS, WALLS, SHOP_WALLS, WORK_WALLS, AWNINGS, FAMILY, HOME_SUFFIX, PLACE, SHOP_NAMES, WORK_NAMES, CIVIC_NAMES, uniqueName } from './palette.js';
 import { pick, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, N, HALF, cx, cz, townGroup } from './scene.js';
@@ -388,12 +388,13 @@ function rebuildRoads() {
 
 // ───────────────────────────── blocks & units ─────────────────────────────
 const blocks = []; const units = new Map();
-const CAP = { res: [0, 2, 4, 6], work: [0, 4, 7, 10], shop: [0, 1, 2, 3] };
+const CAP = { res: [0, 2, 4, 6], work: [0, 4, 7, 10], shop: [0, 1, 2, 3], civic: [0, 2, 2, 2] };   // civic: two workers, no levels
 // Size tiers (Phase 5): the number of cells dragged decides what a block becomes. Index = cells.
 const TIERS = {
   res: [null, ['detached', 'narrow'], ['terrace', 'apartment'], ['manshon']],
   shop: [null, ['konbini', 'bakery', 'florist', 'books', 'ramen'], ['cafe', 'restaurant', 'grocery'], ['supermarket', 'arcade']],
   work: [null, ['studio', 'office'], ['workshop', 'office'], ['factory', 'office']],
+  civic: [null, ['substation', 'waterworks', 'recycling'], ['bathhouse'], ['bathhouse']],   // Phase 5.5: utilities on one cell, the public bath on two or three
 };
 const CAP_BONUS = { apartment: 2, manshon: 4, villa: 2, restaurant: 1, supermarket: 2, arcade: 1, factory: 3 };   // a villa holds a whole family
 /** what a drag of n cells would make, for the placement label */
@@ -409,12 +410,12 @@ const STAGE_HOURS = [2, 2.5, 2.5, 2, 2];        // shops, workspaces (~11 crew-h
 const RES_STAGE_HOURS = [1.5, 2, 2, 1.5, 1.5];  // homes (~8.5 crew-hours, about one working day)
 const STAGE_NAMES = ['Surveying the plot', 'Laying foundations', 'Raising the frame', 'Up on the scaffolding', 'Finishing touches'];
 const stageHours = b => b.type === 'res' ? RES_STAGE_HOURS : STAGE_HOURS;
-const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', station: 'Station' };
-const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, station: PAL.roofSage };
+const TYPE_LABEL = { res: 'Residential', shop: 'Shop', work: 'Workspace', civic: 'Civic', station: 'Station' };
+const TYPE_COLOR = { res: PAL.roofRose, shop: PAL.roofTeal, work: PAL.roofBlue, civic: '#7d6fa3', station: PAL.roofSage };
 function unitCap(u) { return CAP[u.block.type][u.block.level] + (CAP_BONUS[u.variant] || 0) + (CAP_BONUS[u.block.kind] || 0); }
 const SHOP_KINDS = ['cafe', 'bakery', 'ramen', 'grocery', 'konbini', 'florist', 'books'];
 const WORK_KINDS = ['office', 'workshop', 'studio'];
-const KIND_LABEL = { cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
+const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
 function makeUnit(block, c) {
   const u = { id: S.nextId++, block, cell: c, mesh: null, residents: [], staff: [], inside: new Set(), lastMoveIn: S.T, pop: 0, incoming: 0, removed: false,
     winMat: new THREE.MeshStandardMaterial({ color: PAL.window, emissive: PAL.glow, emissiveIntensity: 0, roughness: 0.4 }),
@@ -628,7 +629,9 @@ function connectHillRoads() {
  *  so a street gets a bakery where there is none rather than a third konbini; `skip` leaves out the current kind */
 function chooseKind(type, sel, skip = null) {
   const pool = (TIERS[type] && TIERS[type][Math.min(3, sel.length)] || (type === 'shop' ? SHOP_KINDS : WORK_KINDS)).filter(k => k !== skip);
-  if (!pool.length) return null; if (type !== 'shop') return pick(pool);
+  if (!pool.length) return null;
+  if (type === 'civic') { const have = new Set(blocks.filter(b => b.type === 'civic').map(b => b.kind)); const fresh = pool.filter(k => !have.has(k)); return pick(fresh.length ? fresh : pool); }   // a utility the town lacks first
+  if (type !== 'shop') return pick(pool);
   const c0 = sel[0], others = blocks.filter(b => b.type === 'shop' && !sel.includes(b.cells[0]));
   const far = pool.map(k => { let d = Infinity; for (const b of others) if (b.kind === k) d = Math.min(d, Math.abs(b.cells[0].i - c0.i) + Math.abs(b.cells[0].j - c0.j)); return [k, d]; });
   const best = Math.max(...far.map(f => f[1]));
@@ -668,7 +671,7 @@ function placeBlock(type, sel, preset = null) {
     variant: type === 'res' ? pick(TIERS.res[Math.min(3, sel.length)]) : null,
     roofStyle: seed < 0.38 ? 'kawara' : seed < 0.68 ? 'tile' : 'metal',   // grey kawara tiles, pastel tiles, or a corrugated metal roof
   };
-  block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'manshon' ? pick(['Heights', 'Mansion', 'Court']) : block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : block.variant === 'terrace' ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
+  block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'manshon' ? pick(['Heights', 'Mansion', 'Court']) : block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : block.variant === 'terrace' ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : type === 'civic' ? uniqueName(CIVIC_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);
   if (preset) Object.assign(block, preset);   // a restored block keeps its saved name, palette, stage and level
   for (const c of sel) { const u = makeUnit(block, c); if (type === 'res') u.variant = preset && preset.unitVariants ? preset.unitVariants[block.units.length - 1] || block.variant : block.variant; }   // one look per block, so a terrace or a manshon reads as one building
   block.street = frontRoads(sel);

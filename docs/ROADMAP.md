@@ -201,6 +201,10 @@ gets several distinct generators per size, and every building varies its details
 A fourth zone. Nothing is gated on it (no blackouts, no failure states); each facility shows its
 effect through the town instead.
 
+- ✅ Slice 1 (2026-09-22): the Civic tool (key 8); substation, water works and recycling centre on one cell from the civic
+  kit, the public bath on two or three cells from the landmark kit; two workers each; a notice board on every civic corner.
+  Slice 2 is the effects below.
+
 - **Power substation**: transformers behind a fence, cables joining the utility poles; nearby lamps
   and windows glow a little warmer and steadier
 - **Water works**: a tank and pipes; nearby homes keep greener gardens and residents water them

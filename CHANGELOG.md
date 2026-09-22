@@ -47,6 +47,10 @@ Phases 4 and 4.5 plus the polish that went with them.
   The Remove tool clears a car park (its cars go back to the kerb). The taxis wait in their own car park across the ring
   road from the station entrance. Car park cells (`c.park`) are neither zonable nor drawable. Saves are v3 (car parks).
 - The Car park tool is labelled Parking in the tool bar, help card and notices.
+- Phase 5.5 begins: a Civic zone (tool, key 8). One cell makes a substation, water works or recycling centre from the civic
+  kit (a kind the town lacks comes first), two or three cells a public bath from the landmark kit. Civic blocks employ two
+  workers with their own activities, never level up, and carry a community notice board on the pavement corner. Their
+  visible effects (steady warm light, watered gardens, collection day, evening bathers) follow in the next slice.
 - Tool bar: each tool has a proper icon on a tinted chip (magnifier, house, store, briefcase, road, P sign, eraser)
   instead of an abstract swatch.
 - Inspect card: household heading, its divider and its people sit closer together.

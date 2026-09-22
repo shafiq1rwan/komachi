@@ -43,6 +43,12 @@ export const WORK_NAMES = {
   studio: [['Kumo','Studio'],['Hoshizora','Animation'],['Yume','Games'],['Ao','Pottery'],['Niwa','Studio']],
   factory: [['Tetsu','Precision'],['Komachi','Foods'],['Kaze','Textiles'],['Hikari','Electric'],['Sora','Packaging']],
 };
+export const CIVIC_NAMES = {
+  substation: [['Komachi', 'Substation'], ['Hinode', 'Substation'], ['Kawa', 'Substation']],
+  waterworks: [['Komachi', 'Water Works'], ['Kawa', 'Water Works'], ['Izumi', 'Water Works']],
+  recycling: [['Komachi', 'Recycling Centre'], ['Midori', 'Recycling'], ['Kaede', 'Recycling Centre']],
+  bathhouse: [['Yuzu', 'Bath House'], ['Tsuki', 'Bath House'], ['Hoshi', 'Sento'], ['Ume', 'Sento'], ['Matsu', 'Bath House']],
+};
 export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];
 export const PLACE = ['Sakura','Momiji','Sumire','Tsubaki','Ajisai','Fuji','Kaede','Yanagi','Botan','Kiku','Ume','Matsu','Hinode','Kawa','Oka','Hoshi'];
 export const usedNames = new Set();

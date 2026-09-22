@@ -69,7 +69,7 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
-  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park';
+  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic';
   if (e.button === 0 && tool === 'road') { const c = groundCell(); if (c && drawable(c, c.h || 0)) ptr.road = { a: c, b: c }; else if (c) toast(c.type === 'water' ? 'Streets stay on land' : (c.h || 0) > 0 && !hill.open ? `The hill opens once ${HILL_UNLOCK} people live in town` : c.type === 'lot' ? 'There is a building here' : c.type === 'hill' ? 'Too steep for a street' : 'A street cannot start here'); }
   else if (e.button === 0 && tool === 'remove' && (c => c && c.type === 'road' && !c.block)(groundCell())) { const c = groundCell(); ptr.erase = { a: c, b: c }; }   // drag along a street to clear a run
   else if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && (c.type !== 'empty' || ((c.h || 0) > 0 && !hill.open))) toast(c.type === 'canal' ? 'Nothing is built in the canal; draw a street across it and a bridge will span it' : c.coast ? 'The coast road stays open' : (c.h || 0) > 0 && !hill.open ? `The hill opens once ${HILL_UNLOCK} people live in town` : c.keep || c.ramp ? 'The hill road stays open' : c.type === 'road' ? 'Buildings go beside a street, not on it' : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); else if (c && c.type === 'empty' && !placeable(c, [])) toast([[0, -1], [1, 0], [0, 1], [-1, 0]].some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road' && !joinedToTown(n); }) ? 'That street does not reach the station yet; join it up first' : 'Draw a street here first (Road tool, 5), then zone beside it'); }
@@ -126,7 +126,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('wheel', e => { e.preventDefault(); cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 3, 42); }, { passive: false });
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return; keys.add(e.code);
-  if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park');
+  if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'KeyR') rotateTarget();
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
@@ -144,10 +144,10 @@ const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(ne
 const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
-  const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park');
+  const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic');
   if (zoneDrag) { const t = tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
-  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park';
+  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic';
   if (zone && !ptr.panning) {
     const sel = ptr.sel && ptr.sel.length ? ptr.sel : null;
     if (sel) {

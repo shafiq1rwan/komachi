@@ -147,6 +147,14 @@ try {
     return { spots: spots.length, placed: !!park, flag: pc && pc.park, count: MT.carParks.length, bay, label: MT.tierLabel('park', 2), station: !!MT.scene.getObjectByName('Komachi_Subway_Station') };
   });
   check('car park tool: a cell beside a street takes four bays and a nearby home parks there; kit station pavilion present', cp.placed && cp.flag === 'public' && cp.bay !== null && cp.label.includes('8 bays') && cp.station, JSON.stringify(cp));
+  const cv = await page.evaluate(() => {   // Civic zone: one-cell utilities from the civic kit, each a different kind first, two workers each, a notice board on the corner
+    const road = MT.drawRoad(MT.cell(20, 27), MT.cell(20, 31)); const spots = []; for (const i of [19, 21]) for (let j = 27; j <= 31; j++) { const c = MT.cell(i, j); if (MT.placeable(c, [c])) spots.push(c); }
+    const made = []; for (const c of spots.slice(0, 3)) { if (!MT.placeable(c, [c])) continue; const b = MT.placeBlock('civic', [c]); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u); made.push(b); }
+    const kinds = made.map(b => b.kind), names = { substation: 'Komachi_substation', waterworks: 'Komachi_water_tower', recycling: 'Komachi_recycling_row' };
+    const kits = made.map(b => !!b.units[0].mesh.getObjectByName(names[b.kind])), boards = made.map(b => !!b.units[0].mesh.getObjectByName('Komachi_notice_board'));
+    return { road: !!road, spots: spots.length, kinds, distinct: new Set(kinds).size === kinds.length, inPool: kinds.every(k => MT.TIERS.civic[1].includes(k)), kits, boards, cap: made.length ? MT.unitCap(made[0].units[0]) : 0, label: MT.tierLabel('civic', 2) };
+  });
+  check('civic zone: utilities come from the civic kit, distinct kinds first, two workers, a notice board each', cv.kinds.length >= 2 && cv.distinct && cv.inPool && cv.kits.every(Boolean) && cv.boards.every(Boolean) && cv.cap === 2 && cv.label.includes('public bath'), JSON.stringify(cv));
   const vv = await page.evaluate(() => {   // the same unit, rebuilt with different seeds, takes different looks
     const ru = MT.blocks.find(b => b.type === 'res').units[0], su = MT.blocks.find(b => b.type === 'shop').units[0], wu = MT.blocks.find(b => b.type === 'work' && b.kind === 'office')?.units[0];
     const styles = new Set(), finishes = new Set(), facades = new Set();
