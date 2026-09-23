@@ -537,7 +537,8 @@ function finalGen(b, u, g, wg) {
  *  attached in rebuildUnitMesh. The door is on the front edge so trips end on the pavement */
 function genCivic(b, u, g) {
   const k = Math.max(0, b.units.indexOf(u)), y0 = 0.12, kind = b.kind;
-  u.door = { x: kind === 'bathhouse' || kind === 'townhall' ? 0 : kind === 'clinic' ? -0.14 : kind === 'firestation' ? 0.29 : kind === 'community' ? -0.13 : 0.3, z: 0.49 };
+  u.door = { x: kind === 'bathhouse' || kind === 'townhall' || kind === 'square' ? 0 : kind === 'clinic' ? -0.14 : kind === 'firestation' ? 0.29 : kind === 'community' ? -0.13 : 0.3, z: 0.49 };
+  if (kind === 'square') { genSquare(b, u, g, k); return; }
   g.push(box(0.9, 0.02, 0.9, PAL.concrete2, 0, y0 + 0.01, 0));   // gravel pad
   if (kind === 'substation') {   // a low mesh fence with an opening at the front right
     for (const [x, z] of [[-0.44, -0.44], [0.44, -0.44], [-0.44, 0.44], [0.44, 0.44], [0, -0.44], [-0.44, 0], [0.44, 0]]) g.push(box(0.025, 0.3, 0.025, K.metal, x, y0 + 0.15, z));
@@ -556,6 +557,19 @@ function genCivic(b, u, g) {
   } else if (kind === 'firestation') {   // a hose cabinet by the bay and cones at the exit
     g.push(box(0.12, 0.16, 0.06, K.red, 0.42, y0 + 0.08, 0.2));
   }
+}
+
+/** the town square: open stone paving from edge to edge so the cells read as one place, a darker border course, and along the
+ *  back edge planters with small trees, benches facing the street and a lamp at each end; the front stays open for stalls */
+function genSquare(b, u, g, k) {
+  const y0 = 0.12, n = b.units.length, stone = ['#d9d3c4', '#cfc8b8', '#e2dccd'];
+  g.push(box(1.0, 0.02, 1.0, '#cbc4b3', 0, y0 + 0.01, 0));
+  for (let i = 0; i < 4; i++) for (let j = 0; j < 4; j++) g.push(box(0.235, 0.006, 0.235, stone[(i * 3 + j + k) % 3], -0.375 + i * 0.25, y0 + 0.022, -0.375 + j * 0.25));
+  g.push(box(1.0, 0.012, 0.05, '#a9a292', 0, y0 + 0.025, -0.475));
+  if (k === 0 || k === n - 1) { const side = k === 0 ? -1 : 1; g.push(box(0.05, 0.012, 1.0, '#a9a292', side * 0.475, y0 + 0.025, 0)); }
+  g.push(box(0.26, 0.12, 0.2, PAL.wood, -0.34, y0 + 0.06, -0.38)); addNature(g, 'broadleaf', -0.34, y0 + 0.12, -0.38, 0.5, u.seed, leafColor(u.seed < 0.5 ? PAL.treePeach : PAL.treeSage));
+  addFurniture(g, 'bench', 0.2, y0, -0.36, 0);
+  if (k === 0 || k === n - 1) addNeighbourhood(g, 'street-lamp', (k === 0 ? -1 : 1) * 0.44, y0, -0.44, Math.PI, { scale: 1.0 });
 }
 
 function genConstruction(b, u, g, wg) {

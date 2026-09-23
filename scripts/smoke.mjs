@@ -78,6 +78,8 @@ try {
     const bridge = res.find(c => c.landmark === 'bridge'), side = bridge && MT.cells.find(c => c.landmark === 'bridge-end');
     return { kinds, reserved: res.length, zonable: res.some(c => MT.placeable(c, [c])), bridgeRoad: bridge ? !!MT.drawRoad(side, bridge) : null, bridgeType: bridge && bridge.type };
   });
+  const qy = await page.evaluate(() => { const P = MT.pierFrame(); const lot = MT.cells.find(c => c.landmark === 'pier-park'); return { quay: !!P, spots: P ? P.spots.length : 0, pier: MT.landmarks.some(l => l.kind === 'pier' && l.fish), lot: !!lot, lotFree: lot ? MT.placeable(lot, [lot]) : null }; });
+  check('the stone quay: fishing places along its edges, a car park cell kept for it', qy.quay && qy.spots >= 6 && qy.pier && qy.lot && qy.lotFree === false, JSON.stringify(qy));
   check('landmarks: lighthouse, arched bridge and park pavilion stand on cells nobody can build over', ['lighthouse', 'bridge', 'pavilion'].every(k => lm.kinds.includes(k)) && lm.reserved >= 5 && !lm.zonable && lm.bridgeRoad === false && lm.bridgeType === 'canal', JSON.stringify(lm));
   check('the hill opening is a milestone: card, road crew at the top, lanterns light one by one, a glide to look', ms.card && ms.crew === 3 && ms.lit === 6 && ms.glided && ms.gone, JSON.stringify(ms));
   await page.evaluate(() => { const b = MT.blocks[MT.blocks.length - 1]; if (b.cells[0].h > 0) MT.removeBlock(b); });
@@ -201,11 +203,11 @@ try {
     while (MT.seasonOf() !== 'autumn') MT.fastForward(24);
     MT.setHour(12); MT.setSpeed(1); return { day0, s0, s1: MT.seasonOf(), turned, chron: MT.chronicle.some(e => /came to Komachi/.test(e.text)) };
   });
-  await sleep(1500);
-  const leaves = await page.evaluate(() => { MT.setSpeed(0); return MT.scene.children.filter(o => o.visible && o.renderOrder === 6 && o.geometry && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters.width < 0.1).length; });
+  let leaves = 0; for (let k = 0; k < 30 && leaves < 3; k++) { await sleep(200); leaves = Math.max(leaves, await page.evaluate(() => MT.scene.children.filter(o => o.visible && o.renderOrder === 6 && o.geometry && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters.width < 0.1).length)); }   // poll: leaves drift in over a few frames
+  await page.evaluate(() => MT.setSpeed(0));
   check('seasons: the calendar turns and autumn leaves fall', se.turned && se.s1 === 'autumn' && se.chron && leaves >= 3, JSON.stringify({ ...se, leaves }));
-  const tk = await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); let talks = 0; for (let k = 0; k < 300 && !talks; k++) { MT.fastForward(0.02); talks = MT.talks.length; } return { talks, kinds: MT.talks.map(t => t.topic) }; });
-  await page.evaluate(() => { MT.cam.tView = MT.cam.view = 6; const t = MT.talks[0]; if (t) { t.until = MT.T + 2; if (t.a.meetUntil) { t.a.meetUntil = t.until; t.b.meetUntil = t.until; } MT.cam.target.copy(t.a.mesh.position); } MT.setSpeed(1); }); await sleep(600);   // hold the talk so the overlay has a frame to draw it
+  const tk = await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); const good = t => t.a.mesh.visible && t.b.mesh.visible && t.a.mesh.position.distanceTo(t.b.mesh.position) < 1.1; let talks = 0, ok = null; for (let k = 0; k < 400 && !ok; k++) { MT.fastForward(0.02); talks = Math.max(talks, MT.talks.length); ok = MT.talks.find(good); } if (ok) { MT.talks.splice(MT.talks.indexOf(ok), 1); MT.talks.unshift(ok); } return { talks, kinds: MT.talks.map(t => t.topic) }; });
+  await page.evaluate(() => { MT.cam.tView = MT.cam.view = 6; const t = MT.talks[0]; if (t) { t.until = MT.T + 2; if (t.a.meetUntil) { t.a.meetUntil = t.until; t.b.meetUntil = t.until; } MT.cam.target.copy(t.a.mesh.position); } MT.setSpeed(0); }); await sleep(600);   // paused: the pair stays put and the overlay (drawn every frame, paused or not) shows the bubble
   let bub = 0; for (let k = 0; k < 40 && !bub; k++) { bub = await page.evaluate(() => document.querySelectorAll('#bubbles .bubble').length); if (!bub) await sleep(150); }   // poll: slow software GL may need a few frames
   await page.evaluate(() => MT.setSpeed(0));
   check('speech bubbles: a chat pairs two residents and a bubble shows over the speaker', tk.talks >= 1 && bub >= 1, JSON.stringify({ ...tk, bub }));
@@ -257,8 +259,34 @@ try {
     for (let k = 0; k < 80 && (MT.ferry.ashore || 0) <= before; k++) { MT.fastForward(0.05); seen.add(f.state); }   // poll until a car is ashore (the larger hull berths further out), never a fixed count
     return { ready: true, slip: !!f.slip, yard: !!f.yard, states: [...seen], calls: f.calls > 0, rolledOff: (MT.ferry.ashore || 0) > before, ashore: MT.ferry.ashore || 0 };
   });
+  const tr = await page.evaluate(() => {   // tourism: a visitor off the train walks out to a landmark and raises a camera; the bus stops get their shelters
+    MT.setSpeed(0); MT.setWeather('clear', 30); MT.tourism.forceWeekend = true; MT.setHour(9.5); MT.fastForward(0.1);
+    const t = MT.spawnTourist(); if (!t) return { spawned: false, lm: MT.landmarks.length };
+    let photo = false, cam = false; for (let k = 0; k < 320 && !photo; k++) { MT.fastForward(0.04); if (t.state === 'visit') { photo = true; const ch = t.mesh.userData.char; cam = !ch || !!(ch.item && ch.item.userData.handItem); } }
+    MT.tourism.forceWeekend = false;
+    return { spawned: true, photo, cam, seen: t.seen, stops: !!MT.bus.stops, shelters: MT.bus.shelters.length };
+  });
+  check('tourists: a visitor walks out to a landmark and takes photos; the tourist bus stops have shelters', tr.spawned && tr.photo && tr.cam && (!tr.stops || tr.shelters === 2), JSON.stringify(tr));
   check('car ferry: it calls at the slipway and queued cars roll off into town', fy.ready && fy.slip && fy.yard && fy.states.includes('berthed') && fy.calls && fy.rolledOff, JSON.stringify(fy));
   const nanStack = await page.evaluate(() => { const bad = []; MT.scene.traverse(o => { if (!o.isMesh || !o.geometry || !o.geometry.attributes.position) return; const arr = o.geometry.attributes.position.array; for (let i = 0; i < arr.length; i++) if (!isFinite(arr[i])) { const chain = []; for (let p = o; p; p = p.parent) chain.push(p.name || p.type + (p.userData && p.userData.unit ? ':' + p.userData.unit.block.name + '/' + (p.userData.unit.block.kind || p.userData.unit.variant) : p.userData && p.userData.res ? ':person' : p.userData && p.userData.lights !== undefined ? ':vehicle' : '')); bad.push(chain.join('<') + ' n=' + arr.length / 3); break; } }); return (window.__nanStack || '') + (bad.length ? ' NaN meshes: ' + bad.slice(0, 6).join(' ; ') : ''); });
+  const ev = await page.evaluate(() => {   // the town square: a three-cell civic drag makes one; Sunday brings the market, the first Saturday of summer the festival
+    MT.setSpeed(0); const station = MT.STATION.block.cells.flatMap(s => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => MT.cell(s.i + a, s.j + b))).filter(n => n && n.type === 'road');
+    let sel = null;
+    for (const c of MT.cells) for (const [di, dj] of [[1, 0], [0, 1]]) {
+      const cs = [0, 1, 2].map(k => MT.cell(c.i + di * k, c.j + dj * k)); if (!cs.every(x => x && MT.placeable(x, cs))) continue;
+      const side = [[dj, di], [-dj, -di]].find(([a, b]) => cs.every(x => { const n = MT.cell(x.i + a, x.j + b); return n && n.type === 'road'; })); if (!side) continue;
+      const p = MT.routeCells(station, [MT.cell(cs[1].i + side[0], cs[1].j + side[1])]); if (p && (!sel || p.length < sel.len)) { sel = cs; sel.len = p.length; }
+    }
+    if (!sel) return { placed: false };
+    const b = MT.placeBlock('civic', sel); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u);
+    let d = Math.floor(MT.T / 24) + 1; while (d % 7 !== 0) d++; MT.setDay(d, 7.2); MT.fastForward(0.3);
+    const market = MT.eventOn() && MT.eventOn().kind;
+    d = Math.floor(MT.T / 24) + 1; for (let k = 0; k < 40 && !MT.festivalDay(d); k++) d++; MT.setDay(d, 16.1); MT.fastForward(0.2);
+    const fest = MT.eventOn(), props = fest ? fest.group.children.length : 0;
+    let went = 0; for (let k = 0; k < 120 && !went; k++) { MT.fastForward(0.04); went = MT.eventOn() ? MT.eventOn().spots.reduce((s, x) => s + x.taken, 0) : 0; }
+    return { placed: true, kind: b.kind, market, festival: fest && fest.kind, props, went, chron: MT.chronicle.some(e => /first summer festival/.test(e.text)) };
+  });
+  check('town square: markets on Sundays, the summer festival with stalls and a crowd', ev.placed && ev.kind === 'square' && ev.market === 'market' && ev.festival === 'festival' && ev.props >= 8 && ev.went >= 1 && ev.chron, JSON.stringify(ev));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

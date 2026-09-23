@@ -13,6 +13,7 @@ import { record } from './chronicle.js';
 import { W } from './weather.js';
 import { startTalk, endTalk } from './bubbles.js';
 import { landmarkRoads } from './landmarks.js';
+import { eventOn, eventVisit } from './events.js';
 /** what two people would talk about right now: the weather when it is doing something, otherwise the town */
 function pickTopic(r) { if (W.rain > 0.2 || W.snow > 0.3) return 'weather'; const h = hourOf(); if ((h >= 11 && h < 14) || (h >= 17.5 && h < 20)) return 'food'; if (r && r.hh && !r.hh.registered) return 'home'; return pick(['shop', 'train', 'home', 'heart', null]); }
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
@@ -599,9 +600,10 @@ function go(r, dest, label, purpose = null) {
 }
 // a stroll out to one of the island's landmarks: along the streets to the nearest one, then off the kerb to the spot; they
 // look out to sea, cross to the crown of the bridge or sit a while in the pavilion, then walk back the same way and home
-function visitLandmark(r, from) {
-  const opts = landmarkRoads(); if (!opts.length) return false;
-  const { l, road } = pick(opts), path = routeCells(frontRoad(from), [road]); if (!path || path.length < 2) return false;
+function visitLandmark(r, from, given = null) {
+  const opts = given ? [given] : landmarkRoads(); if (!opts.length) return false;
+  const quay = !given && opts.find(o => o.l.kind === 'pier');   // fishing off the quay is a favourite
+  const { l, road } = quay && Math.random() < 0.4 ? quay : pick(opts), path = routeCells(frontRoad(from), [road]); if (!path || path.length < 1) return false;
   from.inside.delete(r); r.at = null; r.strollHome = true; r.actKind = 'stroll'; r.until = 0; r.purpose = null;
   const walk = l.walk(road);
   startTrip(r, path, exitPts(from), walk, null, l.label);
@@ -611,7 +613,9 @@ function visitLandmark(r, from) {
 function atLandmark(r, tr) {
   const l = tr.landmark;
   if (!tr.held) {   // there: stand and look, or take a free bench in the pavilion
-    tr.held = true; tr.holdUntil = S.T + rand(l.hold[0], l.hold[1]); r.activity = l.activity; r.paused = true; r.heldAct = null;
+    tr.held = true; tr.holdUntil = S.T + rand(l.hold[0], l.hold[1]); r.activity = l.kind === 'event' && hourOf() >= 19.9 && l.activity.includes('festival') ? 'watching the fireworks' : l.activity; r.paused = true; r.heldAct = null;
+    if (l.spot) l.spot.taken++;
+    if (l.fish) { const ch = r.mesh.userData.char; if (ch) equipCharacterProp(ch, 'fishing-rod', pick([PAL.indigo, PAL.roofTeal, '#b24a3c'])); }
     const seat = l.seats && l.seats.find(s => !s.taken || !s.taken.trip || s.taken.trip.seat !== s);
     if (seat) { seat.taken = r; tr.seat = seat; r.mesh.position.copy(seat.pos); r.mesh.rotation.y = seat.rot; setPose(r, true); }
     else if (l.face !== undefined) r.mesh.rotation.y = l.face;
@@ -619,6 +623,9 @@ function atLandmark(r, tr) {
   }
   r.paused = false;
   if (tr.seat) { tr.seat.taken = null; setPose(r, false); }
+  if (l.spot) l.spot.taken = Math.max(0, l.spot.taken - 1);
+  if (l.fish) { const ch = r.mesh.userData.char; if (ch) clearCharacterProp(ch); }
+  if (l.bag) { const ch = r.mesh.userData.char; if (ch) equipCharacterProp(ch, 'shopping-bag', '#c9a36a'); }   // something from the market
   const back = tr.lmWalk.slice().reverse().map(p => p.clone());
   if (!r.home) { r.trip = null; returnToStation(r, back[back.length - 1]); return; }
   const path = routeCells([tr.lmRoad], frontRoad(r.home));
@@ -740,6 +747,14 @@ function decide(r) {
   if (!atWork && h >= 17 && h < 21 && n.fun < 0.65 && r.bathDay !== day) { const bu = bathUnits().find(x => x !== u && routeUnits(u, x)); if (bu) add((1 - n.fun) * 1.2 + 0.3, () => { r.bathDay = day; return go(r, bu, 'off to the bath house', 'bath'); }); }   // an evening soak
   if (!atWork && h >= 10 && h < 20.5 && n.social < 0.5) { const v = pickVisit(r); if (v) add((1 - n.social) * 1.15, () => go(r, v, `visiting ${v.block.name}`, 'visit')); }
   if (atHome && u.block.bagsDue && r.mesh.userData.char && h >= 6 && h < 10.5) add(1.6, () => carryBags(r));   // collection morning: someone takes the bags out
+  if (!atWork && !(workHours && r.lastWorkDay !== day) && ((h >= 5.5 && h < 8.5) || (h >= 15.5 && h < 18.5)) && W.rain < 0.3 && r.fishDay !== day) {   // early morning and late afternoon: off to fish from the quay (some are keen anglers)
+    const keen = r.id % 4 === 0, q = landmarkRoads().find(o => o.l.kind === 'pier');
+    if (q && (keen || Math.random() < 0.35)) add((keen ? 0.95 : 0.45) + (1 - n.fun) * 0.5, () => { r.fishDay = day; return visitLandmark(r, u, q); });
+  }
+  { const ev = eventOn(); if (ev && !atWork && !(workHours && r.lastWorkDay !== day) && r.eventDone !== day + ev.kind) {   // the square is busy: the market in the morning, the festival in the evening
+    const fest = ev.kind === 'festival', sc = fest ? 1.45 + (1 - n.fun) * 0.5 : 0.55 + (1 - n.supplies) * 0.7 + (1 - n.fun) * 0.25;
+    add(sc, () => { const v = eventVisit(); if (!v) return false; r.eventDone = day + ev.kind; return visitLandmark(r, u, v); });
+  } }
   if (atHome) add(0.55 + n.fun * 0.2, () => stay(r, 'home', pick(HOME_ACTS), rand(0.6, 1.4)));
   else if (!(atWork && workHours)) add(0.5, () => go(r, r.home, 'heading home'));
   opts.sort((a, b) => b.score - a.score);

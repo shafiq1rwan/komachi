@@ -234,11 +234,13 @@ effect through the town instead.
   speakers. Shown for bench chats, household visits, passers-by who know each other and stop a moment on the pavement,
   and later stall vendors and customers. Hidden when zoomed far out
 - ✅ Puddles on the streets after a shower, drying over an hour (2026-09-23)
-- Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
-  (models in assets/festival: three yatai, lantern string, taiko, bunting, banner, mikoshi; fireworks over the sea in code)
-- Tourist bus (assets/destinations) on a weekend loop between the shore and the plaza, stopping at the bus shelter
-- Tourists arriving by train for festivals and the shore, staying a day; they walk out to a landmark, take a photo (camera
-  hand prop, built in code), buy something and leave on an evening train
+- ✅ Gentle events (2026-09-23, src/events.js) on a town square the player places (three cells, Civic tool; decided 2026-09-23 over
+  an automatic festival ground or the shrine path): a Sunday market morning, and the summer festival on the first Saturday of
+  summer with the festival kit's yatai, lanterns, taiko, bunting, nobori and mikoshi, and fireworks over the sea in code
+- ✅ Tourist bus (2026-09-23; assets/destinations, src/tourists.js): at weekends it comes over on the morning ferry, loops between a
+  stop on the station ring and one by the lighthouse, stopping at bus shelters, and leaves on the 17:00 ferry
+- ✅ Tourists (2026-09-23, src/tourists.js): off the morning trains on fine days (more at weekends), out to a landmark or two, a
+  photo with a camera prop built in code, often a shop visit and a paper bag, home by train; festivals will bring more
 - A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
 
 - ✅ **Landmarks** (shipped 2026-09-23; src/landmarks.js, models in assets/destinations): a lighthouse on the rocky headland with a

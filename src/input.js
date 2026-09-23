@@ -9,6 +9,7 @@ import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION
 import { clearSave } from './save.js';
 import { removeBlock, removeCarPark, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
+import { tourists } from './tourists.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
 
@@ -182,6 +183,7 @@ function nearestPerson() {
   };
   for (const r of residents) { if (r.state === 'away' || (r.state === 'inside' && !r.mesh.visible)) continue; test(r.state === 'driving' && r.car ? r.car.position : r.mesh.position, { res: r }); }
   for (const k of workers) if (k.mesh && k.mesh.visible) test(k.mesh.position, { worker: k });
+  for (const t of tourists) if (t.mesh.visible) test(t.mesh.position, { tourist: t });
   return best;
 }
 function updateHover() {
@@ -190,7 +192,7 @@ function updateHover() {
     hovered = nearestPerson(); if (hovered) return finishHover();
     raycaster.setFromCamera(ptr.ndc, camera);
     const hits = raycaster.intersectObjects([townGroup, peopleGroup], true);
-    for (const h of hits) { let o = h.object; while (o && !o.userData.unit && !o.userData.res && !o.userData.worker) o = o.parent; if (o && (o.userData.unit || o.userData.res || o.userData.worker)) { hovered = o.userData; break; } if (isDecor(h.object)) break; }
+    for (const h of hits) { let o = h.object; while (o && !o.userData.unit && !o.userData.res && !o.userData.worker && !o.userData.tourist) o = o.parent; if (o && (o.userData.unit || o.userData.res || o.userData.worker || o.userData.tourist)) { hovered = o.userData.tourist ? { tourist: o.userData.tourist } : o.userData; break; } if (isDecor(h.object)) break; }
   }
   finishHover();
 }

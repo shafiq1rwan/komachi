@@ -164,6 +164,8 @@ function offPath(dest, endPos) {
   return { pts: [deckPoint(), ferry.land.clone(), ferry.edge.clone(), ...onRoad], cells: road };   // deck → landing → top of the slope → along the lane
 }
 function requestWanderer(color, vkind) { ferry.queue.push({ kind: 'wanderer', color, vkind }); }
+/** q: { make() -> mesh (+z forward, in carMeshes), dest() -> road cell or null, onArrive(mesh) } */
+function shipVehicle(q) { ferry.queue.push({ kind: 'deliver', ...q }); }
 function orderCar(r) { if (!ferry.queue.some(q => q.kind === 'carFor' && q.r === r)) ferry.queue.push({ kind: 'carFor', r }); }
 /** a visiting car heading home: it drives to the slip, waits at the landing if the ferry is out, and boards when it is in */
 function boardCar(mesh) {   // wait in a line down the slipway lane until the ferry is in
@@ -180,6 +182,12 @@ function launch(q) {
     if (!trip) return false;
     const mesh = makeCar(q.color, q.vkind); mesh.visible = true; mesh.position.copy(trip.pts[0]); mesh.userData.parked = false;
     adoptWanderer({ kind: 'car', cell: ferry.slip, mesh, trip: { pts: trip.pts, i: 0, t: 0, speed: rand(2.0, 2.8), last: trip.last, cells: trip.cells }, pause: 0, dead: false, fromFerry: true });
+    return true;
+  } else if (q.kind === 'deliver') {
+    const dest = q.dest(); if (!dest) return false;
+    const p = offPath([dest], new THREE.Vector3(cx(dest.i), 0.08, cz(dest.j))); if (!p) return false;
+    const mesh = q.make(); mesh.visible = true; mesh.position.copy(p.pts[0]);
+    ferry.runs.push({ mesh, trip: { pts: p.pts, i: 0, t: 0, speed: 2.0, cells: p.cells }, onArrive: () => q.onArrive(mesh) });
     return true;
   } else if (q.kind === 'carFor') {
     const r = q.r; if (!r.home || r.home.removed || r.car) { r.carOrdered = false; return true; }   // no longer wanted
@@ -262,3 +270,5 @@ export function updateFerry(dh, simDt) {
 }
 export const slipCell = () => ferry.slip;
 void HALF; void roadNeighbors;
+
+export { shipVehicle, boardCar };

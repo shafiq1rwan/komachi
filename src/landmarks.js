@@ -8,8 +8,10 @@
 // Models come from src/festival-landmark-kit.js (front +Z, ground Y 0).
 import * as THREE from 'three';
 import { scene, cx, cz, HALF } from './scene.js';
-import { cells, cell, rebuildDecor, landmarkTrees, terrainY } from './world.js';
-import { coastDist, shoreKind, pierAngle, canalMouths, islandEllipse, radius } from './island.js';
+import { cells, cell, rebuildDecor, landmarkTrees, terrainY, placeCarPark, DIR4, joinedToTown } from './world.js';
+import { coastDist, shoreKind, pierAngle, canalMouths, islandEllipse, radius, pierFrame } from './island.js';
+import { createStreetFurniture } from './street-furniture.js';
+import { createBike } from './bikes.js';
 import { createFestivalLandmark } from './festival-landmark-kit.js';
 import { snowKit } from './geometry.js';
 import { PAL } from './palette.js';
@@ -24,7 +26,7 @@ let beam = null, lens = null;
 function roadNear(p, reach = 4.5) {
   let best = null, bd = reach;
   for (const c of cells) {
-    if (c.type !== 'road' || c.ramp || (c.h || 0) > 0) continue;
+    if (c.type !== 'road' || c.ramp || (c.h || 0) > 0 || !joinedToTown(c)) continue;   // only streets that reach the town
     const d = Math.hypot(cx(c.i) - p.x, cz(c.j) - p.z); if (d < bd) { bd = d; best = c; }
   }
   return best;
@@ -80,7 +82,7 @@ function placeLighthouse() {
   const flank = p.clone().addScaledVector(side, 0.62).addScaledVector(out, 0.08).setY(0.1);
   if (coastDist(flank.x, flank.z) < 0.35) flank.copy(p).addScaledVector(side, -0.62).addScaledVector(out, 0.08).setY(0.1);
   landmarks.push({ kind: 'lighthouse', name: 'the lighthouse', label: 'walking out to the lighthouse', activity: 'looking out to sea by the lighthouse', hold: [0.25, 0.5], anchor: view,
-    face: Math.atan2(out.x, out.z), walk: road => [kerbToward(road, view), view.clone(), flank.clone()] });
+    face: Math.atan2(out.x, out.z), target: p.clone().setY(0.6), walk: road => [kerbToward(road, view), view.clone(), flank.clone()] });
 }
 
 function placeBridgeAndPavilion() {
@@ -114,6 +116,7 @@ function placeBridgeAndPavilion() {
   const steps = p => p.clone().setY(Math.max(0.1, p.y));   // trip points hold height above the ground; the deck rises over the water
   landmarks.push({ kind: 'bridge', name: 'the arched bridge', label: 'strolling over the arched bridge', activity: 'watching the carp from the bridge', hold: [0.12, 0.3], anchor: bankA,
     face: Math.atan2(fi, fj) + (Math.random() < 0.5 ? 0 : Math.PI),   // at the crown, looking along the water
+    target: path[Math.floor(path.length / 2)].clone(),
     walk: road => [kerbToward(road, bankA), ...up.map(steps)] });
 
   // the pavilion: on a plain cell next to bank A or B along the canal, its steps toward the bridge foot; a cell with no street
@@ -140,23 +143,62 @@ function placeBridgeAndPavilion() {
     landmarkTrees.push({ x: back.x, z: back.z, s: 0.8, color: blossom, seed }, { x: onBank.x, z: onBank.z, s: 0.72, color: blossom, seed: seed + 5 });
     const seats = pv.userData.seats.map(v => { const p = local(pv, v); p.y = v[1] * sc - 0.025 + terrainY(p.x, p.z); return { pos: p, rot: pv.rotation.y + (v[0] < 0 ? Math.PI / 2 : -Math.PI / 2), taken: null }; });
     const door = local(pv, pv.userData.entrance).setY(0.1), steps = door.clone().addScaledVector(toBank, 0.22);
-    landmarks.push({ kind: 'pavilion', name: 'the park pavilion', label: 'walking to the pavilion in the park', activity: 'resting in the pavilion under the cherries', hold: [0.3, 0.6], anchor: steps, seats,
+    landmarks.push({ kind: 'pavilion', name: 'the park pavilion', label: 'walking to the pavilion in the park', activity: 'resting in the pavilion under the cherries', hold: [0.3, 0.6], anchor: steps, seats, target: pv.position.clone().setY(0.4),
       walk: road => [kerbToward(road, steps), steps.clone(), door.clone()] });
   }
+  rebuildDecor();
+}
+
+// ── the stone quay (built in island.js): people fish from its edges; a reserved car park by its land end opens once a street
+//    reaches it, and a bike rack on the quay fills with the anglers' bicycles ──
+let pierLot = null, rackBikes = [], pierSpots = null, lotCheck = 0;
+function placePier() {
+  const P = pierFrame(); if (!P) return;
+  pierSpots = P.spots;
+  const land = P.at(-0.4, 0).setY(0.1);   // on the grass just behind the quay's root
+  // the car park: the nearest plain cell to the quay's land end, kept for it
+  let best = null, bd = 3.4;   // nearest first, and a cell already beside a town street before one that must wait for a street
+  for (const c of cells) {
+    if (c.type !== 'empty' || (c.h || 0) || c.keep || c.coast || c.yard || c.slip || c.landmark || c.park) continue;
+    const street = DIR4.some(([a, b]) => { const n = cell(c.i + a, c.j + b); return n && n.type === 'road' && joinedToTown(n); });
+    const d = Math.hypot(cx(c.i) - land.x, cz(c.j) - land.z) + (street ? 0 : 1.2); if (d < bd) { bd = d; best = c; }
+  }
+  if (best) { best.landmark = 'pier-park'; best.tree = null; pierLot = best; }
+  // the bike rack on the quay, near its root, and a bicycle for each angler (three at most)
+  const rack = createStreetFurniture('bike-rack'), rp = P.at(0.42, -(P.width / 2 - 0.14)); rp.y = P.deckY + 0.035;
+  rack.position.copy(rp); rack.rotation.y = P.ang + Math.PI / 2; scene.add(rack); rack.updateMatrixWorld(true);
+  const cols = ['#6f9a96', '#d98b7a', '#e6d7a8'];
+  rackBikes = rack.userData.bays.map((b, k) => { const bike = createBike(cols[k]); bike.position.copy(local(rack, b)); bike.rotation.y = rack.rotation.y; bike.visible = false; scene.add(bike); return bike; });
+  const entry = { kind: 'pier', name: 'the quay', label: 'going fishing off the quay', activity: 'fishing off the quay', hold: [0.7, 1.6], anchor: land, fish: true, target: P.at(P.len * 0.6, 0),
+    visit() {   // a free place along the edge, and the way out to it: off the kerb, over the grass, onto the quay and along its middle
+      const free = pierSpots.filter(s => s.taken < 1); if (!free.length) return null;
+      const s = free[Math.floor(Math.random() * free.length)];
+      return { ...entry, spot: s, face: s.face, walk: road => [kerbToward(road, land), land.clone(), P.at(0.12, 0), P.at(Math.min(s.a, P.len - 0.35), 0), s.pos.clone()] };
+    } };
+  landmarks.push(entry);
   rebuildDecor();
 }
 
 /** once, after the town is loaded: the island's landmarks and the cells they keep */
 function placeLandmarks() {
   if (landmarks.length) return;
-  placeLighthouse(); placeBridgeAndPavilion();
+  placeLighthouse(); placeBridgeAndPavilion(); placePier();
 }
-/** a landmark worth walking out to from a street, with the street it is reached from */
-function landmarkRoads() { return landmarks.map(l => ({ l, road: roadNear(l.anchor) })).filter(x => x.road); }
+/** a landmark worth walking out to from a street, with the street it is reached from (the quay hands out a free fishing place) */
+function landmarkRoads() {
+  const out = [];
+  for (const l of landmarks) { const road = roadNear(l.anchor); if (!road) continue; const v = l.visit ? l.visit() : l; if (v) out.push({ l: v, road }); }
+  return out;
+}
 
 let sweep = 0;
 /** each frame: the lens glows as the light goes, the beams sweep round (night: 0 by day, 1 at night) */
 function updateLandmarks(dt, night) {
+  if (pierSpots) { const n = pierSpots.reduce((a, s) => a + s.taken, 0); rackBikes.forEach((b, k) => { b.visible = k < Math.min(3, Math.ceil(n * 0.7)); }); }
+  if (pierLot && pierLot.park !== 'public' && (lotCheck += dt) > 2) {   // the reserved lot opens as a car park once a street reaches it
+    lotCheck = 0;
+    if (DIR4.some(([a, b]) => { const n = cell(pierLot.i + a, pierLot.j + b); return n && n.type === 'road'; })) { pierLot.landmark = null; placeCarPark([pierLot]); pierLot.landmark = 'pier-park'; }
+  }
   if (lens) lens.material.emissiveIntensity = 0.2 + night * 2.6;
   if (beam) {
     sweep += dt * 0.7; beam.rotation.y = sweep;

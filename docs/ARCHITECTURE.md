@@ -258,3 +258,28 @@ hold height above the ground, so the bridge's rising deck is just higher points)
 and, for the pavilion, `seats`. In sim.js a dry-weather stroll sometimes becomes `visitLandmark`: the street route to the
 nearest street, then the walk points; `atLandmark` holds the walker still (`r.paused`), seats them if there is a free bench,
 then walks the points back to the kerb and routes home.
+
+## Tourism
+
+`tourists.js` sits above sim.js, landmarks.js and ferry.js and is driven from main.js (`updateTourists` in the frame loop and in
+fastForward). Visitors are plain objects with a character mesh (`userData.tourist`), not residents: they have no home or needs, are
+not saved, and are removed at the station or at midnight. `onTrain` queues arrivals on dry mornings; each visitor gets a plan of
+one or two landmarks, maybe a shop, then home, and `walkTo` routes them along the streets with `buildPoints` (trip points hold
+height above the ground). At a landmark they stand about a cell back from its `target` on dry ground and alternate the
+`'camera'` and `'photo'` fidgets that characters.js poses. A shop visit adds to `visitsToday` and `visitScore`, so tourism
+shows up in the economy as busier shops and banners.
+
+The bus is found each morning by `findStops`: a ring cell by the station stairs and the lighthouse's street, each with a clear
+pavement on the keep-left side for a shelter. At weekends `shipVehicle` (ferry.js) brings it ashore; it dwells at each stop
+(boarding visitors waiting there, holding a little for those walking up), drives the path between them with `trafficFactor`, and
+after 14:36 heads for the slipway and `boardCar` for the 17:00 sailing.
+
+## Events on the town square
+
+The town square is a civic kind (three cells; `genSquare` draws it). `events.js` keeps the schedule from the calendar alone, so
+nothing is saved: the market on Sundays in the morning, the festival on `festivalDay` in the evening. When one is due and a finished
+square exists, `setUp` places the festival kit's models in each square cell's own frame (front toward the street) and lists places
+to stand on the front half of each cell. sim.js adds a strong option to `decide()` while an event is on, and the visit reuses the
+landmark walk (`visitLandmark(r, from, eventVisit())`, with a bag home from the market); tourists.js gives festival visitors an
+'event' step. Lantern emissive, one warm PointLight over the square and the fireworks are driven by `updateEvents(dt, realT, night)`
+from the main loop and fastForward; `onEventStart` lets main.js show the milestone card for the first festival.

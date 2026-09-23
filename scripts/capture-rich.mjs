@@ -1,3 +1,4 @@
+/* global MT */
 import { spawn } from 'node:child_process';
 import { existsSync, readdirSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
@@ -27,14 +28,16 @@ try {
   await page.screenshot({ path: 'scripts/out/rich-neighbourhood.png' });
   await page.evaluate(() => { MT.cam.target.set(0.5, 0, 0.5); MT.cam.view = MT.cam.tView = 20.5; });
   const rich = await page.evaluate(() => {
-    const unit = MT.blocks.find(b => b.type === 'res').units[0];
+    const unit = MT.blocks.find(b => b.type === 'res' && b.cells.length === 1 &&
+      (!b.units[0].variant || ['detached', 'villa'].includes(b.units[0].variant)))?.units[0];
+    if (!unit) throw Error('No rich detached home in the capture town');
     const invalid = MT.blocks.filter(b => ['res', 'shop', 'work'].includes(b.type)).flatMap(b => b.units).some(u => !Number.isFinite(u.door?.x) || !Number.isFinite(u.door?.z));
-    return { active: document.body.classList.contains('rich'), buildings: MT.blocks.length, vertices: unit.mesh.children[0].geometry.attributes.position.count, invalid };
+    return { active: document.body.classList.contains('rich'), buildings: MT.blocks.length, blockId: unit.block.id, vertices: unit.mesh.children[0].geometry.attributes.position.count, invalid };
   });
   if (!rich.active || rich.buildings < 30) throw Error(`Rich view failed: ${JSON.stringify(rich)}`);
   if (rich.invalid) throw Error('A building has invalid entrance coordinates');
   await page.evaluate(() => MT.setLook('classic'));
-  const classic = await page.evaluate(() => ({ active: document.body.classList.contains('rich'), vertices: MT.blocks.find(b => b.type === 'res').units[0].mesh.children[0].geometry.attributes.position.count }));
+  const classic = await page.evaluate(id => ({ active: document.body.classList.contains('rich'), vertices: MT.blocks.find(b => b.id === id).units[0].mesh.children[0].geometry.attributes.position.count }), rich.blockId);
   if (classic.active) throw Error(`Look toggle failed: ${JSON.stringify(classic)}`);
   if (classic.vertices === rich.vertices) throw Error('Look toggle did not rebuild the house geometry');
   await page.evaluate(() => { MT.setLook('rich'); MT.setHour(21); });

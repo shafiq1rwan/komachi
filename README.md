@@ -131,6 +131,14 @@ Some things worth knowing:
 - **Landmarks to walk out to.** A lighthouse stands on the headland (its beam sweeps the sea at night), a red arched
   footbridge crosses the canal and a small park pavilion sits beside it under cherry trees. On fine days residents out for
   a stroll walk out to them, to look out to sea, watch the carp from the crown of the bridge or sit a while in the pavilion.
+- **Fishing off the quay.** The pier is a stone quay; early and late in the day residents cycle down and fish from its edges,
+  their bikes in the rack, with a car park kept beside it.
+- **Market mornings and the summer festival.** Drag three cells with the Civic tool and the town gets a square. On Sundays
+  stalls go up for a market morning; on the first Saturday of summer the square fills with yatai, lanterns, a taiko and the
+  mikoshi, residents and visitors crowd in after work, and fireworks burst over the sea at eight.
+- **Visitors come to look.** On fine days tourists step off the morning trains, walk out to the lighthouse, the bridge or
+  the pavilion, take photos, look round a shop and go home in the afternoon. At weekends a tourist bus comes over on the
+  morning ferry and runs between the station and the lighthouse.
 - **People talk.** Neighbours on the station benches chat, and residents who know each other stop on the pavement for a
   word; a small bubble over the speaker shows dots or a pictogram, never text.
 - **The town saves itself** in your browser every half game hour and when you leave, and is back on
@@ -187,6 +195,8 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   water.js            the sea: calm bay water shaded in the material (swells, shallows, glints)
   milestone.js        the milestone card and the camera glide to go and look
   landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
+  tourists.js         day visitors off the trains, their camera, and the weekend tourist bus with its stops
+  events.js           the town square's market mornings and summer festival, and the fireworks
   festival-landmark-kit.js standalone festival stalls and props, lighthouse, arched bridge, pavilion and tourist bus
   bubbles.js          speech bubbles over residents who are talking
   weather.js          weather spells, cloud shade, rain and snowflakes, puddles, snow cover

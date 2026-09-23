@@ -9,7 +9,9 @@
     "build": "vite build",
     "preview": "vite preview",
     "lint": "eslint src",
-    "test": "node scripts/smoke.mjs"
+    "test": "node scripts/smoke.mjs",
+    "test:architecture": "node scripts/check-architecture.mjs",
+    "preview:architecture": "node scripts/preview-architecture.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

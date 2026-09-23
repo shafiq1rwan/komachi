@@ -416,9 +416,9 @@ const TIERS = {
   res: [null, ['detached', 'narrow'], ['terrace', 'apartment'], ['manshon']],
   shop: [null, ['konbini', 'bakery', 'florist', 'books', 'ramen'], ['cafe', 'restaurant', 'grocery'], ['supermarket', 'arcade']],
   work: [null, ['studio', 'office'], ['workshop', 'office'], ['factory', 'office']],
-  civic: [null, ['substation', 'waterworks', 'recycling', 'clinic', 'firestation', 'community'], ['townhall', 'bathhouse'], ['bathhouse']],   // Phase 5.5: services on one cell, the town hall or bath on two, the bath on three
+  civic: [null, ['substation', 'waterworks', 'recycling', 'clinic', 'firestation', 'community'], ['townhall', 'bathhouse'], ['square', 'bathhouse']],   // Phase 5.5: services on one cell, the town hall or bath on two, the bath on three
 };
-const CAP_BONUS = { apartment: 2, manshon: 4, villa: 2, restaurant: 1, supermarket: 2, arcade: 1, factory: 3 };   // a villa holds a whole family
+const CAP_BONUS = { square: -2, apartment: 2, manshon: 4, villa: 2, restaurant: 1, supermarket: 2, arcade: 1, factory: 3 };   // a villa holds a whole family
 /** what a drag of n cells would make, for the placement label */
 function tierLabel(type, n) {
   if (type === 'park') return `${n} cell${n > 1 ? 's' : ''} · car park, ${4 * n} bays`;
@@ -443,7 +443,7 @@ function unitCap(u) {
 }
 const SHOP_KINDS = ['cafe', 'bakery', 'ramen', 'grocery', 'konbini', 'florist', 'books'];
 const WORK_KINDS = ['office', 'workshop', 'studio'];
-const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', townhall: 'Town hall', clinic: 'Clinic', firestation: 'Fire station', community: 'Community centre', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
+const KIND_LABEL = { substation: 'Substation', waterworks: 'Water works', recycling: 'Recycling centre', bathhouse: 'Public bath', square: 'Town square', townhall: 'Town hall', clinic: 'Clinic', firestation: 'Fire station', community: 'Community centre', cafe: 'Café', bakery: 'Bakery', ramen: 'Ramen shop', grocery: 'Grocery', konbini: 'Convenience store', florist: 'Florist', books: 'Bookshop', restaurant: 'Restaurant', supermarket: 'Supermarket', arcade: 'Shopping arcade', office: 'Office', workshop: 'Workshop', studio: 'Studio', factory: 'Factory', detached: 'Detached house', narrow: 'Narrow house', apartment: 'Apartments', terrace: 'Terrace houses', manshon: 'Apartment building', villa: 'Villa', teahouse: 'Tea house' };
 function makeUnit(block, c) {
   const u = { id: S.nextId++, block, cell: c, mesh: null, residents: [], staff: [], inside: new Set(), lastMoveIn: S.T, pop: 0, incoming: 0, removed: false,
     winMat: new THREE.MeshStandardMaterial({ color: PAL.window, emissive: PAL.glow, emissiveIntensity: 0, roughness: 0.4 }),
@@ -690,6 +690,7 @@ function chooseKind(type, sel, skip = null) {
     const have = new Set(blocks.filter(b => b.type === 'civic').map(b => b.kind)), single = ['townhall', 'firestation', 'community'];
     const fresh = pool.filter(k => !have.has(k)), open = pool.filter(k => !(single.includes(k) && have.has(k)));
     if (fresh.includes('townhall')) return 'townhall';
+    if (fresh.includes('square')) return 'square';   // three cells: the town square first, where the market and the festival happen
     return pick(fresh.length ? fresh : (open.length ? open : pool));
   }
   if (type !== 'shop') return pick(pool);

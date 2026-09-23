@@ -9,6 +9,7 @@ import { mat, blob, cyl, box, mergeMesh, swayMat, colorize, snowKit } from './ge
 import { scene, HALF, N, cx, cz } from './scene.js';
 import { biome } from './biome.js';
 import { createLandmark } from './landmark-kit.js';
+import { createFishingBoat } from './watercraft.js';
 
 function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rng = mulberry(S.seed);
@@ -39,7 +40,7 @@ function polygon(extra, n = 180) {
 // It follows the exact seeded coast, so the water and buildable cells keep their shape.
 function waterfrontBand(inner, outer, y, n = 240) {
   const positions = [], colors = [];
-  const shades = ['#b7b7ae', '#c4c3b9', '#aeb0aa'].map(c => new THREE.Color(c));
+  const shades = PAL.waterfront.paving.map(c => new THREE.Color(c));
   const quad = (a, b, c, d, color) => {
     for (const p of [a, b, c, a, c, d]) { positions.push(...p); colors.push(color.r, color.g, color.b); }
   };
@@ -56,7 +57,7 @@ function waterfrontBand(inner, outer, y, n = 240) {
 }
 function addRichWaterfront() {
   const wall = [], colors = [], n = 200, courses = 4;
-  const stones = ['#9fa7a8', '#adb3b0', '#8e999c', '#bac0b9', '#a2a9a6'].map(c => new THREE.Color(c));
+  const stones = PAL.waterfront.stone.map(c => new THREE.Color(c));
   for (let row = 0; row < courses; row++) {
     const top = -0.16 - row * 0.165, bottom = top - 0.163;
     for (let k = 0; k < n; k++) {
@@ -104,7 +105,7 @@ function updateWater(dt) { tickWater(dt); for (const l of rippleLayers) { l.t.of
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
-let pierTheta = null, shoreVeg = []; const seaRocks = [];   // seaRocks: boulders out in the water {x, z, r}, for the ferry to steer clear of
+let pierTheta = null, shoreVeg = []; const seaRocks = []; let pierInfo = null;   // pierInfo: the stone quay's frame, deck height and fishing spots (landmarks.js)   // seaRocks: boulders out in the water {x, z, r}, for the ferry to steer clear of
 {
   const solid = [], veg = [];
   pierTheta = null;
@@ -116,24 +117,58 @@ let pierTheta = null, shoreVeg = []; const seaRocks = [];   // seaRocks: boulder
     } else if (kind === 'beach') {
       if (pierTheta === null && r < 0.3) pierTheta = t;
       if (r < 0.35) { const [x, z] = coastPoint(t, 0.4 + rng() * 0.6); for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.45 + rng() * 0.25, '#b9c084', x + (rng() - 0.5) * 0.2, -0.28, z + (rng() - 0.5) * 0.2, 4)); }
-      if (r > 0.8) { const [x, z] = coastPoint(t, 0.5 + rng() * 0.5); solid.push(blob(0.07, PAL.cream2, x, -0.48, z, 0, 0.5)); }
+      if (r > 0.8) { coastPoint(t, 0.5 + rng() * 0.5); }   // (pale pebbles here floated on the water once the beach went; the draws keep the island's seed stable)
     } else {
       if (r < 0.45) { const [x, z] = coastPoint(t, -0.25 - rng() * 0.4); veg.push(blob(0.14 + rng() * 0.1, rng() < 0.5 ? PAL.bush : PAL.bush2, x, 0.06, z, 0, 0.6)); }
     }
   }
-  // pier on the first beach stretch, pointing out to sea, with a little boat beside it
+  // the stone quay on the first beach stretch, pointing out to sea: a pale concrete deck just below the town's ground on coursed
+  // stone walls, a T-head at the end with steps down to the water on one side, bollards along the edges and a lamp on the head;
+  // the little boat is moored alongside. People fish from its edges (landmarks.js reads pierInfo)
   if (pierTheta !== null) {
-    const [ax, az] = coastPoint(pierTheta, -0.2), [bx, bz] = coastPoint(pierTheta, 2.6);
-    const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ang = Math.atan2(dx, dz), mx = (ax + bx) / 2, mz = (az + bz) / 2;
-    solid.push(box(0.55, 0.06, len, PAL.wood, mx, -0.3, mz, ang));
-    for (let k = 0; k < 5; k++) { const f = k / 4; for (const side of [-0.22, 0.22]) { const px = ax + dx * f + Math.cos(ang) * side, pz = az + dz * f - Math.sin(ang) * side; solid.push(cyl(0.035, 0.035, 0.7, PAL.wood2, px, -0.55, pz, 5)); } }
-    solid.push(box(0.55, 0.05, 0.05, PAL.wood2, bx, -0.22, bz, ang));
-    for (const side of [-0.28, 0.28]) { const f = 0.85; solid.push(cyl(0.02, 0.02, 0.28, PAL.wood2, ax + dx * f + Math.cos(ang) * side, -0.15, az + dz * f - Math.sin(ang) * side, 4)); }
-    const boatX = mx + Math.cos(ang) * 0.75, boatZ = mz - Math.sin(ang) * 0.75;
-    const fx = Math.sin(ang), fz = Math.cos(ang);   // boat forward = along the pier direction
-    solid.push(box(0.3, 0.16, 0.5, PAL.cream2, boatX, -0.72, boatZ, ang));
-    const bow = new THREE.BoxGeometry(0.22, 0.16, 0.22); bow.rotateY(Math.PI / 4); bow.rotateY(ang); bow.translate(boatX + fx * 0.3, -0.72, boatZ + fz * 0.3); solid.push(colorize(bow, PAL.cream2));
-    solid.push(box(0.24, 0.04, 0.42, '#8fb0c9', boatX, -0.62, boatZ, ang)); solid.push(box(0.16, 0.14, 0.16, '#8fb0c9', boatX - fx * 0.1, -0.54, boatZ - fz * 0.1, ang)); solid.push(box(0.12, 0.06, 0.1, PAL.window, boatX - fx * 0.1 + fx * 0.05, -0.52, boatZ - fz * 0.1 + fz * 0.05, ang));
+    const [ax, az] = coastPoint(pierTheta, -0.45), [bx, bz] = coastPoint(pierTheta, 2.3);
+    const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
+    const fx = Math.sin(ang), fz = Math.cos(ang), sx = Math.cos(ang), sz = -Math.sin(ang);   // along the quay, and across it
+    const W = 0.72, D = -0.147, BOT = -0.9, HW = 1.5, HD = 0.62;   // slab surface meets the waterfront coping at -0.112
+    const at = (a, s, y = 0) => [ax + fx * a + sx * s, y, az + fz * a + sz * s];
+    const { stone: stones, paving, iron, lamp, light } = PAL.waterfront;
+    const stone = index => stones[((index % stones.length) + stones.length) % stones.length];
+    const slab = (w, h, d, c, a, s, y) => { const [x, , z] = at(a, s); solid.push(box(w, h, d, c, x, y, z, ang)); };
+    slab(W, D - BOT, len, stones[1], len / 2, 0, (D + BOT) / 2);                                   // the arm's core
+    slab(HW, D - BOT, HD, stones[1], len - HD / 2, 0, (D + BOT) / 2);                              // the head's core
+    for (let a = 0; a < len - HD; a += 0.34) {
+      const end = Math.min(a + 0.33, len - HD);
+      slab(W + 0.03, 0.035, end - a, paving[Math.round(a / 0.34) % paving.length], (a + end) / 2, 0, D + 0.0175);
+    }
+    for (let s = -HW / 2; s < HW / 2; s += 0.36) {
+      const end = Math.min(s + 0.35, HW / 2);
+      slab(end - s, 0.035, HD, paving[Math.round((s + HW / 2) / 0.36) % paving.length], len - HD / 2, (s + end) / 2, D + 0.0175);
+    }
+    // coursed stone on the arm's two sides and round the head: blocks in rows, staggered, a shade apart
+    const course = (a0, a1, s) => { for (let row = 0; row < 4; row++) { const y1 = -0.16 - row * 0.165, off = (row % 2) * 0.13; for (let a = a0 - off; a < a1; a += 0.26) { const aa = Math.max(a0, a), bb = Math.min(a1, a + 0.25); if (bb - aa < 0.04) continue; slab(0.03, 0.163, bb - aa, stone(row * 3 + Math.round(a * 7)), (aa + bb) / 2, s, y1 - 0.0815); } } };
+    for (const side of [-1, 1]) course(0, len - HD, side * (W / 2 + 0.012));
+    for (const side of [-1, 1]) course(len - HD, len, side * (HW / 2 + 0.012));
+    for (let row = 0; row < 4; row++) { const y1 = -0.16 - row * 0.165, off = (row % 2) * 0.13; for (let s = -HW / 2 - off; s < HW / 2; s += 0.26) { const s0 = Math.max(-HW / 2, s), s1 = Math.min(HW / 2, s + 0.25); if (s1 - s0 < 0.04) continue; const [x, , z] = at(len + 0.012, (s0 + s1) / 2); solid.push(box(s1 - s0, 0.163, 0.03, stone(row + Math.round(s * 5)), x, y1 - 0.0815, z, ang)); } }
+    // steps down to the water on the head's left side
+    for (let k = 0; k < 5; k++) {
+      const top = D - 0.07 - k * 0.12;
+      slab(0.14, top - BOT, HD * 0.7, stone(k), len - HD / 2, -(HW / 2 + 0.07 + k * 0.14), (top + BOT) / 2);
+    }
+    // bollards along the edges and on the head, and a lamp at the head's far corner
+    for (let a = 0.5; a < len - HD; a += 0.8) for (const side of [-1, 1]) { const [x, , z] = at(a, side * (W / 2 - 0.06)); solid.push(cyl(0.028, 0.034, 0.08, iron, x, D + 0.075, z, 8)); solid.push(cyl(0.036, 0.036, 0.015, iron, x, D + 0.12, z, 8)); }
+    for (const s of [-HW / 2 + 0.07, HW / 2 - 0.07]) { const [x, , z] = at(len - 0.07, s); solid.push(cyl(0.028, 0.034, 0.08, iron, x, D + 0.075, z, 8)); }
+    { const [x, , z] = at(len - HD + 0.08, HW / 2 - 0.1); solid.push(cyl(0.018, 0.024, 0.62, lamp, x, D + 0.33, z, 6)); solid.push(box(0.1, 0.05, 0.1, light, x, D + 0.66, z, ang)); solid.push(box(0.13, 0.025, 0.13, lamp, x, D + 0.7, z, ang)); }
+    // where people fish: along both edges of the outer half of the arm and round the head, facing the water
+    const spots = [];
+    for (const a of [len * 0.45, len * 0.62]) for (const side of [-1, 1]) spots.push({ a, s: side * (W / 2 - 0.1), face: Math.atan2(sx * side, sz * side) });
+    for (const s of [-0.45, 0, 0.45]) spots.push({ a: len - 0.1, s, face: ang });
+    for (const side of [-1, 1]) spots.push({ a: len - HD / 2, s: side * (HW / 2 - 0.1), face: Math.atan2(sx * side, sz * side) });
+    pierInfo = { theta: pierTheta, ang, len, deckY: D, width: W, headWidth: HW, headDepth: HD, root: new THREE.Vector3(ax, 0, az), at: (a, s) => { const [x, , z] = at(a, s); return new THREE.Vector3(x, D + 0.035, z); },   // standing on the deck slabs
+      spots: spots.map(p => ({ ...p, pos: new THREE.Vector3(...at(p.a, p.s, D + 0.035)), taken: 0 })) };
+    const berth = new THREE.Group(); berth.name = 'quay-boat';
+    const [boatX, , boatZ] = at(len - 0.15, HW / 2 + 0.33); // beyond the beach, clear of the head and steps
+    berth.position.set(boatX, -0.76, boatZ); berth.rotation.y = ang; scene.add(berth);
+    createFishingBoat().then(model => berth.add(model)).catch(err => console.warn('Komachi: quay boat model skipped', err));
   }
   // pebbles further out in the water
   seaRocks.length = 0;
@@ -348,12 +383,27 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
   }
   const vm = mergeMesh(veg, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
-{   // shoreline greenery, minus anything on a canal cell or in the line of its mouth
+{   // shoreline greenery, minus the canal mouth and the quay's walking surface
   const ends = canalOrder.filter(([i, j]) => DIRS.filter(([di, dj]) => isCanal(i + di, j + dj)).length <= 1).map(([i, j]) => { const nbr = DIRS.find(([di, dj]) => isCanal(i + di, j + dj)) || [0, 1]; return { x: cx(i), z: cz(j), dx: -nbr[0], dz: -nbr[1] }; });
   const clear = (x, z) => canalOrder.some(([i, j]) => Math.hypot(x - cx(i), z - cz(j)) < 0.95) || ends.some(e => { const t = (x - e.x) * e.dx + (z - e.z) * e.dz; if (t < 0 || t > 6) return false; return Math.abs((x - e.x) * e.dz - (z - e.z) * e.dx) < 0.9; });
-  const keep = shoreVeg.filter(g => { g.computeBoundingSphere(); const c = g.boundingSphere.center; return !clear(c.x, c.z); });
-  const vm = mergeMesh(keep, true); if (vm) { vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
+  const onQuay = (x, z, margin) => {
+    if (!pierInfo) return false;
+    const P = pierInfo, dx = x - P.root.x, dz = z - P.root.z;
+    const a = dx * Math.sin(P.ang) + dz * Math.cos(P.ang), s = dx * Math.cos(P.ang) - dz * Math.sin(P.ang);
+    if (a < -margin || a > P.len + margin) return false;
+    const halfWidth = a >= P.len - P.headDepth - margin ? P.headWidth / 2 : P.width / 2;
+    return Math.abs(s) < halfWidth + margin;
+  };
+  const keep = shoreVeg.filter(g => {
+    g.computeBoundingBox(); const b = g.boundingBox;
+    const x = (b.min.x + b.max.x) / 2, z = (b.min.z + b.max.z) / 2;
+    const margin = Math.hypot(b.max.x - b.min.x, b.max.z - b.min.z) / 2 + 0.12; // sway clearance
+    if (clear(x, z) || onQuay(x, z, margin)) { g.dispose(); return false; }
+    return true;
+  });
+  const vm = mergeMesh(keep, true); if (vm) { vm.name = 'shore-vegetation'; vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
 }
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;
-export { pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet, seaRocks };
+const pierFrame = () => pierInfo;
+export { pierFrame, pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet, seaRocks };

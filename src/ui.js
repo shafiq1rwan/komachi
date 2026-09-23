@@ -4,6 +4,7 @@ import { S } from './state.js';
 import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions, maxLevel } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 import { chronicle } from './chronicle.js';
+import { eventInfo, eventOn } from './events.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
   pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), seek: document.getElementById('s-seek'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
@@ -73,8 +74,9 @@ function renderInspect(target, follow = null) {
         const guests = inside.filter(r => r.home !== u); if (guests.length) { html += `<div class="divider"></div><ul>`; for (const r of guests) html += personLi(r, 'visiting'); html += `</ul>`; }
       } else {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
-        html += `<div class="row"><span>${type === 'shop' ? 'Staff' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
-        html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;
+        if (b.kind !== 'square') html += `<div class="row"><span>${type === 'shop' ? 'Staff' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
+        else { const ev = eventOn(); html += `<div class="row"><span>On the square</span><b>${ev && ev.block === b ? ev.spots.reduce((s, x) => s + x.taken, 0) : 0}</b></div><div class="empty">${esc(eventInfo(b))}</div>`; }
+        if (b.kind !== 'square') html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;
         if (type === 'civic' && b.kind === 'community') {   // the town chronicle in the centre's display case
           html += `<div class="divider"></div><div class="hh">Town chronicle<span>${chronicle.length ? chronicle.length + ' entries' : 'nothing yet'}</span></div><ul>`;
           for (const e of chronicle.slice(-6).reverse()) html += `<li class="chron"><span class="d">Day ${e.day}</span>${esc(e.text)}</li>`;
@@ -93,13 +95,19 @@ function renderInspect(target, follow = null) {
         html += `<div class="divider"></div><ul>`;
         for (const r of staffIn) html += personLi(r, r.activity);
         for (const r of u.staff.filter(r => r.at !== u)) html += personLi(r, whereIs(r));
-        if (!u.staff.length) html += `<li class="empty">${type === 'shop' ? 'Looking for a shopkeeper' : 'Hiring…'}</li>`;
+        if (!u.staff.length && b.kind !== 'square') html += `<li class="empty">${type === 'shop' ? 'Looking for a shopkeeper' : 'Hiring…'}</li>`;
         html += `</ul>`;
         if (visitors.length) { html += `<div class="divider"></div><ul>`; for (const r of visitors) html += personLi(r, r.activity); html += `</ul>`; }
         else if (type === 'shop') html += `<div class="empty">No customers right now</div>`;
       }
     }
     if (facingOptions(u).length > 1) html += `<button class="cta ghost" data-rotate title="Turn the door to the next street (R)"><i class="fa-solid fa-rotate"></i> Rotate to face the other street</button>`;
+  } else if (target.tourist) {
+    const t = target.tourist;
+    html += `<div class="kind" style="--k:#6f9a96">Visitor</div><h2>${esc(t.name)}</h2><div class="sub">${esc(t.gone ? 'gone home on the train' : t.activity)}</div><div class="divider"></div>`;
+    html += `<div class="row"><span>Here for</span><b>the day, from the city</b></div>`;
+    html += `<div class="row"><span>Seen</span><b>${t.seen.length ? esc(t.seen.join(', ')) : 'nothing yet'}</b></div>`;
+    html += `<div class="empty">Visitors come off the morning trains to see the sights and leave in the afternoon.</div>`;
   } else if (target.worker) {
     const k = target.worker;
     html += `<div class="kind" style="--k:#e9a25a">Construction crew</div><h2>${esc(k.name)}</h2><div class="sub">${esc(k.activity)}</div><div class="divider"></div>`;
@@ -120,7 +128,7 @@ function renderInspect(target, follow = null) {
     html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : r.hasBike ? 'by bicycle' : 'on foot'}</div>`;
     if (r.state !== 'away') html += follow === r ? `<button class="cta off" data-follow="stop"><i class="fa-solid fa-video-slash"></i> Stop following</button>` : `<button class="cta" data-follow="start"><i class="fa-solid fa-video"></i> Follow</button>`;
   }
-  ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker));
+  ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker || target.tourist));
 }
 function updateStats() {
   ui.pop.textContent = residents.length;

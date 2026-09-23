@@ -4,29 +4,43 @@ import * as THREE from 'three';
 import { box, prism, cyl, blob, colorize } from './geometry.js';
 import { stripedAwning, acUnit, pots, balcony, genkan, door } from './kit.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
+import { housePlan } from './architecture.js';
+import { PAL } from './palette.js';
 
-const C = { slate: '#424c58', ridge: '#59636d', trim: '#e6dfcf', frame: '#68675f', glass: '#aabbb7', timber: '#88745e', stone: '#aaa99c', leaf: '#687f4e' };
+const C = PAL.richArchitecture;
 const pick = (s, a) => a[Math.floor(s * a.length) % a.length];
 
 // Four roof planes meet at a short ridge. Tile courses follow each slope and
 // taper with its hip, so the silhouette remains clean at the town camera distance.
-function hipRoof(g, w, d, y, rise = 0.25) {
+function hipRoof(g, w, d, y, rise = 0.25, ridgeRatio = 0.5) {
   const a = [-w / 2, y, -d / 2], b = [w / 2, y, -d / 2], c = [w / 2, y, d / 2], e = [-w / 2, y, d / 2];
-  const l = [-w * 0.25, y + rise, 0], r = [w * 0.25, y + rise, 0];
+  const l = [-w * ridgeRatio / 2, y + rise, 0], r = [w * ridgeRatio / 2, y + rise, 0];
   const v = [...a, ...l, ...r, ...a, ...r, ...b, ...e, ...c, ...r, ...e, ...r, ...l, ...a, ...e, ...l, ...b, ...r, ...c];
   const roof = new THREE.BufferGeometry();
   roof.setAttribute('position', new THREE.Float32BufferAttribute(v, 3));
   roof.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(v.length / 3 * 2), 2));
   roof.computeVertexNormals(); g.push(colorize(roof, C.slate));
   g.push(box(w + 0.015, 0.028, d + 0.015, C.ridge, 0, y - 0.014, 0));
-  for (let k = 1; k < 7; k++) {
-    const t = k / 7, yy = y + rise * t + 0.004;
-    for (const side of [-1, 1]) {
-      g.push(box(w * (1 - t * 0.5), 0.008, 0.012, C.ridge, 0, yy, side * d / 2 * (1 - t)));
-      g.push(box(0.009, 0.008, d * (1 - t), C.ridge, side * w / 2 * (1 - t * 0.5), yy, 0));
+  // Surface ribbons follow the actual pitch, with no hidden box faces. Smaller
+  // porch roofs need fewer courses; the budget stays bounded for every seed.
+  const courses = Math.min(6, Math.max(1, Math.floor(Math.hypot(d / 2, rise) / 0.065)));
+  const vertices = [];
+  const ring = t => {
+    const x = w / 2 * (1 - t * (1 - ridgeRatio)), z = d / 2 * (1 - t), yy = y + rise * t + 0.003;
+    return [[-x, yy, -z], [-x, yy, z], [x, yy, z], [x, yy, -z]];
+  };
+  for (let k = 1; k <= courses; k++) {
+    const t = k / (courses + 1), lower = ring(t), upper = ring(t + 0.012);
+    for (let side = 0; side < 4; side++) {
+      const next = (side + 1) % 4;
+      vertices.push(...lower[side], ...lower[next], ...upper[next], ...lower[side], ...upper[next], ...upper[side]);
     }
   }
-  g.push(box(w * 0.53, 0.033, 0.046, C.ridge, 0, y + rise + 0.009, 0));
+  const lines = new THREE.BufferGeometry();
+  lines.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+  lines.setAttribute('uv', new THREE.Float32BufferAttribute(new Float32Array(vertices.length / 3 * 2), 2));
+  lines.computeVertexNormals(); g.push(colorize(lines, C.ridge));
+  g.push(box(w * ridgeRatio + 0.025, 0.033, 0.046, C.ridge, 0, y + rise + 0.009, 0));
 }
 
 function window(g, wg, x, y, z, w = 0.14, h = 0.17, rot = 0) {
@@ -39,18 +53,20 @@ function window(g, wg, x, y, z, w = 0.14, h = 0.17, rot = 0) {
 }
 
 function facadeWindows(g, wg, w, d, floors, step, y0, shop = false) {
+  const bay = w * 0.255, pane = w * 0.22;
   for (let f = 0; f < floors; f++) {
     const y = y0 + f * step + step * 0.57;
-    if (f > 0 || !shop) for (const x of (f === 0 ? [0.18] : [-0.19, 0.19])) window(g, wg, x, y, d / 2 + 0.003);
-    for (const x of [-0.19, 0.19]) window(g, wg, x, y, -d / 2 - 0.003, 0.13, 0.17, Math.PI);
-    for (const s of [-1, 1]) for (const z of [-0.16, 0.16]) window(g, wg, s * (w / 2 + 0.003), y, z, 0.13, 0.17, s * Math.PI / 2);
+    if (f > 0 || !shop) for (const x of (f === 0 ? [bay] : [-bay, bay])) window(g, wg, x, y, d / 2 + 0.003, pane);
+    for (const x of [-bay, bay]) window(g, wg, x, y, -d / 2 - 0.003, pane, 0.17, Math.PI);
+    for (const s of [-1, 1]) for (const z of [-d / 4, d / 4]) window(g, wg, s * (w / 2 + 0.003), y, z, d * 0.22, 0.17, s * Math.PI / 2);
   }
 }
 
-function garden(g, u) {
+function garden(g, plan) {
   g.push(box(0.96, 0.012, 0.92, '#a0ae82', 0, 0.127, 0));
   // A clear path from the door to the street, with planted corners and a low boundary.
-  g.push(box(0.21, 0.018, 0.21, '#d7d1c2', -0.18, 0.139, 0.38));
+  const front = plan.d / 2;
+  g.push(box(0.21, 0.018, 0.48 - front, C.path, plan.doorX, 0.139, (front + 0.48) / 2));
   for (const x of [-0.42, 0.42]) {
     g.push(box(0.045, 0.14, 0.79, C.stone, x, 0.19, -0.03));
     for (const z of [-0.37, 0.36]) {
@@ -59,36 +75,36 @@ function garden(g, u) {
     }
   }
   for (const x of [0.06, 0.2, 0.34]) g.push(blob(0.07, '#81955f', x, 0.2, 0.425, 1, 0.8));
-  if (u.seed > 0.5) addNeighbourhood(g, 'mailbox', -0.34, 0.13, 0.42, 0, { scale: 0.65 });
+  if (plan.mailbox) addNeighbourhood(g, 'mailbox', -0.34, 0.13, 0.42, 0, { scale: 0.65 });
 }
 
 function house(b, u, g, wg) {
-  const floors = u.variant === 'villa' ? 1 : b.level === 3 && u.seed > 0.7 ? 3 : 2;
-  const w = 0.7, d = 0.61, step = 0.35, y0 = 0.145, H = floors * step;
-  const wall = pick(u.seed, ['#e4ddca', '#d7cdb8', '#eee6d4', '#b7b5a7', '#c7b294']);
-  garden(g, u); u.door = { x: -0.18, z: d / 2 + 0.025 };
+  const plan = housePlan(u.seed, b.level, u.variant);
+  const { w, d, floors, step, height: H, doorX } = plan, y0 = 0.145;
+  const wall = C.walls[plan.wallIndex];
+  garden(g, plan); u.door = { x: doorX, z: d / 2 + 0.025 };
   g.push(box(w, H, d, wall, 0, y0 + H / 2, 0));
   g.push(box(w + 0.018, 0.085, d + 0.018, C.stone, 0, y0 + 0.042, 0));
-  if (u.seed > 0.4) {
+  if (plan.timber) {
     g.push(box(w + 0.008, step - 0.07, d + 0.008, C.timber, 0, y0 + step / 2 + 0.015, 0));
     for (let i = 1; i < 5; i++) g.push(box(w + 0.011, 0.006, d + 0.011, '#9d8970', 0, y0 + 0.055 + i * 0.052, 0));
   }
   for (let f = 1; f < floors; f++) g.push(box(w + 0.023, 0.023, d + 0.023, C.trim, 0, y0 + f * step, 0));
   for (const x of [-w / 2 + 0.018, w / 2 - 0.018]) g.push(box(0.025, H, 0.016, C.timber, x, y0 + H / 2, d / 2 + 0.008));
   facadeWindows(g, wg, w, d, floors, step, y0);
-  door(g, -0.18, y0, d / 2 + 0.012, 0.14, 0.265, '#665b4b');
-  genkan(g, -0.18, y0, d / 2 + 0.025, 0.19);
-  hipRoof(g, w + 0.19, d + 0.2, y0 + H);
+  door(g, doorX, y0, d / 2 + 0.012, 0.14, 0.265, C.door);
+  genkan(g, doorX, y0, d / 2 + 0.025, 0.19);
+  hipRoof(g, w + 0.19, d + 0.2, y0 + H, plan.roofRise, plan.ridgeRatio);
   // Small dormer with a plaster front, framed pane and its own gable.
-  if (b.level >= 2) {
-    const dx = u.seed > 0.5 ? 0.16 : -0.13, yy = y0 + H + 0.12;
+  if (floors >= 2 && plan.dormer) {
+    const dx = plan.bay, yy = y0 + H + 0.12;
     g.push(box(0.16, 0.15, 0.18, wall, dx, yy, 0.2));
     window(g, wg, dx, yy, 0.297, 0.09, 0.1);
     g.push(prism(0.21, 0.075, 0.21, C.slate, dx, yy + 0.073, 0.2, Math.PI / 2));
   }
   const porch = [];
   hipRoof(porch, 0.29, 0.19, y0 + 0.32, 0.065);
-  for (const p of porch) { p.translate(-0.18, 0, 0.37); g.push(p); }
+  for (const p of porch) { p.translate(doorX, 0, d / 2 + 0.065); g.push(p); }
   g.push(box(0.065, 0.21, 0.07, '#ad9e87', -0.23, y0 + H + 0.17, -0.17));
   g.push(box(0.09, 0.025, 0.095, C.stone, -0.23, y0 + H + 0.28, -0.17));
   acUnit(g, w / 2 + 0.035, y0 + 0.11, -0.19, Math.PI / 2);

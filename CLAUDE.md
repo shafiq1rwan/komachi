@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 42 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 45 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -148,6 +148,25 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `landmarks` entries carry `anchor`, `walk(road)`, `hold`, `activity`, `face`, pavilion `seats`; `landmarkRoads()` pairs each with the
   nearest flat street within 4.5. sim.js `visitLandmark` (30 % of dry strolls) / `atLandmark` (hold with `r.paused`, sit on a free seat,
   walk the points back, home). `updateLandmarks(dt, night)` in the main loop.
+- Quay (2026-09-23): island.js builds the stone quay and exports `pierFrame()` ({ ang, len, deckY, width, at(a, s), spots }); landmarks.js
+  `placePier` adds landmark kind 'pier' (`fish`, `visit()` hands out a free spot; `landmarkRoads()` calls it), a reserved lot (`c.landmark
+  = 'pier-park'`, a street-side cell first) turned into a public car park by `updateLandmarks` once a town street touches it, and a bike rack
+  whose bikes show while anglers are out. `roadNear` only takes streets joined to the town. sim.js: fishing option at 5.5–8.5 and 15.5–18.5
+  (`r.fishDay`, keen when `r.id % 4 === 0`), rod prop on hold. Tourists skip the quay.
+- Town square + events (Phase 6, 2026-09-23): civic kind `square` in `TIERS.civic[3]` (chooseKind returns it first for three cells),
+  `CAP_BONUS.square` -2 (no staff), `genSquare` in buildings.js. src/events.js (imports world/buildings/seasons/island/weather only; sim.js,
+  tourists.js, ui.js and main.js read it): `scheduled()` from the calendar (market: day % 7 === 0, 7–11.5; festival: `festivalDay(d)`,
+  first Saturday of summer or its third day, 16–21.5), `setUp`/`tearDown` of kit props on the first finished square, `eventVisit()` →
+  { road, spot, l } in the landmark-visit shape (sim `visitLandmark(r, from, given)` and tourists' 'event' step), spots `taken` counts,
+  fireworks (Points with a soft sprite, one PointLight flash) 20–21.3, `onEventStart` (main: milestone card for the first festival).
+  Dev hooks `MT.setDay(d, h)`, `MT.festivalDay`, `MT.eventOn`, `MT.routeCells`.
+- Tourism (Phase 6, src/tourists.js): `tourists` (not residents, not saved; `userData.tourist` on the mesh, picked in input.js,
+  Visitor card in ui.js; characters.js treats them as owners and poses `fidget` 'photo' | 'camera' with a hand-item camera). Arrivals
+  from `onTrain` 8.5–13 when dry (weekend 2–4, weekday 30 % of one); plan = landmarks (`landmarkRoads`, photo spot about a cell back
+  from `l.target` on dry ground) → shop (visitsToday/visitScore) → station; after 14.5 only home. `bus`: `findStops` (ring cell by the
+  stairs ↔ the lighthouse's road, clear pavement both ends, retried until found), `shipVehicle` in ferry.js delivers it at weekends,
+  dwell 0.3 h (held for visitors walking to the stop), service ends at 14.6 to catch the 17:00 ferry (`boardCar`). Dev hooks:
+  `MT.tourism.forceWeekend`, `MT.spawnTourist()`, `MT.bus`, `MT.tourists`.
 - Milestones: src/milestone.js (`announce({ title, line, icon, at, view, onLook })`, `updateMilestone()` in the main loop, `cancelGlide`,
   `gliding`, `milestoneShown`); a cream card under the top bar, ~10 s, "Go and look" glides `cam.target`/`tView` in, holds, back; input ends it.
   The hill opening: `openHill` records and calls `onHillOpened` listeners (main.js: `sendHillCrew(top, down)` in construction.js at the top of the

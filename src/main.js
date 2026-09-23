@@ -5,7 +5,9 @@ import { S } from './state.js';
 import { scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
 import { puddleSpots, puddleVersionOf, refreshCivicFlags, placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, onHillOpened, lanterns, lightLanterns, updateLanterns, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots } from './world.js';
 import { updateConstruction, workers, sendHillCrew, holdHillCrew, hillCrew } from './construction.js';
-import { placeLandmarks, updateLandmarks, landmarks } from './landmarks.js';
+import { placeLandmarks, updateLandmarks, landmarks, landmarkRoads } from './landmarks.js';
+import { updateEvents, onEventStart, eventOn, festivalDay } from './events.js';
+import { updateTourists, tourists, tourism, bus, spawnTourist, isWeekend } from './tourists.js';
 import { renderFrame, setLook } from './look.js';
 import { announce, updateMilestone, milestoneShown, cancelGlide, gliding } from './milestone.js';
 import { updateCharacters, characterAvailable } from './characters.js';
@@ -13,7 +15,7 @@ import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import { updateSea } from './sea.js';
 import { initFerry, updateFerry, ferry } from './ferry.js';
-import { canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
+import { pierFrame, canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { chronicle } from './chronicle.js';
@@ -25,6 +27,13 @@ import { updateBubbles, talks } from './bubbles.js';
 setPuddleSource(puddleSpots, puddleVersionOf);   // weather.js draws puddles where world.js says streets lie
 // the first milestone: the hill opens. The lanterns light one by one from the foot of the shrine path, the road crew stands at the
 // top of the slope road nearest the station, and the card offers to go and look (the lanterns light again as the camera arrives)
+onEventStart((kind, b) => {
+  const first = kind === 'festival' ? /first summer festival/ : /first market morning/;
+  if (chronicle.some(e => first.test(e.text))) return;
+  const u = b.units[Math.floor(b.units.length / 2)], at = u.mesh.position.clone();
+  if (kind === 'festival') announce({ title: 'The summer festival', line: `Stalls and lanterns fill ${b.name} tonight, and there will be fireworks over the sea.`, icon: 'festival', at, view: 6, onLook: () => setFollow(null) });
+  else toast(`Market morning on ${b.name}: stalls are up until half past eleven`);
+});
 onHillOpened(() => {
   let best = null, bd = Infinity;
   for (const r of cells) {
@@ -51,7 +60,7 @@ onHillOpened(() => {
     at, view: Math.min(12, Math.max(5, span * 2.6 + 2)), onLook: () => { setFollow(null); lightLanterns(); holdHillCrew(0.8); } });
 });
 function onSeasonTurn() { rebuildDecor(); if (STATION.block) for (const u of STATION.block.units) rebuildUnitMesh(u); }
-import { HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
+import { routeCells, HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
@@ -66,7 +75,7 @@ const followV = new THREE.Vector3();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
-  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); }
+  if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); updateTourists(simDt, realT); }
   // camera easing + keyboard panning
   const k = 1 - Math.exp(-dt * 9); cam.view = lerp(cam.view, cam.tView, k); cam.yaw = lerp(cam.yaw, cam.tYaw, k);
   const mv = dt * cam.view * 0.9;
@@ -81,7 +90,7 @@ function frame(now) {
   updateCharacters(simDt);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
+  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
   renderFrame();
@@ -92,7 +101,7 @@ function frame(now) {
 /** Step the simulation forward by a number of game hours without rendering. */
 function fastForward(hours) {
   const stepH = 0.04, stepS = stepH / HPS;
-  for (let h = 0; h < hours; h += stepH) { S.T += stepH; W.winter = seasonOf() === 'winter'; updateWeather(stepS, stepH); updateSeasons(0, onSeasonTurn); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); }
+  for (let h = 0; h < hours; h += stepH) { S.T += stepH; W.winter = seasonOf() === 'winter'; updateWeather(stepS, stepH); updateSeasons(0, onSeasonTurn); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); updateTourists(stepS, realT); updateEvents(stepS, realT, 1 - daylight()); }
 }
 function demoTown() {
   const o = HALF - 17;   // layout was authored around a station at cell 17; every block shares a road with the station ring
@@ -135,8 +144,8 @@ function demoTown() {
 }
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
-  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
-  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, hillCrew, lanterns, landmarks, setLook, milestoneShown, cancelGlide, gliding,
+  setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
+  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, hillCrew, lanterns, landmarks, landmarkRoads, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };

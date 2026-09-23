@@ -2,15 +2,13 @@
 // beach, and a small fishing boat (Kenney Watercraft kit, CC0) on a slow circuit offshore. Pure scenery, no
 // simulation state; everything here is driven by real time in updateSea().
 import * as THREE from 'three';
-import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { S } from './state.js';
 import { scene } from './scene.js';
 import { box, mergeMesh } from './geometry.js';
 import { polygon, beachExtra, coastPoint, radius, islandEllipse, fallFeet } from './island.js';
 import { createDolphin, dolphinClips } from './dolphins.js';
-import boatUrl from '../assets/watercraft/boat-fishing-small.glb?url';
-import boatMapUrl from '../assets/watercraft/Textures/colormap.png?url';
+import { createFishingBoat } from './watercraft.js';
 
 const WATER_Y = -0.78, rand = (a, b) => a + Math.random() * (b - a);
 
@@ -52,12 +50,9 @@ const boat = new THREE.Group(); scene.add(boat);
 let boatModel = false; let boatTheta = Math.random() * Math.PI * 2;
 {
   const hull = mergeMesh([box(0.36, 0.14, 0.9, PAL.cream2, 0, 0.07, 0), box(0.2, 0.16, 0.24, '#8fb0c9', 0, 0.22, -0.1)], false); boat.add(hull);
-  const manager = new THREE.LoadingManager(); manager.setURLModifier(url => /colormap\.png$/i.test(url) ? boatMapUrl : url);
-  new GLTFLoader(manager).loadAsync(boatUrl).then(gltf => {
-    for (const c of boat.children.slice()) boat.remove(c);
-    gltf.scene.scale.setScalar(0.23);   // the kit's bow points +z, the way the boat heads
-    gltf.scene.traverse(o => { if (o.isMesh) { o.castShadow = true; o.material.roughness = 0.9; } });
-    boat.add(gltf.scene); boatModel = true;
+  createFishingBoat().then(model => {
+    boat.remove(hull); hull.geometry.dispose();
+    boat.add(model); boatModel = true;
   }).catch(err => console.warn('Komachi: boat model skipped', err));
 }
 // the wake: two foam lines fanning out from the stern, and rings that spread and fade in the boat's trail

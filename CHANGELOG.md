@@ -10,6 +10,18 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Quay now shares the island waterfront's cool stone and paving palette, course heights and
+  coping level. Deck slabs no longer overlap at the T-head; water steps have solid supports,
+  and stone colour indexing handles both sides consistently. Shore plants clear the quay's
+  footprint across seeds. The moored boat now uses the
+  existing Kenney fishing GLB and atlas, sharing one cached load with the offshore boat.
+
+- Procedural layout grammar for rich detached homes and villas: independently seeded footprints,
+  finishes, roof proportions and details; aligned facade bays and entrance paths; one-storey homes
+  grow to two storeys without moving their entrance. Hip-roof courses follow the slopes using
+  bounded surface ribbons instead of boxes. Added `test:architecture` (384 deterministic geometry
+  cases) and `preview:architecture` (a seed/level contact sheet).
+
 - Standalone folded newspaper prop with layered cream paper, KOMACHI masthead, front-page
   town illustration and printed back columns; includes GLB and front/rear previews.
 
@@ -57,6 +69,25 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The pier is a stone quay: a pale concrete deck just below the town's ground on coursed stone walls, a T-head with steps down to
+  the water, bollards and a lamp, the little boat moored alongside. Residents fish from its edges with a rod and float, early in
+  the morning and late in the afternoon (a quarter of them are keen anglers); a bike rack on the quay fills with their bicycles,
+  and the nearest cell by its land end is kept as a public car park that opens once a town street reaches it. The pale pebbles
+  that floated on the water where the beach used to be are gone.
+- The town square (a civic kind): a three-cell Civic drag makes one first (then public baths). Open stone paving with a darker
+  border, planters with small trees, benches and lamps along the back, the front left open; no staff. Its card says what is on.
+- Gentle events on the square (src/events.js), from the calendar alone: a market morning every Sunday 7:00–11:30 (two yatai and
+  a produce table; residents drop by and come home with a bag), and the summer festival on the first Saturday of summer
+  16:00–21:30: three yatai, lantern strings that glow after dark with a real warm light over the square, the mikoshi on display,
+  a taiko, nobori and bunting. Residents crowd in after work (evening arrivals stay for the fireworks), visitors come on the
+  afternoon trains, and from 20:00 soft fireworks burst over the sea beyond the square. The first festival gets the milestone card.
+- Visitors for the day (src/tourists.js): on fine days tourists come up the station stairs off the morning trains (two to four
+  a train at weekends, now and then one on a weekday), walk out to one or two landmarks, step back and take photos with a camera
+  raised to the eye (built in code, with a small flash), often look round a shop on the way back (it counts as a customer, and
+  they leave with a paper bag) and head home to the station in the afternoon. Hover one for a Visitor card.
+- The tourist bus: at weekends it comes over on the 7:00 ferry, runs between a stop on the station ring and a stop by the
+  lighthouse (two bus shelters on the pavement, pulling up just past them, squared to the kerb), carries the visitors going
+  that way and leaves on the 17:00 ferry.
 - The bench lamps give real light: two warm point lights under their heads fade in at dusk, so the benches and whoever
   waits on them are lit at night (the street lamps elsewhere keep their painted pools).
 - Two lamps stand behind the station benches, either side of the name board, their arms reaching over the seats, so people

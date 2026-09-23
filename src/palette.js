@@ -2,6 +2,16 @@
 import { pick, irand } from './utils.js';
 
 export const PAL = {
+  waterfront: {
+    paving: ['#b7b7ae', '#c4c3b9', '#aeb0aa'],
+    stone: ['#9fa7a8', '#adb3b0', '#8e999c', '#bac0b9', '#a2a9a6'],
+    iron: '#4d5558', lamp: '#59636a', light: '#fff3d6',
+  },
+  richArchitecture: {
+    slate: '#424c58', ridge: '#59636d', trim: '#e6dfcf', frame: '#68675f', glass: '#aabbb7',
+    timber: '#88745e', stone: '#aaa99c', leaf: '#687f4e', path: '#d7d1c2', door: '#665b4b',
+    walls: ['#e4ddca', '#d7cdb8', '#eee6d4', '#b7b5a7', '#c7b294'],
+  },
   water:'#b7d8ea', canal:'#a4c9e4', canalBed:'#6c8aa4', foam:'#e2f0f7', skyDay:'#cfe8dd', skyDusk:'#e8c7ad', skyNight:'#3a4b72',
   grass:'#c8d7ad', grass2:'#bccf9f', landSide:'#e8d5b4', sidewalk:'#efe3cc', asphalt:'#9a9ea3', asphalt2:'#8e9296',
   cream:'#f3e6cf', cream2:'#f7efe2', peachWall:'#f1d7c0', greyWall:'#dfe6ea', tealWall:'#b9d1cd', blueWall:'#cfdde6',
@@ -51,6 +61,7 @@ export const CIVIC_NAMES = {
   clinic: [['Midori', 'Clinic'], ['Hinode', 'Clinic'], ['Sakura', 'Family Clinic'], ['Kawa', 'Clinic']],
   firestation: [['Komachi', 'Fire Station'], ['Hoshi', 'Fire Station']],
   community: [['Komachi', 'Community Centre'], ['Kaede', 'Hall'], ['Yanagi', 'Community Centre']],
+  square: [['Hinode', 'Square'], ['Komachi', 'Square'], ['Sakura', 'Square'], ['Matsuri', 'Square']],
   bathhouse: [['Yuzu', 'Bath House'], ['Tsuki', 'Bath House'], ['Hoshi', 'Sento'], ['Ume', 'Sento'], ['Matsu', 'Bath House']],
 };
 export const HOME_SUFFIX = ['Residence','House','Home','Cottage','Villa'];

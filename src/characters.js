@@ -200,7 +200,7 @@ export function updateCharacters(simDt) {
       }
     }
     const g = c.grp; if (!g.visible) continue;
-    const owner = g.userData.res || g.userData.worker;
+    const owner = g.userData.res || g.userData.worker || g.userData.tourist;
     const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
     c.blend += ((moving ? 1 : 0) - c.blend) * Math.min(1, simDt * 8);
     const riding = !!(owner?.trip?.ride && owner.bike);
@@ -244,6 +244,14 @@ export function updateCharacters(simDt) {
       }
       else if (c.fidget === 'nod' && c.head) { c.nodT += simDt; c.head.quaternion.multiply(qNod.setFromAxisAngle(X, Math.sin(c.nodT * 7) * 0.18)); }
     } else { c.root.rotation.y = 0; c.root.position.x = 0; c.gazeBlend = 0; c.nodT = 0; }
+    if (!c.sitting && (c.fidget === 'photo' || c.fidget === 'camera') && c.item && c.item.userData.handItem) {   // a visitor's camera
+      const it = c.item, up = c.fidget === 'photo';
+      it.position.set(0, up ? 0.232 : 0.158, up ? 0.078 : 0.092); it.rotation.set(up ? 0 : 0.55, 0, 0);
+      c.grp.updateWorldMatrix(true, true);
+      if (c.armR) aimArm(c, c.armR, it.position.clone().add(new THREE.Vector3(-0.042, -0.01, -0.005)));
+      if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.042, -0.01, -0.005)), true);
+      if (up && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.08));
+    }
     updateCharacterProp(c);
   }
 }

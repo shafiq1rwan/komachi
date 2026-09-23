@@ -9,6 +9,7 @@ const el = document.getElementById('milestone');
 const ICONS = {   // inline pictograms in the notice palette; never text
   hill: '<svg viewBox="0 0 32 32"><path d="M3 26 L13 12 L18 18 L22 14 L29 26 Z" fill="#8fae8b"/><path d="M8 11h16M10 14h12M12 11v9M20 11v9" stroke="#c96a55" stroke-width="2.2" stroke-linecap="round"/><circle cx="25" cy="7" r="2.6" fill="#f0c27a"/></svg>',
   train: '<svg viewBox="0 0 32 32"><rect x="7" y="5" width="18" height="18" rx="5" fill="#6f9fa0"/><rect x="10" y="9" width="12" height="6" rx="1.5" fill="#fbf6ec"/><circle cx="12" cy="19" r="1.6" fill="#fbf6ec"/><circle cx="20" cy="19" r="1.6" fill="#fbf6ec"/><path d="M10 27l3-4M22 27l-3-4" stroke="#6f9fa0" stroke-width="2.2" stroke-linecap="round"/></svg>',
+  festival: '<svg viewBox="0 0 32 32"><path d="M4 9 Q16 15 28 9" stroke="#6b6f7a" stroke-width="1.4" fill="none"/><ellipse cx="9" cy="16" rx="3.4" ry="4.4" fill="#d98b7a"/><ellipse cx="16" cy="18" rx="3.4" ry="4.4" fill="#f0c27a"/><ellipse cx="23" cy="16" rx="3.4" ry="4.4" fill="#d98b7a"/><path d="M9 11v1M16 13v1M23 11v1" stroke="#6b6f7a" stroke-width="1.4"/><circle cx="25" cy="26" r="1.3" fill="#9ad0e8"/><circle cx="7" cy="27" r="1" fill="#c8f0b0"/></svg>',
   people: '<svg viewBox="0 0 32 32"><circle cx="11" cy="11" r="4" fill="#d98b7a"/><circle cx="21" cy="11" r="4" fill="#8fae8b"/><path d="M4 26c0-5 3-8 7-8s7 3 7 8zM14 26c0-5 3-8 7-8s7 3 7 8z" fill="#6f9fa0"/></svg>',
 };
 let hideAt = 0, onLook = null, look = null, glide = null;
