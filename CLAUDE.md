@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 37 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 39 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -123,10 +123,15 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `yardProps` adds mailbox/tap/tank/laundry pole to detached homes; world.js places 'utility-pole' (1.05×) and 'street-lamp' (1.5×).
   Street furniture likewise comes from src/street-furniture.js: addFurniture(out, kind, x, y, z, rot, color) merges; furnitureGeometry returns named
   pieces (the traffic light's Red_Lens/Green_Lens feed lampGeo in world.js). createStreetFurniture stays the standalone mesh export. Bus stop unused.
+- Speech bubbles: src/bubbles.js (`talks`, `startTalk(a, b, topic, until)`, `endTalk`, `updateBubbles(realT)` into #bubbles, icons inline SVG, no text,
+  hidden when cam.view > 20). sim.js starts talks for bench chats and passers-by (`meetPasser`: `knows()` = same hh/home block/job block,
+  `r.meetUntil` holds both walkers, 3 h cooldown `r.metAt`); `pickTopic` chooses weather/food/home/etc. Puddles: world.js fills `puddleSpots`
+  in rebuildRoads (`puddleVersionOf`), weather.js pools them with `W.wet` (fills in rain, dries ~1 h, none in winter).
 - Sea life lives in src/sea.js: fish leaps and splashes, the pier boat's wake, a dolphin pod (`pod`, src/dolphins.js) and the waterfall splash
   (`fallFeet` exported by island.js; puffs and mist in `updateSplash`). The ferry's own wake is in ferry.js (`updateWake`).
 - Snow: `snowUniform`/`setSnow` in geometry.js; `withSnow(material)` injects a fragment whitening of upward faces into `mat()`, `vcMat`, `vcMatFlat`
-  and `swayMat` (cache keys differ), so kit Groups with their own materials do not take snow. weather.js eases `W.snow` toward 0.9 while `W.winter`
+  and `swayMat` (cache keys differ); kit Groups with their own materials go through `snowKit(group, skip)` (in place, once per material; the civic and
+  town-service props, notice board, bath house, station pavilion minus its lit panels, summit shrine and torii). weather.js eases `W.snow` toward 0.9 while `W.winter`
   (set each frame by main.js from `seasonOf`), draws flakes instead of streaks, and daynight.js cools the sky and skips the wet-road tint.
 - Seasons (Phase 6, src/seasons.js): `seasonOf(day)` over `SEASON_DAYS` 6 (a 24-day year), `leafColor(hex, season)` used by world.js for broadleaf/cherry
   (and the station's planter trees); `updateSeasons(dt, onTurn)` in the main loop and fastForward rebuilds decor at the turn (main.js `onSeasonTurn`),

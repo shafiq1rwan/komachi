@@ -7,3 +7,4 @@ Thumbs.db
 .env
 .env.*
 scripts/out/
+graphify-out/

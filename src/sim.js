@@ -11,6 +11,9 @@ import { createTeaCan } from './tea-can.js';
 import { createPhone, createNewspaper } from './hand-items.js';
 import { record } from './chronicle.js';
 import { W } from './weather.js';
+import { startTalk, endTalk } from './bubbles.js';
+/** what two people would talk about right now: the weather when it is doing something, otherwise the town */
+function pickTopic(r) { if (W.rain > 0.2 || W.snow > 0.3) return 'weather'; const h = hourOf(); if ((h >= 11 && h < 14) || (h >= 17.5 && h < 20)) return 'food'; if (r && r.hh && !r.hh.registered) return 'home'; return pick(['shop', 'train', 'home', 'heart', null]); }
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
@@ -240,13 +243,14 @@ function takeSpot(r) {
 // ── bench life: a seated person shifts, glances, checks a phone, reads, chats with a bench neighbour, stretches ──
 const PHONE_ACTS = ['checking messages', 'scrolling the news', 'texting a friend', 'looking up train times'];
 function gazeTo(r, p) { let a = Math.atan2(p.x - r.mesh.position.x, p.z - r.mesh.position.z) - r.mesh.rotation.y; a = Math.atan2(Math.sin(a), Math.cos(a)); return clamp(a, -0.9, 0.9) || 0.001; }
-function benchNeighbour(r) { const s = r.spot; if (!s) return null; const n = STATION.seats.find(o => o !== s && o.taken && o.taken.state === 'inside' && o.taken.mesh.visible && Math.abs(o.pos.x - s.pos.x) < 0.2 && Math.abs(o.pos.z - s.pos.z) < 0.01); return n ? n.taken : null; }
+function benchNeighbour(r) { const s = r.spot; if (!s) return null; const n = STATION.seats.find(o => o !== s && o.taken && o.taken.state === 'inside' && o.taken.mesh.visible && !o.taken.vendingAt && o.taken.mesh.position.distanceTo(o.pos) < 0.05 && Math.abs(o.pos.x - s.pos.x) < 0.3 && Math.abs(o.pos.z - s.pos.z) < 0.01); return n ? n.taken : null; }   // a neighbour actually on the seat, not off at the machine
 function clearFidget(r) {
   const ch = r.mesh && r.mesh.userData.char; if (!r.fidget) { if (ch) ch.gaze = 0; return; }
   const f = r.fidget; r.fidget = null;
   if (ch) { if (ch.item && ch.item.userData.handItem) dropItem(ch); ch.fidget = null; ch.gaze = 0; }
   if (f.kind === 'stretch' && r.spot) { r.mesh.position.copy(r.spot.pos); setPose(r, true); }
   if (f.base !== undefined) r.activity = f.base;
+  if (f.kind === 'chat') endTalk(r);
   if (f.partner && f.partner.fidget && f.partner.fidget.kind === 'chat') clearFidget(f.partner);
 }
 function tickSitter(r) {
@@ -266,6 +270,7 @@ function tickSitter(r) {
   else if (kind === 'chat') {
     const nch = nb.mesh.userData.char; f.partner = nb; f.at = nb; ch.fidget = 'nod'; r.activity = 'chatting about the town';
     nb.fidget = { kind: 'chat', until: f.until, base: nb.activity, at: r, partner: r }; if (nch) nch.gaze = gazeTo(nb, r.mesh.position); nb.activity = 'chatting about the town';
+    startTalk(r, nb, pickTopic(r), f.until);
   }
   r.fidget = f; r.fidgetAt = f.until + rand(0.3, 1.4);
 }
@@ -408,7 +413,7 @@ function enterUnit(r, u) {
   const p = r.purpose; r.purpose = null;
   if (p === 'eat') { r.actKind = 'eat'; r.activity = pick(hourOf() < 10.5 ? BREAKFAST_ACTS : hourOf() < 15.5 ? LUNCH_ACTS : DINNER_ACTS); r.until = S.T + rand(0.5, 0.8); }
   else if (p === 'shop') { r.actKind = 'shop'; r.activity = pick(SHOP_ACTS); r.until = S.T + rand(0.4, 0.9); r.canPending = u.block.kind === 'konbini' && Math.random() < 0.5; r.bagPending = !r.canPending && CARRY_HOME.has(u.block.kind); }   // they will leave with a bag, or a can from the konbini
-  else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); }
+  else if (p === 'visit') { r.actKind = 'visit'; r.activity = pick(VISIT_ACTS); r.until = S.T + rand(0.8, 1.4); const host = u.residents.find(x => x.at === u && x !== r); if (host) { host.activity = 'catching up with a friend'; r.visitHost = host; } }
   else if (p === 'bath') { r.actKind = 'bath'; r.activity = pick(BATH_ACTS); r.until = S.T + rand(0.5, 0.9); u.block.visitsToday = (u.block.visitsToday || 0) + 1; }
   else if (p === 'register') { r.actKind = 'visit'; r.activity = 'registering at the town office'; r.until = S.T + rand(0.15, 0.3); r.folderPending = true; if (r.hh) r.hh.registered = true; const line = `${r.name.split(' ')[0]} ${r.hh && r.hh.kind !== 'solo' ? 'registered the ' + r.hh.surname + ' household' : 'registered as a resident'} at ${u.block.name}`; toast(line); record(line); }
   else if (p === 'clinic') { r.actKind = 'clinic'; r.activity = pick(CLINIC_ACTS); r.until = S.T + rand(0.3, 0.6); u.block.visitsToday = (u.block.visitsToday || 0) + 1; }
@@ -562,7 +567,7 @@ function findJob(r) {
   else if (!r.commuter && Math.random() < 0.35) { r.commuter = true; r.workStart = rand(7, 8.6); r.workEnd = rand(17.2, 19); }   // no work in town: take the train to the city instead
 }
 function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
-  clearFidget(r); r.outside = 0;
+  clearFidget(r); r.outside = 0; r.meetUntil = 0; endTalk(r);
   { const ch = r.mesh.userData.char; if (ch && W.rain > 0.25 && !ch.accessory && !r.hasCar) equipCharacterProp(ch, 'umbrella', pick([PAL.roofTeal, PAL.roofRose, PAL.indigo, PAL.cream2])); }   // rain: an umbrella for the walk, unless the hands are full   // whatever they were doing on the bench (phone, paper, chat) or in the garden stops before they set off
   const toUnit = destUnit && destUnit !== STATION.anchor;
   const drive = r.hasCar && cellPath.length > 6 && toUnit && from && from === r.carAt;
@@ -782,6 +787,8 @@ function updateResidents(simDt, realT) {
     const P = tr.pts;   // at a signalled crossing a walker waits at the kerb while the cars along the street have the green
     if (!tr.drive && !tr.ride && P.crossAt !== undefined && tr.i === P.crossAt && tr.t < 0.03 && signalCells.has(P.crossCell) && !signalRed(P.crossCell, P.crossAxis)) { if (!r.paused) { r.paused = true; r.heldAct = r.activity; r.activity = 'waiting to cross'; } r.lodDist = 0; continue; }
     if (r.paused) { r.paused = false; if (r.heldAct) r.activity = r.heldAct; }
+    if (r.meetUntil) { if (S.T < r.meetUntil) { r.lodDist = 0; continue; } r.meetUntil = 0; if (r.heldAct) r.activity = r.heldAct; }   // stopped for a word with a neighbour
+    if (!tr.drive && !tr.ride && !r.far && (frameNo + r.id) % 15 === 0 && S.T - (r.metAt || -9) > 3) meetPasser(r);
     const done = moveAlong(obj, tr, r.lodDist); r.lodDist = 0;
     if (tr.ride) {
       r.mesh.position.copy(r.bike.position); r.mesh.position.y += BIKE_SEAT.y - 0.09;
@@ -795,6 +802,20 @@ function updateResidents(simDt, realT) {
 }
 
 // ───────────────────────────── ambient wanderers (cars, cats & neighbourhood Shibas) ─────────────────────────────
+/** do two residents know each other? the same household, home block or workplace */
+function knows(a, b) { return a.hh === b.hh || (a.home && b.home && a.home.block === b.home.block) || (a.job && b.job && a.job.block === b.job.block); }
+/** two walkers who know each other, crossing on the pavement: both stop, face each other and have a word, then carry on */
+function meetPasser(r) {
+  const p = r.mesh.position;
+  for (const o of residents) {
+    if (o === r || o.state !== 'walking' || !o.trip || o.trip.drive || o.trip.ride || o.meetUntil || o.paused || !o.mesh.visible) continue;
+    if (Math.abs(o.mesh.position.x - p.x) > 0.4 || Math.abs(o.mesh.position.z - p.z) > 0.4 || S.T - (o.metAt || -9) < 3 || !knows(r, o)) continue;
+    if (Math.random() < 0.5) return;
+    const until = S.T + rand(0.12, 0.22);
+    for (const [x, y] of [[r, o], [o, r]]) { x.meetUntil = until; x.metAt = S.T; x.heldAct = x.activity; x.activity = 'stopping to say hello'; x.mesh.rotation.y = Math.atan2(y.mesh.position.x - x.mesh.position.x, y.mesh.position.z - x.mesh.position.z); }
+    startTalk(r, o, pickTopic(r), until); return;
+  }
+}
 function roadCellsList() { return cells.filter(c => c.type === 'road'); }
 let vehicleSource = null;   // the ferry registers here; cars then arrive and leave by sea
 function setVehicleSource(src) { vehicleSource = src; }

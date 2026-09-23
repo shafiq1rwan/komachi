@@ -185,8 +185,15 @@ try {
   await sleep(1500);
   const leaves = await page.evaluate(() => { MT.setSpeed(0); return MT.scene.children.filter(o => o.visible && o.renderOrder === 6 && o.geometry && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters.width < 0.1).length; });
   check('seasons: the calendar turns and autumn leaves fall', se.turned && se.s1 === 'autumn' && se.chron && leaves >= 3, JSON.stringify({ ...se, leaves }));
-  const sn = await page.evaluate(() => { while (MT.seasonOf() !== 'winter') MT.fastForward(24); MT.fastForward(6); return { season: MT.seasonOf(), snow: +MT.weather.snow.toFixed(2), winter: MT.weather.winter }; });
-  check('winter: snow settles over the town', sn.season === 'winter' && sn.winter && sn.snow > 0.5, JSON.stringify(sn));
+  const tk = await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); let talks = 0; for (let k = 0; k < 300 && !talks; k++) { MT.fastForward(0.02); talks = MT.talks.length; } return { talks, kinds: MT.talks.map(t => t.topic) }; });
+  await page.evaluate(() => { MT.cam.tView = MT.cam.view = 6; const t = MT.talks[0]; if (t) { t.until = MT.T + 2; if (t.a.meetUntil) { t.a.meetUntil = t.until; t.b.meetUntil = t.until; } MT.cam.target.copy(t.a.mesh.position); } MT.setSpeed(1); }); await sleep(600);   // hold the talk so the overlay has a frame to draw it
+  const bub = await page.evaluate(() => { MT.setSpeed(0); return document.querySelectorAll('#bubbles .bubble').length; });
+  check('speech bubbles: a chat pairs two residents and a bubble shows over the speaker', tk.talks >= 1 && bub >= 1, JSON.stringify({ ...tk, bub }));
+  const pd = await page.evaluate(() => { MT.setWeather('rain', 4); for (let k = 0; k < 30; k++) MT.fastForward(0.05); const wet = MT.weather.wet; MT.setWeather('clear', 12); for (let k = 0; k < 30; k++) MT.fastForward(0.05); return { wet: +wet.toFixed(2), after: +MT.weather.wet.toFixed(2), spots: MT.puddleSpots.length }; });
+  check('puddles: streets pool in the rain and dry after', pd.spots > 0 && pd.wet > 0.5 && pd.after < pd.wet, JSON.stringify(pd));
+  const sn = await page.evaluate(() => { while (MT.seasonOf() !== 'winter') MT.fastForward(24); MT.fastForward(6); const pav = MT.STATION.block.units.find(u => u.stationLit); let kit = 0, lit = 0; if (pav) pav.mesh.traverse(o => { if (!o.isMesh || !o.material.userData) return; if (pav.stationLit.includes(o)) lit += o.material.userData.snow ? 1 : 0; else kit += o.material.userData.snow ? 1 : 0; });
+    return { season: MT.seasonOf(), snow: +MT.weather.snow.toFixed(2), winter: MT.weather.winter, kit, lit }; });
+  check('winter: snow settles over the town, the kit station pavilion included', sn.season === 'winter' && sn.winter && sn.snow > 0.5 && sn.kit > 0, JSON.stringify(sn));
   const wx = await page.evaluate(() => {   // weather: a rain spell dims the sun, greys the sky, puts clouds out, wets the streets and opens umbrellas
     MT.setWeather('clear', 9); for (let k = 0; k < 20; k++) MT.fastForward(0.05); MT.setHour(12); MT.fastForward(0.01);
     const before = { clouds: MT.scene.children.filter(o => o.visible && o.castShadow && o.position.y > 5).length };

@@ -230,11 +230,11 @@ effect through the town instead.
   that whitens roofs
 - ✅ Seasons for the trees and the sakura biome (2026-09-22): a 24-day year; canopies turn with the season, leaves and
   petals fall; winter brings snow on the ground, roofs and crowns, and snowflakes in place of rain
-- Speech bubbles (agreed 2026-09-22): a small cream bubble over the head, drawn as a 2D overlay like the name tags, with
+- ✅ Speech bubbles (agreed 2026-09-22, shipped 2026-09-23): a small cream bubble over the head, drawn as a 2D overlay like the name tags, with
   pulsing dots or a small pictogram (rice bowl, house, cloud, shop front), never text; bubbles alternate between two
   speakers. Shown for bench chats, household visits, passers-by who know each other and stop a moment on the pavement,
   and later stall vendors and customers. Hidden when zoomed far out
-- Puddles on the streets after a shower, drying over an hour
+- ✅ Puddles on the streets after a shower, drying over an hour (2026-09-23)
 - Gentle events: a market morning, fireworks, a summer festival on the plaza with stalls and lanterns
   (models in assets/festival: three yatai, lantern string, taiko, bunting, banner, mikoshi; fireworks over the sea in code)
 - Tourist bus (assets/destinations) on a weekend loop between the shore and the plaza, stopping at the bus shelter

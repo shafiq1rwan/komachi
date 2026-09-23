@@ -13,7 +13,7 @@ import { updateCharacterProp, clearCharacterProp } from './character-props.js';
 import { updateTeaDrink, aimArm } from './tea-can.js';
 
 const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
-const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); seats sit 0.09 above the group
+const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); the seated underside (legs out) is then ~0.025 above the group (world.js SIT_DROP for benches; the bike saddle has its own offset)
 const ROLE = { none: 0, skin: 1, shirt: 2, pants: 3, hair: 4 };
 // work poses for builders: which clip plays while they stand and do something
 const POSE_CLIPS = { swing: 'attack-melee-right', hold: 'holding-right', holdBoth: 'holding-both', pickup: 'pick-up', crouch: 'crouch', press: 'interact-right', drink: 'holding-right' };

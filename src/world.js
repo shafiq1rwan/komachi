@@ -59,6 +59,7 @@ function connectCanal() {
   }
 }
 
+const puddleSpots = []; let puddleVersion = 0;   // flat street cells that hold a puddle after rain: {x, z, s, ry}
 let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMesh = null; const lampHeads = [], lampGlows = [];
 // traffic lights: every crossroads gets a signal; all signals share one phase, so four merged lamp meshes suffice
 const SIGNAL_PERIOD = 0.05;   // game hours (18 s at 1×), so lights keep cycling while time is fast-forwarded
@@ -392,6 +393,8 @@ function rebuildRoads() {
     lg.push(cyl(0.012, 0.014, 0.4, PAL.lamp, sx, gy + 0.3, sz, 6)); lg.push(box(0.12, 0.14, 0.015, c.park === 'taxi' ? '#e8cf7a' : PAL.roofBlue, sx, gy + 0.55, sz, Math.atan2(ex, ez))); lg.push(box(0.05, 0.08, 0.005, PAL.cream2, sx + ex * 0.01, gy + 0.55, sz + ez * 0.01, Math.atan2(ex, ez)));
     for (const s of [-1, 1]) g.push(blob(0.1, s < 0 ? PAL.bush : PAL.bush2, x - ex * 0.4 + (-ez) * s * 0.36, gy + 0.16, z - ez * 0.4 + ex * s * 0.36, 0, 0.8));   // hedges at the back corners
   }
+  puddleSpots.length = 0; puddleVersion++;
+  for (const c of cells) if (c.type === 'road' && !(c.h || 0) && !c.bridge && !c.ramp && !c.slip && hash(c.i * 3 + 1, c.j * 5 + 2) < 0.28) { const h2 = hash(c.j, c.i + 7); puddleSpots.push({ x: cx(c.i) + (h2 - 0.5) * 0.4, z: cz(c.j) + (hash(c.i + 3, c.j) - 0.5) * 0.4, s: 0.16 + h2 * 0.14, ry: h2 * 3.14 }); }
   roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; roadMesh.material = roadMesh.material.clone(); roadMesh.material.color.setScalar(1 - 0.28 * wetK); scene.add(roadMesh); }
   lampMesh = mergeMesh(lg, false, true); if (lampMesh) scene.add(lampMesh);
   for (const k in lampGeo) if (lampGeo[k].length) { const m = mergeMesh(lampGeo[k], false, false); m.material = lampMats[k]; m.castShadow = false; scene.add(m); signalMeshes.push(m); }
@@ -542,14 +545,16 @@ function eraseRoad(c) {
 // until a home has room. Positions below are world coordinates (cell (17,17) is centred on (0.5, 0.5)).
 const SC = { i: HALF, j: HALF };                 // centre cell index
 const SX = cx(SC.i), SZ = cz(SC.j);
-const BENCH_Y = 0.12 + 0.10;                     // seat top, hip height for a box person
+const BENCH_Y = 0.12 + 0.114;                    // seat top of the kit bench (street-furniture.js)
+const SIT_DROP = 0.025;                          // a seated Kenney person's underside (legs out straight) is this far above the group
 const STATION = {
   block: null, anchor: null,                     // anchor = the south-edge unit; its cell touches the ring road
   entrance: new THREE.Vector3(SX, 0.12, SZ + 0.9),
   seats: [], stands: [], vending: [],
 };
-for (const bx of [-0.25, 0.25]) for (const sx of [-0.09, 0.09])   // two benches on the north edge only; the entrance side is kept clear
-  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - 0.09, SZ - 1.3), rot: 0, taken: null });
+for (const bx of [-0.25, 0.25]) for (const sx of [-0.115, 0.115])   // two benches on the north edge only; the entrance side is kept clear
+  // the kit's two seat places; 0.04 forward of the bench centre so the back clears the backrest and the legs rest on the slats
+  STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - SIT_DROP, SZ - 1.3 + 0.04), rot: 0, taken: null });
 for (const [dx, dz] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]])
   STATION.stands.push({ kind: 'stand', pos: new THREE.Vector3(SX + dx * 0.6, 0.12, SZ + dz * 0.6), rot: Math.atan2(-dx, -dz), taken: null });
 for (const dz of [-0.22, 0.22]) STATION.vending.push({ pos: new THREE.Vector3(SX + 1.08, 0.12, SZ + dz), rot: Math.PI / 2, taken: null });
@@ -730,10 +735,11 @@ function refreshCivicFlags() {
 }
 let wetK = 0;
 /** rain darkens the streets: 0 dry, 1 soaked */
+const puddleVersionOf = () => puddleVersion;
 function setWet(k) { if (Math.abs(k - wetK) < 0.01) return; wetK = k; if (roadMesh) roadMesh.material.color.setScalar(1 - 0.28 * k); }
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

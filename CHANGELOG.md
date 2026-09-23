@@ -52,6 +52,17 @@ Phases 4 and 4.5 plus the polish that went with them.
 - The slipway is a proper street: the lane from the coast road to the shore is real road cells on the grid (kept, not
   zonable), drawn like any street, ending in a concrete slope down to the beach; no slanted lanes. The berth notice says
   cars are rolling off only once one has. The smoke summary names any failed checks.
+- Residents on the station benches sit on the seat: the seat places moved to the kit bench's own (±0.115), 0.04 forward of the
+  bench centre, and up to the seat top (a seated Kenney person's underside is 0.025 above the group, not 0.09), so their feet no
+  longer sink into the front slats and their backs rest against the backrest.
+- Snow reaches the kit buildings too: civic props, town services, the bath house, notice boards, the station pavilion (its lit panels
+  stay clear), the summit shrine and the torii (`snowKit` in geometry.js; kit greys whiten with a higher floor than the town's asphalt).
+- Speech bubbles (src/bubbles.js): when two residents talk, a small cream bubble with pulsing dots shows over whoever is
+  speaking, the two alternating, with a pictogram for the topic half the time (rice bowl at mealtimes, cloud in the
+  rain, house for a new household, shop front, train, heart); never text; hidden when zoomed far out. Bench chats and
+  visits get them, and walkers who know each other (same household, home or workplace) now stop on the pavement, turn
+  to each other for a word, and carry on.
+- Puddles: pale pools on flat street cells fill while it rains and dry over about an hour after; none in winter.
 - Winter looks like winter: snow settles on every upward face drawn with the town's materials (ground, roofs, bushes,
   tree crowns; dark asphalt takes less), building over a couple of hours at the turn and melting in spring; rain spells
   fall as slow, wandering snowflakes; the sky pales and cools under snow; the clock card says snow.

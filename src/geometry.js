@@ -6,7 +6,7 @@ import { PAL } from './palette.js';
 // snow: one shared amount (0 bare, 1 deep winter) whitens upward faces in every town material; darker surfaces (asphalt) take less
 const snowUniform = { value: 0 };
 function setSnow(v) { snowUniform.value = v; }
-function withSnow(material) {
+function withSnow(material, floor = 0.35) {   // floor: the share of snow even the darkest surface takes (asphalt stays dark at 0.35)
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = sh => {
     if (prev) prev(sh);
@@ -17,10 +17,20 @@ uniform float uSnow;`)
       .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
  float snowUp = smoothstep(0.45, 0.85, dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)));
  float snowLum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
- diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.95, 0.975), uSnow * snowUp * (0.35 + 0.65 * smoothstep(0.15, 0.5, snowLum)));`);
+ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.95, 0.975), uSnow * snowUp * (${floor.toFixed(2)} + ${(1 - floor).toFixed(2)} * smoothstep(0.15, 0.5, snowLum)));`);
   };
-  material.customProgramCacheKey = () => 'snow' + (prev ? '+' : '');
+  material.customProgramCacheKey = () => 'snow' + (floor === 0.35 ? '' : floor) + (prev ? '+' : '');
   return material;
+}
+// kit Groups (civic, town services, landmarks, the station pavilion) bring their own materials: snow them in place, once each
+// (kits share materials between instances); `skip` keeps lit panels clear
+const SNOWABLE = new Set(['MeshStandardMaterial', 'MeshPhysicalMaterial', 'MeshLambertMaterial', 'MeshPhongMaterial']);
+function snowKit(root, skip = null) {
+  root.traverse(o => {
+    if (!o.isMesh || (skip && skip.includes(o))) return;
+    for (const m of Array.isArray(o.material) ? o.material : [o.material]) if (m && !m.userData.snow && SNOWABLE.has(m.type)) { m.userData.snow = true; withSnow(m, 0.85); m.needsUpdate = true; }   // kit roofs are dark greys; they still whiten
+  });
+  return root;
 }
 const matCache = new Map();
 function mat(hex, flat = false) {
@@ -107,4 +117,4 @@ function lightCone(x, yTop, z, rTop, rBottom, hex) {
   g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.translate(x, 0.1 + h / 2, z); return g;
 }
 
-export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, setSnow, snowUniform, withSnow, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };
+export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, setSnow, snowUniform, withSnow, snowKit, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };

@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
-import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow } from './geometry.js';
+import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow, snowKit } from './geometry.js';
 import { addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
 import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
@@ -696,8 +696,8 @@ function rebuildUnitMesh(u, pop = false) {
       const mx = b.cells.reduce((t, c) => t + cx(c.i), 0) / b.cells.length, mz = b.cells.reduce((t, c) => t + cz(c.j), 0) / b.cells.length, f = u.facing || 0, dx = mx - cx(u.cell.i), dz = mz - cz(u.cell.j);
       pos = [dx * Math.cos(f) - dz * Math.sin(f), 0.12, dx * Math.sin(f) + dz * Math.cos(f)];
     }
-    if (prop) { prop.scale.setScalar(s); prop.position.set(...pos); prop.traverse(o => { if (o.isMesh) o.castShadow = true; }); grp.add(prop); }
-    const nb = createCivicProp('notice-board'); nb.scale.setScalar(0.65); nb.position.set(-0.36, 0.12, 0.36); grp.add(nb);   // the community notice board on the pavement corner
+    if (prop) { prop.scale.setScalar(s); prop.position.set(...pos); prop.traverse(o => { if (o.isMesh) o.castShadow = true; }); snowKit(prop); grp.add(prop); }
+    const nb = createCivicProp('notice-board'); nb.scale.setScalar(0.65); nb.position.set(-0.36, 0.12, 0.36); snowKit(nb); grp.add(nb);   // the community notice board on the pavement corner
   }
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
@@ -706,6 +706,7 @@ function rebuildUnitMesh(u, pop = false) {
       const st = createSubwayStation(); st.position.y = 0.12; grp.add(st);
       u.stationLit = STATION_LIGHT_MESHES.map(n => st.getObjectByName(n)).filter(Boolean);
       for (const m of u.stationLit) { m.material.color.copy(u.winMat.color); m.material.emissive.copy(u.winMat.emissive); m.material.emissiveIntensity = u.winMat.emissiveIntensity; m.castShadow = false; }
+      snowKit(st, u.stationLit);   // snow on the roof and ledges in winter; the lit panels stay clear
     }
     for (const [gx, gz, gs] of spots) { const gl = makeGlow(gx, 0.135, gz, gs); gl.material = u.glowMat; grp.add(gl); if (!u.glow) u.glow = gl; }
   }

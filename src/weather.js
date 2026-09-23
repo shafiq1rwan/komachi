@@ -6,8 +6,11 @@ import { rand, pick } from './utils.js';
 import { S } from './state.js';
 import { scene, cam } from './scene.js';
 import { setSnow } from './geometry.js';
+let puddleSpots = [], puddleVersionOf = () => 0;
+/** main.js hands over where puddles may lie (world.js keeps the list), so weather.js never imports world.js */
+export function setPuddleSource(spots, versionOf) { puddleSpots = spots; puddleVersionOf = versionOf; }
 
-export const W = { kind: 'clear', until: 0, cover: 0.15, rain: 0, tCover: 0.15, tRain: 0, wind: new THREE.Vector2(0.06, 0.03), winter: false, snow: 0 };   // winter is set by main.js from the season; snow is the cover on the ground
+export const W = { kind: 'clear', until: 0, cover: 0.15, rain: 0, tCover: 0.15, tRain: 0, wind: new THREE.Vector2(0.06, 0.03), winter: false, snow: 0, wet: 0 };   // wet: puddles on the streets, filling in rain and drying after   // winter is set by main.js from the season; snow is the cover on the ground
 const SPELLS = { clear: { cover: 0.12, rain: 0, hours: [5, 12] }, cloudy: { cover: 0.7, rain: 0, hours: [3, 8] }, rain: { cover: 0.9, rain: 0.8, hours: [1.5, 4] }, drizzle: { cover: 0.75, rain: 0.35, hours: [1.5, 3] } };
 const NEXT = { clear: ['clear', 'clear', 'cloudy', 'cloudy', 'drizzle'], cloudy: ['clear', 'clear', 'rain', 'drizzle', 'cloudy'], rain: ['cloudy', 'cloudy', 'clear', 'drizzle'], drizzle: ['cloudy', 'clear', 'rain'] };
 /** force a spell (dev hook and tests) */
@@ -41,12 +44,24 @@ const rainMat = new THREE.LineBasicMaterial({ color: '#c9d9e6', transparent: tru
 const rainMesh = new THREE.LineSegments(rainGeo, rainMat); rainMesh.frustumCulled = false; rainMesh.visible = false; rainMesh.renderOrder = 7; scene.add(rainMesh);
 let rainT = 0;
 
+// ── puddles: soft pale pools on flat street cells; their spots come from world.js and follow the streets ──
+const PUDDLE_N = 80, puddles = [], puddleGeo = new THREE.CircleGeometry(1, 14); puddleGeo.scale(1, 0.62, 1);
+const puddleMat = new THREE.MeshBasicMaterial({ color: '#cfdfe9', transparent: true, opacity: 0, depthWrite: false });
+for (let k = 0; k < PUDDLE_N; k++) { const m = new THREE.Mesh(puddleGeo, puddleMat); m.rotation.x = -Math.PI / 2; m.visible = false; m.renderOrder = 2; scene.add(m); puddles.push(m); }
+let puddleSeen = -1;
+function updatePuddles() {
+  if (puddleSeen !== puddleVersionOf()) { puddleSeen = puddleVersionOf(); puddles.forEach((m, k) => { const sp = puddleSpots[k]; m.visible = !!sp; if (sp) { m.position.set(sp.x, 0.088, sp.z); m.rotation.z = sp.ry; m.userData.s = sp.s; } }); }
+  const wet = W.wet; puddleMat.opacity = 0.55 * Math.min(1, wet * 1.4);
+  for (const m of puddles) { if (!m.userData.s) continue; const s = m.userData.s * (0.5 + 0.5 * wet); m.scale.set(s, s, 1); m.visible = wet > 0.02 && puddleSpots.length > 0 && !!m.userData.s; }
+}
 /** dt real seconds, dh game hours */
 export function updateWeather(dt, dh) {
   if (S.T >= W.until) setWeather(pick(NEXT[W.kind] || ['clear']));
   const k = Math.min(1, dh * 1.6);   // targets are reached over about half a game hour
   W.cover += (W.tCover - W.cover) * k; W.rain += (W.tRain - W.rain) * k;
   // snow cover: builds through winter (faster while it snows), melts away in spring
+  W.wet = W.winter ? 0 : Math.max(0, Math.min(1, W.wet + (W.rain > 0.15 ? dh * 1.6 * W.rain : -dh * 0.9)));   // fills while it rains, dries over about an hour
+  updatePuddles();
   const snowT = W.winter ? 0.9 : 0, ks = Math.min(1, dh * (W.winter ? 0.45 + W.rain * 0.8 : 0.35)); W.snow += (snowT - W.snow) * ks; setSnow(W.snow);
   // clouds: the first `want` of the pool are out; each grows in or shrinks away, drifts with the wind and wraps
   const want = Math.round(W.cover * CLOUD_N), grey = 1 - 0.32 * Math.max(0, W.cover - 0.4) / 0.6 - 0.15 * W.rain;

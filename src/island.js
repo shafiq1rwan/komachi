@@ -4,7 +4,7 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { S } from './state.js';
-import { mat, blob, cyl, box, mergeMesh, swayMat, colorize } from './geometry.js';
+import { mat, blob, cyl, box, mergeMesh, swayMat, colorize, snowKit } from './geometry.js';
 import { scene, HALF, N, cx, cz } from './scene.js';
 import { biome } from './biome.js';
 import { createLandmark } from './landmark-kit.js';
@@ -179,8 +179,8 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   // the summit shrine set from the landmark kit (hall, offering box, bell rope, stone lanterns, its own torii), facing
   // the town along the slope roads' axis, and a second, larger torii at the foot of the lantern path on the terrace below
   const fx = shrineDir[0], fz = shrineDir[1], ang = Math.atan2(fx, fz), y0 = hillTop;
-  const shrine = createLandmark('shrine'); shrine.position.set(HX - fx * 0.25, y0, HZ - fz * 0.25); shrine.rotation.y = ang; scene.add(shrine);
-  const gx = HX + fx * 2.3, gz = HZ + fz * 2.3, gate = createLandmark('torii'); gate.scale.setScalar(0.9); gate.position.set(gx, hillLevel(gx, gz) * TERRACE, gz); gate.rotation.y = ang; scene.add(gate);
+  const shrine = createLandmark('shrine'); shrine.position.set(HX - fx * 0.25, y0, HZ - fz * 0.25); shrine.rotation.y = ang; snowKit(shrine); scene.add(shrine);
+  const gx = HX + fx * 2.3, gz = HZ + fz * 2.3, gate = createLandmark('torii'); gate.scale.setScalar(0.9); gate.position.set(gx, hillLevel(gx, gz) * TERRACE, gz); gate.rotation.y = ang; snowKit(gate); scene.add(gate);
 }
 
 const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hillTop };
