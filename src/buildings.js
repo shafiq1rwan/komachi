@@ -4,7 +4,7 @@ import { S } from './state.js';
 import { genRichBuilding } from './rich-buildings.js';
 import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
-import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow, snowKit } from './geometry.js';
+import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow, snowKit, lampHeadMat, coneMat, lightCone } from './geometry.js';
 import { addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
 import { createSubwayStation, STATION_LIGHT_MESHES } from './subway-station.js';
@@ -16,7 +16,7 @@ import { leafColor } from './seasons.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
 const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
-import { DONE } from './world.js';
+import { DONE, lampGlowMat } from './world.js';
 
 let LG = [];   // laundry geometry for the unit being built (its own mesh, shown in the daytime; see rebuildUnitMesh)
 const UPPER = 0.4;   // a detached home's upper storey height; the ground floor is 0.5
@@ -716,6 +716,17 @@ function rebuildUnitMesh(u, pop = false) {
       snowKit(st, u.stationLit);   // snow on the roof and ledges in winter; the lit panels stay clear
     }
     for (const [gx, gz, gs] of spots) { const gl = makeGlow(gx, 0.135, gz, gs); gl.material = u.glowMat; grp.add(gl); if (!u.glow) u.glow = gl; }
+    if (u.di === 0 && u.dj === -1) {   // two lamps behind the benches, either side of the name board, arms reaching over the seats: nobody waits in the dark
+      const lg = [], LS = 1.1;
+      for (const lx of [-0.42, 0.42]) {
+        addNeighbourhood(lg, 'street-lamp', lx, 0.12, -0.44, 0, { scale: LS });
+        const hy = 0.12 + 0.828 * LS + 0.02 - 0.03, hz = -0.44 + 0.23 * LS;   // the kit's light point, as the street lamps use it
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.01, 0.15), lampHeadMat); head.position.set(lx, hy, hz); head.castShadow = false; grp.add(head);
+        const cone = new THREE.Mesh(lightCone(lx, hy, hz, 0.05, 0.3, PAL.lampGlow), coneMat); cone.renderOrder = 4; grp.add(cone);
+        const gl = makeGlow(lx, 0.135, hz, 1.1); gl.material = lampGlowMat; grp.add(gl);
+      }
+      const lm = mergeMesh(lg, false); if (lm) grp.add(lm);
+    }
   }
   grp.position.set(cx(u.cell.i), u.cell.h || 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;
   grp.userData.unit = u; u.mesh = grp; townGroup.add(grp);

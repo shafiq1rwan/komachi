@@ -46,12 +46,20 @@ let rainT = 0;
 
 // ── puddles: soft pale pools on flat street cells; their spots come from world.js and follow the streets ──
 const PUDDLE_N = 80, puddles = [], puddleGeo = new THREE.CircleGeometry(1, 14); puddleGeo.scale(1, 0.62, 1);
-const puddleMat = new THREE.MeshBasicMaterial({ color: '#cfdfe9', transparent: true, opacity: 0, depthWrite: false });
+// a wet patch, not paint: a soft-edged texture (a faint sky sheen in the middle, darker wet asphalt toward the rim, fading out),
+// lit like the road so it darkens at night and can catch a small glint of sun
+const puddleTex = (() => {
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const grd = g.createRadialGradient(64, 64, 2, 64, 64, 64);
+  grd.addColorStop(0, 'rgba(206,222,232,0.62)'); grd.addColorStop(0.45, 'rgba(160,180,194,0.5)'); grd.addColorStop(0.78, 'rgba(92,106,118,0.38)'); grd.addColorStop(1, 'rgba(92,106,118,0)');
+  g.fillStyle = grd; g.fillRect(0, 0, 128, 128); const t = new THREE.CanvasTexture(c); t.colorSpace = THREE.SRGBColorSpace; return t;
+})();
+const puddleMat = new THREE.MeshStandardMaterial({ map: puddleTex, transparent: true, opacity: 0, depthWrite: false, roughness: 0.35, metalness: 0 });
 for (let k = 0; k < PUDDLE_N; k++) { const m = new THREE.Mesh(puddleGeo, puddleMat); m.rotation.x = -Math.PI / 2; m.visible = false; m.renderOrder = 2; scene.add(m); puddles.push(m); }
 let puddleSeen = -1;
 function updatePuddles() {
   if (puddleSeen !== puddleVersionOf()) { puddleSeen = puddleVersionOf(); puddles.forEach((m, k) => { const sp = puddleSpots[k]; m.visible = !!sp; if (sp) { m.position.set(sp.x, 0.088, sp.z); m.rotation.z = sp.ry; m.userData.s = sp.s; } }); }
-  const wet = W.wet; puddleMat.opacity = 0.55 * Math.min(1, wet * 1.4);
+  const wet = W.wet; puddleMat.opacity = 0.8 * Math.min(1, wet * 1.4);   // the texture carries the transparency: never more than about half see-through
   for (const m of puddles) { if (!m.userData.s) continue; const s = m.userData.s * (0.5 + 0.5 * wet); m.scale.set(s, s, 1); m.visible = wet > 0.02 && puddleSpots.length > 0 && !!m.userData.s; }
 }
 /** dt real seconds, dh game hours */

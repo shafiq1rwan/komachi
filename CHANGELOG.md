@@ -57,6 +57,14 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The bench lamps give real light: two warm point lights under their heads fade in at dusk, so the benches and whoever
+  waits on them are lit at night (the street lamps elsewhere keep their painted pools).
+- Two lamps stand behind the station benches, either side of the name board, their arms reaching over the seats, so people
+  waiting for a train are not left in the dark (lit head, soft cone and pool of light like the street lamps).
+- Puddles are soft, semi-transparent wet patches: a faint sky sheen in the middle fading into darker wet asphalt at the rim,
+  lit like the road so they darken at night, instead of flat pale blobs.
+- Phones: the tool dock is one compact row of eight with larger icon tiles, darker labels and the chosen tool on a flat pale
+  teal tile.
 - The rich look is the new standard (2026-09-23; docs/ART_DIRECTION.md rewritten): every new session starts in it, and the classic
   pastel look is one click away (the wand button, remembered, or `?look=classic`). A fresh start is an empty island in either look;
   the dense street-grid showcase moved to `?demo=dense`. The coastal train and its railway are gone: the underground line at

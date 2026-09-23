@@ -582,6 +582,12 @@ const STATION = {
 for (const bx of [-0.25, 0.25]) for (const sx of [-0.115, 0.115])   // two benches on the north edge only; the entrance side is kept clear
   // the kit's two seat places; 0.04 forward of the bench centre so the back clears the backrest and the legs rest on the slats
   STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - SIT_DROP, SZ - 1.3 + 0.04), rot: 0, taken: null });
+// the bench lamps are real lights (the street lamps only paint a pool on the ground): two warm point lights under their heads,
+// so the benches and whoever waits on them are lit after dark. daynight.js fades them in with the lamps
+const benchLights = [];
+for (const bx of [-0.42, 0.42]) {
+  const L = new THREE.PointLight('#ffc27d', 0, 1.9, 1.4); L.position.set(SX + bx, 0.95, SZ - 1.3 - 0.2); L.castShadow = false; scene.add(L); benchLights.push(L);
+}
 for (const [dx, dz] of [[-1.3, -1.3], [1.3, -1.3], [-1.3, 1.3], [1.3, 1.3]])
   STATION.stands.push({ kind: 'stand', pos: new THREE.Vector3(SX + dx * 0.6, 0.12, SZ + dz * 0.6), rot: Math.atan2(-dx, -dz), taken: null });
 for (const dz of [-0.22, 0.22]) STATION.vending.push({ pos: new THREE.Vector3(SX + 1.08, 0.12, SZ + dz), rot: Math.PI / 2, taken: null });
@@ -767,6 +773,6 @@ function setWet(k) { if (Math.abs(k - wetK) < 0.01) return; wetK = k; if (roadMe
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { benchLights, landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

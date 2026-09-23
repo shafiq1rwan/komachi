@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { lerp, clamp } from './utils.js';
 import { renderer, scene, hemi, sun, fill } from './scene.js';
 import { lampHeadMat, coneMat } from './geometry.js';
-import { units, lampGlowMat, DONE, blocks, CIVIC_REACH, setWet } from './world.js';
+import { units, lampGlowMat, DONE, blocks, CIVIC_REACH, setWet, benchLights } from './world.js';
 // windows within reach of a finished substation glow steady and a shade warmer; recomputed every couple of seconds
 const powered = new Set(); let poweredT = -9; const WARM = '#f6c78e';
 function refreshPowered() {
@@ -46,6 +46,7 @@ function envUpdate(realT) {
   scene.fog.near = lerp(118, 108, lk); scene.fog.far = lerp(200, 168, lk);   // a little haze toward the top of the screen
   renderer.toneMappingExposure = lerp(1.0, 1.05, d) - 0.06 * over;
   setWet(W.winter ? 0 : W.rain);   // snow does not darken the streets like rain
+  for (const L of benchLights) L.intensity = Math.max(0, night - 0.1) * 2.4;   // real light on the station benches after dusk
   lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness
   const shopOpen = h >= 7 && h < 22;
   if (realT - poweredT > 2) { poweredT = realT; refreshPowered(); }

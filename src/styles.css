@@ -17,8 +17,8 @@
   #brand > * + *, #clock > * + *{margin-left:10px}
   #brand > .fold.collapsed, #clock > .fold.collapsed{margin-left:0}
   #brand h1{margin:0;font-size:20px;font-weight:800;letter-spacing:.4px;display:flex;align-items:center;gap:8px;white-space:nowrap}
-  #brand h1 i{display:inline-block;width:12px;height:12px;border-radius:3px;background:var(--rose);box-shadow:15px 0 0 var(--sage), 30px 0 0 var(--blue)}
-  #brand h1 span{margin-left:32px}
+  #brand .brand-icon{display:block;width:44px;height:44px;object-fit:contain;flex:none}
+  #brand h1 span{margin-left:0}
   #stats{display:flex;gap:6px}
   .stat{display:flex;align-items:center;gap:7px;background:var(--cream2);border-radius:10px;padding:6px 10px;font-size:13px;font-weight:800;color:var(--ink)}
   .stat i{color:var(--teal2);font-size:12px;width:14px;text-align:center}
@@ -56,7 +56,7 @@
   .pbar i b{display:block;height:100%;background:var(--teal);border-radius:3px}
   .pbar span{font-size:9px;font-weight:800;color:var(--ink2);line-height:1}
   .pbar.reno i b{background:var(--rose)}
-  @media (max-width:980px){#stats .stat{padding:6px 8px}#brand h1 span{display:none}#brand h1{gap:0}#brand h1 i{margin-right:32px}}
+  @media (max-width:980px){#stats .stat{padding:6px 8px}#brand h1 span{display:none}#brand h1{gap:0}}
   #tools{left:50%;bottom:22px;transform:translateX(-50%);display:flex;gap:3px;padding:8px 5px}
   .tool{border:0;background:transparent;font:inherit;display:flex;flex-direction:column;align-items:center;gap:5px;padding:9px 3px 8px;border-radius:14px;cursor:pointer;width:92px;flex:none;color:var(--ink2);font-weight:800;font-size:12px;position:relative}
   .tool:hover{background:var(--cream2)}
@@ -147,7 +147,10 @@
   @keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
   @keyframes pop{from{transform:translate(-50%,-100%) translateY(2px) scale(.6);opacity:0}to{transform:translate(-50%,-100%) translateY(-6px) scale(1);opacity:1}}
   .tag{position:fixed;transform:translate(-50%,-100%);background:rgba(251,246,238,.92);color:var(--ink);font-size:11px;font-weight:800;padding:2px 7px;border-radius:7px;pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.1)}
-  @media (max-width:720px){#toast{top:58px;left:8px;max-width:calc(100vw - 240px);font-size:11.5px;padding:8px 10px 8px 9px}   /* phones: a narrow card under the brand card, leaving the inspect card its column on the right */#hint{display:none}#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:42px;border-radius:14px}#brand{padding:0 8px}#brand > * + *, #clock > * + *{margin-left:6px}#brand > .fold.collapsed, #clock > .fold.collapsed{margin-left:0}#brand h1 i{width:9px;height:9px;margin-right:22px;box-shadow:12px 0 0 var(--sage),24px 0 0 var(--blue)}#stats{gap:3px}#stats .stat{padding:4px 6px;font-size:11px;gap:4px}#stats .stat i{font-size:10px}.icon-btn{width:26px;height:26px;font-size:12px}#clock{padding:0 8px}#sun{width:18px;height:18px;box-shadow:0 0 0 3px rgba(240,194,122,.25)}#sun.night{box-shadow:0 0 0 3px rgba(167,184,221,.3)}#clock-text{min-width:60px}#time{font-size:13px}#day{font-size:9px}.seg button{min-width:24px;height:22px;font-size:10px;padding:0 5px}.divider-v{height:22px}#inspect{top:58px;right:8px;left:auto;bottom:auto;width:210px;max-height:calc(100vh - 150px);padding:9px 11px 8px;gap:5px;border-radius:14px}#inspect .row{font-size:10.5px}#inspect h2{font-size:14px}#inspect .sub{font-size:11px}#inspect ul{gap:3px}#inspect li{font-size:11px}#inspect li span{font-size:10px}#inspect.person{width:200px}#inspect .cta{padding:4px 8px;font-size:10.5px}#tools{bottom:8px;gap:1px;padding:5px 3px;border-radius:12px;width:calc(100vw - 12px);max-width:470px;box-sizing:border-box}.tool{width:auto;flex:1 1 0;min-width:0;padding:5px 0 4px;font-size:9px;letter-spacing:-.1px;gap:3px;border-radius:10px}.tool .sw{width:24px;height:18px;border-radius:6px;font-size:10px}.tool kbd{display:none}}
+  @media (max-width:720px){#toast{top:58px;left:8px;max-width:calc(100vw - 240px);font-size:11.5px;padding:8px 10px 8px 9px}   /* phones: a narrow card under the brand card, leaving the inspect card its column on the right */#hint{display:none}#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:42px;border-radius:14px}#brand{padding:0 8px}#brand > * + *, #clock > * + *{margin-left:6px}#brand > .fold.collapsed, #clock > .fold.collapsed{margin-left:0}#brand .brand-icon{width:32px;height:32px}#stats{gap:3px}#stats .stat{padding:4px 6px;font-size:11px;gap:4px}#stats .stat i{font-size:10px}.icon-btn{width:26px;height:26px;font-size:12px}#clock{padding:0 8px}#sun{width:18px;height:18px;box-shadow:0 0 0 3px rgba(240,194,122,.25)}#sun.night{box-shadow:0 0 0 3px rgba(167,184,221,.3)}#clock-text{min-width:60px}#time{font-size:13px}#day{font-size:9px}.seg button{min-width:24px;height:22px;font-size:10px;padding:0 5px}.divider-v{height:22px}#inspect{top:58px;right:8px;left:auto;bottom:auto;width:210px;max-height:calc(100vh - 150px);padding:9px 11px 8px;gap:5px;border-radius:14px}#inspect .row{font-size:10.5px}#inspect h2{font-size:14px}#inspect .sub{font-size:11px}#inspect ul{gap:3px}#inspect li{font-size:11px}#inspect li span{font-size:10px}#inspect.person{width:200px}#inspect .cta{padding:4px 8px;font-size:10.5px}#tools{bottom:8px;gap:1px;padding:5px 3px;border-radius:12px;width:calc(100vw - 12px);max-width:470px;box-sizing:border-box}.tool{width:auto;flex:1 1 0;min-width:0;padding:5px 0 4px;font-size:9px;letter-spacing:-.1px;gap:3px;border-radius:10px}.tool .sw{width:24px;height:18px;border-radius:6px;font-size:10px}.tool kbd{display:none}}
+
+  /* phones: the tool dock as one compact row of eight, larger icon tiles, the chosen tool on a flat pale teal tile */
+  @media (max-width:720px){#tools{padding:6px 5px;gap:2px;border-radius:16px}.tool{padding:6px 0 5px;gap:4px;font-size:9.5px;font-weight:700;color:var(--ink);border-radius:11px}.tool .sw{width:28px;height:26px;border-radius:8px;font-size:13px}.tool.on{background:#dcebe8;box-shadow:none}.tool:hover{background:transparent}.tool.on:hover{background:#dcebe8}}
 
   /* Rich view HUD reskin (larger ivory controls and the island map), kept but switched off: the rich look uses the standard HUD.
      It only applies under body.rich-hud, which nothing sets; add that class to bring it back. */
@@ -157,8 +160,8 @@
   body.rich-hud #hud .card{height:76px}
   body.rich-hud #brand{padding:0 18px;gap:16px}
   body.rich-hud #brand h1{font-size:24px;letter-spacing:-.4px;gap:10px;line-height:1.1}
-  body.rich-hud #brand h1 i{display:none}
-  body.rich-hud #brand h1::before{content:'🏔️';width:54px;height:48px;border-radius:13px;background:#dcebef;display:flex;align-items:center;justify-content:center;font-size:29px}
+  
+  body.rich-hud #brand .brand-icon{width:54px;height:48px}
   body.rich-hud #brand h1 span{margin-left:0}
   body.rich-hud #brand h1 span::after{content:'A peaceful tomorrow';display:block;font-size:12px;letter-spacing:0;font-weight:600;color:var(--ink2);margin-top:3px}
   body.rich-hud #btn-stats{display:none}
@@ -198,8 +201,8 @@
   .mini-caption span{display:flex;align-items:center;gap:6px}
   .mini-caption i{width:9px;height:9px;border-radius:3px;background:#f4f4e8;border:1.5px solid #739397}
   .mini-caption b{font-size:12px;color:var(--ink)}
-  @media (max-width:1250px){body.rich-hud #brand h1 span::after{display:none}body.rich-hud #brand h1{font-size:18px}body.rich-hud #brand h1::before{width:38px;height:38px;font-size:21px}body.rich-hud #stats .stat{font-size:13px;padding:4px}body.rich-hud #stats .stat i{width:27px;height:27px;font-size:12px}body.rich-hud #clock #settings{gap:2px}body.rich-hud #clock-text{min-width:70px}}
-  @media (max-width:900px){body.rich-hud #hud .card{height:48px}body.rich-hud #brand{padding:0 8px;gap:4px}body.rich-hud #brand h1::before{width:30px;height:30px;font-size:17px}body.rich-hud #stats .stat:nth-child(n+4){display:none}body.rich-hud #clock{padding:0 8px}body.rich-hud #settings.fold.collapsed{max-width:0;opacity:0;overflow:hidden;pointer-events:none}body.rich-hud #btn-settings{display:flex}body.rich-hud #tools{bottom:8px;padding:5px;width:calc(100vw - 12px);max-width:620px}body.rich-hud .tool{width:auto;flex:1;font-size:10px}body.rich-hud .tool .sw{width:27px;height:24px;font-size:13px}body.rich-hud #inspect{top:62px;width:230px;max-height:calc(100vh - 145px);padding:10px 12px}body.rich-hud #inspect h2{font-size:16px}body.rich-hud #inspect .sub,body.rich-hud #inspect .row{font-size:11px}body.rich-hud #minimap{display:none}}
+  @media (max-width:1250px){body.rich-hud #brand h1 span::after{display:none}body.rich-hud #brand h1{font-size:18px}body.rich-hud #brand .brand-icon{width:38px;height:38px;font-size:21px}body.rich-hud #stats .stat{font-size:13px;padding:4px}body.rich-hud #stats .stat i{width:27px;height:27px;font-size:12px}body.rich-hud #clock #settings{gap:2px}body.rich-hud #clock-text{min-width:70px}}
+  @media (max-width:900px){body.rich-hud #hud .card{height:48px}body.rich-hud #brand{padding:0 8px;gap:4px}body.rich-hud #brand .brand-icon{width:30px;height:30px;font-size:17px}body.rich-hud #stats .stat:nth-child(n+4){display:none}body.rich-hud #clock{padding:0 8px}body.rich-hud #settings.fold.collapsed{max-width:0;opacity:0;overflow:hidden;pointer-events:none}body.rich-hud #btn-settings{display:flex}body.rich-hud #tools{bottom:8px;padding:5px;width:calc(100vw - 12px);max-width:620px}body.rich-hud .tool{width:auto;flex:1;font-size:10px}body.rich-hud .tool .sw{width:27px;height:24px;font-size:13px}body.rich-hud #inspect{top:62px;width:230px;max-height:calc(100vh - 145px);padding:10px 12px}body.rich-hud #inspect h2{font-size:16px}body.rich-hud #inspect .sub,body.rich-hud #inspect .row{font-size:11px}body.rich-hud #minimap{display:none}}
 
   /* The full map and eight-column dock need a wide canvas. */
   @media (max-width:1360px){body.rich-hud #minimap{display:none}body.rich-hud #tools{width:min(680px,calc(100vw - 24px));max-width:none}body.rich-hud .tool{width:auto;flex:1;min-width:0}}
@@ -209,7 +212,7 @@
     body.rich-hud #brand{padding:0 10px;gap:6px}
     body.rich-hud #brand h1{font-size:16px}
     body.rich-hud #brand h1 span{display:block}
-    body.rich-hud #brand h1::before{width:33px;height:33px;font-size:19px}
+    body.rich-hud #brand .brand-icon{width:33px;height:33px;font-size:19px}
     body.rich-hud #stats{padding-left:7px}
     body.rich-hud #stats .stat{font-size:12px;padding:3px;gap:4px}
     body.rich-hud #stats .stat:nth-child(n+4){display:none}
@@ -232,7 +235,7 @@
     body.rich-hud #hud{top:8px;left:8px;right:8px;display:block;height:94px}
     body.rich-hud #brand{position:relative;display:block;width:100%;height:94px!important;padding:7px 8px}
     body.rich-hud #brand h1{height:31px;font-size:16px;gap:6px}
-    body.rich-hud #brand h1::before{width:29px;height:29px;font-size:18px;flex:none}
+    body.rich-hud #brand .brand-icon{width:29px;height:29px;font-size:18px;flex:none}
     body.rich-hud #brand h1 span{display:block;margin:0}
     body.rich-hud #brand h1 span::after{display:none}
     body.rich-hud #stats{position:absolute;left:7px;right:7px;bottom:7px;width:auto;height:39px;max-width:none;display:flex;gap:1px;align-items:center;margin:0;padding:5px 0 0;border-left:0;border-top:1px solid #e9e8e4;opacity:1;overflow:visible}

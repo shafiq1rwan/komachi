@@ -32,7 +32,7 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   // ── interaction on an empty island ──
-  await page.goto(`http://localhost:${PORT}/?seed=7`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);   // a fixed island keeps the checks deterministic
+  await page.goto(`http://localhost:${PORT}/?seed=7&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);   // a fixed island keeps the checks deterministic; the checks run in the lighter classic look (same simulation, far quicker frames under software GL), the screenshots in the standard one
   let s = await page.evaluate(() => ({ blocks: MT.blocks.length, type: MT.blocks[0]?.type, centre: MT.cell(20, 20).type, ring: MT.cell(20, 22).type }));
   check('station is placed at the centre with a ring road', s.blocks === 1 && s.type === 'station' && s.centre === 'lot' && s.ring === 'road', JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(6));
@@ -124,16 +124,21 @@ try {
 
   // ── save and load: the town survives a reload ──
   const before = await page.evaluate(() => { MT.save(); return { blocks: MT.blocks.length, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, hh: MT.households.filter(h => h.members.length).length, T: Math.floor(MT.T) }; });
-  await page.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);
+  await page.goto(`http://localhost:${PORT}/?look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, residents: MT.residents.length, housed: MT.residents.filter(r => r.home).length, hh: MT.households.filter(h => h.members.length).length, T: Math.floor(MT.T) }));
   check('save and load restores the town', s.blocks === before.blocks && s.residents === before.residents && s.housed === before.housed && s.hh === before.hh && s.T === before.T, JSON.stringify({ before, after: s }));
   await page.evaluate(() => MT.clearSave());
 
   // ── demo town screenshots ──
-  await page.goto(`http://localhost:${PORT}/?demo&seed=7`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
+  await page.goto(`http://localhost:${PORT}/?demo&seed=7&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
+  // the screenshots show the standard (rich) look: post chain on, it must keep rendering
+  const rich0 = await page.evaluate(() => { MT.setLook('rich'); return MT.T; }); await sleep(2500);
   await page.screenshot({ path: 'scripts/out/day.png' });
-  await page.evaluate(() => MT.setHour(21.5)); await sleep(1000);
+  const hour0 = await page.evaluate(() => MT.T); await page.evaluate(() => MT.setHour(21.5)); await sleep(1500);
   await page.screenshot({ path: 'scripts/out/night.png' });
+  const rich = await page.evaluate(() => ({ on: document.body.classList.contains('rich'), ticking: MT.T > 0 }));
+  check('the standard rich look renders and the town keeps running under it', rich.on && rich.ticking && hour0 > rich0, JSON.stringify({ ...rich, advanced: +(hour0 - rich0).toFixed(3) }));
+  await page.evaluate(() => MT.setLook('classic')); await sleep(300);
   s = await page.evaluate(() => ({ blocks: MT.blocks.length, residents: MT.residents.length, jobs: MT.residents.filter(r => r.job).length }));
   check('demo town populated', s.blocks === 8 && s.residents >= 10 && s.jobs >= 8, JSON.stringify(s));
   s = await page.evaluate(() => { MT.drawRoad(MT.cell(30, 17), MT.cell(30, 31)); MT.drawRoad(MT.cell(26, 22), MT.cell(34, 22)); MT.setSpeed(0); let away = 0; for (let k = 0; k < 48; k++) { MT.fastForward(0.5); away = Math.max(away, MT.residents.filter(r => r.state === 'away' && r.home).length); } return { commuters: MT.residents.filter(r => r.commuter).length, away, parked: MT.carMeshes.filter(c => c.visible && c.userData.parked).length, bikes: MT.residents.filter(r => r.hasBike).length, signals: MT.signalCells.size }; });
@@ -201,7 +206,8 @@ try {
   check('seasons: the calendar turns and autumn leaves fall', se.turned && se.s1 === 'autumn' && se.chron && leaves >= 3, JSON.stringify({ ...se, leaves }));
   const tk = await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); let talks = 0; for (let k = 0; k < 300 && !talks; k++) { MT.fastForward(0.02); talks = MT.talks.length; } return { talks, kinds: MT.talks.map(t => t.topic) }; });
   await page.evaluate(() => { MT.cam.tView = MT.cam.view = 6; const t = MT.talks[0]; if (t) { t.until = MT.T + 2; if (t.a.meetUntil) { t.a.meetUntil = t.until; t.b.meetUntil = t.until; } MT.cam.target.copy(t.a.mesh.position); } MT.setSpeed(1); }); await sleep(600);   // hold the talk so the overlay has a frame to draw it
-  const bub = await page.evaluate(() => { MT.setSpeed(0); return document.querySelectorAll('#bubbles .bubble').length; });
+  let bub = 0; for (let k = 0; k < 40 && !bub; k++) { bub = await page.evaluate(() => document.querySelectorAll('#bubbles .bubble').length); if (!bub) await sleep(150); }   // poll: slow software GL may need a few frames
+  await page.evaluate(() => MT.setSpeed(0));
   check('speech bubbles: a chat pairs two residents and a bubble shows over the speaker', tk.talks >= 1 && bub >= 1, JSON.stringify({ ...tk, bub }));
   const pd = await page.evaluate(() => { MT.setWeather('rain', 4); for (let k = 0; k < 30; k++) MT.fastForward(0.05); const wet = MT.weather.wet; MT.setWeather('clear', 12); for (let k = 0; k < 30; k++) MT.fastForward(0.05); return { wet: +wet.toFixed(2), after: +MT.weather.wet.toFixed(2), spots: MT.puddleSpots.length }; });
   check('puddles: streets pool in the rain and dry after', pd.spots > 0 && pd.wet > 0.5 && pd.after < pd.wet, JSON.stringify(pd));
