@@ -5,6 +5,7 @@ import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR,
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 import { chronicle } from './chronicle.js';
 import { eventInfo, eventOn } from './events.js';
+import { innGuests, INN_ROOMS } from './tourists.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
   pop: document.getElementById('s-pop'), homes: document.getElementById('s-homes'), jobs: document.getElementById('s-jobs'), seek: document.getElementById('s-seek'), shops: document.getElementById('s-shops'), wait: document.getElementById('s-wait') };
@@ -86,6 +87,7 @@ function renderInspect(target, follow = null) {
         if (type === 'shop') {
           html += `<div class="row"><span>Popularity</span><b>${'★'.repeat(clamp(Math.round(b.visitScore / (2 * b.level)), 0, 5)) || '–'}</b></div>`;
           html += `<div class="row"><span>Customers</span><b>${b.visitsToday || 0} today · ${b.lastVisits === undefined ? '–' : b.lastVisits} yesterday</b></div>`;
+          if (b.kind === 'ryokan') html += `<div class="row"><span>Guests tonight</span><b>${innGuests()} / ${INN_ROOMS}</b></div>`;
           if (b.changing) html += `<div class="empty">Changing trade: shutters down while the new shop is fitted out</div>`;
           else if (b.popular) html += `<div class="empty">Busy enough to fly banners</div>`;
           else if (b.quietDays >= 2) html += `<div class="empty">Quiet lately; the owner is thinking of a change</div>`;

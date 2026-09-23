@@ -72,13 +72,18 @@ function spawnTourist() {
   const second = pool.find(o => o !== picks[0]); if (second && Math.random() < 0.5) picks.push(second);
   t.plan = [...picks.map(o => ({ kind: 'landmark', ...o })), ...(Math.random() < 0.75 ? [{ kind: 'shop' }] : []), { kind: 'home' }];
   if (festivalDay(dayOf()) && hourOf() >= 13) t.plan = [...(Math.random() < 0.6 ? [{ kind: 'landmark', ...first }] : []), { kind: 'event' }, { kind: 'event' }, { kind: 'home' }];   // here for the festival
+  const inn = innUnit();   // a night at the ryokan: weekend and festival visitors who came after midday, while it has rooms
+  if (inn && hourOf() >= 11 && (isWeekend() || festivalDay(dayOf())) && innGuests() < INN_ROOMS && Math.random() < 0.55) {
+    t.staying = inn; t.plan = t.plan.filter(p => p.kind !== 'home').concat([{ kind: 'inn' }]);
+    const ch = t.mesh.userData.char; if (ch) equipCharacterProp(ch, 'briefcase', pick(['#6b6f7a', '#a3764a', '#4a4340']));   // their overnight bag
+  }
   once('The first visitors came to see the island', 'Visitors came up from the station to see the sights');
   next(t); return t;
 }
 /** the visitor's next step: out to a landmark (by bus if it is running and they are at the station), a shop, or home */
 function next(t) {
   const festDay = festivalDay(dayOf()) && hourOf() < 21.4;
-  if (hourOf() >= 14.5) t.plan = t.plan.filter(p => p.kind === 'home' || (p.kind === 'shop' && hourOf() < 16.5) || (festDay && (p.kind === 'event' || (p.kind === 'landmark' && hourOf() < 16))));
+  if (hourOf() >= 14.5) t.plan = t.plan.filter(p => p.kind === 'home' || p.kind === 'inn' || (p.kind === 'shop' && hourOf() < 16.5) || (festDay && (p.kind === 'event' || (p.kind === 'landmark' && hourOf() < 16))));
   if (t.plan[0] && t.plan[0].kind === 'event' && !eventVisit() && hourOf() < 16 && festDay) { t.state = 'standing'; t.until = S.T + 0.25; t.activity = 'waiting for the festival to start'; t.state = 'loiter'; return; }   // the afternoon: a last shop at most, then the station
   const step = t.plan.shift() || { kind: 'home' };
   if (step.kind === 'landmark') {
@@ -96,6 +101,14 @@ function next(t) {
       pts = best ? [kerb, l.target.clone().setY(0.1).addScaledVector(d, best)] : [kerb];
     }
     if (!walkTo(t, road, pts, `walking out to ${l.name}`, () => arriveAt(t, l, road, pts))) return next(t);
+  } else if (step.kind === 'inn') {   // up to the ryokan for the night
+    const u = t.staying && t.staying.block && !t.staying.block.removed ? t.staying : innUnit(); if (!u || !frontRoad(u).length) { t.staying = null; return next(t); }
+    const [door, kerb] = unitDoorPoints(u);
+    if (!walkTo(t, frontRoad(u)[0], [kerb, door], `walking up to ${u.block.name} for the night`, () => {
+      t.state = 'atInn'; t.mesh.visible = false; t.staying = u; t.activity = `staying the night at ${u.block.name}`;
+      t.until = (Math.floor(S.T / 24) + (hourOf() >= 4 ? 1 : 0)) * 24 + rand(8.4, 9.8);   // checks out in the morning
+      u.block.visitsToday = (u.block.visitsToday || 0) + 1; u.block.visitScore = (u.block.visitScore || 0) + 1;
+    })) { t.staying = null; return next(t); }
   } else if (step.kind === 'event') {
     const v = eventVisit(); if (!v) return next(t);
     const pts = v.l.walk();
@@ -244,7 +257,7 @@ function updateTourists(simDt, realT = lastReal) {
   if (pendingSpawns.length && S.T >= pendingSpawns[0]) { pendingSpawns.shift(); spawnTourist(); }
   for (let k = tourists.length - 1; k >= 0; k--) {
     const t = tourists[k];
-    if (hourOf() >= 23.8 || hourOf() < 4) { removeTourist(t); continue; }   // anyone still out at midnight caught the last train
+    if ((hourOf() >= 23.8 || hourOf() < 4) && !t.staying) { removeTourist(t); continue; }   // anyone still out at midnight caught the last train (the inn's guests are in for the night)
     if (t.state === 'walking') { if (moveAlong(t.mesh, t.trip, t.trip.speed * simDt)) { const f = t.onArrive; t.onArrive = null; t.trip = null; t.state = 'standing'; if (f) f(); } }
     else if (t.state === 'visit') {
       const ch = t.mesh.userData.char;
@@ -259,6 +272,15 @@ function updateTourists(simDt, realT = lastReal) {
         if (ch) { dropItem(ch); ch.fidget = null; equipCharacterProp(ch, 'shopping-bag', t.shop.block.awning ? t.shop.block.awning[0] : undefined); }
         t.state = 'standing'; next(t);
       }
+    } else if (t.state === 'atInn') {   // checking out: a last sight if there is time, then the train home, bag in hand
+      if (S.T >= t.until) {
+        const u = t.staying, [door, kerb] = unitDoorPoints(u);
+        t.mesh.position.copy(door); t.mesh.visible = true; t.leave = [door.clone(), kerb.clone()]; t.road = frontRoad(u)[0]; t.state = 'standing'; t.staying = null;
+        const ch = t.mesh.userData.char; if (ch) { dropItem(ch); ch.fidget = null; equipCharacterProp(ch, 'briefcase', '#6b6f7a'); }
+        const more = landmarkRoads().filter(o => o.l.kind !== 'pier' && !t.seen.includes(o.l.name));
+        t.plan = [...(more.length && Math.random() < 0.6 ? [{ kind: 'landmark', ...more[0] }] : []), { kind: 'home' }];
+        t.activity = `checking out of ${u.block.name}`; next(t);
+      }
     } else if (t.state === 'loiter') {   // early for the festival: a slow look round, then try again
       if (S.T >= t.until) { t.state = 'standing'; next(t); }
     } else if (t.state === 'waitBus') {
@@ -270,4 +292,7 @@ function updateTourists(simDt, realT = lastReal) {
     }
   }
 }
-export { tourists, tourism, bus, updateTourists, spawnTourist, isWeekend };
+const INN_ROOMS = 6;
+function innUnit() { const b = blocks.find(x => x.type === 'shop' && x.kind === 'ryokan' && x.stage === DONE); return b ? b.units[0] : null; }
+const innGuests = () => tourists.filter(t => t.staying).length;
+export { tourists, tourism, bus, updateTourists, spawnTourist, isWeekend, innGuests, INN_ROOMS };

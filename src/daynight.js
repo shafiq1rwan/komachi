@@ -52,7 +52,7 @@ function envUpdate(realT) {
   if (realT - poweredT > 2) { poweredT = realT; refreshPowered(); }
   for (const u of units.values()) {
     const occ = u.inside.size > 0, b = u.block;
-    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? ((b.quietDays ? h >= 8 && h < 19 : shopOpen) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
+    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (b.kind === 'ryokan' ? (h >= 6 && h < 23.5 ? 1.3 : 0.35) : (b.quietDays ? h >= 8 && h < 19 : shopOpen) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
     const steady = powered.has(u), flick = steady ? 1.08 : 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);   // the substation's neighbours: no flicker, a touch brighter
     if (steady !== !!u.steady) { u.steady = steady; u.winMat.emissive.set(steady ? WARM : PAL.glow); }
     u.winMat.emissiveIntensity = night * base * flick;

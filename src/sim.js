@@ -9,7 +9,7 @@ import { createCat, updateCat, CAT_COATS } from './cats.js';
 import { createDog, updateDog, DOG_COATS } from './dogs.js';
 import { createTeaCan } from './tea-can.js';
 import { createPhone, createNewspaper } from './hand-items.js';
-import { record } from './chronicle.js';
+import { record, chronicle } from './chronicle.js';
 import { W } from './weather.js';
 import { startTalk, endTalk } from './bubbles.js';
 import { landmarkRoads } from './landmarks.js';
@@ -676,10 +676,10 @@ function arrive(r) {
 }
 function cellAt(p) { return cell(Math.floor(p.x + HALF), Math.floor(p.z + HALF)); }
 
-const FOODIE = { cafe: 1, bakery: 0.9, ramen: 1.1, grocery: 0.5, konbini: 0.8, florist: 0.15, books: 0.25, restaurant: 1.25, supermarket: 0.6, arcade: 0.9, teahouse: 0.95 };
-const GROCER = { grocery: 1.2, konbini: 1.1, bakery: 0.7, florist: 0.6, books: 0.6, cafe: 0.4, ramen: 0.3, restaurant: 0.3, supermarket: 1.5, arcade: 1.0, teahouse: 0.2 };
+const FOODIE = { ryokan: 0.3, cafe: 1, bakery: 0.9, ramen: 1.1, grocery: 0.5, konbini: 0.8, florist: 0.15, books: 0.25, restaurant: 1.25, supermarket: 0.6, arcade: 0.9, teahouse: 0.95 };
+const GROCER = { ryokan: 0, grocery: 1.2, konbini: 1.1, bakery: 0.7, florist: 0.6, books: 0.6, cafe: 0.4, ramen: 0.3, restaurant: 0.3, supermarket: 1.5, arcade: 1.0, teahouse: 0.2 };
 /** the best reachable shop for a purpose: weight by kind, discount by distance, add a little whim */
-const REACH = { teahouse: 22, supermarket: 26, arcade: 24, restaurant: 17, cafe: 16, grocery: 15, konbini: 13, ramen: 14, bakery: 12, florist: 11, books: 12 };
+const REACH = { ryokan: 22, teahouse: 22, supermarket: 26, arcade: 24, restaurant: 17, cafe: 16, grocery: 15, konbini: 13, ramen: 14, bakery: 12, florist: 11, books: 12 };
 function pickShop(r, from, weights) {
   let best = null, bs = 0;
   for (const u of shopUnits()) {
@@ -1001,6 +1001,7 @@ function reckonShops() {
     const popular = b.lastVisits >= 5 * b.level;
     if (popular !== !!b.popular) { b.popular = popular; for (const u of b.units) rebuildUnitMesh(u); }
     if (b.renoT > 0) continue;
+    if (b.kind === 'ryokan') { b.quietDays = 0; continue; }   // the inn keeps its trade through quiet weeks
     if (b.lastVisits < b.level && staffed && S.T - b.created > 30 && shops.length >= 3) b.quietDays = (b.quietDays || 0) + 1; else b.quietDays = 0;
     if (b.quietDays >= 3) changeTrade(b);
   }
@@ -1038,6 +1039,14 @@ function hillMarket() {
     const plot = left.sort((a, b) => Math.hypot(cx(a.i) - hillCentre.x, cz(a.j) - hillCentre.z) - Math.hypot(cx(b.i) - hillCentre.x, cz(b.j) - hillCentre.z))[0];   // nearest the shrine path
     const b = placeBlock('shop', [plot], { kind: 'teahouse', roofStyle: 'kawara' }); if (b) b.name = uniqueName(SHOP_NAMES.teahouse);   // named for its trade, not the tier's draw
     if (b) toast(`${b.name} is being built on the hill, where the walkers go`);
+  }
+  const inn = blocks.some(b => b.type === 'shop' && b.kind === 'ryokan'), visitors = chronicle.some(e => /first visitors came/.test(e.text));
+  if (!inn && tea && visitors) {   // visitors are coming and the hill has its tea house: an inn for those who stay the night
+    if (!hillPlots().length) layTerraceLane();
+    const left = hillPlots(); if (!left.length) return;
+    const plot = left.sort((a, b) => (b.h - a.h) || (Math.hypot(cx(b.i), cz(b.j)) - Math.hypot(cx(a.i), cz(a.j))))[0];   // high, with the view out to sea
+    const b = placeBlock('shop', [plot], { kind: 'ryokan', roofStyle: 'kawara' });
+    if (b) { b.name = uniqueName(SHOP_NAMES.ryokan); toast(`${b.name}, a ryokan for visitors, is being built on the hill`); record(`Work began on ${b.name}, the town's first ryokan`); }
   }
 }
 /** a short permanent lane along a terrace from the top of an island slope, so the hill has plots the town can take up */

@@ -246,6 +246,7 @@ function genShop(b, u, g, wg) {
   if (b.kind === 'supermarket') return genSupermarket(b, u, g, wg);
   if (b.kind === 'arcade') return genArcade(b, u, g, wg);
   if (b.kind === 'teahouse') return genTeahouse(b, u, g, wg);
+  if (b.kind === 'ryokan') return genRyokan(b, u, g, wg);
   const L = b.level, { w, d, H } = dims('shop', L), y0 = 0.12, [a1, a2] = b.awning, kind = b.kind || 'cafe';
   const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : -0.24;
   u.door = { x: doorX, z: d / 2 + 0.02 };
@@ -358,6 +359,32 @@ function genTeahouse(b, u, g, wg) {
   windowPane(g, wg, 0, y0 + 0.28, -d / 2 - 0.045, 0.3, 0.16, Math.PI);
   g.push(cyl(0.03, 0.035, 0.12, PAL.concrete, 0.4, y0 + 0.06, 0.4, 6)); g.push(box(0.1, 0.07, 0.1, PAL.concrete, 0.4, y0 + 0.16, 0.4)); g.push(box(0.13, 0.025, 0.13, PAL.concrete, 0.4, y0 + 0.21, 0.4));   // stone lantern by the path
   g.push(blob(0.12, PAL.bush2, -0.4, y0 + 0.08, 0.34, 0, 0.6)); pipe(g, w / 2 + 0.02, y0, y0 + H - 0.05, -d / 2 - 0.02);
+}
+/** the ryokan on the hill: plaster ground floor between dark posts, timber-clad upper floor with lattice windows behind a
+ *  balcony rail, an eave between the floors, a hip-and-gable kawara roof; a deep noren and two lanterns at the door, a
+ *  vertical sign, stepping stones, a stone lantern and a pruned pine in the front garden. Lit from dusk until late for its guests */
+function genRyokan(b, u, g, wg) {
+  const w = 0.86, d = 0.64, y0 = 0.12, F = 0.4, H = 2 * F + 0.05, [a1] = b.awning, post = '#5a4636';
+  u.door = { x: 0, z: d / 2 + 0.02 };
+  g.push(box(w, F, d, PAL.cream, 0, y0 + F / 2, -0.02));
+  g.push(box(w - 0.04, F + 0.05, d - 0.04, PAL.wood2, 0, y0 + F + (F + 0.05) / 2, -0.02));
+  for (const x of [-w / 2 + 0.015, -0.15, 0.15, w / 2 - 0.015]) g.push(box(0.03, F, 0.03, post, x, y0 + F / 2, d / 2 - 0.03));
+  for (const x of [-w / 2 + 0.035, w / 2 - 0.035]) g.push(box(0.03, F + 0.05, 0.03, post, x, y0 + F + (F + 0.05) / 2, d / 2 - 0.05));
+  hisashi(g, w, d - 0.04, y0 + F + 0.02, PAL.kawara2);
+  kawaraRoof(g, w, d + 0.12, H, y0, PAL.kawara, true);
+  for (const x of [-0.3, 0.3]) { wg.push(box(0.2, 0.2, 0.02, PAL.window, x, y0 + 0.2, d / 2 - 0.02)); for (let q = 0; q < 4; q++) g.push(box(0.01, 0.2, 0.012, PAL.wood, x - 0.075 + q * 0.05, y0 + 0.2, d / 2 - 0.008)); }   // shōji either side of the door
+  noren(g, 0, y0 + 0.3, d / 2 - 0.005, 0.24, PAL.indigo, PAL.cream2);
+  for (const x of [-0.19, 0.19]) chochin(g, wg, x, y0 + 0.33, d / 2 + 0.06, 1, PAL.cream2);
+  for (const x of [-0.26, 0, 0.26]) latticeWindow(g, wg, x, y0 + F + 0.27, d / 2 - 0.045, 0.2, 0.18, 0, PAL.wood);
+  g.push(box(w - 0.06, 0.02, 0.08, PAL.wood, 0, y0 + F + 0.1, d / 2 + 0.005)); g.push(box(w - 0.06, 0.015, 0.015, PAL.wood, 0, y0 + F + 0.2, d / 2 + 0.04));   // the balcony and its rail
+  for (let q = 0; q < 8; q++) g.push(box(0.01, 0.1, 0.01, PAL.wood, -w / 2 + 0.07 + q * ((w - 0.14) / 7), y0 + F + 0.15, d / 2 + 0.04));
+  for (const s of [-1, 1]) windowPane(g, wg, s * (w / 2 + 0.005), y0 + F + 0.27, -0.05, 0.16, 0.16, s * Math.PI / 2);
+  windowPane(g, wg, 0, y0 + 0.22, -d / 2 - 0.025, 0.3, 0.16, Math.PI);
+  tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.5, d / 2 + 0.02, PAL.cream2, a1, true, 0.42);
+  for (let q = 0; q < 3; q++) g.push(box(0.1, 0.012, 0.08, PAL.concrete2, (q % 2 ? 0.03 : -0.03), y0 + 0.006, d / 2 + 0.08 + q * 0.09));   // stepping stones to the door
+  g.push(cyl(0.03, 0.035, 0.12, PAL.concrete, 0.38, y0 + 0.06, 0.42, 6)); g.push(box(0.1, 0.07, 0.1, PAL.concrete, 0.38, y0 + 0.16, 0.42)); g.push(box(0.13, 0.025, 0.13, PAL.concrete, 0.38, y0 + 0.21, 0.42));
+  wg.push(box(0.05, 0.04, 0.05, PAL.window, 0.38, y0 + 0.16, 0.42));
+  addNature(g, 'matsu', -0.38, y0, 0.4, 0.34, u.seed, '#6f8f6a');
 }
 /** a small supermarket across the whole block: glazed front, one long fascia in the awning colour, trolleys by the door */
 function genSupermarket(b, u, g, wg) {

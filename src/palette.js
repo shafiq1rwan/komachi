@@ -45,6 +45,7 @@ export const SHOP_NAMES = {
   restaurant: [['Kaede','Shokudō'],['Umi','Kitchen'],['Tsuki','Teishoku'],['Hinata','Diner'],['Matsu','Izakaya']],
   supermarket: [['Maru','Super'],['Fresh','Oka'],['Nico','Foods'],['Yasai','Land']],
   arcade: [['Hinode','Shotengai'],['Sakura','Arcade'],['Kawa','Dōri'],['Ginza','Shotengai']],
+  ryokan: [['Kaze no Yado','Ryokan'],['Hoshizora','Ryokan'],['Yamazato','Inn'],['Tsukikage','Ryokan'],['Matsunami','Inn']],
   teahouse: [['Yamabiko','Tea House'],['Tsukimi','Chaya'],['Matsukaze','Tea House'],['Kumo no Ue','Chaya']],
 };
 export const WORK_NAMES = {

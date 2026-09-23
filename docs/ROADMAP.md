@@ -223,7 +223,7 @@ effect through the town instead.
   can), vertex colours so they can be repainted: drink can (body mesh `can`, optional `label`), shopping bag,
   briefcase, umbrella (Phase 6), registration folder, under `assets/props/` with a README like the dog's
 
-## ⬜ Phase 6 — Weather, events, festivals, tourism
+## ✅ Phase 6 — Weather, events, festivals, tourism (complete 2026-09-23)
 
 - ✅ Weather, first slice (2026-09-22): a weather clock of clear, overcast, light rain and rain spells; drifting cloud shade
   (the clouds themselves are not drawn); overcast light; rain streaks that wet the streets; umbrellas on the walk (puddles and snow followed, below)
@@ -241,7 +241,8 @@ effect through the town instead.
   stop on the station ring and one by the lighthouse, stopping at bus shelters, and leaves on the 17:00 ferry
 - ✅ Tourists (2026-09-23, src/tourists.js): off the morning trains on fine days (more at weekends), out to a landmark or two, a
   photo with a camera prop built in code, often a shop visit and a paper bag, home by train; festivals will bring more
-- A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
+- ✅ A ryokan on the hill terraces for visitors (2026-09-23; built by the Phase 5 plot market once visitors come and the tea house stands):
+  weekend and festival visitors stay the night and check out in the morning
 
 - ✅ **Landmarks** (shipped 2026-09-23; src/landmarks.js, models in assets/destinations): a lighthouse on the rocky headland with a
   sweeping beam, a red arched footbridge over the canal that walkers climb to its crown, a park pavilion with benches under

@@ -206,10 +206,12 @@ try {
   let leaves = 0; for (let k = 0; k < 30 && leaves < 3; k++) { await sleep(200); leaves = Math.max(leaves, await page.evaluate(() => MT.scene.children.filter(o => o.visible && o.renderOrder === 6 && o.geometry && o.geometry.type === 'PlaneGeometry' && o.geometry.parameters.width < 0.1).length)); }   // poll: leaves drift in over a few frames
   await page.evaluate(() => MT.setSpeed(0));
   check('seasons: the calendar turns and autumn leaves fall', se.turned && se.s1 === 'autumn' && se.chron && leaves >= 3, JSON.stringify({ ...se, leaves }));
-  const tk = await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); const good = t => t.a.mesh.visible && t.b.mesh.visible && t.a.mesh.position.distanceTo(t.b.mesh.position) < 1.1; let talks = 0, ok = null; for (let k = 0; k < 400 && !ok; k++) { MT.fastForward(0.02); talks = Math.max(talks, MT.talks.length); ok = MT.talks.find(good); } if (ok) { MT.talks.splice(MT.talks.indexOf(ok), 1); MT.talks.unshift(ok); } return { talks, kinds: MT.talks.map(t => t.topic) }; });
-  await page.evaluate(() => { MT.cam.tView = MT.cam.view = 6; const t = MT.talks[0]; if (t) { t.until = MT.T + 2; if (t.a.meetUntil) { t.a.meetUntil = t.until; t.b.meetUntil = t.until; } MT.cam.target.copy(t.a.mesh.position); } MT.setSpeed(0); }); await sleep(600);   // paused: the pair stays put and the overlay (drawn every frame, paused or not) shows the bubble
-  let bub = 0; for (let k = 0; k < 40 && !bub; k++) { bub = await page.evaluate(() => document.querySelectorAll('#bubbles .bubble').length); if (!bub) await sleep(150); }   // poll: slow software GL may need a few frames
-  await page.evaluate(() => MT.setSpeed(0));
+  let tk = { talks: 0, kinds: [] }, bub = 0;   // up to three tries: find a talk whose pair is visible and close, pause, and look for its bubble
+  await page.evaluate(() => { while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setHour(9.5); MT.setWeather('clear', 12); });
+  for (let round = 0; round < 3 && !bub; round++) {
+    tk = await page.evaluate(() => { const good = t => t.a.mesh.visible && t.b.mesh.visible && t.a.mesh.position.distanceTo(t.b.mesh.position) < 1.1; let ok = null; for (let k = 0; k < 500 && !ok; k++) { MT.fastForward(0.02); ok = MT.talks.find(good); } if (ok) { ok.until = MT.T + 2; MT.cam.tView = MT.cam.view = 6; MT.cam.target.copy(ok.a.mesh.position); } MT.setSpeed(0); return { talks: MT.talks.length, kinds: MT.talks.map(t => t.topic), found: !!ok }; });
+    for (let k = 0; k < 30 && !bub; k++) { await sleep(150); bub = await page.evaluate(() => document.querySelectorAll('#bubbles .bubble').length); }
+  }
   check('speech bubbles: a chat pairs two residents and a bubble shows over the speaker', tk.talks >= 1 && bub >= 1, JSON.stringify({ ...tk, bub }));
   const pd = await page.evaluate(() => { MT.setWeather('rain', 4); for (let k = 0; k < 30; k++) MT.fastForward(0.05); const wet = MT.weather.wet; MT.setWeather('clear', 12); for (let k = 0; k < 30; k++) MT.fastForward(0.05); return { wet: +wet.toFixed(2), after: +MT.weather.wet.toFixed(2), spots: MT.puddleSpots.length }; });
   check('puddles: streets pool in the rain and dry after', pd.spots > 0 && pd.wet > 0.5 && pd.after < pd.wet, JSON.stringify(pd));
@@ -287,6 +289,14 @@ try {
     return { placed: true, kind: b.kind, market, festival: fest && fest.kind, props, went, chron: MT.chronicle.some(e => /first summer festival/.test(e.text)) };
   });
   check('town square: markets on Sundays, the summer festival with stalls and a crowd', ev.placed && ev.kind === 'square' && ev.market === 'market' && ev.festival === 'festival' && ev.props >= 8 && ev.went >= 1 && ev.chron, JSON.stringify(ev));
+  const ry = await page.evaluate(() => {   // the ryokan: on the hill, weekend visitors after midday stay the night
+    MT.setSpeed(0); MT.openHill(true); const plots = MT.hillPlots(); if (!plots.length) return { plot: false };
+    const b = MT.placeBlock('shop', [plots[0]], { kind: 'ryokan', roofStyle: 'kawara' }); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u);
+    MT.tourism.forceWeekend = true; MT.setHour(12); const ts = []; for (let k = 0; k < 8 && !ts.some(t => t.staying); k++) { const t = MT.spawnTourist(); if (t) ts.push(t); }
+    const guest = ts.find(t => t.staying); let inn = false; for (let k = 0; k < 400 && guest && !inn; k++) { MT.fastForward(0.04); inn = guest.state === 'atInn'; }
+    MT.tourism.forceWeekend = false; return { plot: true, kind: b.kind, guest: !!guest, inn, label: MT.tierLabel ? true : true };
+  });
+  check('ryokan: a visitor stays the night at the inn on the hill', ry.plot && ry.kind === 'ryokan' && ry.guest && ry.inn, JSON.stringify(ry));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

@@ -69,6 +69,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The ryokan: once visitors have started coming and the hill has its tea house, the hill plot market builds a two-storey timber
+  inn on a high terrace plot (plaster ground floor, lattice windows behind a balcony rail, a hip-and-gable kawara roof, a deep
+  noren and lanterns, a stone lantern and a pine). Weekend and festival visitors who arrive after midday may stay the night
+  (six rooms): they carry an overnight bag, walk up in the evening, the inn stays lit until late, and they check out in the
+  morning for one more sight before the train home. Its card shows tonight's guests; it never changes trade.
 - The pier is a stone quay: a pale concrete deck just below the town's ground on coursed stone walls, a T-head with steps down to
   the water, bollards and a lamp, the little boat moored alongside. Residents fish from its edges with a rod and float, early in
   the morning and late in the afternoon (a quarter of them are keen anglers); a bike rack on the quay fills with their bicycles,

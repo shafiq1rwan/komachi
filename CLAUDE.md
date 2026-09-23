@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 45 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 46 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -148,6 +148,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `landmarks` entries carry `anchor`, `walk(road)`, `hold`, `activity`, `face`, pavilion `seats`; `landmarkRoads()` pairs each with the
   nearest flat street within 4.5. sim.js `visitLandmark` (30 % of dry strolls) / `atLandmark` (hold with `r.paused`, sit on a free seat,
   walk the points back, home). `updateLandmarks(dt, night)` in the main loop.
+- Ryokan (2026-09-23): shop kind 'ryokan' (`genRyokan`, SHOP_NAMES.ryokan), placed by `hillMarket` when a tea house exists and the chronicle
+  has 'first visitors'; never changes trade; lit 6–23.5 in daynight.js. tourists.js: visitors spawned after 11 on weekends/festival days
+  may get `t.staying` (INN_ROOMS 6, briefcase as luggage), plan ends with 'inn' → state 'atInn' until 8.4–9.8 next morning, then a last
+  sight and home; the midnight clean-up spares guests. `innGuests()` feeds the ryokan card.
 - Quay (2026-09-23): island.js builds the stone quay and exports `pierFrame()` ({ ang, len, deckY, width, at(a, s), spots }); landmarks.js
   `placePier` adds landmark kind 'pier' (`fish`, `visit()` hands out a free spot; `landmarkRoads()` calls it), a reserved lot (`c.landmark
   = 'pier-park'`, a street-side cell first) turned into a public car park by `updateLandmarks` once a town street touches it, and a bike rack
@@ -272,7 +276,7 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    the pier so cars and vans arrive and leave by sea instead of spawning; taxis are island-based, delivered once)
    5.5 ✅ Civic zone (2026-09-22): substation, water works, recycling centre, public bath, town hall with registration, clinic, fire station,
        community centre with the town chronicle; visible effects only, nothing gated
-6. Weather, gentle events, festivals, tourism (shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
+6. ✅ Weather, gentle events, festivals, tourism (complete 2026-09-23; shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. Farming and fishing
 8. Mobile quality levels, PWA, Electron desktop app

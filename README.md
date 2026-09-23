@@ -131,6 +131,8 @@ Some things worth knowing:
 - **Landmarks to walk out to.** A lighthouse stands on the headland (its beam sweeps the sea at night), a red arched
   footbridge crosses the canal and a small park pavilion sits beside it under cherry trees. On fine days residents out for
   a stroll walk out to them, to look out to sea, watch the carp from the crown of the bridge or sit a while in the pavilion.
+- **A ryokan on the hill.** Once visitors come, an inn goes up on a high terrace; weekend and festival visitors stay the night
+  and head off after breakfast.
 - **Fishing off the quay.** The pier is a stone quay; early and late in the day residents cycle down and fish from its edges,
   their bikes in the rack, with a car park kept beside it.
 - **Market mornings and the summer festival.** Drag three cells with the Civic tool and the town gets a square. On Sundays
