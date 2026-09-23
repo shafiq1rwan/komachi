@@ -118,6 +118,19 @@
   #tier{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(6px);background:var(--cream);color:var(--ink);padding:7px 14px;border-radius:12px;font-weight:700;font-size:12.5px;box-shadow:0 6px 18px rgba(74,67,64,.14);border:1px solid rgba(74,67,64,.08);opacity:0;transition:opacity .18s ease,transform .18s ease;pointer-events:none;white-space:nowrap}
   #tier.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast.show::before{animation:ring .7s ease 1}
+  /* milestone card: the moments that change the town get a larger card at the top centre, with a way to go and look */
+  #milestone{position:fixed;left:16px;right:16px;margin:0 auto;width:fit-content;box-sizing:border-box;top:86px;transform:translateY(-18px);display:flex;align-items:center;gap:12px;background:var(--cream);color:var(--ink);padding:11px 12px 11px 12px;border-radius:18px;box-shadow:0 10px 28px rgba(74,67,64,.18);border:1px solid rgba(74,67,64,.08);max-width:520px;opacity:0;pointer-events:none;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.3,1.15);z-index:6}
+  #milestone.show{opacity:1;transform:translateY(0);pointer-events:auto}
+  #milestone .ms-icon{width:44px;height:44px;border-radius:14px;background:#efe4d2;display:flex;align-items:center;justify-content:center;flex:none}
+  #milestone .ms-icon svg{width:32px;height:32px}
+  #milestone .ms-text{display:flex;flex-direction:column;gap:2px;min-width:0}
+  #milestone .ms-text b{font-size:15px;font-weight:800}
+  #milestone .ms-text span{font-size:12.5px;font-weight:600;color:var(--ink2);line-height:1.35}
+  #milestone .ms-look{border:0;background:var(--teal);color:#fff;font:inherit;font-weight:800;font-size:12.5px;padding:8px 12px;border-radius:11px;cursor:pointer;white-space:nowrap;flex:none}
+  #milestone .ms-look:hover{background:var(--teal2)}
+  #milestone .ms-close{border:0;background:transparent;color:var(--ink2);font-size:20px;line-height:1;width:26px;height:26px;border-radius:8px;cursor:pointer;flex:none;align-self:flex-start}
+  #milestone .ms-close:hover{background:rgba(74,67,64,.08)}
+  @media (max-width:720px){#milestone{top:58px;left:8px;right:8px;flex-wrap:wrap;gap:9px;padding:9px 9px 9px 10px;border-radius:14px}#milestone .ms-icon{width:36px;height:36px;border-radius:11px}#milestone .ms-icon svg{width:26px;height:26px}#milestone .ms-text b{font-size:13.5px}#milestone .ms-text span{font-size:11.5px}#milestone .ms-text{flex:1 1 0}#milestone .ms-look{padding:7px 9px;font-size:11.5px;order:4;margin-left:45px}}
   @keyframes ring{0%,100%{transform:rotate(0)}20%{transform:rotate(-14deg)}40%{transform:rotate(12deg)}60%{transform:rotate(-8deg)}80%{transform:rotate(5deg)}}
   #intro{left:50%;top:50%;transform:translate(-50%,-50%);width:360px;text-align:center;padding:26px 26px 20px}
   #intro h2{margin:0 0 6px;font-size:24px;font-weight:800}
@@ -135,3 +148,116 @@
   @keyframes pop{from{transform:translate(-50%,-100%) translateY(2px) scale(.6);opacity:0}to{transform:translate(-50%,-100%) translateY(-6px) scale(1);opacity:1}}
   .tag{position:fixed;transform:translate(-50%,-100%);background:rgba(251,246,238,.92);color:var(--ink);font-size:11px;font-weight:800;padding:2px 7px;border-radius:7px;pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.1)}
   @media (max-width:720px){#toast{top:58px;left:8px;max-width:calc(100vw - 240px);font-size:11.5px;padding:8px 10px 8px 9px}   /* phones: a narrow card under the brand card, leaving the inspect card its column on the right */#hint{display:none}#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:42px;border-radius:14px}#brand{padding:0 8px}#brand > * + *, #clock > * + *{margin-left:6px}#brand > .fold.collapsed, #clock > .fold.collapsed{margin-left:0}#brand h1 i{width:9px;height:9px;margin-right:22px;box-shadow:12px 0 0 var(--sage),24px 0 0 var(--blue)}#stats{gap:3px}#stats .stat{padding:4px 6px;font-size:11px;gap:4px}#stats .stat i{font-size:10px}.icon-btn{width:26px;height:26px;font-size:12px}#clock{padding:0 8px}#sun{width:18px;height:18px;box-shadow:0 0 0 3px rgba(240,194,122,.25)}#sun.night{box-shadow:0 0 0 3px rgba(167,184,221,.3)}#clock-text{min-width:60px}#time{font-size:13px}#day{font-size:9px}.seg button{min-width:24px;height:22px;font-size:10px;padding:0 5px}.divider-v{height:22px}#inspect{top:58px;right:8px;left:auto;bottom:auto;width:210px;max-height:calc(100vh - 150px);padding:9px 11px 8px;gap:5px;border-radius:14px}#inspect .row{font-size:10.5px}#inspect h2{font-size:14px}#inspect .sub{font-size:11px}#inspect ul{gap:3px}#inspect li{font-size:11px}#inspect li span{font-size:10px}#inspect.person{width:200px}#inspect .cta{padding:4px 8px;font-size:10.5px}#tools{bottom:8px;gap:1px;padding:5px 3px;border-radius:12px;width:calc(100vw - 12px);max-width:470px;box-sizing:border-box}.tool{width:auto;flex:1 1 0;min-width:0;padding:5px 0 4px;font-size:9px;letter-spacing:-.1px;gap:3px;border-radius:10px}.tool .sw{width:24px;height:18px;border-radius:6px;font-size:10px}.tool kbd{display:none}}
+
+  /* Rich view HUD reskin (larger ivory controls and the island map), kept but switched off: the rich look uses the standard HUD.
+     It only applies under body.rich-hud, which nothing sets; add that class to bring it back. */
+  body.rich-hud{--cream:#fffdfa;--cream2:#f3f1ed;--ink:#263445;--ink2:#596678;--teal:#225969;--teal2:#185262;--shadow:0 12px 32px rgba(31,46,52,.18),0 2px 7px rgba(31,46,52,.08);background:#496a79}
+  body.rich-hud .card{border:1px solid rgba(255,255,255,.7);border-radius:21px}
+  body.rich-hud #hud{top:16px;left:16px;right:16px}
+  body.rich-hud #hud .card{height:76px}
+  body.rich-hud #brand{padding:0 18px;gap:16px}
+  body.rich-hud #brand h1{font-size:24px;letter-spacing:-.4px;gap:10px;line-height:1.1}
+  body.rich-hud #brand h1 i{display:none}
+  body.rich-hud #brand h1::before{content:'🏔️';width:54px;height:48px;border-radius:13px;background:#dcebef;display:flex;align-items:center;justify-content:center;font-size:29px}
+  body.rich-hud #brand h1 span{margin-left:0}
+  body.rich-hud #brand h1 span::after{content:'A peaceful tomorrow';display:block;font-size:12px;letter-spacing:0;font-weight:600;color:var(--ink2);margin-top:3px}
+  body.rich-hud #btn-stats{display:none}
+  body.rich-hud #stats{gap:3px;border-left:1px solid #e9e8e4;padding-left:10px}
+  body.rich-hud #stats .stat{background:transparent;padding:7px 9px;font-size:18px;gap:7px}
+  body.rich-hud #stats .stat i{width:34px;height:34px;border-radius:9px;background:#e9f0f0;color:#246073;display:flex;align-items:center;justify-content:center;font-size:17px}
+  body.rich-hud #stats .stat:nth-child(2) i{background:#faebe5;color:#ca6559}
+  body.rich-hud #stats .stat:nth-child(5) i{background:#eeeaf4;color:#62538e}
+  body.rich-hud #clock{padding:0 14px;gap:8px}
+  body.rich-hud #sun{width:34px;height:34px}
+  body.rich-hud #time{font-size:23px}
+  body.rich-hud #day{font-size:12px}
+  body.rich-hud #btn-settings{display:none}
+  body.rich-hud #settings.fold.collapsed{max-width:420px;opacity:1;overflow:visible;pointer-events:auto;margin-left:3px}
+  body.rich-hud .seg{background:#f4f2ef}
+  body.rich-hud .seg button{font-size:14px;height:37px;min-width:37px}
+  body.rich-hud .seg button.on{background:#225969;color:white}
+  body.rich-hud #tools{bottom:22px;padding:9px 10px;gap:2px}
+  body.rich-hud .tool{width:96px;font-size:14px;font-weight:700;gap:5px}
+  body.rich-hud .tool .sw{width:48px;height:45px;font-size:23px;border-radius:12px}
+  body.rich-hud .tool.on{background:#e8f2f0;box-shadow:inset 0 -3px #4f9c98}
+  body.rich-hud #inspect{top:119px;right:16px;width:330px;padding:17px 20px;gap:10px;max-height:calc(100vh - 240px)}
+  body.rich-hud #inspect h2{font-size:21px}
+  body.rich-hud #inspect .sub{font-size:14px}
+  body.rich-hud #inspect .row{font-size:14px}
+  body.rich-hud #inspect li{font-size:13px}
+  body.rich-hud #inspect li span{font-size:12px}
+  body.rich-hud #inspect .bar{height:11px;border-radius:8px}
+  body.rich-hud #hint{left:auto;right:17px;bottom:21px}
+  #minimap{display:none}
+  body.rich-hud #minimap{display:flex;flex-direction:column;gap:7px;left:16px;bottom:21px;padding:10px;width:258px;height:244px;background:rgba(255,253,250,.97);box-shadow:0 14px 32px rgba(28,49,53,.2)}
+  .mini-heading,.mini-caption{display:flex;justify-content:space-between;align-items:center;padding:0 4px;color:var(--ink)}
+  .mini-heading b{font-size:15px;letter-spacing:-.2px}
+  .mini-heading span{font-size:9px;font-weight:800;letter-spacing:1.1px;color:#71848a}
+  #mini-c{display:block;width:236px;height:176px;border-radius:12px;background:#9ebbbb;box-shadow:inset 0 0 0 1px rgba(42,79,82,.1)}
+  .mini-caption{font-size:11px;font-weight:700;color:#62767c}
+  .mini-caption span{display:flex;align-items:center;gap:6px}
+  .mini-caption i{width:9px;height:9px;border-radius:3px;background:#f4f4e8;border:1.5px solid #739397}
+  .mini-caption b{font-size:12px;color:var(--ink)}
+  @media (max-width:1250px){body.rich-hud #brand h1 span::after{display:none}body.rich-hud #brand h1{font-size:18px}body.rich-hud #brand h1::before{width:38px;height:38px;font-size:21px}body.rich-hud #stats .stat{font-size:13px;padding:4px}body.rich-hud #stats .stat i{width:27px;height:27px;font-size:12px}body.rich-hud #clock #settings{gap:2px}body.rich-hud #clock-text{min-width:70px}}
+  @media (max-width:900px){body.rich-hud #hud .card{height:48px}body.rich-hud #brand{padding:0 8px;gap:4px}body.rich-hud #brand h1::before{width:30px;height:30px;font-size:17px}body.rich-hud #stats .stat:nth-child(n+4){display:none}body.rich-hud #clock{padding:0 8px}body.rich-hud #settings.fold.collapsed{max-width:0;opacity:0;overflow:hidden;pointer-events:none}body.rich-hud #btn-settings{display:flex}body.rich-hud #tools{bottom:8px;padding:5px;width:calc(100vw - 12px);max-width:620px}body.rich-hud .tool{width:auto;flex:1;font-size:10px}body.rich-hud .tool .sw{width:27px;height:24px;font-size:13px}body.rich-hud #inspect{top:62px;width:230px;max-height:calc(100vh - 145px);padding:10px 12px}body.rich-hud #inspect h2{font-size:16px}body.rich-hud #inspect .sub,body.rich-hud #inspect .row{font-size:11px}body.rich-hud #minimap{display:none}}
+
+  /* The full map and eight-column dock need a wide canvas. */
+  @media (max-width:1360px){body.rich-hud #minimap{display:none}body.rich-hud #tools{width:min(680px,calc(100vw - 24px));max-width:none}body.rich-hud .tool{width:auto;flex:1;min-width:0}}
+  @media (min-width:601px) and (max-width:1200px){
+    body.rich-hud #hud{left:10px;right:10px;top:10px}
+    body.rich-hud #hud .card{height:58px}
+    body.rich-hud #brand{padding:0 10px;gap:6px}
+    body.rich-hud #brand h1{font-size:16px}
+    body.rich-hud #brand h1 span{display:block}
+    body.rich-hud #brand h1::before{width:33px;height:33px;font-size:19px}
+    body.rich-hud #stats{padding-left:7px}
+    body.rich-hud #stats .stat{font-size:12px;padding:3px;gap:4px}
+    body.rich-hud #stats .stat:nth-child(n+4){display:none}
+    body.rich-hud #stats .stat i{width:25px;height:25px;font-size:11px}
+    body.rich-hud #clock{padding:0 9px;gap:5px;position:relative}
+    body.rich-hud #sun{width:25px;height:25px}
+    body.rich-hud #time{font-size:17px}
+    body.rich-hud #day{font-size:10px}
+    body.rich-hud #btn-settings{display:flex}
+    body.rich-hud #settings{position:absolute;right:0;top:calc(100% + 8px);width:300px;max-width:300px;padding:9px;flex-wrap:wrap;background:#fffdfa;border:1px solid #e6e9e6;border-radius:15px;box-shadow:var(--shadow);z-index:30;opacity:1;overflow:visible}
+    body.rich-hud #settings.fold.collapsed{display:none}
+    body.rich-hud #tools{bottom:10px;padding:6px;gap:0}
+    body.rich-hud .tool{font-size:11px;padding:6px 1px}
+    body.rich-hud .tool .sw{width:34px;height:31px;font-size:16px}
+    body.rich-hud #inspect{top:80px;right:10px;width:270px;max-height:calc(100vh - 175px);padding:12px 14px}
+    body.rich-hud #inspect h2{font-size:17px}
+    body.rich-hud #inspect .sub,body.rich-hud #inspect .row{font-size:12px}
+  }
+  @media (max-width:600px){
+    body.rich-hud #hud{top:8px;left:8px;right:8px;display:block;height:94px}
+    body.rich-hud #brand{position:relative;display:block;width:100%;height:94px!important;padding:7px 8px}
+    body.rich-hud #brand h1{height:31px;font-size:16px;gap:6px}
+    body.rich-hud #brand h1::before{width:29px;height:29px;font-size:18px;flex:none}
+    body.rich-hud #brand h1 span{display:block;margin:0}
+    body.rich-hud #brand h1 span::after{display:none}
+    body.rich-hud #stats{position:absolute;left:7px;right:7px;bottom:7px;width:auto;height:39px;max-width:none;display:flex;gap:1px;align-items:center;margin:0;padding:5px 0 0;border-left:0;border-top:1px solid #e9e8e4;opacity:1;overflow:visible}
+    body.rich-hud #stats .stat,body.rich-hud #stats .stat:nth-child(n+4){display:flex;flex:1 1 0;min-width:0;justify-content:center;padding:3px 1px;gap:3px;font-size:11px}
+    body.rich-hud #stats .stat i{width:19px;height:19px;flex:none;border-radius:6px;font-size:10px}
+    body.rich-hud #stats .stat b{min-width:0}
+    body.rich-hud #clock{position:absolute!important;right:4px;top:4px;height:35px!important;width:auto;padding:0 3px;gap:4px;margin:0;background:transparent;border:0;box-shadow:none}
+    body.rich-hud #clock > * + *{margin-left:0}
+    body.rich-hud #sun{width:22px;height:22px;box-shadow:0 0 0 3px rgba(240,194,122,.2)}
+    body.rich-hud #clock-text{min-width:0}
+    body.rich-hud #time{font-size:15px}
+    body.rich-hud #day{font-size:9px;margin-top:1px}
+    body.rich-hud #btn-settings{display:flex;width:29px;height:29px}
+    body.rich-hud #settings{position:absolute;right:0;top:42px;width:min(304px,calc(100vw - 16px));max-width:none;display:flex;flex-wrap:wrap;padding:10px;gap:5px;margin:0;background:#fffdfa;border:1px solid #e6e9e6;border-radius:15px;box-shadow:var(--shadow);opacity:1;overflow:visible;z-index:30}
+    body.rich-hud #settings.fold.collapsed{display:none}
+    body.rich-hud #inspect{top:111px;right:8px;width:min(216px,calc(100vw - 16px));max-height:min(40vh,300px);padding:10px 12px;gap:5px;overflow:auto;scrollbar-width:thin}
+    body.rich-hud #inspect h2{font-size:15px}
+    body.rich-hud #inspect .sub,body.rich-hud #inspect .row{font-size:11px}
+    body.rich-hud #inspect li{font-size:10.5px}
+    body.rich-hud #inspect li span{font-size:10px}
+    body.rich-hud #tools{left:6px;bottom:8px;transform:none;width:calc(100vw - 12px);max-width:none;display:flex;justify-content:flex-start;gap:2px;padding:5px;overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:none;touch-action:pan-x}
+    body.rich-hud #tools::-webkit-scrollbar{display:none}
+    body.rich-hud .tool{flex:0 0 62px;width:62px;min-width:62px;height:61px;padding:4px 2px;font-size:10px;gap:3px}
+    body.rich-hud .tool .sw{width:31px;height:27px;font-size:14px;border-radius:8px}
+    body.rich-hud #toast{top:111px}
+    body.rich-hud #milestone{top:111px}
+  }
+  @media (max-width:360px){body.rich-hud #day{display:none}body.rich-hud #brand h1{font-size:14px}body.rich-hud #stats .stat{font-size:10px}}

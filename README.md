@@ -51,7 +51,7 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons behind the sliders button in the clock card, or Space to pause |
-| Look | "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
+| Look | The standard look has soft contact shadows, a light miniature focus and calm bay water; the wand button (or `?look=classic`) switches to the lighter classic look and is remembered. "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
 
 Some things worth knowing:
 
@@ -76,8 +76,9 @@ Some things worth knowing:
 - **The hill fills on its own.** Once a street reaches the open hill, a settled household has a villa built on
   the highest free plot and moves up, freeing their old home, and once people are walking up there a tea house
   opens near the shrine path. You can still zone the terraces yourself.
-- **Build up the hill.** The hill stays wild until 60 people live in town; then its slope roads open and
-  the shrine path is lit. The hill rises in three terraces. Each terrace cell is a plot at its own
+- **Build up the hill.** The hill stays wild until 60 people live in town; then a card announces it, the road crew
+  that opened the slope roads stands at the top for a moment, and the shrine path lanterns light one by one ("Go and
+  look" takes the camera there). The hill rises in three terraces. Each terrace cell is a plot at its own
   height, except the wooded ones and the shrine on top, and a block has to sit on one terrace. A hill
   block gets one street in front, facing the town, and the town builds whatever slope roads and links
   are needed to join it to the streets below; residents walk and drive up to hillside homes with a view.
@@ -124,6 +125,14 @@ Some things worth knowing:
 - Buildings **grow to level 3** once they stay occupied and the town is big enough: three or
   more blocks with both homes and jobs for level 2, six or more blocks of every kind for level 3.
 - Removing a block sends its residents back to the station and clears roads that no longer touch any block.
+- **Weather and seasons.** Spells of clear, overcast and rain drift over the island: cloud shade, umbrellas, wet
+  streets and puddles that dry after the shower. A 24-day year turns the trees, drops leaves and sakura petals, and in
+  winter snow settles on the ground, the roofs and the landmarks.
+- **Landmarks to walk out to.** A lighthouse stands on the headland (its beam sweeps the sea at night), a red arched
+  footbridge crosses the canal and a small park pavilion sits beside it under cherry trees. On fine days residents out for
+  a stroll walk out to them, to look out to sea, watch the carp from the crown of the bridge or sit a while in the pavilion.
+- **People talk.** Neighbours on the station benches chat, and residents who know each other stop on the pavement for a
+  word; a small bubble over the speaker shows dots or a pictogram, never text.
 - **The town saves itself** in your browser every half game hour and when you leave, and is back on
   your next visit. The rotate-left button behind the sliders starts a new island; `?new` in the URL
   ignores the save for one session.
@@ -175,6 +184,15 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   input.js            pointer/keyboard, tools, drag selection, preview, hover picking
   save.js             one-slot localStorage save and restore
   toast.js            the message pill
+  water.js            the sea: calm bay water shaded in the material (swells, shallows, glints)
+  milestone.js        the milestone card and the camera glide to go and look
+  landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
+  festival-landmark-kit.js standalone festival stalls and props, lighthouse, arched bridge, pavilion and tourist bus
+  bubbles.js          speech bubbles over residents who are talking
+  weather.js          weather spells, cloud shade, rain and snowflakes, puddles, snow cover
+  seasons.js          the 24-day year, canopy colours, falling leaves and petals
+  chronicle.js        the town chronicle shown at the community centre
+  ferry.js            the car ferry, its timetable, slipway and wake
   styles.css          all UI styling
 scripts/smoke.mjs     headless browser test
 docs/                 art direction, architecture notes, reference image, screenshots

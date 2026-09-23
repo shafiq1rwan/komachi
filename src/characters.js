@@ -188,6 +188,17 @@ function makeHelmet(top, color) {
 /** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
 export function updateCharacters(simDt) {
   for (const c of chars) {
+    // Slimmer silhouettes and smaller heads suit the rich town's architectural scale.
+    // Cache the original head scale so toggling looks also restores every rig correctly.
+    const rich = S.look === 'rich';
+    if (c.richLook !== rich) {
+      c.richLook = rich;
+      c.root.scale.set(SCALE * (rich ? 0.8 : 1), SCALE, SCALE * (rich ? 0.8 : 1));
+      if (c.head) {
+        c.headScale ||= c.head.scale.clone();
+        c.head.scale.copy(c.headScale).multiplyScalar(rich ? 0.8 : 1);
+      }
+    }
     const g = c.grp; if (!g.visible) continue;
     const owner = g.userData.res || g.userData.worker;
     const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;

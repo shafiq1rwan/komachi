@@ -13,8 +13,11 @@ import { rebuildUnitMesh } from './buildings.js';
 import { addNature } from './nature-kit.js';
 import { furnitureGeometry, addFurniture } from './street-furniture.js';
 import { addNeighbourhood } from './neighbourhood-kits.js';
+import { richStreetDetails } from './rich-streets.js';
 import { record } from './chronicle.js';
 import { leafColor, setTreeSpots } from './seasons.js';
+
+addEventListener('komachi-look', () => { rebuildRoads(); rebuildDecor(); });
 
 const cells = [];
 for (let j = 0; j < N; j++) for (let i = 0; i < N; i++) cells.push({ i, j, type: 'empty', block: null, unit: null, tree: null, h: 0, ramp: null, keep: false, dyn: false, link: false, canal: false, bridge: false, coast: false });
@@ -46,7 +49,7 @@ for (const c of cells) {   // water outside the coast; sparse, gently clustered 
   if (isCanal(c.i, c.j)) { c.canal = true; c.type = 'canal'; if (isCoastRoad(c.i, c.j)) { c.type = 'road'; c.bridge = true; c.keep = true; c.coast = true; } continue; }
   if (isCoastRoad(c.i, c.j)) { c.type = 'road'; c.keep = true; c.coast = true; continue; }
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
-  if (h < (0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
+  if (h < (S.look === 'rich' ? 0.22 + cl * 0.45 : 0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
 }
 /** A bridge spans the canal wherever roads face each other across it; a bridge nobody needs goes back to water. */
 function connectCanal() {
@@ -81,6 +84,7 @@ const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: tru
 const lampGlowMat = glowMat.clone();
 
 let hillDecorMesh = null;
+const landmarkTrees = [];   // cherries landmarks.js plants round the park pavilion: { x, z, s, color, seed }, drawn with the decor
 const parkCells = new Set();   // empty cells carrying a pocket park (rebuilt with the decor)
 function rebuildDecor() {
   if (decorMesh) { townGroup.remove(decorMesh); decorMesh.geometry.dispose(); }
@@ -113,7 +117,7 @@ function rebuildDecor() {
   parkCells.clear();
   const resNear = c => { for (let dj = -2; dj <= 2; dj++) for (let di = -2; di <= 2; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'lot' && n.block && n.block.type === 'res') return true; } return false; };
   for (const c of cells) {
-    if (c.type !== 'empty' || c.h || cellHash(c.i * 3 + 11, c.j * 7 + 5) > 0.2 || !DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; }) || !resNear(c)) continue;
+    if (c.type !== 'empty' || c.h || c.landmark || cellHash(c.i * 3 + 11, c.j * 7 + 5) > 0.2 || !DIR4.some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road'; }) || !resNear(c)) continue;
     if ([...parkCells].some(p => Math.abs(p.i - c.i) + Math.abs(p.j - c.j) < 5)) continue;
     parkCells.add(c); const x = cx(c.i), z = cz(c.j), m = '#7d8a94';
     gh.push(box(0.88, 0.02, 0.88, PAL.dirt, x, 0.01, z));
@@ -129,7 +133,7 @@ function rebuildDecor() {
   }
   const treeSpots = [];   // crowns the season's leaves fall from: broadleaf and cherry only
   for (const c of cells) {
-    if (c.type !== 'empty' || !c.tree || parkCells.has(c)) continue;
+    if (c.type !== 'empty' || !c.tree || parkCells.has(c) || c.landmark) continue;
     const g0 = g.length;
     const t = c.tree;
     let kind = t.kind; if (kind === 'bamboo') { for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.type === 'road') kind = 'tree'; } }   // tall culms beside a street looked as if they stood on it
@@ -162,6 +166,7 @@ function rebuildDecor() {
     }
     if (c.h) { for (let k = g0; k < g.length; k++) { g[k].translate(0, c.h, 0); gh.push(g[k]); } g.length = g0; }   // raised plots do not sway
   }
+  for (const t of landmarkTrees) { addNature(g, 'cherry', t.x, 0, t.z, t.s, t.seed, leafColor(t.color)); treeSpots.push({ x: t.x, z: t.z, y: 0.72 * t.s, s: t.s, color: t.color }); }
   setTreeSpots(treeSpots);
   decorMesh = mergeMesh(g, true); if (decorMesh) { decorMesh.material = swayMat; townGroup.add(decorMesh); }
   hillDecorMesh = mergeMesh(gh, true); if (hillDecorMesh) townGroup.add(hillDecorMesh);
@@ -242,9 +247,10 @@ function rebuildRoads() {
       if (di + dj > 0) for (const o of [-0.25, 0.25]) g.push(box(di ? 0.03 : 0.22, 0.004, di ? 0.22 : 0.03, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
     }
     const deg = open.filter(Boolean).length, isDbl = dbl.some(Boolean);
+    const centreWidth = S.look === 'rich' ? 0.018 : 0.025;
     // a centre dash along every open arm, so straights, corners and junctions all carry the line; the zebra arm is left clear
     const zebraArm = deg >= 3 && !isDbl && h > 0.45 ? (open[0] ? 0 : 2) : -1;
-    if (!isDbl && deg >= 2) for (let k = 0; k < 4; k++) if (open[k] && k !== zebraArm) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.18 : 0.025, 0.004, di ? 0.025 : 0.18, PAL.cream2, x + di * 0.3, 0.082, z + dj * 0.3)); }
+    if (!isDbl && deg >= 2 && !(S.look === 'rich' && deg >= 3)) for (let k = 0; k < 4; k++) if (open[k] && k !== zebraArm) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.18 : centreWidth, 0.004, di ? centreWidth : 0.18, S.look === 'rich' ? '#d7c38f' : PAL.cream2, x + di * 0.3, 0.082, z + dj * 0.3)); }
     if (deg === 2 && h > 0.7) g.push(cyl(0.09, 0.09, 0.012, '#858a8e', x + (h - 0.85) * 0.4, 0.083, z + (h - 0.8) * 0.4, 8));
     const straight = deg === 2 && !isDbl && ((open[0] && open[2]) || (open[1] && open[3]));
     if (straight) {
@@ -268,7 +274,8 @@ function rebuildRoads() {
       g.push(box(di ? 0.03 : 1, 0.035, dj ? 0.03 : 1, PAL.cream2, rx, 0.215, rz));
     }
     // zebra crossing across one arm of a real junction
-    if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
+    if (S.look === 'rich') richStreetDetails(g, x, z, open, dbl, DIR4);
+    else if (deg >= 3 && !isDbl && h > 0.45) { const zs = open[0] ? -1 : 1; for (let k = -1; k <= 1; k++) g.push(box(0.08, 0.005, 0.3, PAL.cream2, x + k * 0.16, 0.083, z + zs * 0.62 * 0.6)); }
     for (let k = 0; k < 4; k++) if (open[k] && !isDbl) { const [di, dj] = DIR4[k]; g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 + dj * 0.32, 0.105, z + dj * 0.41 - di * 0.32)); g.push(box(di ? 0.19 : 0.02, 0.012, di ? 0.02 : 0.19, '#d9cdb3', x + di * 0.41 - dj * 0.32, 0.105, z + dj * 0.41 + di * 0.32)); }
     // a traffic light at every crossroads: a pole on one corner, a horizontal three-lamp head for each axis
     if (signalCells.has(c) && isDbl) signalCells.delete(c);
@@ -449,6 +456,22 @@ function makeUnit(block, c) {
 const HILL_UNLOCK = 60;
 const hill = { open: false };
 let lanternMesh = null;
+// the shrine path lanterns have their own materials so the opening can light them one by one, day or night; otherwise
+// they follow the street lamps (daynight.js drives lampHeadMat / lampGlowMat, updateLanterns copies them each frame)
+const lanterns = [], hillListeners = [];
+let lanternShow = 0;   // real seconds when the one-by-one lighting began (0: none)
+const onHillOpened = fn => hillListeners.push(fn);
+function lightLanterns() { lanternShow = performance.now() / 1000; }
+function updateLanterns() {
+  const t = performance.now() / 1000, base = lampHeadMat.emissiveIntensity, baseGlow = lampGlowMat.opacity;
+  const e = lanternShow ? Math.min(1, Math.max(0, (t - lanternShow - 11) / 2.5)) : 1;   // after the show, back to the lamps' own level
+  if (lanternShow && e >= 1) lanternShow = 0;
+  for (const L of lanterns) {
+    const lit = lanternShow ? Math.min(1, Math.max(0, (t - lanternShow - 0.8 - L.order * 0.6) / 0.35)) : 0;
+    L.head.material.emissiveIntensity = lit * 2.2 * (1 - e) + base * e;
+    L.glow.material.opacity = lit * 0.5 * (1 - e) + baseGlow * e;
+  }
+}
 function openHill(quiet = false) {
   if (hill.open) return; hill.open = true;
   for (const c of cells) if (c.keep) { c.type = 'road'; c.tree = null; if (c.pendingRamp) { c.ramp = c.pendingRamp; } }
@@ -456,15 +479,19 @@ function openHill(quiet = false) {
   for (let k = 0; k < 3; k++) for (const side of [-0.42, 0.42]) {   // stone lanterns down the flagged path, lit at night like the street lamps
     const px = x + fx * (0.9 + k * 0.45) + rx * side, pz = z + fz * (0.9 + k * 0.45) + rz * side;
     g.push(cyl(0.03, 0.04, 0.22, PAL.concrete, px, top + 0.11, pz, 6)); g.push(box(0.11, 0.09, 0.11, PAL.concrete, px, top + 0.27, pz)); g.push(box(0.15, 0.025, 0.15, PAL.concrete, px, top + 0.33, pz));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.06), lampHeadMat); head.position.set(px, top + 0.27, pz); head.userData.lantern = true; scene.add(head); lampHeads.push(head);
-    const gl = makeGlow(px, top + 0.005, pz, 0.9); gl.material = lampGlowMat; gl.userData.lantern = true; scene.add(gl); lampGlows.push(gl);
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.06), lampHeadMat.clone()); head.position.set(px, top + 0.27, pz); head.userData.lantern = true; scene.add(head); lampHeads.push(head);
+    const gl = makeGlow(px, top + 0.005, pz, 0.9); gl.material = lampGlowMat.clone(); gl.userData.lantern = true; scene.add(gl); lampGlows.push(gl);
+    lanterns.push({ head, glow: gl, order: (2 - k) * 2 + (side > 0 ? 1 : 0), pos: new THREE.Vector3(px, top, pz) });   // lit from the foot of the path up to the shrine
   }
   lanternMesh = mergeMesh(g, false); if (lanternMesh) scene.add(lanternMesh);
   refreshWorld();
-  if (!quiet) { toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.'); record('The hill opened and the shrine path was lit'); }
+  if (!quiet) {
+    record('The hill opened and the shrine path was lit');
+    if (hillListeners.length) for (const fn of hillListeners) fn(); else toast('The town has grown. A road crew has opened the hill, and the shrine path is lit.');
+  }
 }
 function placeable(c, sel = []) {
-  if (!c || c.type !== 'empty' || c.ramp || c.yard || c.park || c.slip) return false;   // buildings stand on empty ground, beside a street
+  if (!c || c.type !== 'empty' || c.ramp || c.yard || c.park || c.slip || c.landmark) return false;   // buildings stand on empty ground, beside a street
   if ((c.h || 0) > 0 && !hill.open) return false;   // the hill opens later
   if (sel.length && (sel[0].h || 0) !== (c.h || 0)) return false;   // one block, one terrace
   if (c.type === 'road') for (let dj = -1; dj <= 1; dj++) for (let di = -1; di <= 1; di++) { const n = cell(c.i + di, c.j + dj); if (n && n.block && n.block.type === 'station') return false; }
@@ -515,7 +542,7 @@ let netCache = null;   // townNet, recomputed after any change to the roads
 function townNetCached() { return netCache || (netCache = townNet()); }
 /** the L-shaped run of cells between two cells, as the Road tool draws it */
 function roadRun(a, b) { const run = []; let i = a.i, j = a.j; run.push(cell(i, j)); while (i !== b.i) { i += Math.sign(b.i - i); run.push(cell(i, j)); } while (j !== b.j) { j += Math.sign(b.j - j); run.push(cell(i, j)); } return run; }
-const drawable = (c, h) => !!c && !c.ramp && !c.yard && !c.park && !c.slip && (c.h || 0) === h && ((c.h || 0) === 0 || hill.open) && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep));
+const drawable = (c, h) => !!c && !c.ramp && !c.yard && !c.park && !c.slip && (!c.landmark || c.landmark === 'bridge-end') && (c.h || 0) === h && ((c.h || 0) === 0 || hill.open) && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep));
 /** does a street cell reach the station? (for the tools' messages) */
 const joinedToTown = c => townNetCached().has(c);
 /** the player draws a street: an L-shaped run on one level over land or straight across the canal; null if it cannot go there */
@@ -740,6 +767,6 @@ function setWet(k) { if (Math.abs(k - wetK) < 0.01) return; wetK = k; if (roadMe
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+export { landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

@@ -4,6 +4,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
+import { S } from './state.js';
 import { scene } from './scene.js';
 import { box, mergeMesh } from './geometry.js';
 import { polygon, beachExtra, coastPoint, radius, islandEllipse, fallFeet } from './island.js';
@@ -18,7 +19,7 @@ const waves = [];
 for (let k = 0; k < 3; k++) {
   const geo = new THREE.ExtrudeGeometry(polygon(t => beachExtra(t) + 0.55 + k * 0.45), { depth: 0.05, bevelEnabled: false });
   const m = new THREE.Mesh(geo, new THREE.MeshBasicMaterial({ color: PAL.foam, transparent: true, opacity: 0.3, depthWrite: false }));
-  m.rotation.x = Math.PI / 2; m.position.y = WATER_Y + 0.008 + k * 0.001; m.renderOrder = 2; scene.add(m); waves.push(m);
+  m.rotation.x = Math.PI / 2; m.position.y = WATER_Y + 0.008 + k * 0.001; m.renderOrder = 2; m.userData.lookOnly = 'classic'; m.visible = S.look !== 'rich'; scene.add(m); waves.push(m);
 }
 
 // ── fish: a small pool of jumpers, each a body with a tail, plus expanding splash rings ──

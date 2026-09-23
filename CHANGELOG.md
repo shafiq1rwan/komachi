@@ -52,6 +52,35 @@ Phases 4 and 4.5 plus the polish that went with them.
 - The slipway is a proper street: the lane from the coast road to the shore is real road cells on the grid (kept, not
   zonable), drawn like any street, ending in a concrete slope down to the beach; no slanted lanes. The berth notice says
   cars are rolling off only once one has. The smoke summary names any failed checks.
+- The sea is calm bay water (src/water.js), in both looks: a muted blue-teal, lighter over the shallows along the coast (the
+  shader evaluates the island's own coastline), with a slow broad colour drift; three broad, slow swells in different directions,
+  warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
+  night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
+  The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The rich look is the new standard (2026-09-23; docs/ART_DIRECTION.md rewritten): every new session starts in it, and the classic
+  pastel look is one click away (the wand button, remembered, or `?look=classic`). A fresh start is an empty island in either look;
+  the dense street-grid showcase moved to `?demo=dense`. The coastal train and its railway are gone: the underground line at
+  Komachi Station stays the island's only railway.
+- Rich look (src/look.js; the wand button in the sliders menu, remembered; `?look=rich`): the town renders through
+  ambient occlusion (GTAO), a tilt-shift blur toward the screen's top and bottom and a display-space grade (deeper midtones, cool
+  shadows, warm highlights, fresher greens, more saturation and contrast, a soft vignette), with a warmer, stronger sun, a
+  cooler and weaker sky fill, a deeper sea, a little haze and a gentle patchy tone on upward faces. The classic look is unchanged
+  and stays the default until the art direction is decided.
+- Landmarks on the island (src/landmarks.js, models from the destinations kit), placed from the island once the town has loaded:
+  a lighthouse on the rocky headland furthest out to sea (a rocky point or a grassy one where an island has few rocks, clear
+  of the hill, the pier, the canal mouths and the slipway) whose lens glows from dusk while one beam sweeps the water at
+  night, dimming as it swings over the town; a red arched footbridge over a straight stretch of the canal; and a park
+  pavilion beside it, its steps toward the bridge foot, between two cherry trees that turn with the seasons. Their cells
+  are kept (`c.landmark`): nothing is zoned there and no street drawn over them, though a street may reach the bridge's
+  banks. Residents out on a fine day's stroll sometimes walk out to one: round the lighthouse to look out to sea, up to the
+  crown of the bridge to watch the carp, or to a bench in the pavilion for a sit, then back the way they came and home.
+- Walkers who stop at the end of a stroll (the notice board, a landmark) stand still instead of walking on the spot.
+- Milestone announcements (src/milestone.js): the moments that change the town get a larger cream card under the top bar
+  (pictogram, title, one line) that stays about ten seconds or until dismissed, with a "Go and look" button that glides the
+  camera to the place, holds while the change plays out and glides back; a drag, wheel or move key ends the glide there.
+  The hill opening is the first: the six stone lanterns on the shrine path light one by one from its foot up to the shrine
+  (own materials, back to the street lamps' level afterwards), and the road crew that opened it stands at the top of the slope
+  road a moment, looking down over the town, before walking to the station and leaving on the train.
 - Residents on the station benches sit on the seat: the seat places moved to the kit bench's own (±0.115), 0.04 forward of the
   bench centre, and up to the seat top (a seated Kenney person's underside is 0.025 above the group, not 0.09), so their feet no
   longer sink into the front slats and their backs rest against the backrest.

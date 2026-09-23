@@ -4,6 +4,7 @@ const saved = (() => { try { return JSON.parse(localStorage.getItem('komachi.sav
 const fresh = params.has('new') || params.has('demo');   // ?new ignores the save (and overwrites it); ?demo is always a fresh sample town
 export const S = {
   fresh,
+  look: (() => { try { return params.get('look') || localStorage.getItem('komachi.lookStyle') || 'rich'; } catch { return 'rich'; } })() === 'classic' ? 'classic' : 'rich',   // rich is the standard since 2026-09-23
   T: 7.0,            // game hours since start (day 1 begins at 0:00)
   speed: 1,          // 0 = paused, 1, 2, 4
   nextId: 1,         // id counter for blocks, units, residents

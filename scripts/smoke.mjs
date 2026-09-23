@@ -67,6 +67,19 @@ try {
     return { h: plot.h, meshY: u.mesh.position.y, ground: MT.terrainY(plot.i - 20 + 0.5, plot.j - 20 + 0.5), ramps: MT.cells.filter(c => c.ramp).length, ring: [[1, 0], [-1, 0], [0, 1], [0, -1]].some(([di, dj]) => { const n = MT.cell(plot.i + di, plot.j + dj); return n && n.type === 'road'; }) };
   });
   check('a home can be built on a hill terrace at its height', !!s && s.meshY === s.h && s.ground === s.h && s.ramps >= 1 && s.ring, JSON.stringify(s));
+  // the hill opening is a milestone: the card shows, the road crew stands at the top, the lanterns light one by one, and "Go and look" glides there
+  const ms = { card: await page.evaluate(() => MT.milestoneShown()), crew: await page.evaluate(() => MT.hillCrew.length), lit: 0, glided: false };
+  for (let k = 0; k < 60 && ms.lit < 6; k++) { await sleep(250); ms.lit = await page.evaluate(() => MT.lanterns.filter(L => L.head.material.emissiveIntensity > 1).length); }
+  await page.evaluate(() => document.querySelector('#milestone .ms-look').click());
+  for (let k = 0; k < 40 && !ms.glided; k++) { await sleep(150); ms.glided = await page.evaluate(() => MT.gliding() && MT.cam.tView < 18); }
+  ms.gone = await page.evaluate(() => { MT.cancelGlide(); MT.cam.target.set(0, 0, 0); return !MT.milestoneShown(); });
+  const lm = await page.evaluate(() => {   // landmarks: a lighthouse, the arched bridge and the park pavilion, each keeping its cells
+    const kinds = MT.landmarks.map(l => l.kind), res = MT.cells.filter(c => c.landmark);
+    const bridge = res.find(c => c.landmark === 'bridge'), side = bridge && MT.cells.find(c => c.landmark === 'bridge-end');
+    return { kinds, reserved: res.length, zonable: res.some(c => MT.placeable(c, [c])), bridgeRoad: bridge ? !!MT.drawRoad(side, bridge) : null, bridgeType: bridge && bridge.type };
+  });
+  check('landmarks: lighthouse, arched bridge and park pavilion stand on cells nobody can build over', ['lighthouse', 'bridge', 'pavilion'].every(k => lm.kinds.includes(k)) && lm.reserved >= 5 && !lm.zonable && lm.bridgeRoad === false && lm.bridgeType === 'canal', JSON.stringify(lm));
+  check('the hill opening is a milestone: card, road crew at the top, lanterns light one by one, a glide to look', ms.card && ms.crew === 3 && ms.lit === 6 && ms.glided && ms.gone, JSON.stringify(ms));
   await page.evaluate(() => { const b = MT.blocks[MT.blocks.length - 1]; if (b.cells[0].h > 0) MT.removeBlock(b); });
   await page.evaluate(() => { MT.cam.view = MT.cam.tView = 18; }); await sleep(300);
   const wp = await page.evaluate(() => MT.project(16, 25)); await page.mouse.click(wp.x, wp.y); await sleep(200);
@@ -171,10 +184,11 @@ try {
     if (!th) return { th: false };
     th.kind = 'townhall'; th.stage = MT.DONE; for (const u of th.units) MT.rebuildUnitMesh(u);
     const kit = !!th.units[0].mesh.getObjectByName('Komachi_town_hall');
-    const hh = MT.households.find(h => h.home && h.members.length && h.members.some(m => m.at === m.home)); if (!hh) return { th: true, kit, hh: false };
-    hh.registered = false; for (const m of hh.members) { m.next = 0; }
-    MT.setHour(9); let went = false, folder = false; for (let k = 0; k < 400 && !(folder || hh.registered); k++) { MT.fastForward(0.02); for (const m of hh.members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
-    return { th: true, kit, hh: true, went, registered: hh.registered, folder, label: MT.tierLabel('civic', 2) };
+    const hhs = MT.households.filter(h => h.home && h.members.length); if (!hhs.length) return { th: true, kit, hh: false };   // every settled household starts unregistered: commuters are away all day, so any one may register
+    for (const h of hhs) { h.registered = false; for (const m of h.members) m.next = 0; }
+    const done = () => hhs.some(h => h.registered), members = hhs.flatMap(h => h.members);
+    MT.setHour(8.5); let went = false, folder = false; for (let k = 0; k < 700 && !(folder || done()); k++) { MT.fastForward(0.02); for (const m of members) { if (m.purpose === 'register' || (m.at && m.at.block === th)) went = true; const ch = m.mesh && m.mesh.userData.char; if (ch && ch.accessory && ch.accessory.userData.propKind === 'folder') folder = true; } }
+    return { th: true, kit, hh: true, went, registered: done(), folder, label: MT.tierLabel('civic', 2) };
   });
   const se = await page.evaluate(() => {   // seasons: the calendar turns every six days; autumn brings falling leaves and a chronicle line
     const day0 = MT.dayOf(), s0 = MT.seasonOf(); MT.setWeather('clear', 40);

@@ -4,7 +4,7 @@
 import { S } from './state.js';
 import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR, CARS } from './palette.js';
-import { peopleGroup, disposeGroup } from './scene.js';
+import { peopleGroup, disposeGroup, cx, cz } from './scene.js';
 import { detachCharacter, holdTool } from './characters.js';
 import { blocks, STATION, DONE, terrainY } from './world.js';
 import { unitLocal, dims } from './buildings.js';
@@ -183,8 +183,38 @@ function sendTruck(b) {
 }
 function removeTruck(tr) { peopleGroup.remove(tr.mesh); disposeGroup(tr.mesh); const ci = carMeshes.indexOf(tr.mesh); if (ci >= 0) carMeshes.splice(ci, 1); trucks.splice(trucks.indexOf(tr), 1); }
 
+// the road crew that opened the hill: three builders stand at the top of the slope road for a moment, looking down over the
+// town, then walk down to the station and leave on the train. Not tied to a site, so they live in their own list.
+const hillCrew = [];
+function sendHillCrew(top, down) {
+  const x0 = cx(top.i), z0 = cz(top.j), px = -down.z, pz = down.x;
+  for (let n = 0; n < 3; n++) {
+    const k = { id: S.nextId++, name: `${pick(GIVEN)} ${pick(FAMILY)}`, state: 'standing', trip: null, activity: 'looking over the new hill road', phase: rand(0, 6.28),
+      skin: pick(SKIN), shirt: VEST, pants: '#4a4340', hair: pick(HAIR), hat: true, hatColor: HELMET, bag: false, builder: true, top, until: S.T + 1.0 + n * 0.08 };
+    k.mesh = makePerson(k); k.mesh.userData.res = null; k.mesh.userData.worker = k;
+    const off = (n - 1) * 0.22, x = x0 + px * off - down.x * (n === 1 ? 0.12 : 0), z = z0 + pz * off - down.z * (n === 1 ? 0.12 : 0);
+    k.mesh.position.set(x, 0.1 + terrainY(x, z), z); k.mesh.rotation.y = Math.atan2(down.x, down.z); k.mesh.visible = true;
+    hillCrew.push(k);
+  }
+}
+function holdHillCrew(hours) { for (const k of hillCrew) if (k.state === 'standing') k.until = Math.max(k.until, S.T + hours); }
+function updateHillCrew(simDt) {
+  for (let i = hillCrew.length - 1; i >= 0; i--) {
+    const k = hillCrew[i];
+    if (k.state === 'standing') {
+      if (S.T < k.until) continue;
+      const path = routeCells([k.top], crewRoads());
+      const from = k.mesh.position.clone().setY(0.12), pts = path ? buildPoints(path, from, STATION.entrance.clone(), 0.34, 0.1) : [from, STATION.entrance.clone().setY(0.12)];
+      k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toStation'; k.activity = 'heading down to the station, job done';
+    } else if (moveAlong(k.mesh, k.trip, k.trip.speed * simDt)) {
+      detachCharacter(k.mesh); peopleGroup.remove(k.mesh); disposeGroup(k.mesh); hillCrew.splice(i, 1);
+    }
+  }
+}
+
 function updateConstruction(dh, simDt, realT) {
   const h = hourOf();
+  updateHillCrew(simDt);
   while (pending.length && S.T >= pending[0].t) pending.shift().fn();
   for (const b of activeSites()) if (b.stage !== b.deliveredStage && b.stage >= 1 && h >= 6 && h < 20) { b.deliveredStage = b.stage; sendTruck(b); }
   for (let i = workers.length - 1; i >= 0; i--) {
@@ -220,4 +250,4 @@ function updateConstruction(dh, simDt, realT) {
   }
 }
 
-export { updateConstruction, workers, trucks, setYardStart };
+export { updateConstruction, workers, trucks, setYardStart, sendHillCrew, holdHillCrew, hillCrew };

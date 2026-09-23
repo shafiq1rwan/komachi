@@ -39,6 +39,7 @@
         <button data-s="4" data-tip="Fast">4×</button>
       </div>
       <div class="divider-v"></div>
+      <button class="icon-btn" id="btn-look" data-tip="Soft shadows and miniature focus; turn off for the lighter classic look"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
       <button class="icon-btn" id="btn-pixel" data-tip="Pixel look: render at half resolution"><i class="fa-solid fa-border-all"></i></button>
       <button class="icon-btn" id="btn-center" data-tip="Centre the camera on the station"><i class="fa-solid fa-crosshairs"></i></button>
       <button class="icon-btn" id="btn-reset" data-tip="Start a new island (the town saves itself as you play)"><i class="fa-solid fa-rotate-left"></i></button>
@@ -70,7 +71,9 @@
 </div>
 
 <div id="inspect" class="card"></div>
+<div id="minimap" class="card" aria-label="Map of Komachi"><div class="mini-heading"><b>Komachi</b><span>ISLAND MAP</span></div><canvas id="mini-c" width="472" height="352"></canvas><div class="mini-caption"><span><i></i> Current view</span><b>N ↑</b></div></div>
 <div id="toast"></div>
+<div id="milestone" role="status" aria-live="polite"></div>
 <div id="tier"></div>
 <div id="tags"></div>
 <div id="bubbles"></div>

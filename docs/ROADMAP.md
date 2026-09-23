@@ -226,8 +226,7 @@ effect through the town instead.
 ## ⬜ Phase 6 — Weather, events, festivals, tourism
 
 - ✅ Weather, first slice (2026-09-22): a weather clock of clear, overcast, light rain and rain spells; drifting cloud shade
-  (the clouds themselves are not drawn); overcast light; rain streaks that wet the streets; umbrellas on the walk. Still to come: puddles, snow
-  that whitens roofs
+  (the clouds themselves are not drawn); overcast light; rain streaks that wet the streets; umbrellas on the walk (puddles and snow followed, below)
 - ✅ Seasons for the trees and the sakura biome (2026-09-22): a 24-day year; canopies turn with the season, leaves and
   petals fall; winter brings snow on the ground, roofs and crowns, and snowflakes in place of rain
 - ✅ Speech bubbles (agreed 2026-09-22, shipped 2026-09-23): a small cream bubble over the head, drawn as a 2D overlay like the name tags, with
@@ -242,9 +241,10 @@ effect through the town instead.
   hand prop, built in code), buy something and leave on an evening train
 - A ryokan or small hotel on the hill terraces for visitors (from the Phase 5 plot market)
 
-- **Landmarks** (models in assets/destinations): a lighthouse on the rocky headland with a sweeping lens, a red arched
-  bridge as a special canal crossing walkers follow along its curve, festival lanterns along the shrine path, a park
-  pavilion with seats under cherry trees (sakura biome); tourists arriving by train walk out to see them
+- ✅ **Landmarks** (shipped 2026-09-23; src/landmarks.js, models in assets/destinations): a lighthouse on the rocky headland with a
+  sweeping beam, a red arched footbridge over the canal that walkers climb to its crown, a park pavilion with benches under
+  cherry trees beside it (every biome); the shrine path lanterns came with the hill opening. Residents on a stroll walk out
+  to them now; tourists arriving by train will too
 
 ## ⬜ Phase 7 — Farming and fishing
 
@@ -276,7 +276,7 @@ effect through the town instead.
 Nothing is scored or punitive, so achievement has to be felt through the town itself. Ideas to weave into
 the phases above, roughly in order of payoff:
 
-- **Milestone announcements** (agreed 2026-09-22): a milestone gets more than the slim notice. A larger cream card slides
+- ✅ **Milestone announcements** (agreed 2026-09-22, shipped 2026-09-23; src/milestone.js): a milestone gets more than the slim notice. A larger cream card slides
   in at the top centre with a title, one line and a pictogram, stays about ten seconds or until dismissed, and offers a
   button to go and look; the camera glides to the place for a few seconds while the change plays out, then returns. The
   hill opening is the first: the lanterns light one by one along the shrine path and the road crew stands at the top a

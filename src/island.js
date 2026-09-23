@@ -2,6 +2,7 @@
 // rocky stretches, grassy cliff edges, a small pier and a boat, a terraced hill with a shrine opposite
 // the pier. Also answers "is this cell land?" and "is it hill?".
 import * as THREE from 'three';
+import { makeSeaMaterial, tickWater } from './water.js';
 import { PAL } from './palette.js';
 import { S } from './state.js';
 import { mat, blob, cyl, box, mergeMesh, swayMat, colorize, snowKit } from './geometry.js';
@@ -34,21 +35,62 @@ function polygon(extra, n = 180) {
   s.closePath(); return s;
 }
 
+// The rich view has a built waterfront: a narrow public walk above a coursed stone wall.
+// It follows the exact seeded coast, so the water and buildable cells keep their shape.
+function waterfrontBand(inner, outer, y, n = 240) {
+  const positions = [], colors = [];
+  const shades = ['#b7b7ae', '#c4c3b9', '#aeb0aa'].map(c => new THREE.Color(c));
+  const quad = (a, b, c, d, color) => {
+    for (const p of [a, b, c, a, c, d]) { positions.push(...p); colors.push(color.r, color.g, color.b); }
+  };
+  for (let k = 0; k < n; k++) {
+    const a = k / n * TAU, b = (k + 1) / n * TAU;
+    const p = coastPoint(a, inner), q = coastPoint(b, inner), r = coastPoint(b, outer), s = coastPoint(a, outer);
+    quad([p[0], y, p[1]], [q[0], y, q[1]], [r[0], y, r[1]], [s[0], y, s[1]], shades[k % shades.length]);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide }));
+  m.receiveShadow = true; m.userData.lookOnly = 'rich'; m.visible = S.look === 'rich'; return m;
+}
+function addRichWaterfront() {
+  const wall = [], colors = [], n = 200, courses = 4;
+  const stones = ['#9fa7a8', '#adb3b0', '#8e999c', '#bac0b9', '#a2a9a6'].map(c => new THREE.Color(c));
+  for (let row = 0; row < courses; row++) {
+    const top = -0.16 - row * 0.165, bottom = top - 0.163;
+    for (let k = 0; k < n; k++) {
+      const a = (k + (row % 2) * 0.5) / n * TAU, b = (k + 1 + (row % 2) * 0.5) / n * TAU;
+      const p = coastPoint(a, 0.28), q = coastPoint(b, 0.28), c = stones[(k * 7 + row * 3) % stones.length];
+      for (const v of [[p[0], top, p[1]], [q[0], top, q[1]], [q[0], bottom, q[1]], [p[0], top, p[1]], [q[0], bottom, q[1]], [p[0], bottom, p[1]]]) {
+        wall.push(...v); colors.push(c.r, c.g, c.b);
+      }
+    }
+  }
+  const g = new THREE.BufferGeometry(); g.setAttribute('position', new THREE.Float32BufferAttribute(wall, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3)); g.computeVertexNormals();
+  const m = new THREE.Mesh(g, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide }));
+  m.castShadow = true; m.receiveShadow = true; m.userData.lookOnly = 'rich'; m.visible = S.look === 'rich'; scene.add(m);
+  scene.add(waterfrontBand(-0.5, 0.29, -0.151));
+  scene.add(waterfrontBand(0.14, 0.34, -0.112));
+}
 const rippleLayers = []; let rippleTex = null;   // the ripple tile, shared with the canal
 /** drift the ripple textures a little each frame */
-function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.speed[0] * dt; l.t.offset.y += l.speed[1] * dt; } }
+function updateWater(dt) { tickWater(dt); for (const l of rippleLayers) { l.t.offset.x += l.speed[0] * dt; l.t.offset.y += l.speed[1] * dt; } }
 
 // ── land, beach terrace, foam, water ──
 {
-  const land = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(0), { depth: 1.5, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 2 }), [mat(biome.grass), mat(PAL.landSide)]);
-  land.rotation.x = Math.PI / 2; land.position.y = -0.2; land.receiveShadow = true; scene.add(land);
+  const landTop = mat(biome.grass).clone(); landTop.color.set(S.look === 'rich' ? '#9db68a' : biome.grass);
+  const land = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(0), { depth: 1.5, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 2 }), [landTop, mat(PAL.landSide)]);
+  land.rotation.x = Math.PI / 2; land.position.y = -0.2; land.receiveShadow = true; land.userData.lookColors = { classic: biome.grass, rich: '#9db68a' }; scene.add(land);
   const beach = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(beachExtra), { depth: 0.4, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 1 }), mat(biome.sand));
-  beach.rotation.x = Math.PI / 2; beach.position.y = -0.58; beach.receiveShadow = true; scene.add(beach);
+  beach.rotation.x = Math.PI / 2; beach.position.y = -0.58; beach.receiveShadow = true; beach.userData.lookOnly = 'classic'; beach.visible = S.look !== 'rich'; scene.add(beach);
   const foam = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(t => beachExtra(t) + 0.6), { depth: 0.1, bevelEnabled: false }), mat(PAL.foam));
-  foam.rotation.x = Math.PI / 2; foam.position.y = -0.7; scene.add(foam);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), new THREE.MeshStandardMaterial({ color: PAL.water, roughness: 1 }));
-  water.rotation.x = -Math.PI / 2; water.position.y = -0.78; water.receiveShadow = true; scene.add(water);
-  // soft ripple layers: a canvas of blurry lighter blobs, tiled and slowly drifted in two directions
+  foam.rotation.x = Math.PI / 2; foam.position.y = -0.7; foam.userData.lookOnly = 'classic'; foam.visible = S.look !== 'rich'; scene.add(foam);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), makeSeaMaterial(harm, R0, SX, SZ));   // calm bay water, shaded in water.js
+  water.rotation.x = -Math.PI / 2; water.position.y = -0.78; water.receiveShadow = true; water.name = 'sea'; scene.add(water);
+  addRichWaterfront();
+  // the ripple tile (blurry lighter blobs): the canal's drifting overlay uses it; the sea draws its own waves in water.js
   const rc = document.createElement('canvas'); rc.width = rc.height = 256; const ctx = rc.getContext('2d');
   // every streak is drawn at the eight wrapped offsets too, so the tile repeats without visible edges
   for (let k = 0; k < 40; k++) {
@@ -59,11 +101,6 @@ function updateWater(dt) { for (const l of rippleLayers) { l.t.offset.x += l.spe
     }
   }
   const rt = new THREE.CanvasTexture(rc); rt.wrapS = rt.wrapT = THREE.RepeatWrapping; rt.colorSpace = THREE.SRGBColorSpace; rippleTex = rt;
-  for (const [rep, y, op] of [[44, -0.776, 0.13], [26, -0.774, 0.08]]) {   // fine and faint: from far out the sea reads as a calm colour, not a pattern
-    const t = rt.clone(); t.needsUpdate = true; t.repeat.set(rep, rep);
-    const m = new THREE.Mesh(new THREE.PlaneGeometry(180, 180), new THREE.MeshBasicMaterial({ map: t, transparent: true, opacity: op, depthWrite: false }));
-    m.rotation.x = -Math.PI / 2; m.position.y = y; scene.add(m); rippleLayers.push({ t, speed: rep === 14 ? [0.004, 0.0025] : [-0.002, 0.0035] });
-  }
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
@@ -164,8 +201,10 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
       const ni = i + di, nj = j + dj, nInfo = terraceInfo(ni, nj), nl = nInfo ? nInfo.level : 0;
       if (nl >= info.level || (nInfo && nInfo.ramp)) continue;
       const drop = (info.level - nl) * TERRACE, base = nl * TERRACE;
-      const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.18, 0); sh.lineTo(0, drop); sh.closePath();   // wedge: flush with the wall at the top, 0.18 out at the foot
-      const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-dj, di)); w.translate(x + di * 0.5, base, z + dj * 0.5);   // local +x → outward (di, dj) g.push(colorize(w, PAL.landSide));
+      const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.3, 0); sh.lineTo(0, drop); sh.closePath();   // a shallow bank from the flat plot down to the next level
+      const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false });
+      w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-dj, di)); w.translate(x + di * 0.5, base, z + dj * 0.5);   // local +x points outward
+      g.push(colorize(w, S.look === 'rich' ? '#a4b692' : PAL.landSide));
       const r = cellHash(i * 11 + di, j * 13 + dj);
       if (r < 0.3) g.push(blob(0.12 + r * 0.2, r < 0.15 ? PAL.bush : PAL.bush2, x + di * 0.6 + (dj ? (r - 0.15) * 2 : 0), base + 0.08, z + dj * 0.6 + (di ? (r - 0.15) * 2 : 0), 0, 0.7));
       else if (r > 0.82) g.push(blob(0.09, biome.rock[0], x + di * 0.62 + (dj ? (r - 0.9) * 3 : 0), base + 0.04, z + dj * 0.62 + (di ? (r - 0.9) * 3 : 0), 0, 0.6));

@@ -1,5 +1,7 @@
 // Komachi — procedural buildings: three zone types × three levels, plus construction stages
 import * as THREE from 'three';
+import { S } from './state.js';
+import { genRichBuilding } from './rich-buildings.js';
 import { PAL } from './palette.js';
 import { cx, cz, townGroup, disposeGroup } from './scene.js';
 import { box, prism, blob, cyl, colorize, mergeMesh, makeGlow, snowKit } from './geometry.js';
@@ -524,7 +526,12 @@ function pallet(g, x, z, kind) {
 function sawhorse(g, x, z) { for (const dx of [-0.12, 0.12]) for (const dz of [-0.03, 0.03]) { const leg = new THREE.BoxGeometry(0.015, 0.16, 0.015); leg.rotateX(dz > 0 ? 0.35 : -0.35); leg.translate(x + dx, 0.2, z + dz); g.push(colorize(leg, PAL.wood2)); } g.push(box(0.34, 0.025, 0.03, PAL.wood, x, 0.28, z)); g.push(box(0.2, 0.02, 0.06, PAL.wood2, x - 0.02, 0.3, z)); }
 function cones(g, pts) { for (const [x, z] of pts) { g.push(cyl(0.012, 0.04, 0.1, CONE, x, 0.17, z, 6)); g.push(box(0.09, 0.012, 0.09, CONE, x, 0.126, z)); } }
 function siteSign(g, x, z) { g.push(cyl(0.015, 0.015, 0.36, PAL.wood2, x, 0.3, z, 4)); g.push(box(0.26, 0.16, 0.02, PAL.cream2, x, 0.5, z)); g.push(box(0.2, 0.03, 0.025, CONE, x, 0.53, z + 0.005)); g.push(box(0.16, 0.02, 0.025, K.chalk, x, 0.47, z + 0.005)); }
-function finalGen(b, u, g, wg) { (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : b.type === 'civic' ? genCivic : genWork)(b, u, g, wg); }
+function finalGen(b, u, g, wg) {
+  // the rich look's slate-roofed house stands in for detached homes (and hill villas) only; shops, workspaces and the other homes
+  // keep their own generators, so size tiers (1, 2, 3 cells), kinds, finishes and facades all still read (decided 2026-09-23)
+  if (S.look === 'rich' && b.type === 'res' && (u.variant === 'detached' || u.variant === 'villa' || !u.variant) && b.cells.length === 1) genRichBuilding(b, u, g, wg);
+  else (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : b.type === 'civic' ? genCivic : genWork)(b, u, g, wg);
+}
 
 /** civic ground: a gravel pad and what the kit model does not bring (fence, pump house, shed); the kit models themselves are
  *  attached in rebuildUnitMesh. The door is on the front edge so trips end on the pavement */
@@ -714,5 +721,10 @@ function rebuildUnitMesh(u, pop = false) {
   grp.userData.unit = u; u.mesh = grp; townGroup.add(grp);
   if (pop) u.pop = 1;
 }
+
+addEventListener('komachi-look', () => {
+  const live = townGroup.children.map(o => o.userData.unit).filter(Boolean);
+  for (const u of live) rebuildUnitMesh(u);
+});
 
 export { dims, doorLocal, unitDoorPoints, unitLocal, rebuildUnitMesh };

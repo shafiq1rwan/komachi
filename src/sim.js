@@ -12,6 +12,7 @@ import { createPhone, createNewspaper } from './hand-items.js';
 import { record } from './chronicle.js';
 import { W } from './weather.js';
 import { startTalk, endTalk } from './bubbles.js';
+import { landmarkRoads } from './landmarks.js';
 /** what two people would talk about right now: the weather when it is doing something, otherwise the town */
 function pickTopic(r) { if (W.rain > 0.2 || W.snow > 0.3) return 'weather'; const h = hourOf(); if ((h >= 11 && h < 14) || (h >= 17.5 && h < 20)) return 'food'; if (r && r.hh && !r.hh.registered) return 'home'; return pick(['shop', 'train', 'home', 'heart', null]); }
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
@@ -596,9 +597,38 @@ function go(r, dest, label, purpose = null) {
   from.inside.delete(r); r.at = null; r.purpose = purpose; r.until = 0; r.actKind = 'travel'; r.plan = label;
   startTrip(r, path, start, dest === STATION.anchor ? STATION.entrance : entryPts(dest), dest, label, from); return true;
 }
+// a stroll out to one of the island's landmarks: along the streets to the nearest one, then off the kerb to the spot; they
+// look out to sea, cross to the crown of the bridge or sit a while in the pavilion, then walk back the same way and home
+function visitLandmark(r, from) {
+  const opts = landmarkRoads(); if (!opts.length) return false;
+  const { l, road } = pick(opts), path = routeCells(frontRoad(from), [road]); if (!path || path.length < 2) return false;
+  from.inside.delete(r); r.at = null; r.strollHome = true; r.actKind = 'stroll'; r.until = 0; r.purpose = null;
+  const walk = l.walk(road);
+  startTrip(r, path, exitPts(from), walk, null, l.label);
+  if (r.trip) Object.assign(r.trip, { landmark: l, lmRoad: road, lmWalk: walk });
+  return true;
+}
+function atLandmark(r, tr) {
+  const l = tr.landmark;
+  if (!tr.held) {   // there: stand and look, or take a free bench in the pavilion
+    tr.held = true; tr.holdUntil = S.T + rand(l.hold[0], l.hold[1]); r.activity = l.activity; r.paused = true; r.heldAct = null;
+    const seat = l.seats && l.seats.find(s => !s.taken || !s.taken.trip || s.taken.trip.seat !== s);
+    if (seat) { seat.taken = r; tr.seat = seat; r.mesh.position.copy(seat.pos); r.mesh.rotation.y = seat.rot; setPose(r, true); }
+    else if (l.face !== undefined) r.mesh.rotation.y = l.face;
+    return;
+  }
+  r.paused = false;
+  if (tr.seat) { tr.seat.taken = null; setPose(r, false); }
+  const back = tr.lmWalk.slice().reverse().map(p => p.clone());
+  if (!r.home) { r.trip = null; returnToStation(r, back[back.length - 1]); return; }
+  const path = routeCells([tr.lmRoad], frontRoad(r.home));
+  if (path) startTrip(r, path, back, entryPts(r.home), r.home, 'heading home');
+  else { r.trip = null; r.mesh.visible = false; r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
+}
 function stroll(r) {
   const roads = cells.filter(c => c.type === 'road'); if (!roads.length) return false;
   const from = r.at; let path = null;
+  if (W.rain < 0.25 && Math.random() < 0.3 && visitLandmark(r, from)) return true;   // fine weather: out to a landmark now and then
   const boards = blocks.filter(b => b.type === 'civic' && b.stage === DONE && b.street && b.street.length), toBoard = boards.length && Math.random() < 0.35;   // a civic corner has a notice board worth a look
   if (toBoard) { const bb = pick(boards); path = routeCells(frontRoad(from), [pick(bb.street)]); if (path && path.length < 2) path = null; }
   for (let k = 0; k < 5 && !path; k++) { const t = pick(roads); path = routeCells(frontRoad(from), [t]); if (path && path.length < 3) path = null; }
@@ -612,7 +642,8 @@ function stroll(r) {
 function arrive(r) {
   const tr = r.trip;
   if (tr.onArrive) { r.trip = null; tr.onArrive(); return; }
-  if (!tr.dest && tr.holdAtEnd && !tr.held) { tr.held = true; tr.holdUntil = S.T + tr.holdAtEnd; r.activity = 'reading the notices'; return; }   // stand and read; the walk home follows
+  if (tr.landmark) { atLandmark(r, tr); return; }
+  if (!tr.dest && tr.holdAtEnd && !tr.held) { tr.held = true; tr.holdUntil = S.T + tr.holdAtEnd; r.activity = 'reading the notices'; r.paused = true; r.heldAct = null; return; }   // paused: stands still instead of walking on the spot   // stand and read; the walk home follows
   r.trip = null; r.mesh.visible = false; if (r.car) r.car.visible = false;
   const endPos = tr.pts[tr.pts.length - 1];
   if (!tr.dest) {   // strolled to a road cell: turn around and head home
@@ -778,7 +809,7 @@ function updateResidents(simDt, realT) {
       continue;
     }
     const tr = r.trip; if (!tr) { r.state = 'inside'; continue; }
-    if (tr.holdUntil) { if (S.T < tr.holdUntil) continue; tr.holdUntil = 0; arrive(r); continue; }
+    if (tr.holdUntil) { if (S.T < tr.holdUntil) continue; tr.holdUntil = 0; r.paused = false; arrive(r); continue; }
     const obj = tr.drive ? r.car : tr.ride ? r.bike : r.mesh;
     if ((frameNo + r.id) % 20 === 0) { lodV.copy(obj.position).project(camera); r.far = farZoom || Math.abs(lodV.x) > 1.15 || Math.abs(lodV.y) > 1.15; }
     r.lodDist += tr.speed * simDt;

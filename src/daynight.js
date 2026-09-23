@@ -14,6 +14,10 @@ function refreshPowered() {
 import { hourOf, dayOf, daylight, carMeshes } from './sim.js';
 import { ui } from './ui.js';
 import { W, weatherWord } from './weather.js';
+import { lookK } from './look.js';
+import { waterUniforms } from './water.js';
+const RICH = { sunDay: new THREE.Color('#fff0d8'), hemiDay: new THREE.Color('#cadcee'), gDay: new THREE.Color('#d9c4a2'), fill: new THREE.Color('#9fb9dc'), fillBase: new THREE.Color('#cfe3f5'),
+ };
 const GREY = new THREE.Color('#b8c3c8'), COLD = new THREE.Color('#dfe8ee');
 
 const C = { skyDay: new THREE.Color(PAL.skyDay), skyDusk: new THREE.Color(PAL.skyDusk), skyNight: new THREE.Color(PAL.skyNight),
@@ -26,13 +30,20 @@ function envUpdate(realT) {
   const over = Math.max(0, W.cover - 0.3) / 0.7 * d;   // overcast: the sky greys and the sun softens, by day
   C.tmp.lerp(GREY, over * 0.7); C.tmp.lerp(COLD, W.snow * 0.25 * d);   // under snow the sky pales and cools
   renderer.setClearColor(C.tmp); scene.fog.color.copy(C.tmp);
-  hemi.color.copy(C.hemiNight).lerp(C.hemiDay, d); hemi.groundColor.copy(C.gNight).lerp(C.gDay, d); hemi.intensity = lerp(0.72, 0.9, d);
+  const lk = lookK();
+  C.tmp2.copy(C.hemiDay).lerp(RICH.hemiDay, lk); hemi.color.copy(C.hemiNight).lerp(C.tmp2, d);
+  C.tmp2.copy(C.gDay).lerp(RICH.gDay, lk); hemi.groundColor.copy(C.gNight).lerp(C.tmp2, d); hemi.intensity = lerp(0.72, lerp(0.9, 0.78, lk), d);
   // the sun's arc, held at the horizon outside daylight, slides over to the moon's place as the light fades: shadows never snap
   const a = ((clamp(h, 5.5, 19.5) - 6) / 12) * Math.PI;
   C.arc.set(-Math.cos(a) * 60, Math.max(14, Math.sin(a) * 70 + 8), 36);
   sun.position.copy(C.arc).lerp(C.moonPos, night);
-  sun.intensity = lerp(0.55, 1.6, d) * (1 - 0.55 * over - 0.15 * W.rain * d); C.tmp2.copy(C.sunDay).lerp(C.sunDusk, dusk * 0.7); sun.color.copy(C.moon).lerp(C.tmp2, d);
-  fill.intensity = lerp(0.3, 0.35, d);
+  sun.intensity = lerp(0.55, lerp(1.6, 1.8, lk), d) * (1 - 0.55 * over - 0.15 * W.rain * d); C.tmp2.copy(C.sunDay).lerp(RICH.sunDay, lk).lerp(C.sunDusk, dusk * 0.7); sun.color.copy(C.moon).lerp(C.tmp2, d);
+  fill.intensity = lerp(0.3, lerp(0.35, 0.42, lk), d); fill.color.copy(RICH.fillBase).lerp(RICH.fill, lk);
+  waterUniforms.uSky.value.copy(C.tmp); waterUniforms.uDay.value = d;   // the sea takes a hint of the sky; crest glints fade at night
+  waterUniforms.uDeep.value.set(lk ? '#365b6c' : '#487c8b');
+  waterUniforms.uShallow.value.set(lk ? '#527b85' : '#7aa7ad');
+  waterUniforms.uRich.value = lk;
+  scene.fog.near = lerp(118, 108, lk); scene.fog.far = lerp(200, 168, lk);   // a little haze toward the top of the screen
   renderer.toneMappingExposure = lerp(1.0, 1.05, d) - 0.06 * over;
   setWet(W.winter ? 0 : W.rain);   // snow does not darken the streets like rain
   lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness

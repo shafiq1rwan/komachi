@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 39 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 41 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -30,7 +30,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Conventions
 
-- Colours come from `PAL` in `src/palette.js` only, desaturated. See docs/ART_DIRECTION.md.
+- The standard look is the rich one (decided 2026-09-23; see docs/ART_DIRECTION.md): muted fresh colours, AO, light tilt-shift, calm bay water,
+  stone waterfront; classic (pastel, flat) stays one click away. Colours come from `PAL` in `src/palette.js`; the rich overrides still sit
+  beside their code (geometry.js `colorize`, rich-buildings.js, rich-streets.js, water.js, daynight.js `RICH`) and belong in PAL when next touched.
+  No surface train or railway anywhere: the underground line at Komachi Station is the only railway (the user removed a coastal one 2026-09-23).
 - Static geometry is merged (`mergeMesh`) with vertex colours; per-unit only the window mesh and glow.
   `mergeGeometries` needs all-indexed or all-non-indexed; `mergeMesh` converts to non-indexed.
 - Building generators must set `u.door` so trips start on the doorstep. Front is local +z.
@@ -127,6 +130,29 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   hidden when cam.view > 20). sim.js starts talks for bench chats and passers-by (`meetPasser`: `knows()` = same hh/home block/job block,
   `r.meetUntil` holds both walkers, 3 h cooldown `r.metAt`); `pickTopic` chooses weather/food/home/etc. Puddles: world.js fills `puddleSpots`
   in rebuildRoads (`puddleVersionOf`), weather.js pools them with `W.wet` (fills in rain, dries ~1 h, none in winter).
+- Rich look buildings (2026-09-23): src/rich-buildings.js `genRichBuilding` (slate hip-roof house) is used only for one-cell detached homes and
+  villas; shops, workspaces and every other home keep their own generators in the rich look too, so 1/2/3-cell tiers, kinds, finishes and
+  facades still read. The rich HUD reskin in styles.css sits under `body.rich-hud` (never set): the rich look uses the standard HUD.
+- Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
+  `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
+- Look (src/look.js): `S.look` rich (default) | classic (`komachi.lookStyle`, `?look=classic`, #btn-look on = rich); `?demo=dense` is the dense
+  street-grid showcase (scripts/capture-rich.mjs), plain `?demo` the normal demo town, and a fresh start is always an empty island; `renderFrame()` replaces
+  renderer.render in main.js (composer only built in rich: RenderPass → GTAO (see-through meshes hidden from its depth) → tilt-shift H/V →
+  OutputPass → GRADE); `lookK()` drives daynight.js light/sea/fog and `lookUniform` in geometry.js (patchy tone on upward faces, in the
+  withSnow injection, cache keys snow2). Rich is the default since 2026-09-23; smoke runs in it.
+- Landmarks (Phase 6, src/landmarks.js): `placeLandmarks()` in main.js after restore/demo (deterministic from the island, so the same
+  cells each session): lighthouse (`c.landmark = 'lighthouse'`, tiers rock stretch → rock point → not beach, ≥2 cells from hill/terraces,
+  ≥3 from slip/yard; lens material cloned, one additive `beam` that dims over land), arched bridge on a straight canal cell ('bridge',
+  banks 'bridge-end' which may take a street), park pavilion ('pavilion', scale 0.66, entrance toward the bridge bank, cherries via
+  world.js `landmarkTrees` drawn in rebuildDecor). `placeable` refuses any `c.landmark`; `drawable` allows only 'bridge-end'.
+  `landmarks` entries carry `anchor`, `walk(road)`, `hold`, `activity`, `face`, pavilion `seats`; `landmarkRoads()` pairs each with the
+  nearest flat street within 4.5. sim.js `visitLandmark` (30 % of dry strolls) / `atLandmark` (hold with `r.paused`, sit on a free seat,
+  walk the points back, home). `updateLandmarks(dt, night)` in the main loop.
+- Milestones: src/milestone.js (`announce({ title, line, icon, at, view, onLook })`, `updateMilestone()` in the main loop, `cancelGlide`,
+  `gliding`, `milestoneShown`); a cream card under the top bar, ~10 s, "Go and look" glides `cam.target`/`tView` in, holds, back; input ends it.
+  The hill opening: `openHill` records and calls `onHillOpened` listeners (main.js: `sendHillCrew(top, down)` in construction.js at the top of the
+  ramp chain nearest the station, list `hillCrew`; `lightLanterns()` in world.js, `lanterns` have their own materials, `updateLanterns()` each frame).
+  Later milestones (first festival, hundredth resident, ferry's first call) reuse `announce`.
 - Sea life lives in src/sea.js: fish leaps and splashes, the pier boat's wake, a dolphin pod (`pod`, src/dolphins.js) and the waterfall splash
   (`fallFeet` exported by island.js; puffs and mist in `updateSplash`). The ferry's own wake is in ferry.js (`updateWake`).
 - Snow: `snowUniform`/`setSnow` in geometry.js; `withSnow(material)` injects a fragment whitening of upward faces into `mat()`, `vcMat`, `vcMatFlat`

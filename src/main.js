@@ -2,9 +2,12 @@
 import * as THREE from 'three';
 import { lerp, hash } from './utils.js';
 import { S } from './state.js';
-import { renderer, scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
-import { puddleSpots, puddleVersionOf, refreshCivicFlags, placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots } from './world.js';
-import { updateConstruction, workers } from './construction.js';
+import { scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
+import { puddleSpots, puddleVersionOf, refreshCivicFlags, placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, onHillOpened, lanterns, lightLanterns, updateLanterns, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots } from './world.js';
+import { updateConstruction, workers, sendHillCrew, holdHillCrew, hillCrew } from './construction.js';
+import { placeLandmarks, updateLandmarks, landmarks } from './landmarks.js';
+import { renderFrame, setLook } from './look.js';
+import { announce, updateMilestone, milestoneShown, cancelGlide, gliding } from './milestone.js';
 import { updateCharacters, characterAvailable } from './characters.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
@@ -15,10 +18,38 @@ import '@fortawesome/fontawesome-free/css/all.min.css';
 import { setSwayTime } from './geometry.js';
 import { chronicle } from './chronicle.js';
 import { W, setWeather, updateWeather, setPuddleSource } from './weather.js';
+import './minimap.js';
 import { updateSeasons, seasonOf } from './seasons.js';
 import { updateBubbles, talks } from './bubbles.js';
 /** at the season's turn the canopies take their new colour: decor and the station's planter trees are rebuilt */
 setPuddleSource(puddleSpots, puddleVersionOf);   // weather.js draws puddles where world.js says streets lie
+// the first milestone: the hill opens. The lanterns light one by one from the foot of the shrine path, the road crew stands at the
+// top of the slope road nearest the station, and the card offers to go and look (the lanterns light again as the camera arrives)
+onHillOpened(() => {
+  let best = null, bd = Infinity;
+  for (const r of cells) {
+    if (!r.ramp || r.type !== 'road') continue;
+    const { di, dj } = r.ramp, a = cell(r.i + di, r.j + dj), b = cell(r.i - di, r.j - dj); if (!a || !b) continue;
+    const top = (a.h || 0) > (b.h || 0) ? a : b, lo = top === a ? b : a, d = Math.hypot(r.i - STATION.anchor.cell.i, r.j - STATION.anchor.cell.j);
+    if (top.type === 'road' && d < bd) { bd = d; best = { top, down: new THREE.Vector3(lo.i - top.i, 0, lo.j - top.j).normalize() }; }
+  }
+  for (let up = true; best && up;) {   // climb the chain of ramps to the top of the whole slope road
+    up = false;
+    for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      const r = cell(best.top.i + di, best.top.j + dj); if (!r || !r.ramp || r.type !== 'road') continue;
+      const a = cell(r.i + r.ramp.di, r.j + r.ramp.dj), b = cell(r.i - r.ramp.di, r.j - r.ramp.dj); if (!a || !b) continue;
+      const top = (a.h || 0) > (b.h || 0) ? a : b;
+      if (top.type === 'road' && (top.h || 0) > (best.top.h || 0)) { best = { top, down: new THREE.Vector3(r.i - top.i, 0, r.j - top.j).normalize() }; up = true; break; }
+    }
+  }
+  if (best) sendHillCrew(best.top, best.down);
+  lightLanterns();
+  const pts = lanterns.map(L => L.pos); if (best) pts.push(new THREE.Vector3(cx(best.top.i), best.top.h || 0, cz(best.top.j)));
+  const at = pts.reduce((s, p) => s.add(p), new THREE.Vector3()).multiplyScalar(1 / Math.max(1, pts.length));
+  const span = Math.max(...pts.map(p => Math.hypot(p.x - at.x, p.z - at.z)), 1);
+  announce({ title: 'The hill is open', line: 'The town has grown. A road crew has opened the hill road, and the shrine path is lit.', icon: 'hill',
+    at, view: Math.min(12, Math.max(5, span * 2.6 + 2)), onLook: () => { setFollow(null); lightLanterns(); holdHillCrew(0.8); } });
+});
 function onSeasonTurn() { rebuildDecor(); if (STATION.block) for (const u of STATION.block.units) rebuildUnitMesh(u); }
 import { HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
@@ -50,10 +81,10 @@ function frame(now) {
   updateCharacters(simDt);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
+  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
-  renderer.render(scene, camera);
+  renderFrame();
   requestAnimationFrame(frame);
 }
 
@@ -72,15 +103,40 @@ function demoTown() {
   put('res', [[14, 16], [14, 17]]); put('res', [[20, 16], [20, 17], [20, 18]]); put('res', [[16, 14], [17, 14]]);
   put('shop', [[13, 20]]); put('shop', [[19, 20]]);   // the first shop stands beside the side street, not on it
   put('work', [[20, 13], [20, 14]]); put('work', [[15, 20], [16, 20]]);   // one cell west of the taxis' car park across from the entrance
+  const dense = new URLSearchParams(location.search).get('demo') === 'dense';
+  if (dense) {
+    // ?demo=dense: the reference view is a lived-in neighborhood. A connected street grid gives a
+    // fresh rich session that density while every lot stays editable in the game.
+    for (let j = 8; j <= 32; j++) for (let i = 8; i <= 32; i++) {
+      if (i % 4 !== 2 && j % 4 !== 2) continue;
+      const c = cell(i, j);
+      if (c.type !== 'empty' || c.h || c.keep || c.landmark || coastDist(cx(i), cz(j)) < 2.4) continue;
+      c.type = 'road'; c.tree = null; c.drawn = true;
+    }
+    rebuildRoads(); rebuildDecor();
+    const plots = cells.filter(c => c.i >= 9 && c.i <= 31 && c.j >= 9 && c.j <= 31 && c.type === 'empty' && !c.h && !c.keep && !c.landmark && coastDist(cx(c.i), cz(c.j)) > 2.6 && frontRoads([c]).length && Math.hypot(c.i - HALF, c.j - HALF) > 4);
+    plots.sort((a, b) => hash(a.i * 7 + 5, a.j * 11 + 3) - hash(b.i * 7 + 5, b.j * 11 + 3));
+    const counts = { res: 0, shop: 0, work: 0 };
+    for (const c of plots) {
+      if (counts.res + counts.shop + counts.work >= 48) break;
+      const h = hash(c.i * 13 + 2, c.j * 17 + 4);
+      const type = h < 0.58 ? 'res' : h < 0.78 ? 'shop' : 'work';
+      if (counts[type] >= { res: 30, shop: 9, work: 9 }[type]) continue;
+      const b = placeBlock(type, [c]); counts[type]++;
+      const height = hash(c.i * 5 + 23, c.j * 9 + 19);
+      b.level = height > 0.91 ? 3 : height > 0.57 ? 2 : 1;
+    }
+  }
   for (const b of blocks) { if (b.type !== 'station') { b.stage = DONE; for (const u of b.units) rebuildUnitMesh(u); } }
-  cam.target.set(cx(HALF), 0, cz(HALF)); cam.tView = cam.view = 14;
-  fastForward(30); S.T = Math.floor(S.T / 24) * 24 + 13;
+  cam.target.set(cx(HALF), 0, cz(HALF)); cam.tView = cam.view = dense ? 20.5 : 14;
+  fastForward(30); S.T = Math.floor(S.T / 24) * 24 + (dense ? 10.4 : 13);
+  if (dense) { setWeather('clear', 48); W.cover = W.tCover; W.rain = 0; W.wet = 0; }
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
   placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
-  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry,
+  parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, hillCrew, lanterns, landmarks, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
   project: (i, j, y = 0) => { const v = new THREE.Vector3(cx(i), y, cz(j)).project(camera); return { x: (v.x + 1) / 2 * innerWidth, y: (1 - v.y) / 2 * innerHeight }; },
 };
@@ -91,6 +147,7 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
   const saved = !S.fresh && loadData();
   if (saved && saved.seed === S.seed && saved.biome === S.biome) { const n = restore(saved); lastSave = S.T; if (n) toast('Welcome back to Komachi'); document.getElementById('intro')?.remove(); setTool('explore'); }
   else if (new URLSearchParams(location.search).has('demo')) demoTown();
+  placeLandmarks();   // after the town is back, so the lighthouse, bridge and pavilion keep clear of anything already built
 }
 addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
 document.getElementById('loading').classList.add('gone');

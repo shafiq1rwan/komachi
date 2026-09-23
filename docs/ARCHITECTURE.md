@@ -8,7 +8,7 @@ palette ─┐
 utils ───┼─► geometry ─► scene ─► buildings ─► world ─► sim ─► daynight
 state ───┘                                        │        │        │
                                                   └────────┴─► ui ─► input ─► main
-toast (standalone, used by sim, input, main)
+toast (standalone, used by sim, input, main); milestone (scene only, used by main)
 ```
 
 ## Core concepts
@@ -229,3 +229,32 @@ the game headlessly. `?demo` in the URL builds a small town and fast-forwards a 
 - **A new activity:** add an option in `decide()` in `sim.js` with a score built from a need, give it an
   `actKind` that `tickNeeds` refills, and labels in the `*_ACTS` lists.
 - **A new colour:** add it to `PAL` in `palette.js` and nowhere else. Keep saturation low.
+
+## Milestones
+
+`milestone.js` owns one DOM card (`#milestone`) and a camera glide. `announce({ title, line, icon, at, view, onLook })` fills the
+card and shows it for about ten seconds; "Go and look" eases `cam.target` and `cam.tView` to `at`/`view` over 1.4 s, holds 5 s
+and eases back to the saved view. `updateMilestone()` runs once a frame from main.js; a pointer-down or wheel on the canvas,
+or a move key, ends the glide where it is. The module only imports `scene.js`, so any system can raise a milestone through
+a hook that main.js wires up. The hill opening is the first: `openHill` in world.js records it in the chronicle and calls
+its `onHillOpened` listeners; main.js finds the top of the ramp chain nearest the station and sends the road crew there
+(`sendHillCrew` in construction.js keeps them in `hillCrew`, apart from site crews), starts `lightLanterns()` and announces.
+The shrine-path lanterns carry their own materials; `updateLanterns()` lights them one by one during the show and otherwise
+copies the street lamps' level that daynight.js sets on `lampHeadMat`/`lampGlowMat`.
+
+## Landmarks
+
+`landmarks.js` places the island's landmarks once, after the town has loaded (restored or fresh), from the island and the cells
+alone, so a given island gets the same places every session. It imports world.js, island.js and the kit, and sim.js reads
+it (never the other way). The lighthouse takes the most seaward rocky cell (then a rocky point, then any shore that is not sand),
+kept clear of the hill, the pier, the canal mouths, the slipway and the yard; its lens material is cloned so it can glow, and a
+single additive wedge sweeps round at night, dimmed when it points inland. The arched footbridge sits on a straight canal cell
+with plain land on both banks and no street within three cells along the canal; the park pavilion takes a plain cell next to a
+bank, preferring one with no street beside it, and two cherries are drawn with the decor from `landmarkTrees`.
+
+Every landmark cell carries `c.landmark`; `placeable` refuses them and `drawable` allows only the bridge's banks. Each entry in
+`landmarks` describes a visit: an `anchor`, `walk(road)` giving the points from the street's kerb to the spot (trip points
+hold height above the ground, so the bridge's rising deck is just higher points), a `hold` range, an `activity`, a `face`
+and, for the pavilion, `seats`. In sim.js a dry-weather stroll sometimes becomes `visitLandmark`: the street route to the
+nearest street, then the walk points; `atLandmark` holds the walker still (`r.paused`), seats them if there is a free bench,
+then walks the points back to the kerb and routes home.

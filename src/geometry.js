@@ -2,24 +2,44 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/addons/utils/BufferGeometryUtils.js';
 import { PAL } from './palette.js';
+import { S } from './state.js';
 
 // snow: one shared amount (0 bare, 1 deep winter) whitens upward faces in every town material; darker surfaces (asphalt) take less
 const snowUniform = { value: 0 };
+const lookUniform = { value: 0 };   // 1 in the rich look (look.js): a gentle patchy tone on upward faces, like mown grass and weathered roofs
+const shaderColor = hex => { const c = new THREE.Color(hex); return `vec3(${c.r.toFixed(5)}, ${c.g.toFixed(5)}, ${c.b.toFixed(5)})`; };
+const richRoadColor = shaderColor(PAL.asphalt), richRoadColor2 = shaderColor(PAL.asphalt2), richWalkColor = shaderColor(PAL.sidewalk);
 function setSnow(v) { snowUniform.value = v; }
 function withSnow(material, floor = 0.35) {   // floor: the share of snow even the darkest surface takes (asphalt stays dark at 0.35)
   const prev = material.onBeforeCompile;
   material.onBeforeCompile = sh => {
     if (prev) prev(sh);
-    sh.uniforms.uSnow = snowUniform;
+    sh.uniforms.uSnow = snowUniform; sh.uniforms.uLook = lookUniform;
+    sh.vertexShader = sh.vertexShader
+      .replace('#include <common>', `#include <common>
+varying vec3 vLookPos;`)
+      .replace('#include <begin_vertex>', `#include <begin_vertex>
+ vLookPos = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
     sh.fragmentShader = sh.fragmentShader
       .replace('#include <common>', `#include <common>
-uniform float uSnow;`)
+uniform float uSnow; uniform float uLook; varying vec3 vLookPos;
+float lookN(vec2 p) { vec2 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+  float a = fract(sin(dot(i, vec2(127.1, 311.7))) * 43758.55), b = fract(sin(dot(i + vec2(1.0, 0.0), vec2(127.1, 311.7))) * 43758.55);
+  float c = fract(sin(dot(i + vec2(0.0, 1.0), vec2(127.1, 311.7))) * 43758.55), d = fract(sin(dot(i + vec2(1.0, 1.0), vec2(127.1, 311.7))) * 43758.55);
+  return mix(mix(a, b, f.x), mix(c, d, f.x), f.y); }`)
       .replace('#include <normal_fragment_begin>', `#include <normal_fragment_begin>
  float snowUp = smoothstep(0.45, 0.85, dot(normal, normalize((viewMatrix * vec4(0.0, 1.0, 0.0, 0.0)).xyz)));
+ float richRoad = max(1.0 - smoothstep(0.006, 0.035, distance(diffuseColor.rgb, ${richRoadColor})), 1.0 - smoothstep(0.006, 0.035, distance(diffuseColor.rgb, ${richRoadColor2})));
+ float richWalk = 1.0 - smoothstep(0.006, 0.035, distance(diffuseColor.rgb, ${richWalkColor}));
+ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.105, 0.126, 0.145), richRoad * uLook);
+ diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.57, 0.57, 0.53), richWalk * uLook);
+ float foliage = smoothstep(0.015, 0.075, diffuseColor.g - max(diffuseColor.r, diffuseColor.b)) * (1.0 - richRoad);
+ diffuseColor.rgb *= mix(vec3(1.0), vec3(0.82, 0.86, 0.80), foliage * uLook * 0.65);
+ if (uLook > 0.0) { float n = lookN(vLookPos.xz * 0.45) * 0.65 + lookN(vLookPos.xz * 1.7) * 0.35; diffuseColor.rgb *= 1.0 + (n - 0.5) * 0.22 * uLook * snowUp; }
  float snowLum = dot(diffuseColor.rgb, vec3(0.3, 0.59, 0.11));
  diffuseColor.rgb = mix(diffuseColor.rgb, vec3(0.93, 0.95, 0.975), uSnow * snowUp * (${floor.toFixed(2)} + ${(1 - floor).toFixed(2)} * smoothstep(0.15, 0.5, snowLum)));`);
   };
-  material.customProgramCacheKey = () => 'snow' + (floor === 0.35 ? '' : floor) + (prev ? '+' : '');
+  material.customProgramCacheKey = () => 'snow2' + (floor === 0.35 ? '' : floor) + (prev ? '+' : '');
   return material;
 }
 // kit Groups (civic, town services, landmarks, the station pavilion) bring their own materials: snow them in place, once each
@@ -55,9 +75,14 @@ uniform float uTime;`)
  transformed.x += (sin(uTime * 1.5 + transformed.z * 0.6 + transformed.x * 0.4) * 0.07 + 0.03) * swayH * gust;
  transformed.z += cos(uTime * 1.15 + transformed.x * 0.5) * 0.045 * swayH * gust;`);
 };
-swayMat.customProgramCacheKey = () => 'snow+sway';
+swayMat.customProgramCacheKey = () => 'snow2+sway';
 function setSwayTime(t) { swayUniform.value = t; }
 function colorize(geom, hex) {
+  if (S.look === 'rich') {
+    if (hex === PAL.asphalt || hex === PAL.asphalt2) hex = '#6d7376';
+    else if (hex === PAL.sidewalk) hex = '#c8c7be';
+    else if (['#c8d7ad', '#cddbb3', '#c2d4a9'].includes(hex)) hex = '#9db68a';
+  }
   const c = new THREE.Color(hex); const n = geom.attributes.position.count; const arr = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) { arr[i * 3] = c.r; arr[i * 3 + 1] = c.g; arr[i * 3 + 2] = c.b; }
   geom.setAttribute('color', new THREE.BufferAttribute(arr, 3)); return geom;
@@ -117,4 +142,4 @@ function lightCone(x, yTop, z, rTop, rBottom, hex) {
   g.setAttribute('color', new THREE.BufferAttribute(col, 3)); g.translate(x, 0.1 + h / 2, z); return g;
 }
 
-export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, setSnow, snowUniform, withSnow, snowKit, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };
+export { mat, vcMat, vcMatFlat, swayMat, setSwayTime, setSnow, snowUniform, lookUniform, withSnow, snowKit, colorize, box, prism, blob, cyl, mergeMesh, glowTex, glowMat, glowGeo, makeGlow, lampHeadMat, coneMat, lightCone };

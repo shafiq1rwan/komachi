@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
+import { setLook, sizeLook } from './look.js';
 import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
 import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit, hill, HILL_UNLOCK, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason, joinedToTown, tierLabel, placeCarPark } from './world.js';
 import { clearSave } from './save.js';
@@ -20,8 +21,10 @@ let gesture = null;          // {dist, ang, view, yaw} while two fingers are dow
 function setTool(t) { tool = t; ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
-document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); try { localStorage.setItem('komachi.pixelLook', S.pixelLook ? '1' : '0'); } catch { /* storage unavailable */ } });
+document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); sizeLook(); try { localStorage.setItem('komachi.pixelLook', S.pixelLook ? '1' : '0'); } catch { /* storage unavailable */ } });
 document.getElementById('btn-pixel').classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook);   // apply the remembered choice
+document.getElementById('btn-look').addEventListener('click', e => { setLook(S.look === 'rich' ? 'classic' : 'rich'); e.currentTarget.classList.toggle('on', S.look === 'rich'); });
+document.getElementById('btn-look').classList.toggle('on', S.look === 'rich');
 document.getElementById('btn-reset').addEventListener('click', () => { if (confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; } });
 // the inspect card's follow button
 /** turn the hovered or pinned building to face its next street */
