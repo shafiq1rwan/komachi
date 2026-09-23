@@ -64,7 +64,7 @@ function walkTo(t, destRoad, end, label, onArrive) {
   return true;
 }
 function spawnTourist() {
-  const opts = landmarkRoads().filter(o => o.l.kind !== 'pier' && routeCells(stationRoads(), [o.road])); if (!opts.length) return null;
+  const opts = landmarkRoads().filter(o => o.l.kind !== 'pier' && o.l.kind !== 'fishmarket' && routeCells(stationRoads(), [o.road])); if (!opts.length) return null;
   const t = makeTourist(); tourists.push(t);
   t.mesh.position.copy(STATION.entrance); t.mesh.visible = true;
   const pool = opts.slice().sort(() => Math.random() - 0.5), first = pool[0], lh = pool.find(o => o.l.kind === 'lighthouse');

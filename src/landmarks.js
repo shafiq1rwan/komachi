@@ -12,6 +12,7 @@ import { cells, cell, rebuildDecor, landmarkTrees, terrainY, placeCarPark, DIR4,
 import { coastDist, shoreKind, pierAngle, canalMouths, islandEllipse, radius, pierFrame } from './island.js';
 import { createStreetFurniture } from './street-furniture.js';
 import { createBike } from './bikes.js';
+import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { createFestivalLandmark } from './festival-landmark-kit.js';
 import { snowKit } from './geometry.js';
 import { PAL } from './palette.js';
@@ -176,8 +177,50 @@ function placePier() {
       return { ...entry, spot: s, face: s.face, walk: road => [kerbToward(road, land), land.clone(), P.at(0.12, 0), P.at(Math.min(s.a, P.len - 0.35), 0), s.pos.clone()] };
     } };
   landmarks.push(entry);
+  // the fish market on its own lot by the quay's land end (next to the car park, a street-side cell first): a paved pad, a stall
+  // facing the street under a sloping roof with a striped valance, a long table of ice, crates and a bucket; the fish are laid
+  // out only while the morning's catch is in (setFishStall)
+  let stallLot = null, sd = 3.6, market = null;
+  for (const c of cells) {
+    if (c.type !== 'empty' || (c.h || 0) || c.keep || c.coast || c.yard || c.slip || c.landmark || c.park) continue;
+    const road = DIR4.map(([a, b]) => cell(c.i + a, c.j + b)).find(n => n && n.type === 'road');
+    const d = Math.hypot(cx(c.i) - land.x, cz(c.j) - land.z) + (road ? 0 : 1.2); if (d < sd) { sd = d; stallLot = c; }
+  }
+  if (stallLot) {
+    stallLot.landmark = 'fish-market'; stallLot.tree = null;
+    const x0 = cx(stallLot.i), z0 = cz(stallLot.j);
+    const road = DIR4.map(([a, b]) => cell(stallLot.i + a, stallLot.j + b)).find(n => n && n.type === 'road');
+    const toward = road ? new THREE.Vector3(cx(road.i) - x0, 0, cz(road.j) - z0) : new THREE.Vector3(land.x - x0, 0, land.z - z0);
+    const rot = Math.atan2(toward.x, toward.z);   // the stall's front (+z) to the street
+    const frame = new THREE.Group(); frame.position.set(x0, terrainY(x0, z0), z0); frame.rotation.y = rot; scene.add(frame);
+    const g = [], post = '#5a4636', S2 = 1.7;   // the quay-sized stall, scaled up to fill a lot
+    g.push(box(0.9, 0.02, 0.9, '#c9c3b4', 0, 0.01, 0)); for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) g.push(box(0.28, 0.006, 0.28, (i + j) % 2 ? '#d6d1c4' : '#cbc6b8', -0.3 + i * 0.3, 0.022, -0.3 + j * 0.3));
+    const part = [];
+    for (const [x, z] of [[-0.17, -0.12], [0.17, -0.12], [-0.17, 0.12], [0.17, 0.12]]) part.push(box(0.022, 0.34, 0.022, post, x, 0.17, z));
+    const roof = new THREE.BoxGeometry(0.44, 0.022, 0.34); roof.rotateX(-0.22); roof.translate(0, 0.36, 0.01); part.push(colorize(roof, PAL.kawara2));
+    for (let q = 0; q < 6; q++) part.push(box(0.068, 0.05, 0.006, q % 2 ? PAL.cream2 : PAL.roofBlue, -0.17 + q * 0.068, 0.31, 0.165));
+    part.push(box(0.36, 0.02, 0.18, '#b08a62', 0, 0.16, 0.03)); for (const x of [-0.16, 0.16]) part.push(box(0.02, 0.15, 0.16, '#b08a62', x, 0.08, 0.03));
+    part.push(box(0.32, 0.012, 0.15, '#eef3f5', 0, 0.176, 0.03));
+    for (let k = 0; k < 2; k++) part.push(box(0.12, 0.06, 0.09, PAL.roofBlue, -0.12 + k * 0.24, 0.03, -0.1));
+    part.push(cyl(0.05, 0.05, 0.08, '#6f9a96', 0.12, 0.04, -0.02, 10));
+    for (const p of part) { p.scale(S2, S2, S2); p.translate(0, 0.02, -0.12); g.push(p); }
+    for (let k = 0; k < 3; k++) g.push(box(0.16, 0.08, 0.12, PAL.roofBlue, 0.3, 0.06 + k * 0.085, -0.34));   // a stack of empty crates at the back
+    const sm = mergeMesh(g, true); if (sm) frame.add(sm);
+    const f = []; for (let k = 0; k < 12; k++) { const fx = -0.24 + (k % 6) * 0.095, fz = k < 6 ? -0.1 : -0.02; const fish = new THREE.DodecahedronGeometry(0.03); fish.scale(1.9, 0.45, 0.8); fish.translate(fx, 0.33, fz); f.push(colorize(fish, k % 3 ? '#b9c6cc' : '#d9a08a')); }
+    fishMesh = mergeMesh(f, true); if (fishMesh) { fishMesh.visible = false; frame.add(fishMesh); }
+    frame.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const front = frame.localToWorld(new THREE.Vector3(0, 0, 0.28)).setY(0.1), buy = [];
+    for (const x of [-0.22, 0, 0.22]) buy.push(frame.localToWorld(new THREE.Vector3(x, 0, 0.26)).setY(0.1));
+    market = { kind: 'fishmarket', name: 'the fish market', label: 'off to buy fish at the market', activity: 'buying fish at the market', hold: [0.15, 0.3], anchor: front, bag: true, market: true,
+      face: rot + Math.PI, target: frame.position.clone().setY(0.3), available: () => fishOut,
+      walk: road => [kerbToward(road, front), buy[Math.floor(Math.random() * buy.length)].clone()] };
+  }
+  if (market) landmarks.push(market);
   rebuildDecor();
 }
+let fishMesh = null, fishOut = false;
+/** fishing.js: the catch is laid out on the stall (and the market visit opens) or cleared away */
+function setFishStall(on) { fishOut = !!on; if (fishMesh) fishMesh.visible = fishOut; }
 
 /** once, after the town is loaded: the island's landmarks and the cells they keep */
 function placeLandmarks() {
@@ -187,7 +230,7 @@ function placeLandmarks() {
 /** a landmark worth walking out to from a street, with the street it is reached from (the quay hands out a free fishing place) */
 function landmarkRoads() {
   const out = [];
-  for (const l of landmarks) { const road = roadNear(l.anchor); if (!road) continue; const v = l.visit ? l.visit() : l; if (v) out.push({ l: v, road }); }
+  for (const l of landmarks) { if (l.available && !l.available()) continue; const road = roadNear(l.anchor); if (!road) continue; const v = l.visit ? l.visit() : l; if (v) out.push({ l: v, road }); }
   return out;
 }
 
@@ -206,4 +249,4 @@ function updateLandmarks(dt, night) {
     beam.material.opacity = Math.max(0, night - 0.15) * 0.5 * (0.1 + 0.9 * f * f * (3 - 2 * f)); beam.visible = beam.material.opacity > 0.01;
   }
 }
-export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads };
+export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads, setFishStall };

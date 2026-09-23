@@ -297,6 +297,12 @@ try {
     MT.tourism.forceWeekend = false; return { plot: true, kind: b.kind, guest: !!guest, inn, label: MT.tierLabel ? true : true };
   });
   check('ryokan: a visitor stays the night at the inn on the hill', ry.plot && ry.kind === 'ryokan' && ry.guest && ry.inn, JSON.stringify(ry));
+  const fsh = await page.evaluate(() => {   // Phase 7 fishing: the boat goes out at dawn and its catch lays out the quay stall
+    MT.setSpeed(0); MT.setWeather('clear', 30); MT.fastForward((29.2 - MT.T % 24) % 24); const b = MT.scene.getObjectByName('quay-boat'); if (!b) return { boat: false };
+    const home = b.position.clone(); MT.fastForward(2.5); const away = b.position.distanceTo(home); MT.fastForward(4.5);
+    return { boat: true, away: +away.toFixed(2), catch: MT.catchToday(), market: MT.landmarkRoads().some(o => o.l.kind === 'fishmarket'), chron: MT.chronicle.some(e => /first catch/.test(e.text)) };
+  });
+  check('fishing: the boat sails at dawn and its catch opens the quay fish stall', fsh.boat && fsh.away > 1.5 && fsh.catch && fsh.market && fsh.chron, JSON.stringify(fsh));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

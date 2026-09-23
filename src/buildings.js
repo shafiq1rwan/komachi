@@ -747,6 +747,12 @@ function rebuildUnitMesh(u, pop = false) {
     if (prop) { prop.scale.setScalar(s); prop.position.set(...pos); prop.traverse(o => { if (o.isMesh) o.castShadow = true; }); snowKit(prop); grp.add(prop); }
     const nb = createCivicProp('notice-board'); nb.scale.setScalar(0.65); nb.position.set(-0.36, 0.12, 0.36); snowKit(nb); grp.add(nb);   // the community notice board on the pavement corner
   }
+  if (b.type === 'shop' && b.fishDay && b.fishDay === Math.floor(S.T / 24) + 1 && Math.max(0, b.units.indexOf(u)) === 0) {   // today's catch from the quay
+    const fg = [], dx = (u.door && u.door.x > 0) ? -0.3 : 0.3;
+    fg.push(box(0.16, 0.07, 0.12, PAL.roofBlue, dx, 0.155, 0.43)); fg.push(box(0.14, 0.01, 0.1, '#eef3f5', dx, 0.195, 0.43));
+    for (let q = 0; q < 4; q++) { const fsh = new THREE.DodecahedronGeometry(0.018); fsh.scale(1.9, 0.45, 0.8); fsh.translate(dx - 0.045 + (q % 2) * 0.05, 0.205, 0.41 + Math.floor(q / 2) * 0.04); fg.push(colorize(fsh, q % 3 ? '#b9c6cc' : '#d9a08a')); }
+    const fm = mergeMesh(fg, true); if (fm) grp.add(fm);
+  }
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch
     const spots = (!u.di && !u.dj) ? [[-0.285, 0.353, 0.9], [0.285, 0.353, 0.9]] : [];   // the pavilion's two paper lamps

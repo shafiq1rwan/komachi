@@ -69,6 +69,14 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Phase 7, fishing (src/fishing.js): the boat moored at the quay sails at 5:30, works its grounds offshore with slow circles and is
+  back alongside at 10:30 with crates on deck (a stormy morning keeps it in). The catch is laid out at a fish market on its own lot by
+  the quay (a paved pad and a stall facing the street: posts, a sloping roof, a striped valance, a long table of ice, crates) until 18:30, and residents walk down to buy fish for supper,
+  mostly after work, going home with a bag. A van then takes the catch round the grocery, supermarket, ramen shop, restaurant
+  and konbini, leaving a crate of fresh fish at each door for the day.
+- Homemakers: in about half the couples and families one adult keeps the house instead of taking a job. They do the day's
+  shopping, go to the market morning and the quay stall first, and keep the house (washing, sweeping the step, cooking for the
+  family); their card says they keep the house. Saved with the resident.
 - The ryokan: once visitors have started coming and the hill has its tea house, the hill plot market builds a two-storey timber
   inn on a high terrace plot (plaster ground floor, lattice windows behind a balcony rail, a hip-and-gable kawara roof, a deep
   noren and lanterns, a stone lantern and a pine). Weekend and festival visitors who arrive after midday may stay the night

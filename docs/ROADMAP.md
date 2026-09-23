@@ -252,7 +252,9 @@ effect through the town instead.
 ## ⬜ Phase 7 — Farming and fishing
 
 - Farm plots as a zone: fields that change with the season, a farmhouse, a small truck to market
-- Fishing from the pier and small boats; the catch appears at the grocery and ramen shop
+- ✅ Fishing (2026-09-23, src/fishing.js): anglers on the stone quay, the boat's dawn run to its grounds, the catch at a fish market on
+  its own lot by the quay and a van taking it to the grocery, supermarket, ramen shop, restaurant and konbini (a crate at each door).
+  Homemakers came with it: one adult in about half the couples and families keeps the house and does the day's errands
 
 - **Landmarks**: a fish market by the pier, rice paddies with a water wheel on the canal, a greenhouse
 

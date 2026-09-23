@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 46 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 47 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -148,6 +148,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `landmarks` entries carry `anchor`, `walk(road)`, `hold`, `activity`, `face`, pavilion `seats`; `landmarkRoads()` pairs each with the
   nearest flat street within 4.5. sim.js `visitLandmark` (30 % of dry strolls) / `atLandmark` (hold with `r.paused`, sit on a free seat,
   walk the points back, home). `updateLandmarks(dt, night)` in the main loop.
+- Fishing (Phase 7 slice 1, 2026-09-23): src/fishing.js moves the 'quay-boat' group (OUT 5.5, AT 6.4, BACK 9.7, HOME 10.5; skips W.rain > 0.6),
+  `onCatch` listeners (sim.js: fish van, a truck wanderer with `fishVan` + `onStop` setting `b.fishDay` on FISH_SHOPS; buildings.js draws the crate
+  while `b.fishDay` is today; reckonShops clears it), `catchToday()` until 18.5. landmarks.js: the fish market on its own reserved lot (`c.landmark = 'fish-market'`, street-side cell nearest the quay's land end), landmark kind
+  'fishmarket' with `available()`, `setFishStall(on)`; strolls and tourists skip it; decide() adds a fish-buying option 10.5–18.2.
+  Homemakers: `r.homemaker` (saved), chosen once per couple/family in findJob (hash(hh.id, 7) < 0.55); daytime errands, KEEP_ACTS, market and stall first.
 - Ryokan (2026-09-23): shop kind 'ryokan' (`genRyokan`, SHOP_NAMES.ryokan), placed by `hillMarket` when a tea house exists and the chronicle
   has 'first visitors'; never changes trade; lit 6–23.5 in daynight.js. tourists.js: visitors spawned after 11 on weekends/festival days
   may get `t.staying` (INN_ROOMS 6, briefcase as luggage), plan ends with 'inn' → state 'atInn' until 8.4–9.8 next morning, then a last

@@ -14,6 +14,7 @@ import { W } from './weather.js';
 import { startTalk, endTalk } from './bubbles.js';
 import { landmarkRoads } from './landmarks.js';
 import { eventOn, eventVisit } from './events.js';
+import { onCatch, catchToday } from './fishing.js';
 /** what two people would talk about right now: the weather when it is doing something, otherwise the town */
 function pickTopic(r) { if (W.rain > 0.2 || W.snow > 0.3) return 'weather'; const h = hourOf(); if ((h >= 11 && h < 14) || (h >= 17.5 && h < 20)) return 'food'; if (r && r.hh && !r.hh.registered) return 'home'; return pick(['shop', 'train', 'home', 'heart', null]); }
 import { attachCharacter, detachCharacter, holdItem, dropItem } from './characters.js';
@@ -136,6 +137,7 @@ function makeDog(color) {
 
 // ───────────────────────────── residents ─────────────────────────────
 const residents = []; const wanderers = [];
+const KEEP_ACTS = ['hanging out the washing', 'sweeping the step', 'cooking for the family', 'folding laundry', 'tidying the house', 'watering the plants', 'making tea'];
 const HOME_ACTS = ['relaxing at home', 'cooking dinner', 'watering the plants', 'reading a book', 'watching TV', 'tidying up', 'playing games', 'napping'];
 const WORK_ACTS = ['working', 'in a meeting', 'on a call', 'typing away', 'sketching ideas', 'taking a tea break'];
 const CIVIC_ACTS = { townhall: ['stamping forms', 'filing records', 'at the counter', 'answering the phone'], clinic: ['seeing a patient', 'updating charts', 'sterilising instruments', 'at reception'], firestation: ['checking the hoses', 'polishing the truck', 'on standby', 'inspecting the ladder'], community: ['setting out chairs', 'updating the chronicle', 'brewing tea for the class', 'sweeping the hall'], substation: ['checking the transformers', 'reading the meters', 'logging the load', 'tightening a clamp'], waterworks: ['reading the gauges', 'testing the water', 'checking the pumps', 'greasing a valve'], recycling: ['sorting bottles', 'flattening boxes', 'weighing the cans', 'sweeping the pad'], bathhouse: ['stoking the boiler', 'folding towels', 'scrubbing the tubs', 'minding the counter'] };
@@ -558,7 +560,11 @@ const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === DONE
 const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop' || b.type === 'civic') && b.stage === DONE).flatMap(b => b.units);
 function findJob(r) {
   let best = null, bestLen = 1e9;
-  if (r.commuter) return;
+  if (r.commuter || r.homemaker) return;
+  if (r.hh && !r.hh.homemakerSet && !r.hh.members.some(m => m !== r && m.homemaker) && r.hh.members.length >= 2 && ['couple', 'family'].includes(r.hh.kind)) {   // decided once per household
+    r.hh.homemakerSet = true;
+    if (hash(r.hh.id, 7) < 0.55) { r.homemaker = true; r.activity = 'settling in at home'; return; }
+  }
   for (const u of jobUnits()) {
     if (u.staff.length >= unitCap(u)) continue;
     const p = routeUnits(r.home, u); if (!p) continue;
@@ -601,7 +607,7 @@ function go(r, dest, label, purpose = null) {
 // a stroll out to one of the island's landmarks: along the streets to the nearest one, then off the kerb to the spot; they
 // look out to sea, cross to the crown of the bridge or sit a while in the pavilion, then walk back the same way and home
 function visitLandmark(r, from, given = null) {
-  const opts = given ? [given] : landmarkRoads(); if (!opts.length) return false;
+  const opts = given ? [given] : landmarkRoads().filter(o => o.l.kind !== 'fishmarket'); if (!opts.length) return false;
   const quay = !given && opts.find(o => o.l.kind === 'pier');   // fishing off the quay is a favourite
   const { l, road } = quay && Math.random() < 0.4 ? quay : pick(opts), path = routeCells(frontRoad(from), [road]); if (!path || path.length < 1) return false;
   from.inside.delete(r); r.at = null; r.strollHome = true; r.actKind = 'stroll'; r.until = 0; r.purpose = null;
@@ -747,12 +753,20 @@ function decide(r) {
   if (!atWork && h >= 17 && h < 21 && n.fun < 0.65 && r.bathDay !== day) { const bu = bathUnits().find(x => x !== u && routeUnits(u, x)); if (bu) add((1 - n.fun) * 1.2 + 0.3, () => { r.bathDay = day; return go(r, bu, 'off to the bath house', 'bath'); }); }   // an evening soak
   if (!atWork && h >= 10 && h < 20.5 && n.social < 0.5) { const v = pickVisit(r); if (v) add((1 - n.social) * 1.15, () => go(r, v, `visiting ${v.block.name}`, 'visit')); }
   if (atHome && u.block.bagsDue && r.mesh.userData.char && h >= 6 && h < 10.5) add(1.6, () => carryBags(r));   // collection morning: someone takes the bags out
+  if (r.homemaker && atHome && h >= 8.5 && h < 17.5) {   // the one who keeps the house: errands in the day while the others are at work
+    if (shops && n.supplies < 0.85 && r.errandDay !== day) { const sh = pickShop(r, u, GROCER); if (sh) add(0.95 + (1 - n.supplies) * 0.6, () => { r.errandDay = day; return go(r, sh, pick(['doing the day\'s shopping', 'off to the shops for the family', 'fetching groceries']), 'shop'); }); }
+    add(0.7, () => stay(r, 'home', pick(KEEP_ACTS), rand(0.5, 1.1)));
+  }
+  if (!atWork && catchToday() && h >= 10.5 && h < 18.2 && r.fishBuy !== day && (r.homemaker || Math.random() < 0.6)) {   // the catch is in: fish for supper from the quay stall
+    const m = landmarkRoads().find(o => o.l.kind === 'fishmarket');
+    if (m) add((r.homemaker ? 1.3 : 0.8) + (1 - n.supplies) * 0.8 + (1 - n.food) * 0.2, () => { r.fishBuy = day; return visitLandmark(r, u, m); });
+  }
   if (!atWork && !(workHours && r.lastWorkDay !== day) && ((h >= 5.5 && h < 8.5) || (h >= 15.5 && h < 18.5)) && W.rain < 0.3 && r.fishDay !== day) {   // early morning and late afternoon: off to fish from the quay (some are keen anglers)
     const keen = r.id % 4 === 0, q = landmarkRoads().find(o => o.l.kind === 'pier');
     if (q && (keen || Math.random() < 0.35)) add((keen ? 0.95 : 0.45) + (1 - n.fun) * 0.5, () => { r.fishDay = day; return visitLandmark(r, u, q); });
   }
   { const ev = eventOn(); if (ev && !atWork && !(workHours && r.lastWorkDay !== day) && r.eventDone !== day + ev.kind) {   // the square is busy: the market in the morning, the festival in the evening
-    const fest = ev.kind === 'festival', sc = fest ? 1.45 + (1 - n.fun) * 0.5 : 0.55 + (1 - n.supplies) * 0.7 + (1 - n.fun) * 0.25;
+    const fest = ev.kind === 'festival', sc = fest ? 1.45 + (1 - n.fun) * 0.5 : (r.homemaker ? 1.25 : 0.55) + (1 - n.supplies) * 0.7 + (1 - n.fun) * 0.25;
     add(sc, () => { const v = eventVisit(); if (!v) return false; r.eventDone = day + ev.kind; return visitLandmark(r, u, v); });
   } }
   if (atHome) add(0.55 + n.fun * 0.2, () => stay(r, 'home', pick(HOME_ACTS), rand(0.6, 1.4)));
@@ -924,6 +938,18 @@ function updateFireRound() {
   const w = { kind: 'car', truck: true, fire: true, cell: start, mesh, trip: null, pause: 0, dead: false, plan: stops, back: start }; wanderers.push(w); fireRound.truck = w; fireRound.day = day;
   st.truckOut = true; if (st.units[0].parkedTruck) st.units[0].parkedTruck.visible = false;
 }
+const FISH_SHOPS = new Set(['grocery', 'supermarket', 'ramen', 'restaurant', 'konbini']);   // the konbini sells it as bento
+onCatch(day => {
+  const q = landmarkRoads().find(o => o.l.kind === 'pier' || o.l.kind === 'fishmarket'); if (!q) return;
+  const shops = blocks.filter(b => b.type === 'shop' && b.stage === DONE && FISH_SHOPS.has(b.kind) && !b.changing && b.units[0] && frontRoad(b.units[0]).length);
+  if (!shops.length) return;
+  const start = q.road, stops = [], left = new Set(shops); let at = start;
+  while (left.size) { let best = null, bd = 1e9; for (const b of left) { const r = frontRoad(b.units[0])[0], d = Math.abs(r.i - at.i) + Math.abs(r.j - at.j); if (d < bd) { bd = d; best = b; } } left.delete(best); const r = frontRoad(best.units[0])[0]; if (!stops.includes(r)) stops.push(r); at = r; }
+  const mesh = makeCar('#e8eef0', 'delivery'); mesh.visible = true; mesh.position.set(cx(start.i), (start.h || 0) + 0.08, cz(start.j));
+  wanderers.push({ kind: 'car', truck: true, fishVan: true, cell: start, mesh, trip: null, pause: 0, dead: false, plan: stops, back: start,
+    onStop: road => { for (const b of shops) if (frontRoad(b.units[0])[0] === road && b.fishDay !== day) { b.fishDay = day; for (const u of b.units) rebuildUnitMesh(u); } } });
+  if (!chronicle.some(e => /fresh fish/.test(e.text))) record('Fresh fish from the quay reached the town\'s shops');
+});
 function updateCollection() {
   updateFireRound();
   const centre = recyclingCentre(), day = dayOf(), h = hourOf(), isDay = day % 3 === 0;
@@ -971,7 +997,8 @@ function updateWanderers(simDt) {
     if (!w.trip) { wanderPick(w); continue; }
     if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) {
       const dl = w.trip.delivery, stop = w.truck && w.trip.stop, last = w.trip.last; w.cell = last; w.trip = null;
-      if (stop) for (const b of blocks) if (b.bags && b.bagRoad === last) clearBags(b);   // the truck takes the bags from this kerb
+      if (stop && !w.fishVan) for (const b of blocks) if (b.bags && b.bagRoad === last) clearBags(b);   // the truck takes the bags from this kerb
+      if (stop && w.onStop) w.onStop(last);   // the fish van leaves the catch here
       w.pause = w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : stop ? (w.fire ? 3 : 5) : dl ? rand(6, 12) : rand(0.2, 1.5);   // a delivery van waits at the kerb a while; the fire truck a moment at each corner
     }
     if (w.kind === 'cat') { w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1; if (!w.trip) updateCat(w.mesh, 0, false); }
@@ -995,6 +1022,7 @@ function growthAllowed(b) {
  *  for three days, in a town with other shops, closes and reopens as another trade of its size (never the town's last shop). */
 function reckonShops() {
   const shops = blocks.filter(b => b.type === 'shop' && b.stage === DONE);
+  for (const b of shops) if (b.fishDay && b.fishDay < dayOf()) { b.fishDay = 0; for (const u of b.units) rebuildUnitMesh(u); }   // yesterday's crate is gone
   for (const b of shops) {
     b.lastVisits = b.visitsToday || 0; b.visitsToday = 0;
     const staffed = b.units.some(u => u.staff.length);

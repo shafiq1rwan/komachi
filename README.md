@@ -131,6 +131,8 @@ Some things worth knowing:
 - **Landmarks to walk out to.** A lighthouse stands on the headland (its beam sweeps the sea at night), a red arched
   footbridge crosses the canal and a small park pavilion sits beside it under cherry trees. On fine days residents out for
   a stroll walk out to them, to look out to sea, watch the carp from the crown of the bridge or sit a while in the pavilion.
+- **The catch comes in.** At dawn the fishing boat leaves the quay; by half past ten it is back with crates of fish, laid out at
+  the fish market by the quay and driven round the shops. In many families one adult keeps the house and walks down for fish.
 - **A ryokan on the hill.** Once visitors come, an inn goes up on a high terrace; weekend and festival visitors stay the night
   and head off after breakfast.
 - **Fishing off the quay.** The pier is a stone quay; early and late in the day residents cycle down and fish from its edges,

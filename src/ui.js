@@ -124,7 +124,7 @@ function renderInspect(target, follow = null) {
     const who = r.hh.kind === 'solo' ? 'lives alone' : `${hhLabel(r.hh).toLowerCase()}${others.length ? ` · with ${others.map(m => m.name.split(' ')[0]).join(', ')}` : ''}`;
     html += `<div class="row"><span>Household</span><b>${esc(who)}</b></div>`;
     html += `<div class="row"><span>Home</span><b>${r.home ? esc(r.home.block.name) : r.hh.home ? `${esc(r.hh.home.block.name)} (soon)` : `none yet · arrived day ${r.arrivedDay}`}</b></div>`;
-    if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.commuter ? 'in the city, by train' : 'looking for work'}</b></div>`;
+    if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.commuter ? 'in the city, by train' : r.homemaker ? 'keeps the house' : 'looking for work'}</b></div>`;
     html += `<div class="row"><span>Feeling</span><b>${esc(moodWords(r))}</b></div>`;
     if (r.trip && r.trip.dest) html += `<div class="row"><span>Heading to</span><b>${esc(r.trip.dest.block.name)}</b></div>`;
     html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : r.hasBike ? 'by bicycle' : 'on foot'}</div>`;
