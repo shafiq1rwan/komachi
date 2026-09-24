@@ -373,6 +373,19 @@ try {
   let noticeOn = false; for (let k = 0; k < 20 && !noticeOn; k++) { await sleep(150); noticeOn = await page.evaluate(() => !!(window.__qHome && window.__qHome.units[0].notice && window.__qHome.units[0].notice.visible)); }
   check('build queue: extra plots wait roped off in line; an empty home shows a for-rent board', qu.made >= 5 && qu.waiting >= 2 && qu.maxPos >= 2 && noticeOn, JSON.stringify({ ...qu, noticeOn }));
   await page.evaluate(() => { for (const b of MT.blocks.filter(b => b.waiting || b === window.__qHome)) MT.removeBlock(b); });   // tidy up for the checks after
+  let svc = null;   // the service vehicles: the post van's morning round, the postman on his motorbike with a rider aboard, the ambulance parked at a clinic
+  for (let k = 0; k < 40 && !(svc && svc.ready); k++) { await sleep(250); svc = await page.evaluate(() => ({ ready: MT.serviceReady() })); }
+  svc = await page.evaluate(() => {
+    MT.setSpeed(0);
+    const c = MT.cells.find(c => MT.placeable(c, [c]) && !c.h); let clinic = null; if (c) { clinic = MT.placeBlock('civic', [c], { kind: 'clinic', picked: true }); clinic.stage = MT.DONE; for (const u of clinic.units) MT.rebuildUnitMesh(u); }
+    const next = h => MT.fastForward(Math.floor(MT.T / 24) * 24 + 24 + h - MT.T, 0.04);
+    let d = MT.dayOf(); if ((d + 1) % 7 === 6) { next(8); }   // not a Sunday
+    next(8.9); let post = null; for (let k = 0; k < 60 && !post; k++) { MT.fastForward(0.02); post = MT.wanderers.find(w => w.round === 'post'); }
+    const ambulance = MT.carMeshes.find(v => v.userData.service === 'ambulance' && v.userData.parked);
+    MT.setHour(13.45); let mail = null; for (let k = 0; k < 80 && !mail; k++) { MT.fastForward(0.02); mail = MT.wanderers.find(w => w.round === 'mail'); }
+    return { post: !!post, postKind: post && post.mesh.userData.service, mail: !!mail, rider: !!(mail && mail.rider && mail.rider.mesh.visible !== undefined), ambulance: !!ambulance, clinic: !!clinic };
+  });
+  check('service vehicles: the post van goes round, the postman rides out, an ambulance waits at the clinic', svc.post && svc.postKind === 'postal-van' && svc.mail && svc.rider && svc.ambulance, JSON.stringify(svc));
   let pwa = null;   // the installable app: a manifest, and a service worker that has cached the build for offline play (polled)
   for (let k = 0; k < 60; k++) {
     pwa = await page.evaluate(async () => { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); let n = 0; for (const k of await caches.keys()) n += (await (await caches.open(k)).keys()).length; const m = await (await fetch('./manifest.webmanifest')).json(); return { active: !!(reg && reg.active), cached: n, icons: m.icons.length }; });

@@ -8,3 +8,6 @@ Thumbs.db
 .env.*
 scripts/out/
 graphify-out/
+# the service-vehicle sources stay local: only the game's GLB files are tracked
+assets/service-vehicles/*
+!assets/service-vehicles/*.glb

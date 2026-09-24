@@ -69,6 +69,20 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- `npm run lint` also runs scripts/check-comments.mjs, which catches a `//` comment that swallowed the rest of a line of code.
+- Service vehicles (assets/service-vehicles, modelled for the town; src/service-vehicles.js):
+  - the red postal kei van collects from the shops' post boxes each morning (not on Sundays);
+  - the postman rides the red postal motorbike round the homes in the afternoon, stopping briefly at each;
+  - the kōban's officer patrols the streets round the station on the white police bicycle, mid-morning and late afternoon,
+    pedalling, with a pause at each corner;
+  - at lunch and supper a ramen shop or restaurant with staff sends its cream delivery scooter to a home and back;
+  - a town with a clinic has an ambulance parked at its kerb, out once a day on a quiet home visit with its beacons pulsing
+    (nobody is ever in trouble: a check-up, not an emergency);
+  - about a third of the residents with a two-wheeler ride the mint commuter scooter instead of a bicycle, a little quicker.
+  Riders are seated with their hands on the grips and a helmet on; the two-wheelers keep to the kerb line and stop at red
+  lights, the vans are cars in traffic with headlights at night, and the scooters, the postal motorbike and the kōban bicycle
+  light their own head and rear lamps after dusk. Saves remember the scooter (`bikeKind`). Only the GLB files of
+  assets/service-vehicles are tracked (.gitignore keeps the .blend, zip, renders and build scripts local).
 - Street scale (chosen from a side-by-side render): pavements are 0.16 wide instead of 0.19, so each lane is 0.34 wide, and
   people, their bikes (and the rack bikes), cars, the work trucks and the tourist bus are 85 % of their old size. A car now
   sits inside its lane with road round it instead of filling it kerb to centre line (about 75 % of the lane, was 94 %); a

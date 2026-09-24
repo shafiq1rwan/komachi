@@ -201,7 +201,7 @@ export function updateCharacters(simDt0) {
       }
     }
     const g = c.grp; if (!g.visible) continue;
-    const owner = g.userData.res || g.userData.worker || g.userData.tourist;
+    const owner = g.userData.res || g.userData.worker || g.userData.tourist || g.userData.rider;
     let simDt = simDt0;
     if (light && owner && owner.far) { c.lag = (c.lag || 0) + simDt0; c.lagN = (c.lagN || 0) + 1; if (c.lagN % 4) continue; simDt = c.lag; c.lag = 0; }   // far or off screen: a quarter of the updates
     const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;

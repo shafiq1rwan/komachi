@@ -26,6 +26,7 @@ import { attachVehicle } from './vehicles.js';
 import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalState, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel, hoursOf, isOpen } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
+import { createService, serviceReady } from './service-vehicles.js';
 import { unitLocal } from './buildings.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
@@ -275,7 +276,7 @@ function spawnNewcomer(hh = null) {
   if (!hh) hh = makeHousehold(1, null);
   const r = baseResident(`${pick(GIVEN)} ${hh.kind === 'flatmates' ? pick(FAMILY) : hh.surname}`, hh);
   hh.members.push(r);
-  r.hasBike = !r.hasCar && Math.random() < 0.45;
+  r.hasBike = !r.hasCar && Math.random() < 0.45; r.bikeKind = r.hasBike && Math.random() < 0.3 ? 'scooter' : 'bike';   // a gentsuki for about a third of them
   r.mesh = makePerson(r); residents.push(r);
   const anchor = STATION.anchor; r.at = anchor; anchor.inside.add(r);
   r.mesh.position.copy(STATION.entrance); r.mesh.rotation.y = 0; r.mesh.visible = true;
@@ -451,7 +452,9 @@ function parkVehicle(mesh, u, kind) {
   mesh.visible = true; mesh.userData.parked = true; mesh.userData.slot = slot;
 }
 function makeBike(r) {
-  const grp = createBike(r.carColor); grp.scale.setScalar(PEOPLE); grp.userData.lights = null; grp.visible = false; peopleGroup.add(grp); return grp;   // the bike at the rider's scale
+  const sc = r.bikeKind === 'scooter' && serviceReady() ? createService('scooter') : null;   // the commuter gentsuki is modelled at street scale already
+  const grp = sc || createBike(r.carColor); if (!sc) { grp.scale.setScalar(PEOPLE); grp.userData.lights = null; }
+  grp.visible = false; peopleGroup.add(grp); return grp;   // a bicycle at the rider's scale and without a lamp; the scooter keeps its own lamps (daynight.js)
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
@@ -642,7 +645,7 @@ function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
   if (drive) { r.carAt = destUnit; if (!r.car) r.car = makeCar(r.carColor, r.carKind); start = r.car.userData.parked ? [r.car.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }   // from the parking spot to the kerb, then the road
   if (ride) { r.bikeAt = destUnit; if (!r.bike) r.bike = makeBike(r); start = r.bike.userData.parked ? [r.bike.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }
   const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : ride ? buildPoints(cellPath, start, end, 0.315, 0.08, -1) : buildPoints(cellPath, start, end, 0.35 + hash(r.id, 31) * 0.08, 0.1);   // each walker keeps their own line across the pavement (0.35–0.43 from the centre), so passers-by do not walk through each other
-  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, ride, speed: drive ? 2.6 : ride ? 1.7 : 0.9 * rand(0.85, 1.15), baseY: drive || ride ? 0.08 : 0.1, cells: cellPath, label, from };
+  r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, ride, speed: drive ? 2.6 : ride ? (r.bike.userData.service ? 2.3 : 1.7) : 0.9 * rand(0.85, 1.15), baseY: drive || ride ? 0.08 : 0.1, cells: cellPath, label, from };
   setPose(r, ride);
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
   if (drive) { r.car.visible = true; r.car.userData.parked = false; r.mesh.visible = false; r.car.position.copy(pts[0]); }
@@ -962,10 +965,7 @@ function updateResidents(simDt, realT) {
     if (!tr.drive && !tr.ride && !r.far && (frameNo + r.id) % 15 === 0 && S.T - (r.metAt || -9) > 3) meetPasser(r);
     const done = moveAlong(obj, tr, r.lodDist); r.lodDist = 0;
     if (tr.ride) {
-      r.mesh.position.copy(r.bike.position); r.mesh.position.y += BIKE_SEAT.y - 0.09;
-      r.mesh.position.x += Math.sin(r.bike.rotation.y) * BIKE_SEAT.z;
-      r.mesh.position.z += Math.cos(r.bike.rotation.y) * BIKE_SEAT.z;
-      r.mesh.rotation.y = r.bike.rotation.y;
+      seatRider(r.mesh, r.bike);
     }
     else if (!tr.drive && !r.far && !r.mesh.userData.char) r.mesh.position.y += Math.abs(Math.sin(realT * 9 + r.phase)) * 0.018 * Math.min(1, S.speed);
     if (done) arrive(r);
@@ -1079,7 +1079,7 @@ onCatch(day => {
   if (!chronicle.some(e => /fresh fish/.test(e.text))) record('Fresh fish from the quay reached the town\'s shops');
 });
 function updateCollection() {
-  updateFireRound(); produceRound();
+  updateFireRound(); produceRound(); serviceRounds();
   const centre = recyclingCentre(), day = dayOf(), h = hourOf(), isDay = day % 3 === 0;
   if (!centre) { if (collection.bagsOut) { for (const b of blocks) clearBags(b); collection.bagsOut = false; } return; }
   if (isDay && h >= 6 && h < 11 && collection.day !== day) { collection.day = day; collection.bagsOut = true; for (const b of blocks) if (b.type === 'res' && b.stage === DONE) { b.bagsDue = true; b.bagsBy = S.T + 1.2; } }   // someone at home carries them out; unclaimed bags appear by 7:15
@@ -1094,11 +1094,99 @@ function updateCollection() {
     const w = { kind: 'car', truck: true, cell: start, mesh, trip: null, pause: 0, dead: false, plan: stops, back: start }; wanderers.push(w); collection.truck = w; collection.truckDay = day;
   }
 }
+// ── the service rounds (src/service-vehicles.js): the post, the clinic's ambulance, the kōban's bicycle, food deliveries ──
+/** put a rider on a two-wheeler's seat, facing its way (the seat is in the vehicle's own units, before its group scale) */
+function seatRider(mesh, bike) {
+  const s = bike.userData.seat || BIKE_SEAT, k = bike.scale.x;
+  mesh.position.copy(bike.position); mesh.position.y += s.y * k - 0.09 * PEOPLE;
+  mesh.position.x += Math.sin(bike.rotation.y) * s.z * k; mesh.position.z += Math.cos(bike.rotation.y) * s.z * k;
+  mesh.rotation.y = bike.rotation.y; mesh.visible = bike.visible;
+}
+/** a person for a service round: not a resident, seated on the vehicle; characters.js poses the arms at its grips */
+function makeRider(look, bike) {
+  const o = { id: S.nextId++, name: look.name || '', skin: pick(SKIN), hair: pick(HAIR), pants: '#4a4340', bag: false, ...look, state: 'walking', paused: false, trip: { ride: true }, bike };
+  const mesh = makePerson(o); mesh.userData.res = null; mesh.userData.rider = o; mesh.visible = true; o.mesh = mesh;
+  if (mesh.userData.char) mesh.userData.char.sitting = true;
+  return o;
+}
+/** dev hook: stand a service vehicle (with a rider on a two-wheeler) at a spot, for renders and tests */
+function stageService(kind, x, z, ry, look = {}) {
+  const two = kind !== 'postal-van' && kind !== 'ambulance', mesh = two ? createService(kind) : makeCar(null, kind); if (!mesh) return null;
+  if (two) peopleGroup.add(mesh); mesh.visible = true; mesh.userData.parked = true; mesh.position.set(x, 0.08, z); mesh.rotation.y = ry;
+  const rider = two ? makeRider({ shirt: '#5d6b8a', hat: false, ...look }, mesh) : null; if (rider) seatRider(rider.mesh, mesh);
+  return { mesh, rider };
+}
+function dropRider(o) { detachCharacter(o.mesh); peopleGroup.remove(o.mesh); disposeGroup(o.mesh); }
+/** a two-wheeler with its rider, as a wanderer following a plan of kerbs; it waits at each */
+function twoWheelRound(kind, start, stops, look, stopPause, extra = {}) {
+  const mesh = createService(kind); if (!mesh) return null;
+  mesh.visible = true; mesh.position.set(cx(start.i), (start.h || 0) + 0.08, cz(start.j)); peopleGroup.add(mesh);
+  if (kind === 'police-bike') mesh.userData.pedals = true;
+  const w = { kind: 'moto', truck: true, service: true, cell: start, mesh, trip: null, pause: 0, dead: false, plan: stops, back: start, side: 0.315, speed: kind === 'police-bike' ? 1.5 : 2.2, stopPause, ...extra };
+  w.rider = makeRider(look, mesh); seatRider(w.rider.mesh, mesh); wanderers.push(w); return w;
+}
+const roundDone = {};   // round name → the day it last ran
+const busyRound = name => wanderers.some(w => w.round === name && !w.dead);
+function nearestFirst(start, cellsList) { const left = new Set(cellsList), out = []; let at = start; while (left.size) { let best = null, bd = 1e9; for (const c of left) { const d = Math.abs(c.i - at.i) + Math.abs(c.j - at.j); if (d < bd) { bd = d; best = c; } } left.delete(best); if (!out.includes(best)) out.push(best); at = best; } return out; }
+let ambulance = null;   // { mesh, unit }: parked at the clinic's kerb between its rounds
+function serviceRounds() {
+  if (!serviceReady()) return;
+  const day = dayOf(), h = hourOf(), sunday = day % 7 === 6, stationRoad = STATION.anchor ? roadNeighbors(STATION.anchor.cell)[0] : null;
+  const homes = blocks.filter(b => b.type === 'res' && b.stage === DONE && b.units.some(u => u.residents.length) && frontRoad(b.units[0]).length);
+  // the post van: a morning round collecting from the post boxes outside the shops (not on Sundays)
+  if (!sunday && h >= 9 && h < 10.5 && roundDone.post !== day && stationRoad) {
+    roundDone.post = day;
+    const shops = blocks.filter(b => b.type === 'shop' && b.stage === DONE && frontRoad(b.units[0]).length).map(b => frontRoad(b.units[0])[0]);
+    if (shops.length) {
+      const mesh = makeCar(null, 'postal-van'); mesh.visible = true; mesh.position.set(cx(stationRoad.i), (stationRoad.h || 0) + 0.08, cz(stationRoad.j));
+      wanderers.push({ kind: 'car', truck: true, service: true, round: 'post', cell: stationRoad, mesh, trip: null, pause: 0, dead: false, plan: nearestFirst(stationRoad, shops.slice(0, 6)), back: stationRoad, stopPause: 2.5 });
+    }
+  }
+  // the postman on the red motorbike: letters to the homes in the afternoon
+  if (!sunday && h >= 13.5 && h < 15 && roundDone.mail !== day && stationRoad && homes.length) {
+    roundDone.mail = day;
+    const stops = nearestFirst(stationRoad, homes.sort(() => Math.random() - 0.5).slice(0, 7).map(b => frontRoad(b.units[0])[0]));
+    twoWheelRound('postal-bike', stationRoad, stops, { name: 'the postman', shirt: '#5d6b8a', hat: false }, 1.2, { round: 'mail' });
+  }
+  // the kōban's officer on the white bicycle: a patrol of the streets round the station, mid-morning and late afternoon
+  for (const [name, from, to] of [['patrolAM', 10, 11.5], ['patrolPM', 15.5, 17]]) {
+    if (h >= from && h < to && roundDone[name] !== day && stationRoad && !busyRound('patrol')) {
+      roundDone[name] = day;
+      const near = roadCellsList().filter(c => !(c.h || 0) && Math.abs(c.i - stationRoad.i) + Math.abs(c.j - stationRoad.j) <= 7 && c !== stationRoad);
+      const stops = nearestFirst(stationRoad, near.sort(() => Math.random() - 0.5).slice(0, 4));
+      if (stops.length) twoWheelRound('police-bike', stationRoad, stops, { name: 'the officer', shirt: '#3f4f6b', pants: '#2f3a4f', hat: false }, 3, { round: 'patrol' });
+    }
+  }
+  // food deliveries: at lunch and supper a ramen shop or restaurant with staff sends a scooter to a home and back
+  for (const [name, from, to] of [['lunch', 11.8, 13], ['supper', 18.3, 20.3]]) {
+    if (h < from || h >= to || roundDone[name] === day || !homes.length) continue;
+    const kitchens = blocks.filter(b => b.type === 'shop' && b.stage === DONE && (b.kind === 'ramen' || b.kind === 'restaurant') && b.units.some(u => u.staff.length) && frontRoad(b.units[0]).length);
+    if (!kitchens.length) continue;
+    roundDone[name] = day;
+    const k = pick(kitchens), start = frontRoad(k.units[0])[0], home = pick(homes);
+    twoWheelRound('delivery-scooter', start, [frontRoad(home.units[0])[0]], { name: 'the delivery rider', shirt: '#f3e6cf', hat: false }, 1.5, { round: 'food' });
+  }
+  // the clinic's ambulance: parked at its kerb, out once a day on a quiet home visit with its beacons pulsing
+  const clinic = blocks.find(b => b.type === 'civic' && b.kind === 'clinic' && b.stage === DONE);
+  if (!clinic) { if (ambulance) { peopleGroup.remove(ambulance.mesh); disposeGroup(ambulance.mesh); const ci = carMeshes.indexOf(ambulance.mesh); if (ci >= 0) carMeshes.splice(ci, 1); ambulance = null; } return; }
+  if (!ambulance || ambulance.unit.block !== clinic) { ambulance = { mesh: makeCar(null, 'ambulance'), unit: clinic.units[0] }; parkVehicle(ambulance.mesh, ambulance.unit, 'car'); ambulance.mesh.visible = true; }
+  const beacons = ambulance.mesh.userData.beacons || [], out = busyRound('clinic');
+  if (beacons.length) beacons[0].material.emissiveIntensity = out ? 0.8 + 0.8 * Math.sin(S.T * 150) : 0;
+  if (h >= 10.3 && h < 11.5 && roundDone.clinic !== day && homes.length && !out) {
+    roundDone.clinic = day;
+    const start = frontRoad(clinic.units[0])[0], who = residents.filter(r => r.home && r.at === r.home).sort((a, b) => a.needs.energy - b.needs.energy)[0], target = who ? frontRoad(who.home)[0] : frontRoad(pick(homes).units[0])[0];
+    if (start && target) {
+      const m = ambulance.mesh; m.userData.parked = false; m.position.set(cx(start.i), (start.h || 0) + 0.08, cz(start.j));
+      wanderers.push({ kind: 'car', truck: true, service: true, round: 'clinic', keepMesh: true, cell: start, mesh: m, trip: null, pause: 0, dead: false, plan: [target], back: start, stopPause: 4,
+        onDone: () => { parkVehicle(m, ambulance.unit, 'car'); m.visible = true; } });
+    }
+  }
+}
 /** a planned drive for the truck: to `t`, stopping there when `stop` */
 function driveTo(w, t, stop) {
   if (!t || w.cell === t) return false; const path = routeVaried([w.cell], [t], true); if (!path || path.length < 2) return false;
-  const pts = buildPoints(path, w.mesh.position.clone().setY(0.08), new THREE.Vector3(cx(t.i), 0.08, cz(t.j)), 0.17, 0.08, -1); if (pts.length > 2) pts.pop();   // stop in the lane by the kerb, not in the middle of the road
-  w.trip = { pts, i: 0, t: 0, speed: 1.9, last: t, cells: path, stop }; return true;
+  const pts = buildPoints(path, w.mesh.position.clone().setY(0.08), new THREE.Vector3(cx(t.i), 0.08, cz(t.j)), w.side || 0.17, 0.08, -1); if (pts.length > 2) pts.pop();   // stop in the lane by the kerb, not in the middle of the road
+  w.trip = { pts, i: 0, t: 0, speed: w.speed || 1.9, last: t, cells: path, stop }; return true;
 }
 function updateWanderers(simDt) {
   updateCollection();
@@ -1111,6 +1199,8 @@ function updateWanderers(simDt) {
     const excess = (w.kind === 'car' && !w.truck && cars.length > wantCars) || (w.kind === 'cat' && cats.length > wantCats) || (w.kind === 'dog' && dogs.length > wantDogs);
     if (w.fromFerry === 'queued') { if (wanderers.some(x => x !== w && x.kind === 'car' && x.fromFerry === true && !x.seen)) { wanderers.splice(k, 1); const nw = wanderers.find(x => x.kind === 'car' && x.fromFerry === true && !x.seen); if (nw) nw.seen = true; } continue; }   // waiting for the sailing
     if (!w.mesh) { wanderers.splice(k, 1); continue; }
+    if (w.dead && w.keepMesh) { w.onDone && w.onDone(); if (w.rider) dropRider(w.rider); wanderers.splice(k, 1); continue; }   // the ambulance goes back to its bay
+    if (w.dead && w.rider) dropRider(w.rider);
     if (w.dead || (excess && !w.trip && !w.leaving && !vehicleSource)) { peopleGroup.remove(w.mesh); disposeGroup(w.mesh); const ci = carMeshes.indexOf(w.mesh); if (ci >= 0) carMeshes.splice(ci, 1); wanderers.splice(k, 1); continue; }
     if (excess && !w.trip && !w.leaving && vehicleSource && w.kind === 'car') {   // time to go: drive to the slipway and wait for the ferry
       const slip = vehicleSource.slip ? vehicleSource.slip() : null; const path = slip && w.cell ? routeCells([w.cell], [slip]) : null;
@@ -1123,11 +1213,13 @@ function updateWanderers(simDt) {
     if (w.kind === 'dog') updateDog(w.mesh, simDt, w.pause <= 0 && !!w.trip, w.pause > 3, w.pause > 0 && w.pause <= 3);
     if (w.pause > 0) { w.pause -= simDt; continue; }
     if (!w.trip) { wanderPick(w); continue; }
-    if (moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' ? trafficFactor(w.mesh) : 1))) {
+    const moved = moveAlong(w.mesh, w.trip, w.trip.speed * simDt * (w.kind === 'car' || w.kind === 'moto' ? trafficFactor(w.mesh) : 1));
+    if (w.rider) seatRider(w.rider.mesh, w.mesh);
+    if (moved) {
       const dl = w.trip.delivery, stop = w.truck && w.trip.stop, last = w.trip.last; w.cell = last; w.trip = null;
-      if (stop && !w.fishVan) for (const b of blocks) if (b.bags && b.bagRoad === last) clearBags(b);   // the truck takes the bags from this kerb
+      if (stop && !w.fishVan && !w.service) for (const b of blocks) if (b.bags && b.bagRoad === last) clearBags(b);   // the truck takes the bags from this kerb
       if (stop && w.onStop) w.onStop(last);   // the fish van leaves the catch here
-      w.pause = w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : stop ? (w.fire ? 3 : 5) : dl ? rand(6, 12) : rand(0.2, 1.5);   // a delivery van waits at the kerb a while; the fire truck a moment at each corner
+      w.pause = w.stopPause && stop ? w.stopPause : w.kind === 'cat' ? rand(2, 8) : w.kind === 'dog' ? rand(2, 7) : stop ? (w.fire ? 3 : 5) : dl ? rand(6, 12) : rand(0.2, 1.5);   // a delivery van waits at the kerb a while; the fire truck a moment at each corner
     }
     if (w.kind === 'cat') { w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + 0.1; if (!w.trip) updateCat(w.mesh, 0, false); }
     if (w.kind === 'dog') w.mesh.position.y = terrainY(w.mesh.position.x, w.mesh.position.z) + .1;
@@ -1329,6 +1421,6 @@ onWorldChange(() => {   // a street removed or built over: ambient traffic on it
   }
 });
 
-export { routeVaried, removeCarPark, setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
+export { stageService, routeVaried, removeCarPark, setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
   roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, trafficFactor, unitPos, setProgressRate, onTrain };

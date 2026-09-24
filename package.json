@@ -8,7 +8,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint src",
+    "lint": "eslint src && node scripts/check-comments.mjs",
     "test": "node scripts/smoke.mjs",
     "test:architecture": "node scripts/check-architecture.mjs",
     "preview:architecture": "node scripts/preview-architecture.mjs"

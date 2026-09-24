@@ -12,6 +12,7 @@ function refreshPowered() {
   for (const u of units.values()) if (subs.some(s => s.cells.some(c => Math.abs(c.i - u.cell.i) + Math.abs(c.j - u.cell.j) <= CIVIC_REACH))) powered.add(u);
 }
 import { hourOf, dayOf, daylight, carMeshes } from './sim.js';
+import { lampLit } from './service-vehicles.js';
 import { ui } from './ui.js';
 import { W, weatherWord } from './weather.js';
 import { lookK } from './look.js';
@@ -63,6 +64,7 @@ function envUpdate(realT) {
     else if (u.mesh.scale.y !== 1) u.mesh.scale.set(1, 1, 1);
   }
   for (const c of carMeshes) { c.userData.lights.material.emissiveIntensity = night * 2.2; c.userData.tail.material.emissiveIntensity = night * 1.5; }
+  for (const g of lampLit) { if (!g.parent) { lampLit.delete(g); continue; } g.userData.lights.material.emissiveIntensity = night * 2.4; g.userData.tail.material.emissiveIntensity = night * 1.6; }   // scooters, the postman's motorbike, the kōban bicycle
   // UI clock
   const hh = Math.floor(h), mm = Math.floor((h - hh) * 60);
   ui.time.textContent = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;

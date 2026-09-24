@@ -7,6 +7,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { box, colorize, mergeMesh } from './geometry.js';
 import { createTruck, TRUCK_KINDS } from './work-trucks-kit.js';
+import { createService, SERVICE_KINDS, TWO_WHEELERS } from './service-vehicles.js';
 
 const SCALE = 0.2;                 // a sedan is 2.55 long in the kit; 0.51 here, about 0.26 wide in a 0.34 lane (people are 0.26 tall)
 const TRUCK_K = 0.85;               // the work-truck kit is built at the old street scale
@@ -104,6 +105,11 @@ function boxCar(grp, color, kind) {
 
 /** fill a car group (forward = +z) with the kit model for `kind`, or a box car until the model has loaded */
 export function attachVehicle(grp, color, kind = 'kei') {
+  if (SERVICE_KINDS.includes(kind) && !TWO_WHEELERS.has(kind)) {   // the postal kei van and the ambulance (src/service-vehicles.js), at street scale already
+    const s = createService(kind);
+    if (s) { for (const c of s.children.slice()) grp.add(c); Object.assign(grp.userData, s.userData); return; }
+    kind = 'van';   // not loaded yet: a plain van stands in
+  }
   if (TRUCK_KINDS.includes(kind)) {   // the Komachi work trucks (src/work-trucks-kit.js): keitora, crane flatbed, fish van
     const t = createTruck(kind); t.scale.setScalar(TRUCK_K); t.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); grp.add(t);
     const lights = t.getObjectByName('Headlights'), tail = t.getObjectByName('Taillights');

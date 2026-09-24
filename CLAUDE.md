@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 56 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 57 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -38,6 +38,16 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `mergeGeometries` needs all-indexed or all-non-indexed; `mergeMesh` converts to non-indexed.
 - Building generators must set `u.door` so trips start on the doorstep. Front is local +z.
 - `DONE` (5) in world.js is the finished stage; never compare against a literal stage number.
+- Service vehicles (2026-09-24, src/service-vehicles.js): GLBs from assets/service-vehicles (game scale already, +Z forward, root
+  scale 0.2), `createService(kind)` kinds postal-van | ambulance | scooter | delivery-scooter | postal-bike | police-bike, userData
+  wheels/wheelRadius, seat {y,z}, grip [x,y,z], lights/tail, beacons; `serviceReady()`. vehicles.js attachVehicle takes the vans;
+  bikes.js poseBikeRider reads `userData.grip` and pedals only with `bikeParts` or `userData.pedals`. sim.js `serviceRounds()`
+  (from updateCollection): post (9–10.5, not Sunday), mail (13.5–15), patrolAM/PM, lunch/supper food, clinic; `twoWheelRound`
+  (wanderer kind 'moto', `side` 0.315, `speed`, `stopPause`, `w.rider`), `makeRider` (owner in `userData.rider`, read by
+  characters.js, ignored by hover), `seatRider`, `dropRider`; the ambulance persists (`keepMesh`, `onDone` re-parks it).
+  Residents: `r.bikeKind` 'scooter' | 'bike' (saved), makeBike uses the scooter when ready. Two-wheelers register in `lampLit`
+  (service-vehicles.js), which daynight.js lights at night (they are not in carMeshes). Only the GLBs in assets/service-vehicles are tracked. Dev hooks `MT.stageService(kind, x, z, ry)`,
+  `MT.serviceReady()`.
 - Street scale (2026-09-24): pavement `PW` 0.16 (world.js; kerb at 0.34, rich-streets `KERB`), lanes 0.34; people and bikes at
   `PEOPLE` 0.85 (sim.js makePerson/makeBike scale the whole group, so held items, helmets and sitting heights follow), kit rack
   bikes 0.85, vehicles `SCALE` 0.2 (vehicles.js; sedan 0.51 long), work trucks `TRUCK_K` 0.85, bus `BS` 0.51. Car lane offset 0.17,
@@ -255,7 +265,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - The user reviews by screenshot. Render with puppeteer-core (see scripts/smoke.mjs for launch
   args) rather than describing what it should look like.
 - Never append a `// comment` in the middle of a one-line statement chain in a patch: everything after it on the line becomes comment
-  (this broke smoke.mjs, weather.js and input.js). Put comments on their own line or at the true end of the line.
+  (this broke smoke.mjs, weather.js, input.js and sim.js makeBike). Put comments on their own line or at the true end of the line.
+  `npm run lint` now runs scripts/check-comments.mjs after ESLint, which fails on comment text that contains `; <statement>`.
 - Never pass text containing backticks to `node -e "..."` in Bash: the shell runs them as commands (on 2026-09-24 that started
   `npm run dev` and tried to run a .js file as a script). Put patch text in a file written with the Write tool.
 - Scratch render scripts on Windows: `server.kill()` on a `shell: true` spawn leaves vite running; end it with
