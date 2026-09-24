@@ -1,0 +1,71 @@
+{
+  "passed": true,
+  "models": [
+    {
+      "kind": "kei-farm",
+      "triangles": 2752,
+      "size": [
+        0.31200000643730164,
+        0.33800000059604646,
+        0.6340000033378601
+      ],
+      "ground": -1.0728836083440108e-9,
+      "namedParts": [
+        "Body_Paint",
+        "Trim_Glass_And_Chassis",
+        "Headlights",
+        "Taillights",
+        "Wheel_Left_Front",
+        "Wheel_Left_Rear",
+        "Wheel_Right_Front",
+        "Wheel_Right_Rear",
+        "Cargo_Crates"
+      ]
+    },
+    {
+      "kind": "builder",
+      "triangles": 1912,
+      "size": [
+        0.31200000643730164,
+        0.3790000081062317,
+        0.6340000033378601
+      ],
+      "ground": -1.0728836083440108e-9,
+      "namedParts": [
+        "Body_Paint",
+        "Trim_Glass_And_Chassis",
+        "Headlights",
+        "Taillights",
+        "Wheel_Left_Front",
+        "Wheel_Left_Rear",
+        "Wheel_Right_Front",
+        "Wheel_Right_Rear",
+        "Crane_Base_And_Stowed_Outriggers",
+        "Crane_Arm",
+        "Cargo_Timber"
+      ]
+    },
+    {
+      "kind": "fish-van",
+      "triangles": 1508,
+      "size": [
+        0.31200000643730164,
+        0.41999998795986176,
+        0.6404999792575836
+      ],
+      "ground": -1.0728836083440108e-9,
+      "namedParts": [
+        "Body_Paint",
+        "Trim_Glass_And_Chassis",
+        "Headlights",
+        "Taillights",
+        "Wheel_Left_Front",
+        "Wheel_Left_Rear",
+        "Wheel_Right_Front",
+        "Wheel_Right_Rear",
+        "Refrigerated_Box",
+        "Refrigeration_Unit"
+      ]
+    }
+  ]
+}

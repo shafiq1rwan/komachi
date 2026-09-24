@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 47 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 48 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -135,6 +135,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   facades still read. The rich HUD reskin in styles.css sits under `body.rich-hud` (never set): the rich look uses the standard HUD.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
+- Quality (2026-09-24, src/quality.js): `S.quality` = Q { preset auto|low|medium|high|custom, res, fps, ao, aoHalf, blur, msaa, shadows off|low|high,
+  lights, showFps } (`komachi.quality`); PRESETS; `frameDue(now)` gates main.js's frame loop (cap, meter, auto resolution step-down, low
+  shadow redraw); scene.js resize uses `Q.res`; look.js `setPasses(q)` toggles GTAO/tilt-shift/MSAA; point lights follow `Q.lights`.
+  The Settings card (#options, gear #btn-options in the brand card) replaced #btn-look/#btn-pixel/#btn-center/#btn-reset.
 - Look (src/look.js): `S.look` rich (default) | classic (`komachi.lookStyle`, `?look=classic`, #btn-look on = rich); `?demo=dense` is the dense
   street-grid showcase (scripts/capture-rich.mjs), plain `?demo` the normal demo town, and a fresh start is always an empty island; `renderFrame()` replaces
   renderer.render in main.js (composer only built in rich: RenderPass → GTAO (see-through meshes hidden from its depth) → tilt-shift H/V →
@@ -148,6 +152,15 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `landmarks` entries carry `anchor`, `walk(road)`, `hold`, `activity`, `face`, pavilion `seats`; `landmarkRoads()` pairs each with the
   nearest flat street within 4.5. sim.js `visitLandmark` (30 % of dry strolls) / `atLandmark` (hold with `r.paused`, sit on a free seat,
   walk the points back, home). `updateLandmarks(dt, night)` in the main loop.
+- Work trucks (2026-09-23): src/work-trucks-kit.js `createTruck(kind)` kinds kei-farm | builder | fish-van, built in code; vehicles.js
+  `attachVehicle` handles them (`userData.lights/tail` = the kit's Headlights/Taillights, `wheels` + `wheelRadius` rolled in moveAlong,
+  `cargo` meshes, `crane` = Crane_Arm). construction.js `sendTruck` uses 'builder' (crane swings while unloading, timber hidden);
+  sim.js produceRound uses 'kei-farm', the fish round 'fish-van'; `wanderPick` hides cargo on the way back.
+- Farming (Phase 7, 2026-09-23): type `farm` (tool 'farm', key 9, TYPE_COLOR #7f9b5a), `TIERS.farm` field|greenhouse / field / paddy, `CAP.farm` 2,
+  maxLevel 1, FARM_NAMES. buildings.js `genFarm` (season from `seasonOf()`; farmhouse on unit 0 of fields and paddies; scarecrow;
+  `waterWheel` on a paddy unit beside the canal, `u.wheel` spun in main.js), rebuilt on the season turn (main `onSeasonTurn`). sim.js:
+  farm jobs get farmers' hours in findJob; `fieldWork` puts a farmer in the field with `r.outside` + `ch.pose` / a prop (FIELD_WORK);
+  `produceRound` (summer/autumn 8.5–11) sends a truck wanderer that sets `b.produceDay` on VEG_SHOPS (crate drawn in buildings.js).
 - Fishing (Phase 7 slice 1, 2026-09-23): src/fishing.js moves the 'quay-boat' group (OUT 5.5, AT 6.4, BACK 9.7, HOME 10.5; skips W.rain > 0.6),
   `onCatch` listeners (sim.js: fish van, a truck wanderer with `fishVan` + `onStop` setting `b.fishDay` on FISH_SHOPS; buildings.js draws the crate
   while `b.fishDay` is today; reckonShops clears it), `catchToday()` until 18.5. landmarks.js: the fish market on its own reserved lot (`c.landmark = 'fish-market'`, street-side cell nearest the quay's land end), landmark kind
@@ -283,6 +296,6 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
        community centre with the town chronicle; visible effects only, nothing gated
 6. ✅ Weather, gentle events, festivals, tourism (complete 2026-09-23; shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
-7. Farming and fishing
+7. ✅ Farming and fishing (complete 2026-09-23)
 8. Mobile quality levels, PWA, Electron desktop app
 9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)

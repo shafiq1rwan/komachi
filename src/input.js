@@ -3,10 +3,8 @@ import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { clamp } from './utils.js';
 import { S } from './state.js';
-import { setLook, sizeLook } from './look.js';
-import { canvas, scene, camera, cam, HALF, cx, cz, resize, townGroup, peopleGroup } from './scene.js';
+import { canvas, scene, camera, cam, HALF, cx, cz, townGroup, peopleGroup } from './scene.js';
 import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION, rotateUnit, hill, HILL_UNLOCK, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason, joinedToTown, tierLabel, placeCarPark } from './world.js';
-import { clearSave } from './save.js';
 import { removeBlock, removeCarPark, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
 import { tourists } from './tourists.js';
@@ -22,11 +20,6 @@ let gesture = null;          // {dist, ang, view, yaw} while two fingers are dow
 function setTool(t) { tool = t; ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
-document.getElementById('btn-pixel').addEventListener('click', e => { S.pixelLook = !S.pixelLook; e.currentTarget.classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook); resize(); sizeLook(); try { localStorage.setItem('komachi.pixelLook', S.pixelLook ? '1' : '0'); } catch { /* storage unavailable */ } });
-document.getElementById('btn-pixel').classList.toggle('on', S.pixelLook); document.body.classList.toggle('pixel', S.pixelLook);   // apply the remembered choice
-document.getElementById('btn-look').addEventListener('click', e => { setLook(S.look === 'rich' ? 'classic' : 'rich'); e.currentTarget.classList.toggle('on', S.look === 'rich'); });
-document.getElementById('btn-look').classList.toggle('on', S.look === 'rich');
-document.getElementById('btn-reset').addEventListener('click', () => { if (confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; } });
 // the inspect card's follow button
 /** turn the hovered or pinned building to face its next street */
 function rotateTarget() {
@@ -44,7 +37,6 @@ ui.inspect.addEventListener('click', e => {
 });
 for (const [btn, panel] of [['btn-settings', 'settings'], ['btn-stats', 'stats']]) document.getElementById(btn).addEventListener('click', e => { const s = document.getElementById(panel); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
 if (innerWidth < 720) { document.getElementById('stats').classList.add('collapsed'); const b = document.getElementById('btn-stats'); b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }   // phones: figures start folded so both cards fit side by side
-document.getElementById('btn-center').addEventListener('click', () => { follow = null; cam.target.set(0, 0, 0); cam.tView = 18; });
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {
   const hint = document.getElementById('hint'); let hintTimer = 0;
@@ -73,7 +65,7 @@ canvas.addEventListener('pointerdown', e => {
   }
   if (touches.size > 2) return;
   setNdc(e); ptr.down = true; ptr.button = e.button; ptr.moved = 0; ptr.last = { x: e.clientX, y: e.clientY };
-  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic';
+  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm';
   if (e.button === 0 && tool === 'road') { const c = groundCell(); if (c && drawable(c, c.h || 0)) ptr.road = { a: c, b: c }; else if (c) toast(c.type === 'water' ? 'Streets stay on land' : (c.h || 0) > 0 && !hill.open ? `The hill opens once ${HILL_UNLOCK} people live in town` : c.type === 'lot' ? 'There is a building here' : c.type === 'hill' ? 'Too steep for a street' : 'A street cannot start here'); }
   else if (e.button === 0 && tool === 'remove' && (c => c && c.type === 'road' && !c.block)(groundCell())) { const c = groundCell(); ptr.erase = { a: c, b: c }; }   // drag along a street to clear a run
   else if (e.button === 0 && zone) { const c = groundCell(); ptr.sel = []; if (selectable(c, ptr.sel)) ptr.sel.push(c); else if (c && (c.type !== 'empty' || ((c.h || 0) > 0 && !hill.open))) toast(c.type === 'canal' ? 'Nothing is built in the canal; draw a street across it and a bridge will span it' : c.coast ? 'The coast road stays open' : (c.h || 0) > 0 && !hill.open ? `The hill opens once ${HILL_UNLOCK} people live in town` : c.keep || c.ramp ? 'The hill road stays open' : c.type === 'road' ? 'Buildings go beside a street, not on it' : c.type === 'hill' ? 'This part of the hill is too steep to build on' : c.type === 'water' ? 'Nothing is built on the water' : 'That spot is already taken'); else if (c && c.type === 'empty' && !placeable(c, [])) toast([[0, -1], [1, 0], [0, 1], [-1, 0]].some(([di, dj]) => { const n = cell(c.i + di, c.j + dj); return n && n.type === 'road' && !joinedToTown(n); }) ? 'That street does not reach the station yet; join it up first' : 'Draw a street here first (Road tool, 5), then zone beside it'); }
@@ -130,7 +122,7 @@ canvas.addEventListener('contextmenu', e => e.preventDefault());
 canvas.addEventListener('wheel', e => { e.preventDefault(); cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 3, 42); }, { passive: false });
 addEventListener('keydown', e => {
   if (e.target.tagName === 'INPUT') return; keys.add(e.code);
-  if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic');
+  if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic'); if (e.code === 'Digit9') setTool('farm');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'KeyR') rotateTarget();
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
@@ -148,10 +140,10 @@ const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(ne
 const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
-  const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic');
+  const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm');
   if (zoneDrag) { const t = tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
-  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic';
+  const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm';
   if (zone && !ptr.panning) {
     const sel = ptr.sel && ptr.sel.length ? ptr.sel : null;
     if (sel) {

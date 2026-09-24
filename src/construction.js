@@ -3,7 +3,7 @@
 // materials from the station at the start of each stage. Purely a layer over the stage timers in sim.js.
 import { S } from './state.js';
 import { pick, rand } from './utils.js';
-import { GIVEN, FAMILY, SKIN, HAIR, CARS } from './palette.js';
+import { GIVEN, FAMILY, SKIN, HAIR } from './palette.js';
 import { peopleGroup, disposeGroup, cx, cz } from './scene.js';
 import { detachCharacter, holdTool } from './characters.js';
 import { blocks, STATION, DONE, terrainY } from './world.js';
@@ -176,7 +176,7 @@ function sendTruck(b) {
   if (!path) return;
   const startPos = unitLocal({ cell: start, facing: 0 }, 0, 0, 0.08);
   const kerb = unitLocal(u, -0.2, 0.88, 0.08);   // on the asphalt in front of the plot, clear of the pavement
-  const mesh = makeCar(pick(CARS), 'truck'); mesh.visible = true;
+  const mesh = makeCar(null, 'builder'); mesh.visible = true;
   const pts = buildPoints(path, startPos, kerb, 0.17, 0.08, -1);
   trucks.push({ mesh, site: b, trip: { pts, i: 0, t: 0, speed: 2.2 }, state: 'toSite', wait: 0 });
   mesh.position.copy(pts[0]);
@@ -237,6 +237,9 @@ function updateConstruction(dh, simDt, realT) {
   }
   for (let i = trucks.length - 1; i >= 0; i--) {
     const tr = trucks[i];
+    const crane = tr.mesh.userData.crane;
+    if (crane) { const want = tr.state === 'unloading' ? (tr.wait > 0.12 ? 1.4 : 0) : 0; crane.rotation.y += (want - crane.rotation.y) * Math.min(1, simDt * 2); }   // swing the load off over the kerb, then fold back
+    if (tr.state === 'unloading' && tr.wait < 0.2) for (const c of tr.mesh.userData.cargo || []) c.visible = false;   // the timber is off
     if (tr.state === 'toSite') { if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt * trafficFactor(tr.mesh))) { tr.state = 'unloading'; tr.wait = 0.35; } }
     else if (tr.state === 'unloading') {
       tr.wait -= dh;

@@ -1,0 +1,129 @@
+[
+  {
+    "kit": "trucks",
+    "kind": "kei-farm",
+    "file": "komachi-kei-farm.glb",
+    "triangles": 2752,
+    "bytes": 301476,
+    "size": [
+      0.31200000643730164,
+      0.33800000059604646,
+      0.6340000033378601
+    ],
+    "minY": -1.0728836083440108e-9,
+    "meshes": [
+      "Body_Paint",
+      "Trim_Glass_And_Chassis",
+      "Headlights",
+      "Taillights",
+      "Wheel_Left_Front",
+      "Wheel_Left_Rear",
+      "Wheel_Right_Front",
+      "Wheel_Right_Rear",
+      "Cargo_Crates"
+    ],
+    "front": "+Z",
+    "units": "game",
+    "wheelRadius": 0.052,
+    "wheelAxis": "X",
+    "cargoMeshes": [
+      "Cargo_Crates"
+    ],
+    "doorPoint": [
+      -0.16,
+      0,
+      0.18
+    ],
+    "paintMesh": "Body_Paint",
+    "cargoPoint": [
+      0,
+      0.15,
+      -0.15
+    ]
+  },
+  {
+    "kit": "trucks",
+    "kind": "builder",
+    "file": "komachi-builder.glb",
+    "triangles": 1912,
+    "bytes": 212684,
+    "size": [
+      0.31200000643730164,
+      0.3790000081062317,
+      0.6340000033378601
+    ],
+    "minY": -1.0728836083440108e-9,
+    "meshes": [
+      "Body_Paint",
+      "Trim_Glass_And_Chassis",
+      "Headlights",
+      "Taillights",
+      "Wheel_Left_Front",
+      "Wheel_Left_Rear",
+      "Wheel_Right_Front",
+      "Wheel_Right_Rear",
+      "Crane_Base_And_Stowed_Outriggers",
+      "Crane_Arm",
+      "Cargo_Timber"
+    ],
+    "front": "+Z",
+    "units": "game",
+    "wheelRadius": 0.052,
+    "wheelAxis": "X",
+    "cargoMeshes": [
+      "Cargo_Timber"
+    ],
+    "doorPoint": [
+      -0.16,
+      0,
+      0.18
+    ],
+    "paintMesh": "Body_Paint",
+    "cranePivot": [
+      0.068,
+      0.177,
+      0.018
+    ],
+    "cargoPoint": [
+      0,
+      0.15,
+      -0.17
+    ]
+  },
+  {
+    "kit": "trucks",
+    "kind": "fish-van",
+    "file": "komachi-fish-van.glb",
+    "triangles": 1508,
+    "bytes": 170120,
+    "size": [
+      0.31200000643730164,
+      0.41999998795986176,
+      0.6404999792575836
+    ],
+    "minY": -1.0728836083440108e-9,
+    "meshes": [
+      "Body_Paint",
+      "Trim_Glass_And_Chassis",
+      "Headlights",
+      "Taillights",
+      "Wheel_Left_Front",
+      "Wheel_Left_Rear",
+      "Wheel_Right_Front",
+      "Wheel_Right_Rear",
+      "Refrigerated_Box",
+      "Refrigeration_Unit"
+    ],
+    "front": "+Z",
+    "units": "game",
+    "wheelRadius": 0.052,
+    "wheelAxis": "X",
+    "cargoMeshes": [],
+    "doorPoint": [
+      -0.16,
+      0,
+      0.18
+    ],
+    "paintMesh": "Body_Paint"
+  }
+]

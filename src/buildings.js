@@ -12,11 +12,11 @@ import { createCivicProp } from './civic-kit.js';
 import { createLandmark } from './landmark-kit.js';
 import { createTownService } from './town-services-kit.js';
 import { addNature } from './nature-kit.js';
-import { leafColor } from './seasons.js';
+import { leafColor, seasonOf } from './seasons.js';
 import { K, acUnit, pipe, balcony, extStairs, fence, pots, bicycle, bikeRack, signBoard, plainAwning, stripedAwning, windowPane, door, kawaraRoof, blockWall, genkan, tateKanban, noren, chochin, laundry, slatWall, tileBand, corrugated, boxCanopy, hangingSign, dish, latticeWindow, engawa, hisashi, yardProps } from './kit.js';
 /** a second, third… independent value derived from a unit's seed, so details vary without correlating */
 const sub = (s, k) => { const v = Math.sin(s * 12.9898 + k * 78.233) * 43758.5453; return v - Math.floor(v); };
-import { DONE, lampGlowMat } from './world.js';
+import { DONE, lampGlowMat, cell as cellAtIJ } from './world.js';
 
 let LG = [];   // laundry geometry for the unit being built (its own mesh, shown in the daytime; see rebuildUnitMesh)
 const UPPER = 0.4;   // a detached home's upper storey height; the ground floor is 0.5
@@ -557,9 +557,83 @@ function finalGen(b, u, g, wg) {
   // the rich look's slate-roofed house stands in for detached homes (and hill villas) only; shops, workspaces and the other homes
   // keep their own generators, so size tiers (1, 2, 3 cells), kinds, finishes and facades all still read (decided 2026-09-23)
   if (S.look === 'rich' && b.type === 'res' && (u.variant === 'detached' || u.variant === 'villa' || !u.variant) && b.cells.length === 1) genRichBuilding(b, u, g, wg);
-  else (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : b.type === 'civic' ? genCivic : genWork)(b, u, g, wg);
+  else (b.type === 'res' ? genResidential : b.type === 'shop' ? genShop : b.type === 'civic' ? genCivic : b.type === 'farm' ? genFarm : genWork)(b, u, g, wg);
 }
 
+/** Phase 7 farms. The first cell of every farm has a small farmhouse at the back corner; the rest is planted. What grows follows
+ *  the season (rebuilt at each turn): bare ridges with seedlings in spring, full green in summer, pumpkins and gold in autumn, bare
+ *  earth in winter (snow settles on it). Paddies are flooded in spring, green in summer, gold with drying racks in autumn and
+ *  stubble in winter; a paddy cell beside the canal turns a water wheel. The greenhouse glows faintly after dark. */
+function farmhouse(g, wg, u) {
+  const hg = [], hw = [], y0 = 0.12, w = 0.36, d = 0.3, H = 0.3;
+  hg.push(box(w, H, d, PAL.cream2, 0, y0 + H / 2, 0)); for (const x of [-w / 2 + 0.01, w / 2 - 0.01]) hg.push(box(0.022, H, 0.022, '#5a4636', x, y0 + H / 2, d / 2));
+  kawaraRoof(hg, w, d, H, y0, PAL.kawara2, false);
+  hw.push(box(0.12, 0.1, 0.02, PAL.window, 0.08, y0 + 0.17, d / 2 + 0.005)); hg.push(box(0.08, 0.17, 0.02, PAL.wood2, -0.09, y0 + 0.085, d / 2 + 0.006));
+  hg.push(box(0.14, 0.1, 0.1, '#b08a62', w / 2 + 0.09, y0 + 0.05, 0.05)); hg.push(box(0.1, 0.05, 0.08, PAL.roofBlue, w / 2 + 0.09, y0 + 0.125, 0.05));   // a stack of crates by the door
+  for (const p of hg) { p.translate(-0.26, 0, -0.26); g.push(p); } for (const p of hw) { p.translate(-0.26, 0, -0.26); wg.push(p); }
+  u.door = { x: -0.26 - 0.09, z: -0.26 + d / 2 + 0.02 };
+}
+function scarecrow(g, x, z, seed) {   // kakashi: a pole, a crossbar with sleeves, a straw hat
+  const y0 = 0.12; g.push(box(0.018, 0.34, 0.018, '#7a5f45', x, y0 + 0.17, z)); g.push(box(0.2, 0.016, 0.016, '#7a5f45', x, y0 + 0.26, z));
+  g.push(box(0.12, 0.1, 0.04, seed < 0.5 ? PAL.indigo : '#b24a3c', x, y0 + 0.25, z)); g.push(blob(0.035, PAL.cream2, x, y0 + 0.34, z, 0, 1));
+  g.push(cyl(0.07, 0.07, 0.012, '#d6b56a', x, y0 + 0.37, z, 10)); g.push(cyl(0.025, 0.035, 0.03, '#d6b56a', x, y0 + 0.39, z, 8));
+}
+function genFarm(b, u, g, wg) {
+  const k = Math.max(0, b.units.indexOf(u)), y0 = 0.12, season = seasonOf(), kind = b.kind, first = k === 0;
+  const house = first && kind !== 'greenhouse';
+  if (!house) u.door = { x: 0, z: 0.46 };
+  if (kind === 'greenhouse') {   // a long glasshouse: pale frosted panels on a white frame, benches of plants inside the door
+    g.push(box(0.9, 0.02, 0.9, PAL.concrete2, 0, y0 + 0.01, 0));
+    const W = 0.7, D = 0.76, H = 0.34;
+    g.push(box(W, H, D, '#dfeae4', 0, y0 + H / 2, -0.02)); const r1 = prism(W, 0.16, D, '#e9f1ec', 0, y0 + H, -0.02, Math.PI / 2); g.push(r1);
+    for (let q = 0; q <= 4; q++) { g.push(box(0.014, H, 0.014, '#f7f7f2', -W / 2 + q * (W / 4), y0 + H / 2, D / 2 - 0.02)); g.push(box(0.014, H, 0.014, '#f7f7f2', -W / 2 + q * (W / 4), y0 + H / 2, -D / 2 - 0.02)); }
+    for (let q = 0; q <= 5; q++) g.push(box(W + 0.01, 0.012, 0.012, '#f7f7f2', 0, y0 + H, -D / 2 - 0.02 + q * (D / 5)));
+    wg.push(box(W - 0.06, H - 0.08, 0.01, '#cfe3d4', 0, y0 + H / 2, D / 2 - 0.012));   // the glazed end: a soft glow at night
+    g.push(box(0.14, 0.24, 0.012, '#f7f7f2', 0, y0 + 0.12, D / 2 - 0.01));
+    for (let q = 0; q < 5; q++) g.push(blob(0.035, [PAL.flower, '#7fa35a', PAL.roofRose, '#e6b84a', '#7fa35a'][q], -0.28 + q * 0.14, y0 + 0.05, 0.43, 0, 0.8));   // pots outside the door
+    u.door = { x: 0, z: 0.44 };
+    return;
+  }
+  if (kind === 'paddy') {
+    const soil = '#8d7457'; g.push(box(0.96, 0.03, 0.96, soil, 0, y0 - 0.005, 0));
+    for (const [x, z, w, d] of [[0, -0.47, 0.96, 0.05], [0, 0.47, 0.96, 0.05], [-0.47, 0, 0.05, 0.96], [0.47, 0, 0.05, 0.96]]) g.push(box(w, 0.05, d, '#9a8062', x, y0 + 0.02, z));   // low earth bunds
+    const water = season === 'winter' ? '#a58d68' : season === 'autumn' ? '#9fb0a0' : '#8fb5b8';
+    g.push(box(0.88, 0.012, 0.88, water, 0, y0 + 0.012, 0));
+    const col = { spring: '#a9c77f', summer: '#7fa35a', autumn: '#d4b155', winter: '#b59b72' }[season], h = { spring: 0.035, summer: 0.09, autumn: 0.1, winter: 0.015 }[season];
+    for (let i = 0; i < 8; i++) for (let j = 0; j < 8; j++) { if (house && i < 4 && j < 4) continue; g.push(box(0.05, h, 0.05, col, -0.36 + i * 0.103, y0 + 0.018 + h / 2, -0.36 + j * 0.103)); }
+    if (season === 'autumn' && k === 1) for (const z of [-0.2, 0.2]) { g.push(box(0.5, 0.02, 0.02, '#7a5f45', 0.1, y0 + 0.22, z)); for (const x of [-0.14, 0.34]) g.push(box(0.02, 0.22, 0.02, '#7a5f45', x, y0 + 0.11, z)); g.push(box(0.46, 0.1, 0.05, '#d9bd6a', 0.1, y0 + 0.17, z)); }   // hasa-kake: rice drying on racks
+  } else {   // the vegetable field: ridges running to the street, what grows on them by the season
+    g.push(box(0.96, 0.03, 0.96, '#8a6a4e', 0, y0 - 0.005, 0));
+    const n = 6;
+    for (let i = 0; i < n; i++) {
+      const x = -0.4 + i * 0.16; if (house && x < -0.05) continue;
+      g.push(box(0.09, 0.04, house ? 0.9 : 0.9, '#7a5c43', x, y0 + 0.03, 0));
+      for (let j = 0; j < 7; j++) {
+        const z = -0.39 + j * 0.13, s = sub(u.seed, i * 7 + j);
+        if (season === 'spring') g.push(blob(0.018, '#a9c77f', x, y0 + 0.06, z, 0, 0.8));
+        else if (season === 'summer') { g.push(blob(0.045, s < 0.3 ? '#6f9a4f' : '#7fa35a', x, y0 + 0.08, z, 0, 0.8)); if (s > 0.75) g.push(blob(0.016, '#c9564b', x + 0.02, y0 + 0.11, z, 0, 1)); }
+        else if (season === 'autumn') { if (s < 0.45) g.push(blob(0.035, '#d98c3f', x, y0 + 0.07, z, 0, 0.75)); else g.push(blob(0.035, '#b9a253', x, y0 + 0.07, z, 0, 0.7)); }
+      }
+    }
+  }
+  if (house) farmhouse(g, wg, u);
+  if (!house && kind !== 'paddy' && season !== 'winter') scarecrow(g, 0.34, -0.3, u.seed);
+  if (kind === 'paddy' && k === b.units.length - 1 && season !== 'winter') scarecrow(g, -0.34, 0.3, u.seed);
+}
+/** a water wheel on a paddy cell's canal edge, turning (u.wheel spins in main.js) */
+function waterWheel(grp, u) {
+  const f = u.facing || 0, dir = [[0, -1], [1, 0], [0, 1], [-1, 0]].find(([a, b]) => { const n = cellAtIJ(u.cell.i + a, u.cell.j + b); return n && n.type === 'canal'; }); if (!dir) return;
+  const lx = dir[0] * Math.cos(f) - dir[1] * Math.sin(f), lz = dir[0] * Math.sin(f) + dir[1] * Math.cos(f);
+  const holder = new THREE.Group(); holder.position.set(lx * 0.5, 0.02, lz * 0.5); holder.rotation.y = Math.atan2(lx, lz);
+  const wood = new THREE.MeshStandardMaterial({ color: '#7a5f45', roughness: 0.9 }), wheel = new THREE.Group();
+  const rim = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.018, 6, 20), wood); rim.rotation.y = Math.PI / 2; wheel.add(rim);
+  const rim2 = rim.clone(); rim2.position.x = 0.07; wheel.add(rim2);
+  for (let q = 0; q < 8; q++) { const a = q / 8 * Math.PI * 2; const sp = new THREE.Mesh(new THREE.BoxGeometry(0.012, 0.4, 0.012), wood); sp.rotation.x = a; sp.position.x = 0.035; wheel.add(sp); const pd = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.05, 0.012), wood); pd.position.set(0.035, Math.cos(a) * 0.2, Math.sin(a) * 0.2); pd.rotation.x = a; wheel.add(pd); }
+  const axle = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 0.16, 6), wood); axle.rotation.z = Math.PI / 2; axle.position.x = 0.035; wheel.add(axle);
+  for (const x of [-0.04, 0.11]) { const st = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.24, 0.02), wood); st.position.set(x, 0.06, 0); holder.add(st); }
+  wheel.position.y = 0.12; holder.add(wheel); holder.traverse(o => { if (o.isMesh) o.castShadow = true; }); snowKit(holder);
+  grp.add(holder); u.wheel = wheel;
+}
 /** civic ground: a gravel pad and what the kit model does not bring (fence, pump house, shed); the kit models themselves are
  *  attached in rebuildUnitMesh. The door is on the front edge so trips end on the pavement */
 function genCivic(b, u, g) {
@@ -726,6 +800,7 @@ function rebuildUnitMesh(u, pop = false) {
   const body = mergeMesh(g, false); grp.add(body);
   if (wg.length) { const wm = mergeMesh(wg, false, false); wm.material = u.winMat; wm.castShadow = false; grp.add(wm); }
   if (LG.length && b.stage >= DONE) { const lm = mergeMesh(LG, false); grp.add(lm); u.laundry = lm; }   // hung out in the morning, taken in before dusk (daynight.js)
+  u.wheel = null; if (b.type === 'farm' && b.kind === 'paddy' && b.stage >= DONE) waterWheel(grp, u);
   if (b.type === 'civic' && b.stage >= DONE && Math.max(0, b.units.indexOf(u)) === 0) {   // the kit model for the zone, on the block's first unit
     let prop = null, s = 1, pos = [0, 0.12, 0];
     if (b.kind === 'substation') { prop = createCivicProp('substation'); pos = [-0.02, 0.12, -0.04]; }
@@ -752,6 +827,13 @@ function rebuildUnitMesh(u, pop = false) {
     fg.push(box(0.16, 0.07, 0.12, PAL.roofBlue, dx, 0.155, 0.43)); fg.push(box(0.14, 0.01, 0.1, '#eef3f5', dx, 0.195, 0.43));
     for (let q = 0; q < 4; q++) { const fsh = new THREE.DodecahedronGeometry(0.018); fsh.scale(1.9, 0.45, 0.8); fsh.translate(dx - 0.045 + (q % 2) * 0.05, 0.205, 0.41 + Math.floor(q / 2) * 0.04); fg.push(colorize(fsh, q % 3 ? '#b9c6cc' : '#d9a08a')); }
     const fm = mergeMesh(fg, true); if (fm) grp.add(fm);
+  }
+  if (b.type === 'shop' && b.produceDay && b.produceDay === Math.floor(S.T / 24) + 1 && Math.max(0, b.units.indexOf(u)) === 0) {   // today's produce from the farm
+    const pg = [], dx = (u.door && u.door.x > 0) ? -0.3 : 0.3, flowers = b.kind === 'florist';
+    pg.push(box(0.16, 0.07, 0.12, '#b08a62', dx, 0.155, 0.3));
+    const cols = flowers ? [PAL.flower, PAL.roofRose, '#e6b84a', PAL.cream2] : ['#d9744f', '#8fb35a', '#e6b84a', '#d98c3f'];
+    for (let q = 0; q < 6; q++) pg.push(blob(0.026, cols[q % 4], dx - 0.05 + (q % 3) * 0.05, 0.2, 0.28 + Math.floor(q / 3) * 0.045, 0, 0.9));
+    const pm = mergeMesh(pg, true); if (pm) grp.add(pm);
   }
   if (b.type !== 'station') { const gl = makeGlow(0, 0.13, 0.15, 2.4); gl.material = u.glowMat; grp.add(gl); u.glow = gl; }
   else {   // the plaza is lit by its lamps, not by a glow per cell: corner lamps and the two lamps on the entrance arch

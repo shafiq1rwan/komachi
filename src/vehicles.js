@@ -6,6 +6,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { PAL } from './palette.js';
 import { box, colorize, mergeMesh } from './geometry.js';
+import { createTruck, TRUCK_KINDS } from './work-trucks-kit.js';
 
 const SCALE = 0.23;                 // a sedan is 2.55 long in the kit; about 0.59 here, close to two people long (people are 0.31 tall)
 const MODEL = { kei: 'sedan', hatch: 'hatchback-sports', suv: 'suv', van: 'van', truck: 'truck-flat', taxi: 'taxi', garbage: 'garbage-truck', delivery: 'delivery' };
@@ -102,6 +103,17 @@ function boxCar(grp, color, kind) {
 
 /** fill a car group (forward = +z) with the kit model for `kind`, or a box car until the model has loaded */
 export function attachVehicle(grp, color, kind = 'kei') {
+  if (TRUCK_KINDS.includes(kind)) {   // the Komachi work trucks (src/work-trucks-kit.js): keitora, crane flatbed, fish van
+    const t = createTruck(kind); t.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); grp.add(t);
+    const lights = t.getObjectByName('Headlights'), tail = t.getObjectByName('Taillights');
+    lights.material.emissive = new THREE.Color('#ffe2a8'); lights.material.emissiveIntensity = 0; tail.material.emissive = new THREE.Color('#e07060'); tail.material.emissiveIntensity = 0;
+    grp.userData.lights = lights; grp.userData.tail = tail; grp.userData.truck = t;
+    grp.userData.wheels = ['Wheel_Left_Front', 'Wheel_Right_Front', 'Wheel_Left_Rear', 'Wheel_Right_Rear'].map(n => t.getObjectByName(n)).filter(Boolean);
+    grp.userData.wheelRadius = t.userData.wheelRadius;
+    grp.userData.cargo = t.userData.cargoMeshes.map(n => t.getObjectByName(n)).filter(Boolean);
+    grp.userData.crane = t.getObjectByName('Crane_Arm') || null;
+    return;
+  }
   const model = models.get(MODEL[kind] || 'sedan');
   if (!model) { boxCar(grp, color, kind); if (!models.size) pending.push({ grp, color, kind }); return; }
   const root = instance(model, color, !NO_REPAINT.has(kind)); grp.add(root);

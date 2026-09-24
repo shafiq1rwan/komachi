@@ -249,9 +249,10 @@ effect through the town instead.
   cherry trees beside it (every biome); the shrine path lanterns came with the hill opening. Residents on a stroll walk out
   to them now; tourists arriving by train will too
 
-## ⬜ Phase 7 — Farming and fishing
+## ✅ Phase 7 — Farming and fishing (complete 2026-09-23)
 
-- Farm plots as a zone: fields that change with the season, a farmhouse, a small truck to market
+- ✅ Farm plots as a zone (2026-09-23; Farms tool, key 9): fields and paddies that change with the season, a farmhouse, farmers out
+  in the fields, a truck taking produce to the shops, a greenhouse; rice paddies turn a water wheel on the canal
 - ✅ Fishing (2026-09-23, src/fishing.js): anglers on the stone quay, the boat's dawn run to its grounds, the catch at a fish market on
   its own lot by the quay and a van taking it to the grocery, supermarket, ramen shop, restaurant and konbini (a crate at each door).
   Homemakers came with it: one adult in about half the couples and families keeps the house and does the day's errands

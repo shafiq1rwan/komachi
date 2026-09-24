@@ -51,6 +51,7 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons behind the sliders button in the clock card, or Space to pause |
+| Settings | The gear in the top-left card opens Settings: a quality preset (Auto picks one for your device) or each setting on its own, resolution, frame rate, shadows, lamp light and the look's effects, applied as you change them; plus the rich and pixel looks, centre the camera and start a new island. Turn on the frame-rate readout to tune it on a phone |
 | Look | The standard look has soft contact shadows, a light miniature focus and calm bay water; the wand button (or `?look=classic`) switches to the lighter classic look and is remembered. "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
 
 Some things worth knowing:
@@ -131,6 +132,9 @@ Some things worth knowing:
 - **Landmarks to walk out to.** A lighthouse stands on the headland (its beam sweeps the sea at night), a red arched
   footbridge crosses the canal and a small park pavilion sits beside it under cherry trees. On fine days residents out for
   a stroll walk out to them, to look out to sea, watch the carp from the crown of the bridge or sit a while in the pavilion.
+- **Farms.** The Farms tool (9) lays out vegetable fields, a greenhouse or rice paddies with a farmhouse; they change with the
+  season, farmers work the rows from early morning, a water wheel turns where paddies meet the canal, and in summer and
+  autumn a truck takes the harvest round the shops.
 - **The catch comes in.** At dawn the fishing boat leaves the quay; by half past ten it is back with crates of fish, laid out at
   the fish market by the quay and driven round the shops. In many families one adult keeps the house and walks down for fish.
 - **A ryokan on the hill.** Once visitors come, an inn goes up on a high terrace; weekend and festival visitors stay the night
@@ -200,6 +204,7 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   milestone.js        the milestone card and the camera glide to go and look
   landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
   tourists.js         day visitors off the trains, their camera, and the weekend tourist bus with its stops
+  work-trucks-kit.js  keitora, builder's crane flatbed and refrigerated fish van
   events.js           the town square's market mornings and summer festival, and the fireworks
   festival-landmark-kit.js standalone festival stalls and props, lighthouse, arched bridge, pavilion and tourist bus
   bubbles.js          speech bubbles over residents who are talking

@@ -48,6 +48,11 @@ export const SHOP_NAMES = {
   ryokan: [['Kaze no Yado','Ryokan'],['Hoshizora','Ryokan'],['Yamazato','Inn'],['Tsukikage','Ryokan'],['Matsunami','Inn']],
   teahouse: [['Yamabiko','Tea House'],['Tsukimi','Chaya'],['Matsukaze','Tea House'],['Kumo no Ue','Chaya']],
 };
+export const FARM_NAMES = {
+  field: [['Aoba', 'Farm'], ['Hinata', 'Fields'], ['Kaze', 'Farm'], ['Sora', 'Farm'], ['Ichigo', 'Fields']],
+  greenhouse: [['Midori', 'Greenhouse'], ['Haru', 'Greenhouse'], ['Kobo', 'Nursery']],
+  paddy: [['Mizuho', 'Paddies'], ['Inaho', 'Rice Fields'], ['Tanbo', 'Paddies']],
+};
 export const WORK_NAMES = {
   office: [['Hikari','Labs'],['Tanaka','Design'],['Sakura','Press'],['Umi','Logistics'],['Aozora','Architects'],['Minato','Software'],['Midori','Clinic'],['Kawa','Accounting'],['Sora','Post Office']],
   workshop: [['Take','Workshop'],['Kaze','Textiles'],['Tetsu','Works'],['Tsubame','Engineering'],['Kiba','Joinery']],

@@ -118,6 +118,27 @@
   #tier{position:fixed;left:50%;bottom:104px;transform:translateX(-50%) translateY(6px);background:var(--cream);color:var(--ink);padding:7px 14px;border-radius:12px;font-weight:700;font-size:12.5px;box-shadow:0 6px 18px rgba(74,67,64,.14);border:1px solid rgba(74,67,64,.08);opacity:0;transition:opacity .18s ease,transform .18s ease;pointer-events:none;white-space:nowrap}
   #tier.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast.show::before{animation:ring .7s ease 1}
+  /* the Settings card: top right under the clock, the town stays visible so changes can be judged live */
+  #options{position:fixed;top:84px;right:18px;width:318px;max-height:calc(100vh - 200px);overflow-y:auto;padding:12px 14px 14px;display:none;flex-direction:column;gap:8px;z-index:7}
+  #options.show{display:flex}
+  #options > *{flex-shrink:0}   /* rows keep their height; the card scrolls instead of squeezing them */
+  #options{scrollbar-width:thin;scrollbar-color:rgba(74,67,64,.28) transparent}   /* a slim scrollbar that stays out of the way */
+  #options::-webkit-scrollbar{width:4px}#options::-webkit-scrollbar-track{background:transparent;margin:14px 0}#options::-webkit-scrollbar-thumb{background:rgba(74,67,64,.28);border-radius:4px}
+  #options .opt-head{display:flex;align-items:center;justify-content:space-between}#options .opt-head b{font-size:16px;font-weight:800}
+  #options .opt-sec{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:var(--ink2);margin-top:6px}
+  #options .opt-seg{display:flex}#options .opt-seg button{flex:1}
+  #options .opt-note{font-size:11px;color:var(--ink2);font-weight:600;min-height:14px}
+  #options .opt-row{display:flex;align-items:center;justify-content:space-between;gap:10px;font-size:12.5px;font-weight:700}
+  #options .opt-row small{display:block;font-size:10.5px;font-weight:600;color:var(--ink2)}
+  #options .opt-row.dim{opacity:.45;pointer-events:none}
+  #options .opt-range{display:flex;align-items:center;gap:6px}#options .opt-range input{width:110px;accent-color:var(--teal)}#options .opt-range b{font-size:11.5px;min-width:30px;text-align:right}
+  #options .switch{width:38px;height:22px;border-radius:11px;border:0;background:#d9d6cf;position:relative;cursor:pointer;flex:none;transition:background .15s}
+  #options .switch::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.2);transition:left .15s}
+  #options .switch.on{background:var(--teal)}#options .switch.on::after{left:19px}
+  #options .cta{border:1px solid rgba(74,67,64,.14);background:var(--cream);color:var(--ink);font:inherit;font-weight:800;font-size:12px;padding:8px 10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}#options .cta:hover{background:var(--cream2)}
+  #options .opt-btns{display:flex;flex-direction:column;gap:6px}#options .opt-btns .cta{width:100%}#options .cta.warn{color:#c9564b}
+  #fps{position:fixed;right:14px;bottom:104px;background:rgba(38,52,69,.78);color:#fff;font:700 11px Nunito;padding:3px 9px;border-radius:9px;z-index:8;pointer-events:none}
+  @media (max-width:720px){#fps{right:8px;bottom:70px}#options{top:58px;right:8px;left:8px;width:auto;max-height:calc(100vh - 150px)}}
   /* milestone card: the moments that change the town get a larger card at the top centre, with a way to go and look */
   #milestone{position:fixed;left:16px;right:16px;margin:0 auto;width:fit-content;box-sizing:border-box;top:86px;transform:translateY(-18px);display:flex;align-items:center;gap:12px;background:var(--cream);color:var(--ink);padding:11px 12px 11px 12px;border-radius:18px;box-shadow:0 10px 28px rgba(74,67,64,.18);border:1px solid rgba(74,67,64,.08);max-width:520px;opacity:0;pointer-events:none;transition:opacity .35s ease,transform .45s cubic-bezier(.2,.9,.3,1.15);z-index:6}
   #milestone.show{opacity:1;transform:translateY(0);pointer-events:auto}

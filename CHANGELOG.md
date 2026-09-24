@@ -69,6 +69,24 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Settings (src/quality.js; the gear in the top-left card): quality presets Auto, Low, Medium and High, and every setting on its
+  own, applied live and remembered: render resolution, a frame-rate cap (30, 45, 60; paused never runs above 30), shadows (off, low
+  redrawn a few times a second, high), real lamp light, and the rich look's soft contact shadows (half resolution below High),
+  miniature blur and smoothed edges. Auto picks Low on phones, Medium on small machines and High elsewhere, and steps the
+  resolution down while the frame rate cannot keep up. An optional frame-rate readout helps tune it on the device. The rich
+  look, pixel look, centre-camera and new-island buttons moved from the top bar into the card.
+- Work trucks (src/work-trucks-kit.js, models in assets/work-trucks): builders' materials come on a peach flatbed with a folding
+  crane and strapped timber (the crane swings round over the kerb to unload, and the truck leaves with an empty bed); the farm's
+  produce round is a mint keitora with slatted crates of vegetables; the catch goes round on a cream refrigerated fish van with
+  a blue stripe. Their wheels roll, their own head and tail lights come on after dark, and round trucks come back empty.
+- Phase 7, farming: a Farm zone (Farms tool, key 9). One cell makes a vegetable field or a greenhouse, two a bigger field, three
+  rice paddies. The first cell of a field or paddy has a small kawara-roofed farmhouse; a scarecrow stands in the rows. What grows
+  follows the season: seedlings on bare ridges in spring, full green rows with tomatoes in summer, pumpkins and gold in autumn,
+  bare earth under snow in winter; paddies are flooded with seedlings in spring, green in summer, gold with rice drying on racks
+  in autumn and stubble in winter, and a paddy cell beside the canal turns a water wheel. Farmers keep early hours and work out in
+  the fields in season (planting, hoeing, watering, weeding, bringing in the harvest; indoors in winter and rain). On summer and
+  autumn mornings a truck takes the produce round the shops, leaving a crate of vegetables (flowers at the florist, from the
+  greenhouse) at each door. The farm card says what is happening in the fields.
 - Phase 7, fishing (src/fishing.js): the boat moored at the quay sails at 5:30, works its grounds offshore with slow circles and is
   back alongside at 10:30 with crates on deck (a stormy morning keeps it in). The catch is laid out at a fish market on its own lot by
   the quay (a paved pad and a stall facing the street: posts, a sloping roof, a striped valance, a long table of ice, crates) until 18:30, and residents walk down to buy fish for supper,

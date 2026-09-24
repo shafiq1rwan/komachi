@@ -36,7 +36,7 @@ const GRADE = {
     }`,
 };
 
-let composer = null, gtao = null, tiltH = null, tiltV = null;
+let composer = null, gtao = null, tiltH = null, tiltV = null, passes = { ao: true, aoHalf: false, blur: true, msaa: true };
 const lookK = () => (S.look === 'rich' ? 1 : 0);
 lookUniform.value = lookK();
 document.body.classList.toggle('rich', S.look === 'rich');
@@ -64,13 +64,22 @@ function build() {
   composer.addPass(tiltH); composer.addPass(tiltV);
   composer.addPass(new OutputPass());   // tone mapping and sRGB, then the grade in display space
   composer.addPass(new ShaderPass(GRADE));
-  sizeLook();
+  applyPasses(); sizeLook();
+}
+/** quality.js: which of the rich look's effects run (ambient occlusion, at full or half resolution; the miniature blur; MSAA) */
+function setPasses(q) { passes = { ao: q.ao, aoHalf: q.aoHalf, blur: q.blur, msaa: q.msaa }; applyPasses(); }
+function applyPasses() {
+  if (!composer) return;
+  gtao.enabled = passes.ao; tiltH.enabled = tiltV.enabled = passes.blur;
+  const n = passes.msaa ? 4 : 0;
+  for (const t of [composer.renderTarget1, composer.renderTarget2]) if (t.samples !== n) { t.samples = n; t.dispose(); }
 }
 /** keep the chain at the canvas's drawing size (resize in scene.js sets that, including the half-size pixel look) */
 function sizeLook() {
   if (!composer) return;
   const size = renderer.getSize(new THREE.Vector2());
-  composer.setPixelRatio(1); composer.setSize(size.x, size.y); gtao.setSize(size.x, size.y);
+  const ao = passes.aoHalf ? 0.5 : 1;
+  composer.setPixelRatio(1); composer.setSize(size.x, size.y); gtao.setSize(Math.max(1, Math.floor(size.x * ao)), Math.max(1, Math.floor(size.y * ao)));
   const k = 0.6;   // lighter edge blur keeps the distant town legible while retaining a little miniature focus
   tiltH.uniforms.h.value = k / size.x; tiltV.uniforms.v.value = k / size.y;
   tiltH.uniforms.r.value = tiltV.uniforms.r.value = 0.5;
@@ -93,4 +102,4 @@ function setLook(look) {
   if (look === 'rich' && !composer) build(); else sizeLook();
   dispatchEvent(new Event('komachi-look'));
 }
-export { renderFrame, setLook, lookK, sizeLook };
+export { renderFrame, setLook, lookK, sizeLook, setPasses };

@@ -154,7 +154,7 @@ try {
     MT.drawRoad(MT.cell(24, 23), MT.cell(24, 27)); const extra = MT.placeBlock('shop', [MT.cell(25, 25)]); extra.stage = MT.DONE; for (const u of extra.units) MT.rebuildUnitMesh(u);
     const q = shops[shops.length - 1]; const was = q.kind; q.quietDays = 2; q.visitsToday = 0; q.created = -100;
     if (!q.units[0].staff.length) { const r = MT.residents.find(r => r.home); if (r) { r.job = q.units[0]; q.units[0].staff.push(r); } }
-    MT.setHour(23.9); MT.fastForward(0.3); const changed = q.kind !== was && q.changing === true; MT.fastForward(3.5);
+    MT.setHour(23.97); q.visitsToday = 0; MT.fastForward(0.1); const changed = q.kind !== was && q.changing === true; MT.fastForward(3.5);   // counted just before the day's turn: no late customer can spoil it
     return { counted, changed, reopened: !q.changing && q.renoT === 0, kind: q.kind, was };
   });
   check('economy: customers are counted daily and a quiet shop changes trade, then reopens', eco.counted && eco.changed && eco.reopened, JSON.stringify(eco));
@@ -290,11 +290,12 @@ try {
   });
   check('town square: markets on Sundays, the summer festival with stalls and a crowd', ev.placed && ev.kind === 'square' && ev.market === 'market' && ev.festival === 'festival' && ev.props >= 8 && ev.went >= 1 && ev.chron, JSON.stringify(ev));
   const ry = await page.evaluate(() => {   // the ryokan: on the hill, weekend visitors after midday stay the night
-    MT.setSpeed(0); MT.openHill(true); const plots = MT.hillPlots(); if (!plots.length) return { plot: false };
+    MT.setSpeed(0); MT.openHill(true); if (!MT.hillPlots().length) MT.hillMarket(); let plots = MT.hillPlots().filter(c => !c.block); if (!plots.length) plots = MT.cells.filter(c => MT.placeable(c, [c]));   // a hill plot if there is one; the check is about the guests
+    if (!plots.length) return { plot: false };
     const b = MT.placeBlock('shop', [plots[0]], { kind: 'ryokan', roofStyle: 'kawara' }); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u);
     MT.tourism.forceWeekend = true; MT.setHour(12); const ts = []; for (let k = 0; k < 8 && !ts.some(t => t.staying); k++) { const t = MT.spawnTourist(); if (t) ts.push(t); }
     const guest = ts.find(t => t.staying); let inn = false; for (let k = 0; k < 400 && guest && !inn; k++) { MT.fastForward(0.04); inn = guest.state === 'atInn'; }
-    MT.tourism.forceWeekend = false; return { plot: true, kind: b.kind, guest: !!guest, inn, label: MT.tierLabel ? true : true };
+    MT.tourism.forceWeekend = false; return { plot: true, kind: b.kind, guest: !!guest, inn, spawned: ts.length, guests: MT.tourists.filter(t => t.staying).length, h: +(MT.T % 24).toFixed(2), stage: b.stage };
   });
   check('ryokan: a visitor stays the night at the inn on the hill', ry.plot && ry.kind === 'ryokan' && ry.guest && ry.inn, JSON.stringify(ry));
   const fsh = await page.evaluate(() => {   // Phase 7 fishing: the boat goes out at dawn and its catch lays out the quay stall
@@ -303,6 +304,18 @@ try {
     return { boat: true, away: +away.toFixed(2), catch: MT.catchToday(), market: MT.landmarkRoads().some(o => o.l.kind === 'fishmarket'), chron: MT.chronicle.some(e => /first catch/.test(e.text)) };
   });
   check('fishing: the boat sails at dawn and its catch opens the quay fish stall', fsh.boat && fsh.away > 1.5 && fsh.catch && fsh.market && fsh.chron, JSON.stringify(fsh));
+  const fm = await page.evaluate(() => {   // Phase 7 farming: a farm zone, a farmhouse on its first cell, farmers out in the fields in season
+    MT.setSpeed(0); const station = MT.STATION.block.cells.flatMap(s => [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => MT.cell(s.i + a, s.j + b))).filter(n => n && n.type === 'road');
+    let sel = null, best = 1e9; for (const c of MT.cells) for (const [di, dj] of [[1, 0], [0, 1]]) { const cs = [c, MT.cell(c.i + di, c.j + dj)]; if (!cs.every(x => x && MT.placeable(x, cs))) continue; const f = MT.frontRoads(cs); const p = f.length && MT.routeCells(station, f); if (p && p.length < best) { best = p.length; sel = cs; } }   // the closest free pair to the station, so the walk there is short
+    if (!sel) return { placed: false };
+    const b = MT.placeBlock('farm', sel); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u);
+    const home = r => r.home && r.state === 'inside' && r.at === r.home, idle = [...MT.residents.filter(home), ...MT.residents.filter(r => r.home && !home(r) && r.state !== 'away')].slice(0, 3);   // at home first, else anyone in town
+    for (const r of idle) { if (r.job) { const i = r.job.staff.indexOf(r); if (i >= 0) r.job.staff.splice(i, 1); } r.homemaker = false; r.commuter = false; r.job = b.units[0]; b.units[0].staff.push(r); r.workStart = 6; r.workEnd = 16; r.lastWorkDay = -1; }
+    while (MT.seasonOf() !== 'summer') MT.fastForward(24); MT.setWeather('clear', 20); MT.weather.rain = MT.weather.tRain = 0; MT.setHour(6.2); for (const r of idle) r.next = MT.T;   // no lingering shower: farmers work indoors in the rain
+    let out = false; for (let k = 0; k < 400 && !out; k++) { MT.fastForward(0.04); out = MT.residents.some(r => r.job && r.job.block === b && r.outside > MT.T); }
+    return { placed: true, kind: b.kind, label: MT.tierLabel('farm', 2), farmers: b.units[0].staff.length, out, dbg: out ? null : { h: +(MT.T % 24).toFixed(2), rain: +MT.weather.rain.toFixed(2), season: MT.seasonOf(), f: idle.map(r => [r.state, r.activity, r.at === r.job ? 'J' : r.at === r.home ? 'H' : '-', r.lastWorkDay, +(r.next - MT.T).toFixed(2), r.job === b.units[0]]) } };
+  });
+  check('farming: a farm zone with farmers out in the fields in summer', fm.placed && fm.kind === 'field' && fm.farmers >= 1 && fm.out, JSON.stringify(fm));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

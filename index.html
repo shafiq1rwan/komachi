@@ -17,6 +17,7 @@
 <header id="hud">
   <div id="brand" class="card">
     <h1 aria-label="Komachi"><img class="brand-icon" src="./assets/brand/komachi-icon.png" alt="" width="44" height="44"><span>Komachi</span></h1>
+    <button class="icon-btn" id="btn-options" data-tip="Settings"><i class="fa-solid fa-gear"></i></button>
     <button class="icon-btn on" id="btn-stats" data-tip="Town figures" aria-expanded="true"><i class="fa-solid fa-chart-simple"></i></button>
     <div id="stats" class="fold">
       <span class="stat" data-tip="People living here"><i class="fa-solid fa-user"></i><b id="s-pop">0</b></span>
@@ -38,12 +39,7 @@
         <button data-s="2" data-tip="Double speed">2×</button>
         <button data-s="4" data-tip="Fast">4×</button>
       </div>
-      <div class="divider-v"></div>
-      <button class="icon-btn" id="btn-look" data-tip="Soft shadows and miniature focus; turn off for the lighter classic look"><i class="fa-solid fa-wand-magic-sparkles"></i></button>
-      <button class="icon-btn" id="btn-pixel" data-tip="Pixel look: render at half resolution"><i class="fa-solid fa-border-all"></i></button>
-      <button class="icon-btn" id="btn-center" data-tip="Centre the camera on the station"><i class="fa-solid fa-crosshairs"></i></button>
-      <button class="icon-btn" id="btn-reset" data-tip="Start a new island (the town saves itself as you play)"><i class="fa-solid fa-rotate-left"></i></button>
-    </div>
+          </div>
   </div>
 </header>
 
@@ -53,6 +49,7 @@
   <button class="tool" data-tool="shop" style="--sw:#dcebe9;--rf:#4f8a86"><div class="sw"><i class="fa-solid fa-store"></i></div>Shops<kbd>3</kbd></button>
   <button class="tool" data-tool="work" style="--sw:#dfe8ef;--rf:#5f86a8"><div class="sw"><i class="fa-solid fa-briefcase"></i></div>Work<kbd>4</kbd></button>
   <button class="tool" data-tool="civic" style="--sw:#e7e2ef;--rf:#7d6fa3"><div class="sw"><i class="fa-solid fa-landmark"></i></div>Civic<kbd>8</kbd></button>
+  <button class="tool" data-tool="farm" style="--sw:#e3ecd7;--rf:#6f8f4a"><div class="sw"><i class="fa-solid fa-seedling"></i></div>Farms<kbd>9</kbd></button>
   <button class="tool road" data-tool="road" style="--sw:#e6e7e9;--rf:#5b6269"><div class="sw"><i class="fa-solid fa-road"></i></div>Streets<kbd>5</kbd></button>
   <button class="tool park" data-tool="park" style="--sw:#dfe6ee;--rf:#4a6d94"><div class="sw"><i class="fa-solid fa-square-parking"></i></div>Parking<kbd>7</kbd></button>
   <button class="tool remove" data-tool="remove" style="--sw:#f5dede;--rf:#c9564b"><div class="sw"><i class="fa-solid fa-eraser"></i></div>Clear<kbd>6</kbd></button>
@@ -72,6 +69,26 @@
 
 <div id="inspect" class="card"></div>
 <div id="minimap" class="card" aria-label="Map of Komachi"><div class="mini-heading"><b>Komachi</b><span>ISLAND MAP</span></div><canvas id="mini-c" width="472" height="352"></canvas><div class="mini-caption"><span><i></i> Current view</span><b>N ↑</b></div></div>
+<div id="options" class="card" role="dialog" aria-label="Settings">
+  <div class="opt-head"><b>Settings</b><button class="icon-btn" id="opt-close" aria-label="Close"><i class="fa-solid fa-xmark"></i></button></div>
+  <div class="opt-sec">Quality</div>
+  <div class="seg opt-seg" data-set="preset"><button data-v="auto">Auto</button><button data-v="low">Low</button><button data-v="medium">Medium</button><button data-v="high">High</button></div>
+  <div class="opt-note" id="opt-auto-note"></div>
+  <div class="opt-row"><span>Resolution<small>lower is cooler and faster</small></span><div class="opt-range"><input type="range" id="opt-res" min="0.5" max="2" step="0.25"><b id="opt-res-v"></b></div></div>
+  <div class="opt-row"><span>Frame rate</span><div class="seg" data-set="fps"><button data-v="30">30</button><button data-v="45">45</button><button data-v="60">60</button></div></div>
+  <div class="opt-row"><span>Shadows</span><div class="seg" data-set="shadows"><button data-v="off">Off</button><button data-v="low">Low</button><button data-v="high">High</button></div></div>
+  <div class="opt-row"><span>Lamp light<small>real light from the bench lamps and festival</small></span><button class="switch" data-toggle="lights" role="switch"></button></div>
+  <div class="opt-sec">Look</div>
+  <div class="opt-row"><span>Rich look<small>off: the lighter classic look</small></span><button class="switch" data-toggle="look" role="switch"></button></div>
+  <div class="opt-row"><span>Soft contact shadows</span><button class="switch" data-toggle="ao" role="switch"></button></div>
+  <div class="opt-row"><span>Miniature blur</span><button class="switch" data-toggle="blur" role="switch"></button></div>
+  <div class="opt-row"><span>Smooth edges</span><button class="switch" data-toggle="msaa" role="switch"></button></div>
+  <div class="opt-row"><span>Pixel look<small>half resolution, chunky</small></span><button class="switch" data-toggle="pixel" role="switch"></button></div>
+  <div class="opt-row"><span>Show frame rate</span><button class="switch" data-toggle="showFps" role="switch"></button></div>
+  <div class="opt-sec">Island</div>
+  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-rotate-left"></i> Start a new island</button></div>
+</div>
+<div id="fps" hidden></div>
 <div id="toast"></div>
 <div id="milestone" role="status" aria-live="polite"></div>
 <div id="tier"></div>

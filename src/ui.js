@@ -5,6 +5,7 @@ import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR,
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 import { chronicle } from './chronicle.js';
 import { eventInfo, eventOn } from './events.js';
+import { seasonOf as seasonNow } from './seasons.js';
 import { innGuests, INN_ROOMS } from './tourists.js';
 
 const ui = { time: document.getElementById('time'), day: document.getElementById('day'), sun: document.getElementById('sun'), inspect: document.getElementById('inspect'), toast: document.getElementById('toast'), tags: document.getElementById('tags'), bars: document.getElementById('bars'),
@@ -75,8 +76,9 @@ function renderInspect(target, follow = null) {
         const guests = inside.filter(r => r.home !== u); if (guests.length) { html += `<div class="divider"></div><ul>`; for (const r of guests) html += personLi(r, 'visiting'); html += `</ul>`; }
       } else {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
-        if (b.kind !== 'square') html += `<div class="row"><span>${type === 'shop' ? 'Staff' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
+        if (b.kind !== 'square') html += `<div class="row"><span>${type === 'shop' ? 'Staff' : type === 'farm' ? 'Farmers' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
         else { const ev = eventOn(); html += `<div class="row"><span>On the square</span><b>${ev && ev.block === b ? ev.spots.reduce((s, x) => s + x.taken, 0) : 0}</b></div><div class="empty">${esc(eventInfo(b))}</div>`; }
+        if (type === 'farm') html += `<div class="row"><span>In the fields</span><b>${{ spring: b.kind === 'paddy' ? 'planting the rice' : 'planting', summer: 'growing', autumn: 'harvest time', winter: 'resting till spring' }[seasonNow()]}</b></div>`;
         if (b.kind !== 'square') html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;
         if (type === 'civic' && b.kind === 'community') {   // the town chronicle in the centre's display case
           html += `<div class="divider"></div><div class="hh">Town chronicle<span>${chronicle.length ? chronicle.length + ' entries' : 'nothing yet'}</span></div><ul>`;

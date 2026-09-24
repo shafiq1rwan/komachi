@@ -27,7 +27,7 @@ function updateCamera() {
 }
 
 function resize() {
-  const scale = S.pixelLook ? 0.5 : Math.min(devicePixelRatio, 2);
+  const scale = S.pixelLook ? 0.5 : Math.min(devicePixelRatio || 1, S.quality ? S.quality.res : 2);   // the Settings card's resolution (quality.js)
   renderer.setPixelRatio(1); renderer.setSize(Math.max(320, Math.floor(innerWidth * scale)), Math.max(200, Math.floor(innerHeight * scale)), false);
   updateCamera();
 }
