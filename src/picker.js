@@ -1,5 +1,6 @@
 // Komachi — the building picker: choosing Homes, Shops, Work, Civic or Farms opens a strip of chips above the tool dock, one per
 // kind with a small picture of its real model (rendered once, the first time the strip opens), scrolling sideways on phones.
+// The Streets button opens a two-chip strip instead: Street or Car park.
 // "Auto" (the first chip) keeps the old way: the drag length sets the size and the town picks what the neighbourhood lacks. A picked
 // kind fixes the sizes it comes in (a substation one cell, the town hall two, the square three); one-of-a-kind buildings that are
 // already standing are greyed out. Picked shops keep their trade (`b.picked`, saved).
@@ -24,7 +25,42 @@ const sizesOf = (type, kind) => [1, 2, 3].filter(n => (TIERS[type][n] || []).inc
 const taken = kind => SINGLE.has(kind) && blocks.some(b => b.type === 'civic' && b.kind === kind);
 
 let pick = null, openType = null;   // pick: { type, kind, sizes } or null for Auto
-const strip = document.getElementById('picker');
+// the Streets button's strip: two modes rather than kinds, each its own tool in input.js (road draws a street, park lays a car park)
+const MODES = [
+  { tool: 'road', icon: 'fa-road', name: 'Street', note: 'drag a line' },
+  { tool: 'park', icon: 'fa-square-parking', name: 'Car park', note: '1–2 cells' },
+];
+let modeCb = null;
+const onPickerMode = fn => { modeCb = fn; };
+function renderModes(t) {
+  strip.innerHTML = wrap(MODES.map(m => `<button class="chip mode${m.tool === t ? ' on' : ''}" data-mode="${m.tool}"><span class="thumb mode-thumb"><i class="fa-solid ${m.icon}"></i></span><b>${m.name}</b><small>${m.note}</small></button>`).join(''));
+  afterRender();
+}
+const strip = document.getElementById('picker'), dock = document.getElementById('tools');
+// the chips scroll sideways by swipe, trackpad or wheel with the scrollbar hidden; arrows at either end show only while there is more
+const wrap = html => `<button class="pk-arrow l" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button><div class="chips">${html}</div><button class="pk-arrow r" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>`;
+function arrows() {
+  const row = strip.querySelector('.chips'); if (!row) return;
+  const more = row.scrollWidth > row.clientWidth + 2; strip.classList.toggle('overflow', more);
+  strip.querySelector('.pk-arrow.l').disabled = row.scrollLeft < 2; strip.querySelector('.pk-arrow.r').disabled = row.scrollLeft > row.scrollWidth - row.clientWidth - 2;
+}
+function afterRender() {
+  const row = strip.querySelector('.chips');
+  row.addEventListener('scroll', arrows, { passive: true });
+  row.addEventListener('wheel', e => { e.stopPropagation(); if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) { e.preventDefault(); row.scrollLeft += e.deltaY; } }, { passive: false });   // a mouse wheel scrolls the row, never zooms the town
+  const on = row.querySelector('.chip.on'); if (on && on.offsetLeft + on.offsetWidth > row.clientWidth) row.scrollLeft = on.offsetLeft - 8;
+  layout();
+}
+strip.addEventListener('click', e => { const a = e.target.closest('.pk-arrow'); if (!a) return; const row = strip.querySelector('.chips'); row.scrollBy({ left: (a.classList.contains('l') ? -1 : 1) * row.clientWidth * 0.7, behavior: 'smooth' }); });
+/** the strip takes the dock's width and sits a small gap above it; the tier label goes above the strip */
+function layout() {
+  if (!strip.classList.contains('show') && !document.body.classList.contains('picking')) return;
+  const r = dock.getBoundingClientRect(), gap = innerWidth <= 720 ? 10 : 8;
+  strip.style.width = Math.round(r.width) + 'px'; strip.style.bottom = Math.round(innerHeight - r.top + gap) + 'px';
+  document.body.style.setProperty('--picker-top', Math.round(innerHeight - r.top + gap + strip.offsetHeight + 8) + 'px');
+  arrows();
+}
+addEventListener('resize', layout);
 const label = (type, kind) => SHORT[kind] || KIND_LABEL[kind] || kind;
 function render(type) {
   if (pick && taken(pick.kind)) pick = null;   // a one-of-a-kind building that now stands: back to Auto
@@ -33,17 +69,19 @@ function render(type) {
     const sz = sizesOf(type, k), off = taken(k), on = pick && pick.kind === k;
     chips.push(`<button class="chip${on ? ' on' : ''}${off ? ' off' : ''}" data-kind="${k}"${off ? ' disabled' : ''}><span class="thumb"><img data-thumb="${type}:${k}" alt="" src="${thumbs.get(type + ':' + k) || ''}"></span><b>${label(type, k)}</b><small>${off ? 'built' : sz.length > 1 ? `${sz[0]}–${sz[sz.length - 1]} cells` : `${sz[0]} cell${sz[0] > 1 ? 's' : ''}`}</small></button>`);
   }
-  strip.innerHTML = `<div class="chips">${chips.join('')}</div>`;
-  queueThumbs(type);
+  strip.innerHTML = wrap(chips.join(''));
+  afterRender(); queueThumbs(type);
 }
 strip.addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b || b.disabled) return;
+  if (b.dataset.mode) { if (modeCb) modeCb(b.dataset.mode); return; }
   const k = b.dataset.kind; pick = k ? { type: openType, kind: k, sizes: sizesOf(openType, k) } : null;
   for (const c of strip.querySelectorAll('.chip')) c.classList.toggle('on', c === b);
 });
 /** input.js: the tool changed; the strip opens for the zone tools and closes for the rest (the pick resets with the tool) */
 function pickerForTool(t) {
-  if (KINDS[t]) { if (openType !== t) { pick = null; openType = t; render(t); } else render(t); strip.classList.add('show'); document.body.classList.add('picking'); }
+  if (t === 'road' || t === 'park') { openType = 'road'; pick = null; strip.classList.add('show'); document.body.classList.add('picking'); renderModes(t); return; }
+  if (KINDS[t]) { strip.classList.add('show'); document.body.classList.add('picking'); if (openType !== t) { pick = null; openType = t; render(t); } else render(t); }
   else { openType = null; pick = null; strip.classList.remove('show'); document.body.classList.remove('picking'); }
 }
 const currentPick = () => pick;
@@ -86,4 +124,4 @@ function drawThumb(type, kind) {
   tscene.remove(g); for (const u of b.units) { disposeGroup(u.mesh); u.winMat.dispose(); u.glowMat.dispose(); }
   return url;
 }
-export { pickerForTool, currentPick, pickLabel, sizesOf, KINDS };
+export { pickerForTool, currentPick, pickLabel, onPickerMode, sizesOf, KINDS };

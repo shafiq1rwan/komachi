@@ -69,6 +69,13 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The picker strip takes the dock's width and sits a small gap above it (8px, 10px on phones); its scrollbar is hidden, with arrow
+  buttons at either end that show only while there is more to see and dim at the ends; swiping, trackpads and the mouse wheel
+  still scroll it sideways (the wheel never zooms the town from there). A short strip keeps its chips centred.
+- "Let's build" on the welcome card now leaves you in Explore instead of Homes; its toast says to pick Homes (2).
+- Streets and Parking share one dock button: Streets opens a strip with Street (drag a line) and Car park (1–2 cells beside a street).
+  Key 7 still goes straight to Car park, the Streets button stays lit for both, and hints now say "Streets → Car park". The dock has
+  eight buttons instead of nine, a little more room each on phones.
 - Fixed: two streets drawn side by side grew a guard rail and centre dashes across the road at every cell edge. The avenue test
   (`dbl` in rebuildRoads) saw the next cell along each street as a parallel partner too; a pair now counts only where it ends at
   both cells. A street drawn beside the coast road now joins it as a two-lane avenue instead of a row of crossroads with zebras.

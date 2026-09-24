@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 49 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 51 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -140,7 +140,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
 - Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed
   when built); `pickerForTool(t)` from input.js setTool; `currentPick()` caps the drag and sets placeBlock's preset ({ kind | variant, picked });
-  placeBlock honours `preset.kind`/`preset.variant` before naming; reckonShops skips `b.picked`; thumbnails via a throwaway WebGLRenderer on
+  placeBlock honours `preset.kind`/`preset.variant` before naming; `layout()` sizes #picker to #tools' rect (width, gap above it) and
+  sets `--picker-top` for #tier; `wrap()` adds .pk-arrow buttons (shown with .overflow), the row's wheel scrolls sideways; reckonShops skips `b.picked`; thumbnails via a throwaway WebGLRenderer on
   fake units (rebuildUnitMesh, then removed from townGroup).
 - Shrine approach (2026-09-24): island.js `shrineAxis` = the hill centre moved sideways onto its cell column + `edge` (summit extent, by
   cell via `cellLevel`); shrine, stairs (drop from the summit to the cell level beyond the edge), torii at the stairs' foot and the
@@ -218,7 +219,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   (also a dev hook), `updateWeather(dt, dh)` in the main loop and fastForward; clouds are a pool of 12 invisible shadow-only planes (cloud alpha masks, colorWrite false) at y 6.5 scaled in/out by cover, so only their shade shows,
   rain a LineSegments field round `cam.target`; daynight.js dims/greys by `W.cover` and calls `setWet` (world.js tints the road mesh); sim.js
   equips an umbrella on `startTrip` while `W.rain > 0.25`. Saved as `weather`.
-- Tool labels (2026-09-22): Explore, Homes (res), Shops (shop), Work (work), Civic, Streets (road), Parking (park), Clear (remove). Code names are
+- Tool labels (2026-09-22): Explore, Homes (res), Shops (shop), Work (work), Civic, Streets (road), Parking (park), Clear (remove).
+  Since 2026-09-24 Parking has no dock button: picker.js MODES gives the Streets button a Street | Car park strip (`onPickerMode(setTool)`
+  from input.js), key 7 still selects 'park', and setTool lights the road button for both; player strings say "Streets → Car park". Code names are
   unchanged; player-facing strings say "Streets tool" and "Clear".
 - Dev hooks on `window.MT` (placeBlock, fastForward, setHour, project, DONE…) drive the tests.
   `?demo` builds a sample town; `?seed=` fixes the island; `?biome=sakura|coastal` themes it.

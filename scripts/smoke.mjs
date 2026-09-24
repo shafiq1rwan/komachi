@@ -39,6 +39,9 @@ try {
   s = await page.evaluate(() => ({ waiting: MT.residents.filter(r => !r.home).length, seated: MT.residents.filter(r => r.spot).length, station: document.querySelector('#s-wait').textContent }));
   check('newcomers arrive by train and wait at the station', s.waiting >= 1 && s.seated >= 1, JSON.stringify(s));
   await page.click('#intro-go');
+  const startTool = await page.evaluate(() => document.querySelector('.tool.on')?.dataset.tool);
+  check('the welcome button leaves the player in Explore', startTool === 'explore', startTool);
+  await page.click('.tool[data-tool="res"]');   // then the player picks Homes
   const pts = await page.evaluate(() => [[17, 18], [17, 19], [17, 20], [17, 21]].map(([i, j]) => MT.project(i, j)));
   await page.mouse.move(pts[0].x, pts[0].y); await page.mouse.down();
   for (const p of pts) { await page.mouse.move(p.x, p.y, { steps: 5 }); await sleep(40); }
@@ -323,6 +326,13 @@ try {
     return { chips, open, placed: true, kind: b.kind, picked: b.picked, closed: !document.getElementById('picker').classList.contains('show') };
   });
   check('building picker: a strip of kinds per zone tool, and a picked kind is built as chosen', pkr.open && pkr.chips >= 10 && pkr.placed && pkr.kind === 'clinic' && pkr.picked && pkr.closed, JSON.stringify(pkr));
+  const stp = await page.evaluate(() => {   // Streets and Car park share one dock button: its strip switches between them
+    MT.setTool('road'); const strip = document.getElementById('picker'), modes = strip.querySelectorAll('.chip[data-mode]').length, dock = !document.querySelector('.tool[data-tool="park"]');
+    strip.querySelector('.chip[data-mode="park"]').click();
+    const parkOn = strip.querySelector('.chip.on')?.dataset.mode === 'park', streetsLit = document.querySelector('.tool[data-tool="road"]').classList.contains('on');
+    MT.setTool('explore'); return { modes, dock, parkOn, streetsLit };
+  });
+  check('Streets button: a Street | Car park strip, and car parks sit under Streets', stp.modes === 2 && stp.dock && stp.parkOn && stp.streetsLit, JSON.stringify(stp));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

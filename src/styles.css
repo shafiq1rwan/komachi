@@ -119,18 +119,21 @@
   #tier.show{opacity:1;transform:translateX(-50%) translateY(0)}
   #toast.show::before{animation:ring .7s ease 1}
   /* the building picker: a strip of chips above the dock for the zone tools; Auto first, then each kind with a picture of its model */
-  #picker{position:fixed;left:50%;bottom:108px;transform:translateX(-50%) translateY(8px);max-width:min(980px,calc(100vw - 24px));opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:5}
+  #picker{position:fixed;left:50%;bottom:108px;transform:translateX(-50%) translateY(8px);max-width:calc(100vw - 12px);box-sizing:border-box;display:flex;align-items:center;gap:2px;padding:5px;background:var(--cream);border-radius:16px;box-shadow:0 6px 18px rgba(74,67,64,.14);border:1px solid rgba(74,67,64,.08);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:5}
   #picker.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
-  #picker .chips{display:flex;gap:6px;overflow-x:auto;padding:6px;background:var(--cream);border-radius:16px;box-shadow:0 6px 18px rgba(74,67,64,.14);border:1px solid rgba(74,67,64,.08);scrollbar-width:thin;scrollbar-color:rgba(74,67,64,.28) transparent;scroll-snap-type:x proximity}
-  #picker .chips::-webkit-scrollbar{height:4px}#picker .chips::-webkit-scrollbar-thumb{background:rgba(74,67,64,.28);border-radius:4px}
+  #picker .chips{flex:1 1 auto;min-width:0;display:flex;gap:6px;overflow-x:auto;scrollbar-width:none;-ms-overflow-style:none;scroll-snap-type:x proximity;overscroll-behavior-x:contain}
+  #picker .chips::-webkit-scrollbar{display:none}#picker .chips > :first-child{margin-left:auto}#picker .chips > :last-child{margin-right:auto}   /* hidden scrollbar; a short row stays centred */
+  #picker .pk-arrow{display:none;flex:none;width:26px;height:56px;border:0;border-radius:10px;background:var(--cream2);color:var(--ink);font-size:12px;cursor:pointer;align-items:center;justify-content:center;padding:0}
+  #picker.overflow .pk-arrow{display:flex}#picker .pk-arrow:hover:not(:disabled){background:#dcebe8;color:var(--teal2)}#picker .pk-arrow:disabled{opacity:.3;cursor:default}
   #picker .chip{flex:none;width:84px;border:0;background:transparent;border-radius:12px;padding:5px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;font:inherit;color:var(--ink);scroll-snap-align:start}
   #picker .chip:hover{background:var(--cream2)}#picker .chip.on{background:#dcebe8}
   #picker .chip .thumb{width:72px;height:56px;border-radius:9px;background:#e9efe8;display:flex;align-items:center;justify-content:center;overflow:hidden}
   #picker .chip .thumb img{width:100%;height:100%;object-fit:contain}#picker .chip .auto-thumb{color:var(--teal);font-size:22px}
   #picker .chip b{font-size:11px;font-weight:800;line-height:1.1;text-align:center}#picker .chip small{font-size:9.5px;font-weight:700;color:var(--ink2)}
   #picker .chip.off{opacity:.45;cursor:default}
-  body.picking #tier{bottom:198px}
-  @media (max-width:720px){#picker{bottom:70px;max-width:calc(100vw - 12px)}#picker .chips{gap:3px;padding:4px;border-radius:13px}#picker .chip{width:68px;padding:4px 2px}#picker .chip .thumb{width:58px;height:44px}#picker .chip b{font-size:10px}body.picking #tier{bottom:150px}}
+  #picker .chip .mode-thumb{color:#5b6269;font-size:24px}#picker .chip[data-mode="park"] .mode-thumb{color:#4a6d94}
+  body.picking #tier{bottom:var(--picker-top,198px)}
+  @media (max-width:720px){#picker{bottom:70px;padding:4px;border-radius:13px}#picker .chips{gap:3px}#picker .pk-arrow{width:22px;height:48px;border-radius:9px;font-size:11px}#picker .chip{width:68px;padding:4px 2px}#picker .chip .thumb{width:58px;height:44px}#picker .chip b{font-size:10px}body.picking #tier{bottom:var(--picker-top,150px)}}
   /* the Settings card: top right under the clock, the town stays visible so changes can be judged live */
   #options{position:fixed;top:84px;right:18px;width:318px;max-height:calc(100vh - 200px);overflow-y:auto;padding:12px 14px 14px;display:none;flex-direction:column;gap:8px;z-index:7}
   #options.show{display:flex}

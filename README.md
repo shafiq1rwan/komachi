@@ -41,9 +41,9 @@ Other scripts:
 | Pan | Drag (any button in Explore mode, right or middle button in any mode), or WASD / arrow keys |
 | Zoom | Mouse wheel |
 | Rotate | Q / E in 45° steps |
-| Tools | 1 Explore · 2 Homes · 3 Shops · 4 Work · 5 Streets · 6 Clear · 7 Parking · 8 Civic |
+| Tools | 1 Explore · 2 Homes · 3 Shops · 4 Work · 5 Streets · 6 Clear · 7 Car park (under Streets) · 8 Civic · 9 Farms |
 | Civic | One cell: substation, water works or recycling centre. Two or three cells: public bath. Two workers each; nothing depends on them |
-| Parking | Drag one or two cells beside a street. Homes and workplaces within six cells park there instead of lining the kerb; a full kerb is called out on the building's card |
+| Car park | Under the Streets button: choose Car park in its strip (or press 7), then drag one or two cells beside a street. Homes and workplaces within six cells park there instead of lining the kerb; a full kerb is called out on the building's card |
 | Clear | Click a building, or click or drag along a street (a street a building opens onto stays) |
 | Draw a street | Streets tool, then click and drag: an L-shaped run over land on one level, or straight across the canal for a bridge. The station ring is the first street |
 | Zone a block | Pick a zone, then click and drag across one to three touching cells beside a street. The doors face it. One, two or three cells decide what it becomes: house, terrace pair or apartment building; konbini, café or supermarket; studio, workshop or factory. A label says so while you drag |

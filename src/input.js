@@ -8,7 +8,7 @@ import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION
 import { removeBlock, removeCarPark, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
 import { tourists } from './tourists.js';
-import { pickerForTool, currentPick, pickLabel } from './picker.js';
+import { pickerForTool, currentPick, pickLabel, onPickerMode } from './picker.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
 
@@ -18,8 +18,9 @@ const raycaster = new THREE.Raycaster(); const groundPlane = new THREE.Plane(new
 const keys = new Set();
 const touches = new Map();   // pointerId -> {x, y}
 let gesture = null;          // {dist, ang, view, yaw} while two fingers are down
-function setTool(t) { tool = t; pickerForTool(t); ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
+function setTool(t) { tool = t; pickerForTool(t); ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === (t === 'park' ? 'road' : t))); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
+onPickerMode(setTool);   // the Streets strip's Street | Car park chips switch between the two tools
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
 // the inspect card's follow button
 /** turn the hovered or pinned building to face its next street */
@@ -46,7 +47,7 @@ if (innerWidth < 720) { document.getElementById('stats').classList.add('collapse
   hintTimer = setTimeout(fold, 5000);
   document.getElementById('hint-toggle').addEventListener('click', () => { if (hint.classList.contains('collapsed')) unfold(8000); else { clearTimeout(hintTimer); fold(); } });
 }
-document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('res'); toast('Zone homes beside the station ring; draw more streets with the Streets tool (5)'); });
+document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('explore'); toast('Pick Homes (2) and drag beside the station ring; draw more streets with the Streets tool (5)'); });
 
 function groundCell() {
   raycaster.setFromCamera(ptr.ndc, camera);
