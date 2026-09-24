@@ -69,6 +69,14 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The kitsune (src/kitsune.js, the user's fox model in assets/characters/fox): once the hill is open, on most days at dawn or
+  dusk a red fox slips out of the woods beside the summit shrine, trots along the summit and down the stone stairs, sits at the
+  foot of the torii looking about with its tail curled round, then goes back up into the trees. Its first appearance brings a
+  milestone card ("A fox at the shrine") and a chronicle line; from then on a pair of stone foxes sits either side of the shrine.
+  The model's parts are gathered into head, tail and leg pivots in code for the trot, the sit and the glances. Only the GLB of
+  assets/characters/fox is tracked.
+- The Shiba and the cats are in proportion with people: the dog was as tall as a resident (0.285 against 0.28), the cat
+  nearly as tall; now the dog stands about 0.13 (to a resident's hip) and a cat about 0.09 (`createDog`/`createCat` scale).
 - Title screen, pause menu and towns (Phase 9, slice 1; src/title.js, src/slots.js):
   - a plain visit opens on the main menu, a full-screen page over a still picture of the island (assets/backgrounds, from the
     user's render; the live town is not drawn while the menu is up): the user's Komachi wordmark with its tagline

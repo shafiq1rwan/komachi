@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 58 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 59 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -49,6 +49,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   skipped after sessionStorage `komachi.enter` or in scratch tabs), `openMenu`/`closeMenu`/`menuOpen` (input.js Esc), `openNew`.
   body.menu-full hides the HUD and main.js skips drawing (one frame for `captureThumb` when `thumbDue`); slot summaries carry the
   thumbnail, time, season, homes, jobs, trains. Switching town or raising another island reloads the page.
+- Kitsune (2026-09-24, src/kitsune.js): the fox GLB (assets/characters/fox, only the .glb tracked) at SCALE 0.4 (about 0.12 tall);
+  `buildFox(stone)` regroups the flat mesh list into Fox_Head / Fox_Tail / leg pivots, `poseFox(root, walk|sit|stand, dt)`; `route()` follows
+  hillCentre (summit, stairs as a straight slope from `edge` over 0.44, the torii foot), `ground()` adds the asphalt on road cells;
+  `updateKitsune(dt, simDt)` in the main loop and fastForward: 70 % of dawn (5.2–6.3) and dusk (17.4–18.5) slots once `hill.open`;
+  the first visit records "A fox was seen at the shrine on the hill" and announces; `placeStatues` once that chronicle line exists.
+  Dev hooks `MT.callKitsune()` (forces a visit now), `MT.kitsune()`.
 - Service vehicles (2026-09-24, src/service-vehicles.js): GLBs from assets/service-vehicles (game scale already, +Z forward, root
   scale 0.2), `createService(kind)` kinds postal-van | ambulance | scooter | delivery-scooter | postal-bike | police-bike, userData
   wheels/wheelRadius, seat {y,z}, grip [x,y,z], lights/tail, beacons; `serviceReady()`. vehicles.js attachVehicle takes the vans;
@@ -62,7 +68,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Street scale (2026-09-24): pavement `PW` 0.16 (world.js; kerb at 0.34, rich-streets `KERB`), lanes 0.34; people and bikes at
   `PEOPLE` 0.85 (sim.js makePerson/makeBike scale the whole group, so held items, helmets and sitting heights follow), kit rack
   bikes 0.85, vehicles `SCALE` 0.2 (vehicles.js; sedan 0.51 long), work trucks `TRUCK_K` 0.85, bus `BS` 0.51. Car lane offset 0.17,
-  bikes 0.315, walkers 0.35–0.43. New people or vehicle models (the town-life kit) must come in at this scale.
+  bikes 0.315, walkers 0.35–0.43. New people or vehicle models (the town-life kit) must come in at this scale. Pets: dogs.js
+  scale .115 (about 0.13 tall), cats.js .085 (about 0.09); a fox for the hill would be about 0.12 tall, 0.28 nose to tail.
 - Heights: asphalt top 0.08, sidewalk 0.10, plinth 0.12, all relative to the cell's ground `c.h`
   (0 on the flat, `level × 0.55` on hill terraces). Trip points hold height above ground; `moveAlong`
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.

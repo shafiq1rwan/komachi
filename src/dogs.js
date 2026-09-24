@@ -34,7 +34,7 @@ function part(parent, name, geoms, position = [0, 0, 0]) {
   mesh.castShadow = true; mesh.receiveShadow = true; parent.add(mesh); return mesh;
 }
 
-export function createDog(coat = DOG_COATS[0], scale = .25) {
+export function createDog(coat = DOG_COATS[0], scale = .115) {   // about 0.13 tall: under half a resident's height (people are 0.26)
   const root = new THREE.Group(); root.name = 'Komachi_Shiba'; root.scale.setScalar(scale);
   root.dogMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: .95, metalness: 0 });
   const body = part(root, 'Body', [

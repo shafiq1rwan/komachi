@@ -73,6 +73,7 @@ import { keys, setTool, updatePreview, updateHover, updateTags, updateBars, insp
 import { households } from './sim.js';
 import { save, loadData, restore, clearSave, thumbDue, captureThumb } from './save.js';
 import { initMenus } from './title.js';
+import { updateKitsune, callKitsune, kitsune } from './kitsune.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
 import { pickerForTool, currentPick } from './picker.js';
@@ -99,7 +100,7 @@ function frame(now) {
   updateCharacters(simDt);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateFishing(); for (const b of blocks) if (b.type === 'farm') for (const u of b.units) if (u.wheel) u.wheel.rotation.x += dt * 0.7 * Math.min(1, S.speed); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
+  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateFishing(); for (const b of blocks) if (b.type === 'farm') for (const u of b.units) if (u.wheel) u.wheel.rotation.x += dt * 0.7 * Math.min(1, S.speed); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateKitsune(dt, simDt); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
   renderFrame(); if (thumbDue() && blocks.length > 1) { captureThumb(); if (document.body.classList.contains('menu-full')) save(); }
@@ -110,7 +111,7 @@ function frame(now) {
 /** Step the simulation forward by a number of game hours without rendering. */
 function fastForward(hours, stepH = 0.04) {   // stepH: game hours per step (tests of motion use 1/60 s, i.e. 0.00167)
   const stepS = stepH / HPS;
-  for (let h = 0; h < hours; h += stepH) { S.T += stepH; W.winter = seasonOf() === 'winter'; updateWeather(stepS, stepH); updateSeasons(0, onSeasonTurn); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); updateTourists(stepS, realT); updateEvents(stepS, realT, 1 - daylight()); updateFishing(); }
+  for (let h = 0; h < hours; h += stepH) { S.T += stepH; W.winter = seasonOf() === 'winter'; updateWeather(stepS, stepH); updateSeasons(0, onSeasonTurn); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateKitsune(stepS, stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); updateTourists(stepS, realT); updateEvents(stepS, realT, 1 - daylight()); updateFishing(); }
 }
 function demoTown() {
   const o = HALF - 17;   // layout was authored around a station at cell 17; every block shares a road with the station ring
@@ -152,7 +153,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
+  callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, quality: S.quality, pickerForTool, currentPick, hillCentre, hillCrew, lanterns, landmarks, landmarkRoads, catchToday, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },

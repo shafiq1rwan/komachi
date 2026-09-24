@@ -395,6 +395,10 @@ try {
   const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && document.querySelectorAll('#menu .mm-btn').length <= 3);   // the short pause menu
   await menuTab.close();
   check('title screen on a plain visit; Start makes a town; the menu button pauses', ttl && ttl.open && ttl.screen === 'main' && ttl.logo && ttl.bg && started.closed && started.slots >= 1 && started.active && paused, JSON.stringify({ ttl, started, paused }));
+  let fx2 = null;   // the kitsune: once the hill is open, a fox comes down from the shrine at dusk; the first sighting is recorded and stone foxes appear
+  for (let k = 0; k < 30 && !(fx2 && fx2.ready); k++) { await sleep(200); fx2 = await page.evaluate(() => { MT.setSpeed(0); MT.openHill(true); MT.callKitsune(); MT.fastForward(0.05, 0.00167); const k = MT.kitsune(); return { ready: !!k.fox }; }); }
+  fx2 = await page.evaluate(() => { let sat = false; for (let k = 0; k < 120 && !sat; k++) { MT.fastForward(0.02, 0.00167); const v = MT.kitsune().visit; sat = !!v && v.leg === 'sit'; } const k = MT.kitsune(); return { fox: !!k.fox, sat, statues: !!k.statues, chron: MT.chronicle.some(e => /fox was seen/.test(e.text)) }; });
+  check('kitsune: a fox comes down to the torii at dusk; the first sighting is recorded and stone foxes guard the shrine', fx2.fox && fx2.sat && fx2.statues && fx2.chron, JSON.stringify(fx2));
   let pwa = null;   // the installable app: a manifest, and a service worker that has cached the build for offline play (polled)
   for (let k = 0; k < 60; k++) {
     pwa = await page.evaluate(async () => { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); let n = 0; for (const k of await caches.keys()) n += (await (await caches.open(k)).keys()).length; const m = await (await fetch('./manifest.webmanifest')).json(); return { active: !!(reg && reg.active), cached: n, icons: m.icons.length }; });

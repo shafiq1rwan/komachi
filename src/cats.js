@@ -40,7 +40,7 @@ function part(parent, name, geoms, position = [0, 0, 0]) {
 }
 
 /** Self-contained geometry, usable in the town, a preview or a GLB export. */
-export function createCat(coat = CAT_COATS[0], scale = 0.21) {
+export function createCat(coat = CAT_COATS[0], scale = 0.085) {   // about 0.09 tall: a third of a resident's height
   const root = new THREE.Group(); root.name = 'Komachi_Cat'; root.scale.setScalar(scale);
   root.catMaterial = new THREE.MeshStandardMaterial({ vertexColors: true, flatShading: true, roughness: 0.95, metalness: 0 });
   const body = part(root, 'Body', [rounded([0.43, 0.4, 0.72], [0, 0.43, -0.055], coat, 0.07),
