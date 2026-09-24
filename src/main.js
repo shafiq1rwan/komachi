@@ -71,7 +71,8 @@ import { daylight } from './sim.js';
 import { renderInspect, updateStats } from './ui.js';
 import { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget, followTarget, setFollow } from './input.js';
 import { households } from './sim.js';
-import { save, loadData, restore, clearSave } from './save.js';
+import { save, loadData, restore, clearSave, thumbDue, captureThumb } from './save.js';
+import { initMenus } from './title.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
 import { pickerForTool, currentPick } from './picker.js';
@@ -80,6 +81,7 @@ let last = performance.now(), realT = 0, uiAcc = 0, lastSave = 0;
 const followV = new THREE.Vector3();
 function frame(now) {
   if (!frameDue(now)) { requestAnimationFrame(frame); return; }   // the frame-rate cap: skipped frames cost nothing
+  if (document.body.classList.contains('menu-full') && !thumbDue()) { last = now; requestAnimationFrame(frame); return; }   // the main menu covers the town: nothing to draw
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
   if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); updateTourists(simDt, realT); }
@@ -100,7 +102,7 @@ function frame(now) {
   setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateFishing(); for (const b of blocks) if (b.type === 'farm') for (const u of b.units) if (u.wheel) u.wheel.rotation.x += dt * 0.7 * Math.min(1, S.speed); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars();
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
-  renderFrame();
+  renderFrame(); if (thumbDue() && blocks.length > 1) { captureThumb(); if (document.body.classList.contains('menu-full')) save(); }
   requestAnimationFrame(frame);
 }
 
@@ -161,9 +163,14 @@ resize(); rebuildDecor(); rebuildRoads();
 placeStation(); initFerry();   // the slipway and yard beside the pier; cars and materials arrive by sea from here on
 {
   const saved = !S.fresh && loadData();
-  if (saved && saved.seed === S.seed && saved.biome === S.biome) { const n = restore(saved); lastSave = S.T; if (n) toast('Welcome back to Komachi'); document.getElementById('intro')?.remove(); setTool('explore'); }
+  let restored = 0;
+  if (saved && saved.seed === S.seed && saved.biome === S.biome) { restored = restore(saved); lastSave = S.T; document.getElementById('intro')?.remove(); setTool('explore'); }
   else if (new URLSearchParams(location.search).has('demo')) demoTown();
   placeLandmarks();   // after the town is back, so the lighthouse, bridge and pavilion keep clear of anything already built
+  // the title screen on a plain visit (src/title.js); straight in after choosing a town or an island, and in test tabs
+  const entered = initMenus({ townIsFresh: () => blocks.filter(b => b.type !== 'station').length === 0, onStart: () => { const i = document.getElementById('intro'); if (i) i.hidden = false; } });
+  if (entered === 'title') { const i = document.getElementById('intro'); if (i) i.hidden = true; }
+  else if (restored) toast('Welcome back to Komachi');
 }
 addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
 document.getElementById('loading').classList.add('gone');

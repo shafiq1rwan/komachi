@@ -153,6 +153,71 @@
   #options .switch.on{background:var(--teal)}#options .switch.on::after{left:19px}
   #options .cta{border:1px solid rgba(74,67,64,.14);background:var(--cream);color:var(--ink);font:inherit;font-weight:800;font-size:12px;padding:8px 10px;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:7px}#options .cta:hover{background:var(--cream2)}
   #options .opt-btns{display:flex;flex-direction:column;gap:6px}#options .opt-btns .cta{width:100%}#options .cta.warn{color:#c9564b}
+  /* the main menu (src/title.js): full screen over a still picture of the island; one page at a time in the left column */
+  #menu{position:fixed;inset:0;display:none;z-index:40;background:#dfe9e4;color:var(--ink);overflow:hidden}
+  #menu.show{display:block;animation:mmIn .35s ease}@keyframes mmIn{from{opacity:0}to{opacity:1}}
+  body.menu-full #hud,body.menu-full #tools,body.menu-full #hint,body.menu-full #inspect,body.menu-full #minimap,body.menu-full #picker,body.menu-full #toast,body.menu-full #intro,body.menu-full #bars,body.menu-full #tags,body.menu-full #bubbles,body.menu-full #tier,body.menu-full #milestone{display:none!important}
+  #menu .mm-bg{position:absolute;inset:0;background-size:cover;background-position:62% 50%}
+  #menu .mm-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(251,246,238,.97) 0,rgba(251,246,238,.9) 30%,rgba(251,246,238,.5) 42%,rgba(251,246,238,0) 56%)}
+  #menu .mm-side{position:relative;z-index:1;height:100%;box-sizing:border-box;width:min(470px,100%);padding:44px 40px 22px 64px;display:flex;flex-direction:column;gap:14px;overflow:auto;scrollbar-width:thin}
+  #menu .mm-logo{margin:0 0 2px;line-height:0}#menu .mm-logo img{width:min(340px,100%);height:auto}
+  #menu .mm-blurb{margin:0 0 6px;font-size:15px;line-height:1.5;color:#5b534e;font-weight:600;max-width:340px}
+  #menu .mm-page{display:flex;flex-direction:column;gap:10px}
+  #menu .mm-list{display:flex;flex-direction:column;gap:9px}
+  #menu .mm-btn{border:0;background:rgba(255,255,255,.72);backdrop-filter:blur(6px);border-radius:14px;padding:13px 16px;display:flex;align-items:center;gap:16px;text-align:left;font:inherit;color:var(--ink);cursor:pointer;box-shadow:0 2px 10px rgba(60,70,60,.08);transition:transform .12s ease,background .12s ease}
+  #menu .mm-btn:hover{background:#fff;transform:translateX(3px)}#menu .mm-btn>i:first-child{width:22px;text-align:center;font-size:18px;color:#4c5a53}
+  #menu .mm-btn .mm-l{flex:1;display:flex;align-items:baseline;justify-content:space-between;gap:10px;min-width:0}#menu .mm-btn b{font-size:16px;font-weight:800}
+  #menu .mm-btn small{font-size:12px;font-weight:700;color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:right}
+  #menu .mm-btn .mm-go{font-size:12px;color:#9a9089}
+  #menu .mm-btn.main{background:#6f9468;color:#fff;padding:17px 18px}#menu .mm-btn.main:hover{background:#638a5c}#menu .mm-btn.main>i{color:#fff}#menu .mm-btn.main b{font-size:19px}
+  #menu .mm-btn.main small,#menu .mm-btn.main .mm-go{color:rgba(255,255,255,.88)}#menu .mm-btn.main .mm-l{align-items:center}
+  #menu .mm-head{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}#menu .mm-head b{flex:1}
+  #menu .mm-card{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.78);backdrop-filter:blur(6px);border-radius:14px;padding:10px;box-shadow:0 2px 10px rgba(60,70,60,.08);margin-top:6px}
+  #menu .mm-thumb{flex:none;width:132px;height:74px;border-radius:9px;background:#cfe0d6 center/cover;display:flex;align-items:center;justify-content:center}#menu .mm-thumb.sm{width:84px;height:48px}
+  #menu .mm-card-t{display:flex;flex-direction:column;gap:3px;min-width:0}#menu .mm-card-t b{font-size:14px}#menu .mm-card-t small{font-size:12px;color:var(--ink2);font-weight:700}
+  #menu .mm-stats{display:flex;gap:14px;margin-top:4px;font-size:12.5px;font-weight:800}#menu .mm-stats i{color:#4c5a53;margin-right:5px;font-size:11px}
+  #menu .mm-foot{margin-top:auto;padding-top:14px;font-size:11.5px;font-weight:700;color:#7a706a}
+  #menu .mm-slogan{position:absolute;right:7%;top:15%;font-family:'Caveat',cursive;font-size:44px;line-height:1.05;color:#fff;transform:rotate(-7deg);text-shadow:0 2px 12px rgba(40,60,60,.35);pointer-events:none}
+  #menu .mm-motto{position:absolute;right:28px;bottom:18px;font-size:12px;font-weight:700;color:#fff;text-shadow:0 1px 6px rgba(0,0,0,.35);pointer-events:none}
+  #menu .mm-towns{display:flex;flex-direction:column;gap:8px}#menu .mm-empty{color:var(--ink2);font-weight:700;font-size:13px;margin:0}
+  #menu .mm-town{display:flex;align-items:center;gap:10px;background:rgba(255,255,255,.78);border-radius:13px;padding:8px}#menu .mm-town.on{outline:2px solid #6f9468;outline-offset:-2px}
+  #menu .mm-town-t{flex:1;min-width:0;display:flex;flex-direction:column}#menu .mm-town-t b{font-size:13.5px}#menu .mm-town-t small{font-size:11px;color:var(--ink2);font-weight:700}
+  #menu .mm-town-b{display:flex;align-items:center;gap:2px}#menu .mm-town-b em{font-size:11px;font-weight:800;color:#5a7f54;font-style:normal;padding:0 6px}#menu .icon-btn.warn:hover{color:var(--rose)}
+  #menu .mm-cta{border:0;background:#6f9468;color:#fff;font:inherit;font-weight:800;font-size:12.5px;padding:7px 13px;border-radius:10px;cursor:pointer}#menu .mm-cta:hover{background:#638a5c}
+  #menu .mm-cta.big{padding:13px 16px;font-size:15px;display:flex;align-items:center;justify-content:center;gap:9px;margin-top:4px}
+  #menu .sw{display:grid;grid-template-columns:1fr 1fr;gap:2px;flex:none}#menu .sw i{width:10px;height:10px;border-radius:3px;display:block}
+  #menu .mm-field{display:flex;flex-direction:column;gap:6px;font-size:13px;font-weight:800;color:var(--ink)}#menu .mm-field small{display:block;font-weight:700;color:var(--ink2);font-size:11px}
+  #menu .mm-field input{font:inherit;font-weight:700;font-size:15px;color:var(--ink);background:#fff;border:1.5px solid #e6ddcf;border-radius:11px;padding:10px 12px;width:100%;box-sizing:border-box}#menu .mm-field input:focus{outline:none;border-color:#6f9468}
+  #menu .mm-seed{display:flex;gap:6px;align-items:center}
+  #menu .mm-biomes{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+  #menu .mm-biome{border:1.5px solid #e6ddcf;background:rgba(255,255,255,.85);border-radius:12px;padding:10px 6px;display:flex;flex-direction:column;align-items:center;gap:7px;font:inherit;cursor:pointer;color:var(--ink)}
+  #menu .mm-biome b{font-size:11.5px;font-weight:800;text-align:center;line-height:1.2}#menu .mm-biome.on{border-color:#6f9468;background:#eef5ec}
+  #menu .mm-help{background:rgba(255,255,255,.78);border-radius:14px;padding:6px 16px;font-size:13.5px;line-height:1.55;color:#4a4340}#menu .mm-help p{margin:10px 0}
+  #menu kbd{font:inherit;font-weight:800;font-size:12px;background:var(--cream2);border-radius:5px;padding:1px 5px}
+  /* the Settings card's controls as the menu's Settings page */
+  #menu .mm-link{border:0;background:none;font:inherit;font-weight:800;font-size:14px;color:#4c5a53;cursor:pointer;padding:8px;align-self:flex-start;display:flex;align-items:center;gap:8px}#menu .mm-link:hover{color:#2f4a3f}
+  #menu .phone-only,#menu .mm-foot-motto{display:none}
+  #btn-options{display:none!important}   /* Settings lives in the pause menu (Esc or the menu button) */
+  #options.in-menu{position:static;display:flex;width:auto;max-height:none;box-shadow:none;background:rgba(255,255,255,.8);backdrop-filter:blur(6px);border-radius:14px;transform:none;animation:none}
+  #options.in-menu .opt-head{display:none}
+  @media (max-width:720px){
+    #menu .mm-bg{background-position:70% 100%;background-size:auto 62%;background-repeat:no-repeat;background-color:#a9c3c6}#menu .mm-bg::after{background:linear-gradient(180deg,rgba(251,246,238,.98) 0,rgba(251,246,238,.95) 48%,rgba(251,246,238,.6) 64%,rgba(251,246,238,0) 80%)}
+    #menu .mm-side{width:100%;padding:26px 18px 16px;gap:11px}#menu .mm-logo img{width:min(220px,70%)}#menu .mm-blurb{font-size:13.5px}
+    #menu .mm-btn{padding:11px 13px}#menu .mm-btn.main{padding:14px}#menu .mm-btn b{font-size:15px}#menu .mm-btn.main b{font-size:17px}
+    #menu .mm-slogan,#menu .mm-motto{display:none}#menu .mm-thumb{width:104px;height:58px}#menu .mm-stats{gap:10px}
+    /* the whole island in the middle band, sized by the width (the picture is landscape): sea above it for the logo, cream below for the buttons */
+    #menu[data-screen="main"] .mm-bg{background-size:200% auto;background-position:80% 28%;background-repeat:no-repeat;background-color:#a3c1c2}
+    #menu[data-screen="main"] .mm-bg::after{background:linear-gradient(180deg,rgba(236,241,236,.55) 0,rgba(236,241,236,.15) 14%,rgba(251,246,238,0) 22%,rgba(251,246,238,0) 50%,rgba(251,246,238,.75) 58%,rgba(251,246,238,.97) 64%,#fbf6ee 70%)}
+    #menu[data-screen="main"] .mm-side{padding:40px 22px 18px;gap:10px}
+    #menu[data-screen="main"] .mm-logo{text-align:center}#menu[data-screen="main"] .mm-logo img{width:min(300px,86%)}
+    #menu[data-screen="main"] .mm-blurb,#menu[data-screen="main"] .mm-card,#menu .desk-only{display:none!important}
+    #menu[data-screen="main"] .mm-page{margin-top:auto}
+    #menu .mm-btn.main{justify-content:center;padding:16px 18px;border-radius:16px}#menu .mm-btn.main>i:first-child{font-size:26px;width:30px}#menu .mm-btn.main .mm-go{display:none}
+    #menu .mm-btn.main .mm-l{flex:0 1 auto;flex-direction:column;align-items:flex-start;gap:2px}#menu .mm-btn.main b{font-size:24px}#menu .mm-btn.main small{font-size:13px;text-align:left}
+    #menu .mm-btn:not(.main){padding:15px 18px}#menu .mm-btn:not(.main) small{display:none}#menu .mm-btn>i:first-child{font-size:20px;width:26px}
+    #menu .phone-only{display:flex}#menu .mm-link{align-self:center;font-size:15px;margin-top:2px}
+    #menu[data-screen="main"] .mm-foot{margin-top:0;text-align:center;display:flex;flex-direction:column;gap:6px;padding-top:6px;font-size:11px}#menu .mm-foot-motto{display:block;letter-spacing:2.5px;font-weight:700}
+  }
   #fps{position:fixed;right:14px;bottom:104px;background:rgba(38,52,69,.78);color:#fff;font:700 11px Nunito;padding:3px 9px;border-radius:9px;z-index:8;pointer-events:none}
   @media (max-width:720px){#fps{right:8px;bottom:70px}#options{top:58px;right:8px;left:8px;width:auto;max-height:calc(100vh - 150px)}}
   /* milestone card: the moments that change the town get a larger card at the top centre, with a way to go and look */

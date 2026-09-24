@@ -204,6 +204,8 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   water.js            the sea: calm bay water shaded in the material (swells, shallows, glints)
   milestone.js        the milestone card and the camera glide to go and look
   landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
+  title.js            the title screen, pause menu, towns list and new-island form
+  slots.js            the towns you keep: one save slot each, and a scratch slot for test and sample tabs
   service-vehicles.js the postal van and motorbike, the ambulance, the scooters and the kōban bicycle (assets/service-vehicles)
   picker.js           the building picker strip: a chip per kind with a thumbnail of its model, sizes from the tiers
   tourists.js         day visitors off the trains, their camera, and the weekend tourist bus with its stops

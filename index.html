@@ -6,7 +6,7 @@
 <title>Komachi</title>
 <meta name="description" content="Komachi (小町, “small town”): a cosy, retro-flavoured city diorama. Zone homes, shops and workplaces and watch a little town come alive.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%2712%27 width=%2728%27 height=%2718%27 rx=%274%27 fill=%27%23f3e6cf%27/%3E%3Cpath d=%27M2 14 L16 3 L30 14 Z%27 fill=%27%23d98b7a%27/%3E%3Crect x=%2712%27 y=%2719%27 width=%278%27 height=%2711%27 rx=%272%27 fill=%27%23b98a5b%27/%3E%3C/svg%3E">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#f3e6cf">
@@ -24,6 +24,7 @@
 <header id="hud">
   <div id="brand" class="card">
     <h1 aria-label="Komachi"><img class="brand-icon" src="./assets/brand/komachi-icon.png" alt="" width="44" height="44"><span>Komachi</span></h1>
+    <button class="icon-btn" id="btn-menu" data-tip="Menu"><i class="fa-solid fa-bars"></i></button>
     <button class="icon-btn" id="btn-options" data-tip="Settings"><i class="fa-solid fa-gear"></i></button>
     <button class="icon-btn on" id="btn-stats" data-tip="Town figures" aria-expanded="true"><i class="fa-solid fa-chart-simple"></i></button>
     <div id="stats" class="fold">
@@ -94,8 +95,9 @@
   <div class="opt-row"><span>Pixel look<small>half resolution, chunky</small></span><button class="switch" data-toggle="pixel" role="switch"></button></div>
   <div class="opt-row"><span>Show frame rate</span><button class="switch" data-toggle="showFps" role="switch"></button></div>
   <div class="opt-sec">Island</div>
-  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-rotate-left"></i> Start a new island</button></div>
+  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-mountain-sun"></i> New island…</button></div>
 </div>
+<div id="menu" role="dialog" aria-label="Main menu"></div>
 <div id="fps" hidden></div>
 <div id="toast"></div>
 <div id="milestone" role="status" aria-live="polite"></div>

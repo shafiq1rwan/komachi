@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 57 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 58 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -38,6 +38,17 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `mergeGeometries` needs all-indexed or all-non-indexed; `mergeMesh` converts to non-indexed.
 - Building generators must set `u.door` so trips start on the doorstep. Front is local +z.
 - `DONE` (5) in world.js is the finished stage; never compare against a literal stage number.
+- Towns and menus (Phase 9 slice 1, 2026-09-24): src/slots.js (imports nothing; state.js reads `activeIsland()` before the island is
+  built): `komachi.slots` index (name, seed, biome, day, pop, savedAt), `komachi.slot.<id>` snapshots, `komachi.active`; `scratch` slot
+  for tabs opened with ?demo/?new/?seed (sessionStorage `komachi.scratch`); the old `komachi.save` migrates into the first town.
+  save.js writes `writeSlot(activeId())`; `holdSaves()` before any town switch (else the pagehide autosave writes this town into the
+  next one's slot). src/title.js: the full-screen #menu (background assets/backgrounds/komachi-menu.jpg, a JPEG of docs/backgrounds' PNG; the wordmark
+  assets/brand/komachi-wordmark.png; #btn-options is hidden, the Settings card opens only as the menu's Settings page), pages
+  main | towns | new | settings | help in `.mm-page`; mode 'title' or 'pause' (pause shows only Resume, Settings, Save and quit);
+  the Settings page moves the #options card in (class in-menu) and back; `initMenus` from main.js (title on a plain visit,
+  skipped after sessionStorage `komachi.enter` or in scratch tabs), `openMenu`/`closeMenu`/`menuOpen` (input.js Esc), `openNew`.
+  body.menu-full hides the HUD and main.js skips drawing (one frame for `captureThumb` when `thumbDue`); slot summaries carry the
+  thumbnail, time, season, homes, jobs, trains. Switching town or raising another island reloads the page.
 - Service vehicles (2026-09-24, src/service-vehicles.js): GLBs from assets/service-vehicles (game scale already, +Z forward, root
   scale 0.2), `createService(kind)` kinds postal-van | ambulance | scooter | delivery-scooter | postal-bike | police-bike, userData
   wheels/wheelRadius, seat {y,z}, grip [x,y,z], lights/tail, beacons; `serviceReady()`. vehicles.js attachVehicle takes the vans;
@@ -353,5 +364,6 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 6. ✅ Weather, gentle events, festivals, tourism (complete 2026-09-23; shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. ✅ Farming and fishing (complete 2026-09-23)
-8. Mobile quality levels ✅, PWA ✅, touch dock ✅ (2026-09-24); Electron desktop app next
+8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)
+10. Electron desktop app: the last phase, after every feature is checked (decided 2026-09-24)

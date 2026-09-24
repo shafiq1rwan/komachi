@@ -1,4 +1,4 @@
-// Komachi — save and load: one slot in localStorage, written every half game hour and when the page is left.
+// Komachi — save and load: the playing town's slot (src/slots.js), written every half game hour and when the page is left.
 // Nobody is saved mid-trip; on load residents start at home, on the station plaza, or away in the city.
 import { S } from './state.js';
 import { blocks, cells, cell, placeBlock, placeCarPark, STATION, unitCap, hill, openHill, rebuildNetwork } from './world.js';
@@ -6,8 +6,10 @@ import { rebuildUnitMesh } from './buildings.js';
 import { residents, households, restoreResident, restoreHousehold } from './sim.js';
 import { chronicle, restoreChronicle } from './chronicle.js';
 import { weatherSnapshot, restoreWeather } from './weather.js';
+import { activeId, newSlot, readSlot, writeSlot, slotKey } from './slots.js';
+import { renderer } from './scene.js';
 
-export const SAVE_KEY = 'komachi.save';
+export const SAVE_KEY = 'komachi.save';   // the single save before towns had slots (slots.js moves it into the first town)
 const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor', 'picked'];
 const RES_KEYS = ['id', 'name', 'wake', 'workStart', 'workEnd', 'commuteH', 'hasCar', 'hasBike', 'bikeKind', 'commuter', 'homemaker', 'lastWorkDay', 'lunched', 'skin', 'shirt', 'pants', 'hair', 'hat', 'hatColor', 'bag', 'bagColor', 'carColor', 'carKind', 'arrivedDay', 'needs', 'carOrdered'];
 const pickKeys = (o, keys) => Object.fromEntries(keys.filter(k => o[k] !== undefined).map(k => [k, o[k]]));
@@ -25,11 +27,26 @@ export function snapshot() {
     residents: residents.map(r => ({ ...pickKeys(r, RES_KEYS), hh: r.hh.id, home: ref(r.home), job: ref(r.job), state: r.state === 'away' ? 'away' : 'here' })),
   };
 }
-export function save() { if (resetting) return false; try { localStorage.setItem(SAVE_KEY, JSON.stringify(snapshot())); return true; } catch { return false; } }
-export function loadData() { try { const d = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null'); return d && (d.v === 1 || d.v === 2 || d.v === 3) ? d : null; } catch { return null; } }
+export function save() { if (resetting) return false; if (!activeId()) newSlot('Komachi', S.seed, S.biome); if (S.T - thumbT > 2) wantThumb = true; return writeSlot(activeId(), snapshot(), thumb); }
+// the save card's picture: a 320×180 crop of the view, taken just after a frame is drawn (the canvas keeps no copy afterwards)
+let thumb = null, thumbT = -1e9, wantThumb = true;
+export const thumbDue = () => wantThumb;
+export function captureThumb() {
+  wantThumb = false; thumbT = S.T;
+  try {
+    const src = renderer.domElement, c = document.createElement('canvas'); c.width = 320; c.height = 180;
+    const k = Math.min(src.width / 16, src.height / 9), w = 16 * k * 0.7, h = 9 * k * 0.7;   // the middle of the view
+    c.getContext('2d').drawImage(src, (src.width - w) / 2, (src.height - h) / 2, w, h, 0, 0, 320, 180); thumb = c.toDataURL('image/jpeg', 0.78);
+  } catch { /* the canvas could not be read */ }
+}
+/** the menu is opening: take the picture on the next frame so the save card shows the town as it is now */
+export function requestThumb() { wantThumb = true; }   // a town played before one was chosen gets a slot of its own
+export function loadData() { const d = readSlot(activeId()); return d && (d.v === 1 || d.v === 2 || d.v === 3) ? d : null; }
 let resetting = false;   // set by clearSave so the leave-page autosave does not write the town straight back
-export function clearSave() { resetting = true; try { localStorage.removeItem(SAVE_KEY); } catch { /* storage unavailable */ } }
+export function clearSave() { resetting = true; try { localStorage.removeItem(slotKey(activeId())); } catch { /* storage unavailable */ } }
 export const isResetting = () => resetting;
+/** switching towns: from here on nothing is written, so the leave-page autosave cannot put this town into the next town's slot */
+export function holdSaves() { resetting = true; }
 
 /** Rebuild the town from a snapshot. Call after placeStation() and before the first frame. Returns the block count. */
 export function restore(d) {

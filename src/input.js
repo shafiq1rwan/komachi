@@ -11,6 +11,7 @@ import { tourists } from './tourists.js';
 import { pickerForTool, currentPick, pickLabel, onPickerMode } from './picker.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
+import { openMenu, closeMenu, menuOpen } from './title.js';
 
 let tool = 'explore', pinned = null, hovered = null, follow = null;
 const ptr = { x: 0, y: 0, ndc: new THREE.Vector2(), down: false, button: 0, panning: false, moved: 0, sel: null, last: { x: 0, y: 0 } };
@@ -131,7 +132,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'KeyR') rotateTarget();
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
-  if (e.code === 'Escape') { setTool('explore'); pinned = null; follow = null; }
+  if (e.code === 'Escape') { if (menuOpen()) closeMenu(); else if (tool === 'explore' && !pinned && !follow) openMenu('pause'); else { setTool('explore'); pinned = null; follow = null; } }   // Esc clears the tool first, then opens the menu
 });
 addEventListener('keyup', e => keys.delete(e.code));
 function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2); cam.target.z = clamp(cam.target.z, -HALF - 2, HALF + 2); }

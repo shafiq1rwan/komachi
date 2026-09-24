@@ -7,7 +7,7 @@
 import { S } from './state.js';
 import { scene, sun, resize, cam } from './scene.js';
 import { setLook, setPasses, sizeLook } from './look.js';
-import { clearSave } from './save.js';
+import { openNew } from './title.js';
 
 const PRESETS = {
   low: { res: 1, fps: 30, ao: false, aoHalf: true, blur: false, msaa: false, shadows: 'low', lights: false, busy: false },
@@ -90,12 +90,13 @@ card.addEventListener('click', e => {
   if (b.id === 'opt-close') { card.classList.remove('show'); document.getElementById('btn-options').classList.remove('on'); return; }
   if (b.id === 'opt-centre') { cam.target.set(0, 0, 0); cam.tView = 18; return; }
   if (b.id === 'opt-install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; b.hidden = true; }); return; }
-  if (b.id === 'opt-new' && confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; }
+  if (b.id === 'opt-new') { card.classList.remove('show'); document.getElementById('btn-options').classList.remove('on'); openNew(); }   // the new-island form: the current town is kept in Towns
 });
 // the browser offers installing the app (Chrome, Edge, Android): the Settings card shows an Install button while it may
 let installPrompt = null;
 addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; card.querySelector('#opt-install').hidden = false; });
 addEventListener('appinstalled', () => { installPrompt = null; card.querySelector('#opt-install').hidden = true; });
+card.addEventListener('menu-show', sync);   // shown as the main menu's Settings page (src/title.js)
 card.querySelector('#opt-res').addEventListener('input', e => set('res', +e.target.value));
 document.getElementById('btn-options').addEventListener('click', e => { const open = card.classList.toggle('show'); e.currentTarget.classList.toggle('on', open); sync(); });
 

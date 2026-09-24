@@ -69,6 +69,23 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Title screen, pause menu and towns (Phase 9, slice 1; src/title.js, src/slots.js):
+  - a plain visit opens on the main menu, a full-screen page over a still picture of the island (assets/backgrounds, from the
+    user's render; the live town is not drawn while the menu is up): the user's Komachi wordmark with its tagline
+    (assets/brand/komachi-wordmark.png, trimmed from komachi-wordmark-reference.png), Continue (town, day, season),
+    New town, Load town, Settings, How to play (and Exit in the installed app), and a card with a picture of the town and its
+    day, season, time, residents, homes, jobs and trains; a first visit offers "Start on this island";
+  - Settings, How to play, Load town and New town are pages of the menu, not pop-ups; Settings shows the Settings card's own
+    controls;
+  - on a phone the logo sits at the top, the island shows through the middle and the buttons stack at the foot, with How to
+    play as a link;
+  - the menu button in the top bar, or Esc when nothing is selected, pauses the game on the same page with just Resume,
+    Settings, Save and quit to title, and How to play; the gear button has left the top bar, since Settings is in that menu;
+  - towns are kept separately, each in its own save slot, and the Towns list plays, renames or deletes them; the single save
+    from before is moved into the first town;
+  - New island asks for a name, a seed (with a dice for another) and a theme (suburban, cherry blossom, coastal), then raises it;
+    the Settings card's "New island…" opens the same form and no longer throws the current town away;
+  - a tab opened with ?demo, ?new or ?seed= plays in a scratch slot of its own, so tests and samples never touch your towns.
 - `npm run lint` also runs scripts/check-comments.mjs, which catches a `//` comment that swallowed the rest of a line of code.
 - Service vehicles (assets/service-vehicles, modelled for the town; src/service-vehicles.js):
   - the red postal kei van collects from the shops' post boxes each morning (not on Sundays);

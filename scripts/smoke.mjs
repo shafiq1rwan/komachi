@@ -386,6 +386,15 @@ try {
     return { post: !!post, postKind: post && post.mesh.userData.service, mail: !!mail, rider: !!(mail && mail.rider && mail.rider.mesh.visible !== undefined), ambulance: !!ambulance, clinic: !!clinic };
   });
   check('service vehicles: the post van goes round, the postman rides out, an ambulance waits at the clinic', svc.post && svc.postKind === 'postal-van' && svc.mail && svc.rider && svc.ambulance, JSON.stringify(svc));
+  const menuTab = await browser.newPage(); await menuTab.setViewport({ width: 1200, height: 800 });   // a plain visit in a tab of its own: the title screen, then starting a town
+  await menuTab.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0', timeout: 60000 });
+  let ttl = null; for (let k = 0; k < 40 && !(ttl && ttl.open); k++) { await sleep(250); ttl = await menuTab.evaluate(() => ({ open: document.getElementById('menu')?.classList.contains('show'), screen: document.getElementById('menu')?.dataset.screen, logo: !!document.querySelector('#menu .mm-logo img')?.naturalWidth, bg: !!document.querySelector('#menu .mm-bg')?.style.backgroundImage })); }
+  await menuTab.evaluate(() => document.querySelector('#menu [data-act="start"], #menu [data-act="continue"]').click()); await sleep(400);
+  const started = await menuTab.evaluate(() => ({ closed: !document.getElementById('menu').classList.contains('show'), slots: JSON.parse(localStorage.getItem('komachi.slots') || '[]').length, active: !!localStorage.getItem('komachi.active') }));
+  await menuTab.evaluate(() => document.getElementById('btn-menu').click()); await sleep(300);
+  const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && document.querySelectorAll('#menu .mm-btn').length <= 3);   // the short pause menu
+  await menuTab.close();
+  check('title screen on a plain visit; Start makes a town; the menu button pauses', ttl && ttl.open && ttl.screen === 'main' && ttl.logo && ttl.bg && started.closed && started.slots >= 1 && started.active && paused, JSON.stringify({ ttl, started, paused }));
   let pwa = null;   // the installable app: a manifest, and a service worker that has cached the build for offline play (polled)
   for (let k = 0; k < 60; k++) {
     pwa = await page.evaluate(async () => { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); let n = 0; for (const k of await caches.keys()) n += (await (await caches.open(k)).keys()).length; const m = await (await fetch('./manifest.webmanifest')).json(); return { active: !!(reg && reg.active), cached: n, icons: m.icons.length }; });

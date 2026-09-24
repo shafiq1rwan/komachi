@@ -259,7 +259,7 @@ effect through the town instead.
 
 - **Landmarks**: a fish market by the pier, rice paddies with a water wheel on the canal, a greenhouse
 
-## Phase 8 — Mobile quality and PWA (in progress)
+## ✅ Phase 8 — Mobile quality and PWA (complete 2026-09-24)
 
 - ✅ Quality levels chosen automatically on phones (2026-09-24): the Settings card (src/quality.js) with Auto, low, medium and high
   presets for resolution, frame cap, the rich look's effects, shadows, lamp light and busy details (fewer birds, leaves and
@@ -267,16 +267,21 @@ effect through the town instead.
 - ✅ Installable PWA with offline play (2026-09-24): manifest and icons in public/, a service worker written by the build
 - ✅ Touch-first tool bar layout at phone width (2026-09-24): the phone dock, the building picker strip with arrows and swipe,
   Streets and Car park under one button, compact cards
-- **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native
-  window, saves in the user data folder instead of browser storage, and installers from CI
+- The desktop app moved to Phase 10, the last phase (decided 2026-09-24): every feature is checked first
 
 ## ⬜ Phase 9 — Menus, saves UI, photo album
 
-- Title screen and pause menu, multiple named saves, island seed and biome pickers
+- ✅ Title screen and pause menu, multiple named saves, island seed and biome pickers (2026-09-24: src/title.js, src/slots.js)
 - Photo mode: hide the HUD, frame a shot, save to an in-game album
 - **Opening cinematic** (idea from 2026-09-17): a short scene of newcomers chatting on a train, then an iris
   wipe, the picture shrinking to a black circle and reopening from a point over the island. Built from the
   existing Kenney characters and a clip-path overlay; skippable, replayable from the menu
+
+## ⬜ Phase 10 — Desktop app (the last phase)
+
+- **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native
+  window, saves in the user data folder instead of browser storage, and installers from CI
+- Comes last, once every feature has been checked in the browser build (decided 2026-09-24)
 
 ---
 

@@ -1,6 +1,7 @@
 // Komachi — shared mutable game state (things several modules read and write)
+import { activeIsland } from './slots.js';
 const params = new URLSearchParams(location.search);
-const saved = (() => { try { return JSON.parse(localStorage.getItem('komachi.save') || 'null'); } catch { return null; } })();
+const island = activeIsland(), saved = island ? { seed: island.seed, biome: island.biome } : null;   // the town being played (src/slots.js)
 const fresh = params.has('new') || params.has('demo');   // ?new ignores the save (and overwrites it); ?demo is always a fresh sample town
 export const S = {
   fresh,
