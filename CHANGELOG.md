@@ -69,6 +69,10 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Loading screen (src/loading.js): the island picture and the wordmark with a progress bar that follows what is really loading
+  (the island, the fonts, the cars, the people, the service vehicles, the fox) and a line for each ("Residents are packing their
+  bags…"). The menu appears only once the people are ready, so the town never shows box people turning into characters (they
+  used to swap 10–15 s after the old card went). It gives up waiting after 25 s and goes on with the fallbacks.
 - The kitsune (src/kitsune.js, the user's fox model in assets/characters/fox): once the hill is open, on most days at dawn or
   dusk a red fox slips out of the woods beside the summit shrine, trots along the summit and down the stone stairs, sits at the
   foot of the torii looking about with its tail curled round, then goes back up into the trees. Its first appearance brings a

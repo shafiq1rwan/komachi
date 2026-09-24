@@ -204,6 +204,7 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   water.js            the sea: calm bay water shaded in the material (swells, shallows, glints)
   milestone.js        the milestone card and the camera glide to go and look
   landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
+  loading.js          the loading screen: a progress bar over the island picture, waiting for the people and models
   kitsune.js          the fox that comes down from the shrine on the hill at dawn and dusk, and the stone foxes
   title.js            the title screen, pause menu, towns list and new-island form
   slots.js            the towns you keep: one save slot each, and a scratch slot for test and sample tabs

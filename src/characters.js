@@ -100,9 +100,13 @@ async function loadVariant(url, builder = false) {
   return { scene: gltf.scene, clips: gltf.animations, geoms, headTop };
 }
 // The rigged people are the default; ?boxes keeps the original box people (and any load failure falls back to them).
+let charDone = 0; const charTotal = Object.keys(urls).length + 1;
+/** the loading screen's bar: the share of the character files ready */
+export const characterProgress = () => (S.rigged ? charDone / charTotal : 1);
+const counted = p => p.finally(() => { charDone++; });
 export const characterReady = !S.rigged ? Promise.resolve() : Promise.all([
-  ...Object.values(urls).map(u => loadVariant(u).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; })),
-  loadVariant(builderUrl, true).catch(err => { console.warn('Komachi: builder file skipped', err); return null; }),
+  ...Object.values(urls).map(u => counted(loadVariant(u)).catch(err => { console.warn('Komachi: character file skipped', u, err); return null; })),
+  counted(loadVariant(builderUrl, true)).catch(err => { console.warn('Komachi: builder file skipped', err); return null; }),
 ]).then(list => {
   for (const v of list) if (v) { if (v.builder) builderVariant = v; else variants.push(v); }
   if (!variants.length) { console.warn('Komachi: no rigged characters loaded, using box people'); return; }

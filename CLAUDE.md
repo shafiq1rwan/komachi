@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 59 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -49,6 +49,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   skipped after sessionStorage `komachi.enter` or in scratch tabs), `openMenu`/`closeMenu`/`menuOpen` (input.js Esc), `openNew`.
   body.menu-full hides the HUD and main.js skips drawing (one frame for `captureThumb` when `thumbDue`); slot summaries carry the
   thumbnail, time, season, homes, jobs, trains. Switching town or raising another island reloads the page.
+- Loading screen (2026-09-24, src/loading.js): #loading (z 60, the menu picture, wordmark, bar, line) over everything; steps island
+  (main.js `islandReady()`), fonts, cars (`vehiclesReady`), people (`characterReady` + `characterProgress()`), service (`serviceLoaded`),
+  fox (`foxLoaded`); goes when all are in, or after 25 s; scratch tabs (?demo/?new/?seed) wait only for the island so tests keep pace.
 - Kitsune (2026-09-24, src/kitsune.js): the fox GLB (assets/characters/fox, only the .glb tracked) at SCALE 0.4 (about 0.12 tall);
   `buildFox(stone)` regroups the flat mesh list into Fox_Head / Fox_Tail / leg pivots, `poseFox(root, walk|sit|stand, dt)`; `route()` follows
   hillCentre (summit, stairs as a straight slope from `edge` over 0.44, the torii foot), `ground()` adds the asphalt on road cells;

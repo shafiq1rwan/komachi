@@ -241,8 +241,15 @@
   #intro button:hover{background:var(--teal2)}
   /* phones: a compact welcome card that leaves the island visible around it */
   @media (max-width:720px){#intro{width:calc(100vw - 48px);max-width:300px;padding:16px 16px 14px;border-radius:16px}#intro h2{font-size:18px;margin-bottom:4px}#intro p{font-size:11.5px;line-height:1.45;margin-bottom:11px}#intro button{font-size:12.5px;padding:8px 18px;border-radius:10px}}
-  #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#cfe8dd;color:var(--ink2);font-weight:800;font-size:14px;z-index:9;transition:opacity .4s}
+  /* the loading screen (src/loading.js): the menu's island picture, the wordmark, a progress bar and a line of what is loading */
+  #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#dfe9e4 url('../assets/backgrounds/komachi-menu.jpg') 62% 50%/cover;transition:opacity .5s ease}
+  #loading::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(251,246,238,.93) 0,rgba(251,246,238,.82) 32%,rgba(251,246,238,.35) 70%,rgba(251,246,238,.2) 100%)}
   #loading.gone{opacity:0;pointer-events:none}
+  #loading .ld-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;width:min(420px,calc(100vw - 48px))}
+  #loading .ld-mark{width:min(360px,86%);height:auto}
+  #loading .ld-bar{width:100%;height:8px;border-radius:6px;background:rgba(74,67,64,.12);overflow:hidden}
+  #loading .ld-bar i{display:block;height:100%;width:0;border-radius:6px;background:#6f9468;transition:width .2s linear}
+  #loading .ld-line{margin:0;font-weight:800;font-size:14px;color:#5b534e;min-height:1.4em;text-align:center}
   .bubble{position:fixed;transform:translate(-50%,-100%) translateY(-6px);background:var(--cream);border-radius:11px;padding:5px 8px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;gap:3px;align-items:center;min-width:30px;min-height:22px;justify-content:center;animation:pop .18s ease}
   .bubble::after{content:"";position:absolute;left:50%;bottom:-5px;width:9px;height:9px;background:var(--cream);transform:translateX(-50%) rotate(45deg);border-radius:1px}
   .bubble .d{width:5px;height:5px;border-radius:50%;background:var(--ink2);opacity:.35;animation:dot 1.1s infinite}

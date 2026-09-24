@@ -15,7 +15,7 @@ import foxUrl from '../assets/characters/fox/komachi-fox.glb?url';
 const SCALE = 0.4;   // the model is 0.31 tall: about 0.12 here, under half a resident (people are 0.26)
 const SEEN = 'A fox was seen at the shrine on the hill';
 let template = null;
-new GLTFLoader().loadAsync(foxUrl).then(g => { template = g.scene; }).catch(err => console.warn('Komachi: fox not loaded', err));
+export const foxLoaded = new GLTFLoader().loadAsync(foxUrl).then(g => { template = g.scene; }).catch(err => console.warn('Komachi: fox not loaded', err));
 
 const base = n => n.replace(/\.\d+$/, '');
 /** the height of what is underfoot: the ground, plus the asphalt (0.08) on a road cell or the flagstones on the approach */

@@ -73,6 +73,7 @@ import { keys, setTool, updatePreview, updateHover, updateTags, updateBars, insp
 import { households } from './sim.js';
 import { save, loadData, restore, clearSave, thumbDue, captureThumb } from './save.js';
 import { initMenus } from './title.js';
+import { islandReady } from './loading.js';
 import { updateKitsune, callKitsune, kitsune } from './kitsune.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
@@ -174,5 +175,5 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
   else if (restored) toast('Welcome back to Komachi');
 }
 addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
-document.getElementById('loading').classList.add('gone');
+islandReady();   // the loading screen (src/loading.js) now waits for the people, cars and the rest, then shows the menu
 requestAnimationFrame(frame);

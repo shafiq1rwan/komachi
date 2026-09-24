@@ -388,6 +388,8 @@ try {
   check('service vehicles: the post van goes round, the postman rides out, an ambulance waits at the clinic', svc.post && svc.postKind === 'postal-van' && svc.mail && svc.rider && svc.ambulance, JSON.stringify(svc));
   const menuTab = await browser.newPage(); await menuTab.setViewport({ width: 1200, height: 800 });   // a plain visit in a tab of its own: the title screen, then starting a town
   await menuTab.goto(`http://localhost:${PORT}/`, { waitUntil: 'networkidle0', timeout: 60000 });
+  let ld = null; for (let k = 0; k < 150 && !(ld && ld.gone); k++) { await sleep(200); ld = await menuTab.evaluate(() => ({ gone: document.getElementById('loading').classList.contains('gone'), people: !!(window.MT && MT.characterAvailable()) })).catch(() => null); }
+  check('loading screen: a plain visit waits for the people before the menu appears', ld && ld.gone && ld.people, JSON.stringify(ld));
   let ttl = null; for (let k = 0; k < 40 && !(ttl && ttl.open); k++) { await sleep(250); ttl = await menuTab.evaluate(() => ({ open: document.getElementById('menu')?.classList.contains('show'), screen: document.getElementById('menu')?.dataset.screen, logo: !!document.querySelector('#menu .mm-logo img')?.naturalWidth, bg: !!document.querySelector('#menu .mm-bg')?.style.backgroundImage })); }
   await menuTab.evaluate(() => document.querySelector('#menu [data-act="start"], #menu [data-act="continue"]').click()); await sleep(400);
   const started = await menuTab.evaluate(() => ({ closed: !document.getElementById('menu').classList.contains('show'), slots: JSON.parse(localStorage.getItem('komachi.slots') || '[]').length, active: !!localStorage.getItem('komachi.active') }));

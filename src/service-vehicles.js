@@ -14,7 +14,7 @@ export const lampLit = new Set();
 const templates = {};
 let ready = false;
 const loader = new GLTFLoader();
-Promise.all(Object.entries(FILE).map(([kind, file]) => {
+export const serviceLoaded = Promise.all(Object.entries(FILE).map(([kind, file]) => {
   const url = Object.entries(urls).find(([p]) => p.endsWith('/' + file + '.glb'))?.[1];
   return url ? loader.loadAsync(url).then(g => { templates[kind] = g.scene; }).catch(err => console.warn('Komachi: service vehicle not loaded', kind, err)) : null;
 })).then(() => { ready = true; });
