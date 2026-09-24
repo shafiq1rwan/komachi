@@ -5,9 +5,8 @@
 // the camera and new-island buttons that used to sit in the top bar. "Busy details" off (low) thins the small moving things: people
 // off screen or far away animate at a quarter of the rate, half the rain and leaves, fewer birds and butterflies.
 import { S } from './state.js';
-import { scene, sun, resize, cam } from './scene.js';
+import { scene, sun, resize } from './scene.js';
 import { setLook, setPasses, sizeLook } from './look.js';
-import { openNew } from './title.js';
 
 const PRESETS = {
   low: { res: 1, fps: 30, ao: false, aoHalf: true, blur: false, msaa: false, shadows: 'low', lights: false, busy: false },
@@ -88,9 +87,7 @@ card.addEventListener('click', e => {
   if (t === 'pixel') { S.pixelLook = !S.pixelLook; try { localStorage.setItem('komachi.pixelLook', S.pixelLook ? '1' : '0'); } catch { /* storage unavailable */ } apply(); return; }
   if (t) { set(t, !Q[t]); return; }
   if (b.id === 'opt-close') { card.classList.remove('show'); document.getElementById('btn-options').classList.remove('on'); return; }
-  if (b.id === 'opt-centre') { cam.target.set(0, 0, 0); cam.tView = 18; return; }
   if (b.id === 'opt-install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; b.hidden = true; }); return; }
-  if (b.id === 'opt-new') { card.classList.remove('show'); document.getElementById('btn-options').classList.remove('on'); openNew(); }   // the new-island form: the current town is kept in Towns
 });
 // the browser offers installing the app (Chrome, Edge, Android): the Settings card shows an Install button while it may
 let installPrompt = null;

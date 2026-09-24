@@ -47,6 +47,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   main | towns | new | settings | help in `.mm-page`; mode 'title' or 'pause' (pause shows only Resume, Settings, Save and quit);
   the Settings page moves the #options card in (class in-menu) and back; `initMenus` from main.js (title on a plain visit,
   skipped after sessionStorage `komachi.enter` or in scratch tabs), `openMenu`/`closeMenu`/`menuOpen` (input.js Esc), `openNew`.
+  The pause menu uses #menu.pause (a card, body.menu-pause; the town is still drawn), the title body.menu-full (`setLayout()`).
+  Top bar: #clock = sun, time, #speed-dd (1×/2×/4×, label 'Paused' at speed 0, `showSpeed()` in input.js), #btn-menu.
   body.menu-full hides the HUD and main.js skips drawing (one frame for `captureThumb` when `thumbDue`); slot summaries carry the
   thumbnail, time, season, homes, jobs, trains. Switching town or raising another island reloads the page.
 - Loading screen (2026-09-24, src/loading.js): #loading (z 60, the menu picture, wordmark, bar, line) over everything; steps island

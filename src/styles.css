@@ -10,7 +10,7 @@
   body.placing #c{cursor:crosshair}
   body.dragging #c{cursor:grabbing}
   .card{position:fixed;background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:12px 16px;pointer-events:auto}
-  #hud{position:fixed;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
+  #hud{position:fixed;z-index:12;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
   #hud .card{position:static;pointer-events:auto;height:56px;box-sizing:border-box;display:flex;align-items:center}
   #brand{padding:0 12px}
   /* spacing between HUD items is a margin, not a flex gap, so a folded panel leaves no stray space on the right */
@@ -37,6 +37,14 @@
   .fold{display:flex;align-items:center;gap:6px;min-width:0;max-width:420px;transition:max-width .28s ease,opacity .2s ease}   /* overflow stays visible so tooltips can hang below */
   .fold.collapsed{max-width:0;opacity:0;pointer-events:none;overflow:hidden}
   #settings{gap:8px}
+  /* the speed dropdown beside the clock */
+  #speed-dd{position:relative}
+  #speed-dd .speed-btn{border:0;background:var(--cream2);border-radius:10px;height:32px;padding:0 10px;display:flex;align-items:center;gap:7px;font:inherit;font-weight:800;font-size:13px;color:var(--ink);cursor:pointer}
+  #speed-dd .speed-btn:hover{background:#ebe1cf}#speed-dd .speed-btn i{font-size:10px;color:var(--ink2);transition:transform .15s}#speed-dd.open .speed-btn i{transform:rotate(180deg)}
+  #speed-dd .speed-menu{position:absolute;right:0;top:calc(100% + 8px);min-width:138px;background:var(--cream);border-radius:14px;box-shadow:var(--shadow);padding:6px;display:none;flex-direction:column;gap:2px;z-index:20}
+  #speed-dd.open .speed-menu{display:flex}
+  #speed-dd .speed-menu button{border:0;background:transparent;border-radius:9px;padding:8px 10px;text-align:left;font:inherit;font-weight:800;font-size:13px;color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;gap:12px}
+  #speed-dd .speed-menu button:hover{background:var(--cream2)}#speed-dd .speed-menu button.on{background:#dcebe8;color:var(--teal2)}#speed-dd .speed-menu small{font-weight:700;color:var(--ink2);font-size:11px}
   #btn-settings.on{background:var(--cream2);color:var(--ink)}
   .icon-btn{border:0;background:transparent;width:32px;height:32px;border-radius:10px;color:var(--ink2);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center}
   .icon-btn:hover{background:var(--cream2);color:var(--ink)}
@@ -198,6 +206,16 @@
   #menu .mm-link{border:0;background:none;font:inherit;font-weight:800;font-size:14px;color:#4c5a53;cursor:pointer;padding:8px;align-self:flex-start;display:flex;align-items:center;gap:8px}#menu .mm-link:hover{color:#2f4a3f}
   #menu .phone-only,#menu .mm-foot-motto{display:none}
   #btn-options{display:none!important}   /* Settings lives in the pause menu (Esc or the menu button) */
+  /* the pause menu: a small card over the paused town, which stays in view (dimmed); the title's page parts are not shown */
+  #menu.pause{background:rgba(40,52,58,.28);display:none;align-items:center;justify-content:center}#menu.pause.show{display:flex}
+  #menu.pause .mm-bg,#menu.pause .mm-logo,#menu.pause .mm-blurb,#menu.pause .mm-card,#menu.pause .mm-foot,#menu.pause .mm-slogan,#menu.pause .mm-motto{display:none!important}
+  #menu.pause .mm-side{width:min(360px,calc(100vw - 32px));height:auto;max-height:calc(100vh - 48px);padding:18px;background:var(--cream);border-radius:20px;box-shadow:0 12px 40px rgba(40,52,58,.25);margin:0}
+  #menu.pause .mm-page{margin:0}#menu.pause .mm-btn{background:var(--cream2);box-shadow:none;backdrop-filter:none}#menu.pause .mm-btn:hover{background:#ebe1cf;transform:none}
+  #menu.pause .mm-btn.main{background:#6f9468;justify-content:flex-start}#menu.pause .mm-btn.main b{font-size:16px}#menu.pause .mm-btn.main>i:first-child{font-size:16px;width:22px}
+  #menu.pause .mm-btn small{display:none}#menu.pause .mm-btn .mm-go{display:inline}#menu.pause .mm-btn.main .mm-go{display:none}
+  #menu.pause .mm-pause-head{display:flex;align-items:center;gap:10px;font-size:20px;font-weight:800;padding:2px 2px 4px}#menu.pause .mm-pause-head i{color:#6f9468;font-size:15px}
+  #menu.pause .mm-head{font-size:17px}
+  body.menu-pause #hud,body.menu-pause #tools,body.menu-pause #hint,body.menu-pause #inspect,body.menu-pause #minimap,body.menu-pause #picker,body.menu-pause #toast,body.menu-pause #intro,body.menu-pause #bars,body.menu-pause #tags,body.menu-pause #bubbles,body.menu-pause #tier,body.menu-pause #milestone{display:none!important}
   #options.in-menu{position:static;display:flex;width:auto;max-height:none;box-shadow:none;background:rgba(255,255,255,.8);backdrop-filter:blur(6px);border-radius:14px;transform:none;animation:none}
   #options.in-menu .opt-head{display:none}
   @media (max-width:720px){

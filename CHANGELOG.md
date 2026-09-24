@@ -69,6 +69,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- The pause menu is a small card over the paused town (still in view, dimmed): Paused, Resume, Settings, Save and quit to
+  title. Only the title screen is the full page over the island picture. Settings no longer has an Island section (Centre the
+  camera and New island are gone; New town lives on the title screen; Install as an app shows when the browser offers it).
+- Top bar: the clock card holds the time, a speed dropdown (1×, 2×, 4×; it reads "Paused" while paused) and the menu button
+  (moved from the left card). The pause and sliders buttons are gone: Esc or the menu button pauses, Space still does.
 - Loading screen (src/loading.js): the island picture and the wordmark with a progress bar that follows what is really loading
   (the island, the fonts, the cars, the people, the service vehicles, the fox) and a line for each ("Residents are packing their
   bags…"). The menu appears only once the people are ready, so the town never shows box people turning into characters (they

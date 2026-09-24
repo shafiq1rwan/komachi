@@ -27,7 +27,6 @@
 <header id="hud">
   <div id="brand" class="card">
     <h1 aria-label="Komachi"><img class="brand-icon" src="./assets/brand/komachi-icon.png" alt="" width="44" height="44"><span>Komachi</span></h1>
-    <button class="icon-btn" id="btn-menu" data-tip="Menu"><i class="fa-solid fa-bars"></i></button>
     <button class="icon-btn" id="btn-options" data-tip="Settings"><i class="fa-solid fa-gear"></i></button>
     <button class="icon-btn on" id="btn-stats" data-tip="Town figures" aria-expanded="true"><i class="fa-solid fa-chart-simple"></i></button>
     <div id="stats" class="fold">
@@ -42,15 +41,15 @@
   <div id="clock" class="card">
     <div id="sun"></div>
     <div id="clock-text"><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
-    <button class="icon-btn" id="btn-settings" data-tip="Speed and view options" aria-expanded="false"><i class="fa-solid fa-sliders"></i></button>
-    <div id="settings" class="fold collapsed">
-      <div class="seg" id="speed">
-        <button data-s="0" data-tip="Pause (Space)"><i class="fa-solid fa-pause"></i></button>
-        <button data-s="1" class="on" data-tip="Normal speed">1×</button>
-        <button data-s="2" data-tip="Double speed">2×</button>
-        <button data-s="4" data-tip="Fast">4×</button>
+    <div id="speed-dd">
+      <button class="speed-btn" id="btn-speed" aria-haspopup="true" aria-expanded="false" data-tip="Game speed"><b id="speed-label">1×</b><i class="fa-solid fa-chevron-down"></i></button>
+      <div class="speed-menu" id="speed" role="menu">
+        <button data-s="1" class="on" role="menuitem">1× <small>normal</small></button>
+        <button data-s="2" role="menuitem">2× <small>quicker</small></button>
+        <button data-s="4" role="menuitem">4× <small>fast</small></button>
       </div>
-          </div>
+    </div>
+    <button class="icon-btn" id="btn-menu" data-tip="Menu (Esc)"><i class="fa-solid fa-bars"></i></button>
   </div>
 </header>
 
@@ -97,8 +96,7 @@
   <div class="opt-row"><span>Smooth edges</span><button class="switch" data-toggle="msaa" role="switch"></button></div>
   <div class="opt-row"><span>Pixel look<small>half resolution, chunky</small></span><button class="switch" data-toggle="pixel" role="switch"></button></div>
   <div class="opt-row"><span>Show frame rate</span><button class="switch" data-toggle="showFps" role="switch"></button></div>
-  <div class="opt-sec">Island</div>
-  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-mountain-sun"></i> New island…</button></div>
+  <div class="opt-btns"><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button></div>
 </div>
 <div id="menu" role="dialog" aria-label="Main menu"></div>
 <div id="fps" hidden></div>

@@ -58,7 +58,7 @@ function show(screen) {
       : row('start', 'fa-seedling', 'Start on this island', `${esc(biomeName(S.biome))} · seed ${S.seed}`, 'main');
     const help = `<button class="mm-link" data-act="help"><i class="fa-solid fa-book-open"></i> How to play</button>`;
     page.innerHTML = playing
-      ? `<div class="mm-list">${first}${row('settings', 'fa-gear', 'Settings')}${row('title', 'fa-house-chimney', 'Save and quit to title')}</div>${help}`
+      ? `<div class="mm-pause-head"><i class="fa-solid fa-pause"></i><b>Paused</b></div><div class="mm-list">${row('resume', 'fa-play', 'Resume', '', 'main')}${row('settings', 'fa-gear', 'Settings')}${row('title', 'fa-house-chimney', 'Save and quit to title')}</div>`
       : `<div class="mm-list">${first}${row('new', 'fa-city', 'New town', 'a fresh town on another island')}${row('towns', 'fa-folder-open', 'Load town', listSlots().length ? `${listSlots().length} kept` : '')}
         ${row('settings', 'fa-gear', 'Settings')}${row('help', 'fa-book-open', 'How to play', '', 'desk-only')}${standalone ? row('exit', 'fa-arrow-right-from-bracket', 'Exit') : ''}</div>${help.replace('mm-link', 'mm-link phone-only')}`;
   } else if (screen === 'towns') {
@@ -89,9 +89,11 @@ function show(screen) {
 function open(kind) {
   if (!mode) { wasSpeed = S.speed || 1; S.speed = 0; if (kind === 'pause') requestThumb(); }
   options.classList.remove('show'); document.getElementById('btn-options').classList.remove('on');   // the in-game Settings card gives way to the menu
-  mode = kind; root.classList.add('show'); document.body.classList.add('menu-full'); show('main');
+  mode = kind; root.classList.add('show'); setLayout(); show('main');
 }
-function close() { park(); mode = null; root.classList.remove('show'); document.body.classList.remove('menu-full'); S.speed = wasSpeed; }
+function close() { park(); mode = null; root.classList.remove('show', 'pause'); document.body.classList.remove('menu-full', 'menu-pause'); S.speed = wasSpeed; }
+/** the title is the full page over the island picture; the pause menu a small card over the paused town */
+function setLayout() { const p = mode === 'pause'; root.classList.toggle('pause', p); document.body.classList.toggle('menu-full', !p); document.body.classList.toggle('menu-pause', p); }
 function reloadInto(enter) { holdSaves(); try { sessionStorage.setItem('komachi.enter', enter); } catch { /* no session storage */ } location.href = location.pathname; }
 
 root.addEventListener('click', e => {
@@ -103,7 +105,7 @@ root.addEventListener('click', e => {
   else if (act === 'save') { toast(save() ? 'Saved' : 'Could not save: the browser storage is full'); saveCard(); }
   else if (act === 'new' || act === 'towns' || act === 'settings' || act === 'help') show(act);
   else if (act === 'back') show('main');
-  else if (act === 'title') { toast(save() ? 'Saved' : 'Could not save'); mode = 'title'; show('main'); }
+  else if (act === 'title') { toast(save() ? 'Saved' : 'Could not save'); mode = 'title'; setLayout(); show('main'); }
   else if (act === 'exit') { save(); window.close(); }
   else if (act === 'dice') root.querySelector('#m-seed').value = Math.floor(Math.random() * 1e9) + 1;
   else if (act === 'create') {

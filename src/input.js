@@ -22,7 +22,13 @@ let gesture = null;          // {dist, ang, view, yaw} while two fingers are dow
 function setTool(t) { tool = t; pickerForTool(t); ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === (t === 'park' ? 'road' : t))); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 onPickerMode(setTool);   // the Streets strip's Street | Car park chips switch between the two tools
-document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
+// the speed dropdown beside the clock: 1×, 2× or 4×; pausing is the menu (Esc, the ☰ button) or Space, and the label then says so
+const speedDD = document.getElementById('speed-dd'), speedLabel = document.getElementById('speed-label');
+function showSpeed() { speedLabel.textContent = S.speed ? S.speed + '×' : 'Paused'; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
+document.getElementById('btn-speed').addEventListener('click', e => { e.stopPropagation(); const open = speedDD.classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false'); });
+document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; showSpeed(); speedDD.classList.remove('open'); }));
+addEventListener('pointerdown', e => { if (!speedDD.contains(e.target)) speedDD.classList.remove('open'); });
+setInterval(showSpeed, 400);   // the menu and fast-forward also change the speed
 // the inspect card's follow button
 /** turn the hovered or pinned building to face its next street */
 function rotateTarget() {
@@ -38,7 +44,7 @@ ui.inspect.addEventListener('click', e => {
   if (b.dataset.follow === 'stop') { setFollow(null); return; }
   const t = pinned || hovered || (follow ? { res: follow } : null); if (t && t.res) { follow = t.res; pinned = t; }
 });
-for (const [btn, panel] of [['btn-settings', 'settings'], ['btn-stats', 'stats']]) document.getElementById(btn).addEventListener('click', e => { const s = document.getElementById(panel); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
+for (const [btn, panel] of [['btn-stats', 'stats']]) document.getElementById(btn).addEventListener('click', e => { const s = document.getElementById(panel); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
 if (innerWidth < 720) { document.getElementById('stats').classList.add('collapsed'); const b = document.getElementById('btn-stats'); b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }   // phones: figures start folded so both cards fit side by side
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {
@@ -131,7 +137,7 @@ addEventListener('keydown', e => {
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic'); if (e.code === 'Digit9') setTool('farm');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'KeyR') rotateTarget();
-  if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
+  if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; showSpeed(); }
   if (e.code === 'Escape') { if (menuOpen()) closeMenu(); else if (tool === 'explore' && !pinned && !follow) openMenu('pause'); else { setTool('explore'); pinned = null; follow = null; } }   // Esc clears the tool first, then opens the menu
 });
 addEventListener('keyup', e => keys.delete(e.code));
