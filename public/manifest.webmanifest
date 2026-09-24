@@ -1,0 +1,16 @@
+{
+  "name": "Komachi",
+  "short_name": "Komachi",
+  "description": "A cosy little town on an island: draw streets, zone homes, shops and workplaces, and watch the town come alive.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#cfe8dd",
+  "theme_color": "#f3e6cf",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

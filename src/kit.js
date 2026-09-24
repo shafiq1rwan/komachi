@@ -69,7 +69,7 @@ export function bicycle(g, x, z, rot, color = K.bike[0]) {
   const tube = new THREE.BoxGeometry(0.014, 0.16, 0.014); tube.rotateX(0.5); tube.translate(0, 0.15, 0.04); parts.push(colorize(tube, color));
   parts.push(box(0.014, 0.1, 0.014, color, 0, 0.16, -0.06)); parts.push(box(0.05, 0.015, 0.03, '#4a4340', 0, 0.21, -0.07));
   parts.push(box(0.09, 0.012, 0.012, K.metal2, 0, 0.2, 0.1)); parts.push(box(0.06, 0.04, 0.05, PAL.wood2, 0, 0.19, -0.13));
-  for (const p of parts) { p.rotateY(rot); p.translate(x, 0.12, z); g.push(p); }
+  for (const p of parts) { p.scale(0.85, 0.85, 0.85); p.rotateY(rot); p.translate(x, 0.12, z); g.push(p); }   // at the riders' scale (sim.js PEOPLE)
 }
 /** a small bike rack with `n` parked bicycles, arranged along local x */
 export function bikeRack(g, x, z, n, rot = 0, seed = 0.5) {

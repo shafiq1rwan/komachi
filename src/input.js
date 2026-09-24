@@ -227,7 +227,7 @@ function updateBars() {
     const p = building ? (SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT) / total : 1 - b.renoT / 2.5;
     const cxm = b.cells.reduce((s, c) => s + cx(c.i), 0) / b.cells.length, czm = b.cells.reduce((s, c) => s + cz(c.j), 0) / b.cells.length;
     barV.set(cxm, 1.35 + (b.cells[0].h || 0), czm).project(camera); if (barV.z > 1) continue;
-    html += `<div class="pbar${reno ? ' reno' : ''}" style="left:${(barV.x + 1) / 2 * innerWidth}px;top:${(1 - barV.y) / 2 * innerHeight}px"><i><b style="width:${Math.round(p * 100)}%"></b></i><span>${reno ? 'extending' : Math.round(p * 100) + '%'}</span></div>`;
+    html += `<div class="pbar${reno ? ' reno' : ''}" style="left:${(barV.x + 1) / 2 * innerWidth}px;top:${(1 - barV.y) / 2 * innerHeight}px"><i><b style="width:${Math.round(p * 100)}%"></b></i><span>${reno ? 'extending' : b.waiting ? 'waiting' : Math.round(p * 100) + '%'}</span></div>`;
   }
   ui.bars.innerHTML = html;
 }

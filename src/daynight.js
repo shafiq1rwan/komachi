@@ -4,7 +4,7 @@ import { PAL } from './palette.js';
 import { lerp, clamp } from './utils.js';
 import { renderer, scene, hemi, sun, fill } from './scene.js';
 import { lampHeadMat, coneMat } from './geometry.js';
-import { units, lampGlowMat, DONE, blocks, CIVIC_REACH, setWet, benchLights } from './world.js';
+import { units, lampGlowMat, DONE, blocks, CIVIC_REACH, setWet, benchLights, isOpen } from './world.js';
 // windows within reach of a finished substation glow steady and a shade warmer; recomputed every couple of seconds
 const powered = new Set(); let poweredT = -9; const WARM = '#f6c78e';
 function refreshPowered() {
@@ -48,11 +48,11 @@ function envUpdate(realT) {
   setWet(W.winter ? 0 : W.rain);   // snow does not darken the streets like rain
   for (const L of benchLights) L.intensity = Math.max(0, night - 0.1) * 2.4;   // real light on the station benches after dusk
   lampHeadMat.emissiveIntensity = night * 2.2; lampGlowMat.opacity = night * 0.5; coneMat.opacity = night * 0.07;   // a faint beam and a modest pool: the lamp head carries the brightness
-  const shopOpen = h >= 7 && h < 22;
   if (realT - poweredT > 2) { poweredT = realT; refreshPowered(); }
   for (const u of units.values()) {
-    const occ = u.inside.size > 0, b = u.block;
-    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (b.kind === 'ryokan' ? (h >= 6 && h < 23.5 ? 1.3 : 0.35) : (b.quietDays ? h >= 8 && h < 19 : shopOpen) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
+    const occ = u.inside.size > 0, b = u.block, staffed = b.type !== 'shop' || b.kind === 'ryokan' || b.units.some(x => x.staff.length);
+    if (u.notice) u.notice.visible = b.type === 'res' ? u.residents.length === 0 : !b.units.some(x => x.staff.length);   // for rent / help wanted
+    let base = b.stage < DONE ? 0 : b.type === 'station' ? 1.4 : b.type === 'shop' ? (b.kind === 'ryokan' ? (h >= 6 && h < 23.5 ? 1.3 : 0.35) : staffed && (b.quietDays ? h >= 8 && h < 19 && isOpen(b, h) : isOpen(b, h)) ? 1.3 : 0.15) : (occ ? 1.3 : 0.12);   // a quiet shop shutters early
     const steady = powered.has(u), flick = steady ? 1.08 : 1 + 0.06 * Math.sin(realT * 2.3 + u.seed * 40);   // the substation's neighbours: no flicker, a touch brighter
     if (steady !== !!u.steady) { u.steady = steady; u.winMat.emissive.set(steady ? WARM : PAL.glow); }
     u.winMat.emissiveIntensity = night * base * flick;

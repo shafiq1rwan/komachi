@@ -10,7 +10,7 @@ import { S } from './state.js';
 import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR } from './palette.js';
 import { peopleGroup, disposeGroup, cx, cz, scene, HALF } from './scene.js';
-import { cell, STATION, blocks, DONE } from './world.js';
+import { cell, STATION, blocks, DONE, isOpen } from './world.js';
 import { hourOf, dayOf, routeCells, roadNeighbors, frontRoad, buildPoints, makePerson, moveAlong, onTrain, carMeshes, shopUnits, trafficFactor } from './sim.js';
 import { landmarkRoads } from './landmarks.js';
 import { detachCharacter, holdItem, dropItem } from './characters.js';
@@ -114,7 +114,7 @@ function next(t) {
     const pts = v.l.walk();
     if (!walkTo(t, v.road, pts, 'off to the summer festival', () => { arriveAt(t, v.l, v.road, pts); v.spot.taken++; t.eventSpot = v.spot; t.until = S.T + rand(1.0, 1.8); t.activity = 'at the summer festival'; })) return next(t);
   } else if (step.kind === 'shop') {
-    const shops = shopUnits().filter(u => hourOf() < 19 && !u.block.changing && frontRoad(u).length); if (!shops.length) return next(t);
+    const shops = shopUnits().filter(u => hourOf() < 19 && !u.block.changing && u.block.kind !== 'ryokan' && isOpen(u.block, hourOf() + 0.2) && frontRoad(u).length);   // an open shop, not the inn if (!shops.length) return next(t);
     const here = t.road ? [t.road] : stationRoads(); let best = null, bl = Infinity;
     for (const u of shops) { const p = routeCells(here, frontRoad(u)); if (p && p.length < bl) { bl = p.length; best = u; } }
     if (!best) return next(t);
@@ -152,7 +152,7 @@ function removeTourist(t) {
 // ── the tourist bus ──
 const bus = { state: 'away', mesh: null, trip: null, at: null, until: 0, riders: [], stops: null, shelters: [], ordered: false, stopsDay: -1, retryAt: 0 };
 const busRunning = () => bus.state === 'toA' || bus.state === 'toB' || bus.state === 'dwell';
-const BS = 0.6;   // the kit bus is 0.55 wide and 1.08 long; this keeps it inside one lane
+const BS = 0.51;   // the kit bus is 0.55 wide and 1.08 long: 0.28 × 0.55 here, inside a 0.34 lane
 function makeBus() {
   const grp = new THREE.Group(), m = createFestivalLandmark('tourist-bus'); m.scale.setScalar(BS); grp.add(m);
   m.traverse(o => { if (o.isMesh) o.castShadow = true; });

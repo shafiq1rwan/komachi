@@ -23,7 +23,7 @@ import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
 const CARRY_HOME = new Set(['grocery', 'supermarket', 'konbini', 'arcade', 'bakery']);   // shops you leave with a bag
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel } from './world.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalState, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel, hoursOf, isOpen } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { unitLocal } from './buildings.js';
@@ -31,6 +31,7 @@ import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
 
 // ───────────────────────────── time ─────────────────────────────
+const PEOPLE = 0.85;              // people and their bikes against the street: a person about 0.26 tall, a lane 0.34 wide (decided 2026-09-24)
 const HPS = 0.1;                // game hours per real second at 1×  (one day ≈ 4 min)
 const hourOf = () => S.T % 24, dayOf = () => Math.floor(S.T / 24) + 1;
 function daylight() { const h = hourOf(); return smooth((h - 5.5) / 1.5) * smooth((19.5 - h) / 1.5); }
@@ -59,6 +60,33 @@ function routeCells(srcs, dsts) {
     const i = k % N, j = (k - i) / N;
     const c0 = cells[k];
     for (const [di, dj] of DIR4) { const n = cell(i + di, j + dj); if (!n || n.type !== 'road' || !roadLinked(c0, n, di, dj)) continue; const nk = n.j * N + n.i; if (bfsParent[nk] !== -1) continue; bfsParent[nk] = k; bfsQueue[qt++] = nk; }
+  }
+  return null;
+}
+// ── the route actually travelled: the shortest way with a little personal taste in it ──
+// routeCells (above) gives the plain shortest path, cached for "can I get there, and how far". A trip itself takes routeVaried:
+// each road cell costs 1 plus a small random amount drawn fresh for every trip, and a turn costs a little, so people and drivers
+// going the same way spread over parallel streets instead of forming a single file. Drivers also shy away from cells with cars
+// in them and from signalled crossings, so a busy street sheds traffic to the next one.
+const dCost = new Float64Array(N * N), dPar = new Int32Array(N * N), busyCells = new Uint8Array(N * N);
+function routeVaried(srcs, dsts, drive = false) {
+  if (!srcs.length || !dsts.length) return null;
+  dCost.fill(Infinity); dPar.fill(-1);
+  const target = new Set(dsts.map(c => c.j * N + c.i)), seed = Math.random() * 977, spread = drive ? 0.55 : 0.3, heap = [];
+  if (drive) { busyCells.fill(0); for (const v of carMeshes) if (v.visible && !v.userData.parked) { const c = cellAt(v.position); if (c) busyCells[c.j * N + c.i] = Math.min(9, busyCells[c.j * N + c.i] + 1); } }
+  const push = (d, k) => { heap.push([d, k]); let i = heap.length - 1; while (i > 0) { const p = (i - 1) >> 1; if (heap[p][0] <= heap[i][0]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; i = p; } };
+  const pop = () => { const top = heap[0], last = heap.pop(); if (heap.length) { heap[0] = last; for (let i = 0; ;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; i = m; } } return top; };
+  for (const s of srcs) { const k = s.j * N + s.i; if (dCost[k] > 0) { dCost[k] = 0; dPar[k] = k; push(0, k); } }
+  while (heap.length) {
+    const [d, k] = pop(); if (d > dCost[k]) continue;
+    if (target.has(k)) { const path = []; let cur = k; while (true) { path.push(cells[cur]); if (dPar[cur] === cur) break; cur = dPar[cur]; } return path.reverse(); }
+    const i = k % N, j = (k - i) / N, c0 = cells[k], pk = dPar[k], pdi = pk === k ? 0 : i - pk % N, pdj = pk === k ? 0 : j - Math.floor(pk / N);
+    for (const [di, dj] of DIR4) {
+      const n = cell(i + di, j + dj); if (!n || n.type !== 'road' || !roadLinked(c0, n, di, dj)) continue;
+      const nk = n.j * N + n.i, jit = ((Math.sin(nk * 12.9898 + seed) * 43758.5453) % 1 + 1) % 1;
+      const w = 1 + jit * spread + ((pdi || pdj) && (di !== pdi || dj !== pdj) ? 0.35 : 0) + (drive ? busyCells[nk] * 0.6 + (signalCells.has(n) ? 0.5 : 0) : 0);
+      if (d + w < dCost[nk]) { dCost[nk] = d + w; dPar[nk] = k; push(d + w, nk); }
+    }
   }
   return null;
 }
@@ -114,7 +142,7 @@ function buildPoints(cellPath, start, end, side, y, lane = null) {
 // ───────────────────────────── meshes: people, cars, cats ─────────────────────────────
 const carMeshes = [];
 function makePerson(r) {
-  const grp = new THREE.Group(); grp.userData = { res: r }; grp.visible = false; peopleGroup.add(grp);
+  const grp = new THREE.Group(); grp.userData = { res: r }; grp.visible = false; grp.scale.setScalar(PEOPLE); peopleGroup.add(grp);   // the whole person, with whatever they hold, at the town's scale
   attachCharacter(grp, r);   // rigged model when loaded, box person otherwise
   return grp;
 }
@@ -423,7 +451,7 @@ function parkVehicle(mesh, u, kind) {
   mesh.visible = true; mesh.userData.parked = true; mesh.userData.slot = slot;
 }
 function makeBike(r) {
-  const grp = createBike(r.carColor); grp.userData.lights = null; grp.visible = false; peopleGroup.add(grp); return grp;
+  const grp = createBike(r.carColor); grp.scale.setScalar(PEOPLE); grp.userData.lights = null; grp.visible = false; peopleGroup.add(grp); return grp;   // the bike at the rider's scale
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
@@ -577,6 +605,16 @@ const isWaiting = r => !r.home && !r.movingIn && r.state === 'inside' && r.at ==
 function waitingHouseholds() { return households.filter(hh => hh.members.some(isWaiting)); }
 const shopUnits = () => blocks.filter(b => b.type === 'shop' && b.stage === DONE).flatMap(b => b.units);
 const jobUnits = () => blocks.filter(b => (b.type === 'work' || b.type === 'shop' || b.type === 'civic' || b.type === 'farm') && b.stage === DONE).flatMap(b => b.units);
+/** the new hire takes the workplace's next shift (early, then late, in turn), a few minutes either way, and wakes in time to
+ *  walk there: the commute is about 0.07 h a cell, so a far job means leaving earlier */
+function takeShift(r, u, path) {
+  const sh = hoursOf(u.block).shifts, n = u.staff.length - 1, [a, z] = sh[n % sh.length];
+  // one-shift offices, workshops, factories and civic jobs keep flexitime: three waves about twenty minutes apart
+  const wave = sh.length === 1 && u.block.type !== 'shop' && u.block.type !== 'farm' ? (Math.floor(n / sh.length) % 3 - 1) * 0.35 : 0;
+  r.workStart = a + wave + rand(-0.15, 0.15); r.workEnd = z + wave + rand(-0.1, 0.2);
+  r.commuteH = clamp((path ? path.length : 6) * 0.1 + 0.15, 0.25, 1.5);   // about 0.1 h a cell on foot, and a moment at the doors
+  r.wake = clamp(Math.min(r.wake, r.workStart - r.commuteH - rand(0.4, 0.8)), 5, 9);
+}
 function findJob(r) {
   let best = null, bestLen = 1e9;
   if (r.commuter || r.homemaker) return;
@@ -590,7 +628,7 @@ function findJob(r) {
     const len = p.length + (u.block.type === 'shop' ? 2 : 0) + Math.random() * 3;
     if (len < bestLen) { bestLen = len; best = u; }
   }
-  if (best) { r.job = best; best.staff.push(r); if (best.block.type === 'farm') { r.workStart = rand(5.8, 6.6); r.workEnd = rand(15, 16.5); r.wake = Math.min(r.wake, r.workStart - 0.6); } }   // farmers keep farmers' hours
+  if (best) { r.job = best; best.staff.push(r); takeShift(r, best, routeUnits(r.home, best)); }
   else if (!r.commuter && Math.random() < 0.35) { r.commuter = true; r.workStart = rand(7, 8.6); r.workEnd = rand(17.2, 19); }   // no work in town: take the train to the city instead
 }
 function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
@@ -599,10 +637,11 @@ function startTrip(r, cellPath, start, end, destUnit, label, from = null) {
   const toUnit = destUnit && destUnit !== STATION.anchor;
   const drive = r.hasCar && cellPath.length > 6 && toUnit && from && from === r.carAt;
   const ride = !drive && r.hasBike && cellPath.length > 3 && toUnit && from && from === r.bikeAt;
+  if (cellPath.length > 2) { const v = routeVaried([cellPath[0]], [cellPath[cellPath.length - 1]], drive); if (v) cellPath = v; }
   const kerbEnd = Array.isArray(end) ? end[0] : end, kerbStart = Array.isArray(start) ? start[start.length - 1] : start;
   if (drive) { r.carAt = destUnit; if (!r.car) r.car = makeCar(r.carColor, r.carKind); start = r.car.userData.parked ? [r.car.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }   // from the parking spot to the kerb, then the road
   if (ride) { r.bikeAt = destUnit; if (!r.bike) r.bike = makeBike(r); start = r.bike.userData.parked ? [r.bike.position.clone(), kerbStart] : kerbStart; end = kerbEnd; }
-  const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : ride ? buildPoints(cellPath, start, end, 0.27, 0.08, -1) : buildPoints(cellPath, start, end, 0.34, 0.1);
+  const pts = drive ? buildPoints(cellPath, start, end, 0.17, 0.08, -1) : ride ? buildPoints(cellPath, start, end, 0.315, 0.08, -1) : buildPoints(cellPath, start, end, 0.35 + hash(r.id, 31) * 0.08, 0.1);   // each walker keeps their own line across the pavement (0.35–0.43 from the centre), so passers-by do not walk through each other
   r.trip = { pts, i: 0, t: 0, dest: destUnit, drive, ride, speed: drive ? 2.6 : ride ? 1.7 : 0.9 * rand(0.85, 1.15), baseY: drive || ride ? 0.08 : 0.1, cells: cellPath, label, from };
   setPose(r, ride);
   r.state = drive ? 'driving' : 'walking'; r.activity = label;
@@ -710,6 +749,7 @@ function pickShop(r, from, weights) {
   for (const u of shopUnits()) {
     if (u === r.job || u.block.renoT > 0 && u.block.changing) continue;   // a shop changing trade is shuttered
     if (u.block.quietDays && hourOf() >= 19) continue;   // a quiet shop shutters early
+    if (!isOpen(u.block, hourOf() + 0.2)) continue;   // closed (or closing by the time they get there)
     const w = weights[u.block.kind] || 0.5; const p = routeUnits(from, u); if (!p) continue;
     const reach = REACH[u.block.kind] || 12;   // a supermarket or arcade draws people from further than a corner bakery
     const sc = w * (1 + Math.random() * 0.6) / (1 + p.length / reach); if (sc > bs) { bs = sc; best = u; }
@@ -746,7 +786,9 @@ function decide(r) {
   if (r.commuter && !r.job && r.lastWorkDay !== day && h >= r.workStart && h < r.workStart + 2.5) {
     r.lastWorkDay = day; if (go(r, STATION.anchor, 'off to catch the train', 'commute')) return;
   }
-  const n = r.needs, atHome = u === r.home, atWork = !!r.job && u === r.job, workHours = !!r.job && h >= r.workStart && h < r.workEnd;
+  const n = r.needs, atHome = u === r.home, atWork = !!r.job && u === r.job, setOff = r.job ? r.workStart - (r.commuteH || 0.4) : 99;
+  const workHours = !!r.job && h >= setOff - 0.05 && h < r.workEnd;
+  const free = !atWork && !(r.job && r.lastWorkDay !== day && h > setOff - 1.8 && h < r.workEnd);   // no long outing when the shift is near
   const night = h >= 22 || h < 5, shops = shopUnits().length > 0;
   if (!atHome && !atWork && r.until && S.T < r.until) { r.next = Math.min(r.until, S.T + 0.3); return; }   // a meal, a visit or a shop runs its course
   const opts = [];
@@ -754,7 +796,8 @@ function decide(r) {
   if (r.returnTo && workHours && !atWork) { const d = r.returnTo; add(1.7, () => { r.returnTo = null; return go(r, d, 'back to work'); }); }
   else r.returnTo = null;
   if (night || n.energy < 0.15 || (h >= 21 && n.energy < 0.5)) add((1 - n.energy) * 1.6 + (night ? 1.2 : 0.3), () => atHome ? sleep(r) : go(r, r.home, 'heading home to sleep'));
-  if (workHours && !atWork && r.lastWorkDay !== day) add(1.5, () => { r.lastWorkDay = day; return go(r, r.job, 'heading to work'); });
+  const leaveFor = !!r.job && !atWork && r.lastWorkDay !== day && h >= setOff && h < r.workEnd - 0.5;   // set off in time to arrive for the shift
+  if (leaveFor) add(1.5, () => { r.lastWorkDay = day; return go(r, r.job, h < r.workStart ? 'heading to work' : 'heading to work, a little late'); });
   if (atWork && workHours) {
     if (u.block.type === 'farm') add(1.3, () => fieldWork(r, u));
     else add(1.25, () => stay(r, 'work', pick(u.block.type === 'shop' ? SHOP_STAFF_ACTS : u.block.type === 'civic' ? (CIVIC_ACTS[u.block.kind] || WORK_ACTS) : WORK_ACTS), rand(0.5, 1.2)));
@@ -764,58 +807,105 @@ function decide(r) {
   if (atHome && n.food < 0.65 && (mealTime || n.food < 0.3)) add((1 - n.food) * 1.4 + (h >= 17.5 && r.hh.members.some(m => m !== r && m.at === u) ? 0.35 : 0), () => eatAtHome(r));
   if (!atWork && shops && n.food < 0.5 && ((h >= 11 && h < 14) || (h >= 17.5 && h < 20.5))) { const sh = pickShop(r, u, FOODIE); if (sh) add((1 - n.food) * 1.1 + 0.25 + (1 - n.fun) * 0.3, () => go(r, sh, pick(h < 10.5 ? ['going out for breakfast', 'off to the bakery'] : h < 15 ? ['going out for lunch', 'heading out to eat', 'off for a bite'] : ['going out for dinner', 'heading out to eat', 'off to the ramen shop']), 'eat')); }
   if (!atWork && shops && h >= 9 && h < 20 && n.supplies < 0.5) { const sh = pickShop(r, u, GROCER); if (sh) add((1 - n.supplies) * 1.3, () => go(r, sh, pick(['going shopping', 'popping out for groceries', 'off to the shops']), 'shop')); }
-  if (!atWork && h >= 7 && h < 19 && n.fun < 0.7) add((1 - n.fun) * 0.9 + 0.15, () => stroll(r));
+  if (free && h >= 7 && h < 19 && n.fun < 0.7) add((1 - n.fun) * 0.9 + 0.15, () => stroll(r));
   if (atHome && r.hh && !r.hh.registered && h >= 9 && h < 16.5 && !r.hh.members.some(m => m.purpose === 'register')) {   // one member walks to the town office (the kōban until a town hall stands)
     const th = civicUnit('townhall') || STATION.anchor; if (th && routeUnits(u, th)) add(1.75, () => { if (th === STATION.anchor) { r.hh.registered = true; return go(r, STATION.anchor, 'registering at the kōban'); } return go(r, th, 'off to register at the town office', 'register'); });
   }
   if (!atWork && h >= 9 && h < 17 && n.energy < 0.3 && r.clinicDay !== day) { const cu = civicUnit('clinic'); if (cu && cu !== u && routeUnits(u, cu)) add((1 - n.energy) * 1.3, () => { r.clinicDay = day; return go(r, cu, 'feeling run down, off to the clinic', 'clinic'); }); }
-  if (!atWork && h >= 10 && h < 19 && n.fun < 0.6 && Math.random() < 0.3) { const cc = civicUnit('community'); if (cc && cc !== u && routeUnits(u, cc)) add((1 - n.fun) * 0.7 + 0.1, () => go(r, cc, 'going to read the town chronicle', 'chronicle')); }
+  if (free && h >= 10 && h < 19 && n.fun < 0.6 && Math.random() < 0.3) { const cc = civicUnit('community'); if (cc && cc !== u && routeUnits(u, cc)) add((1 - n.fun) * 0.7 + 0.1, () => go(r, cc, 'going to read the town chronicle', 'chronicle')); }
   if (!atWork && h >= 17 && h < 21 && n.fun < 0.65 && r.bathDay !== day) { const bu = bathUnits().find(x => x !== u && routeUnits(u, x)); if (bu) add((1 - n.fun) * 1.2 + 0.3, () => { r.bathDay = day; return go(r, bu, 'off to the bath house', 'bath'); }); }   // an evening soak
-  if (!atWork && h >= 10 && h < 20.5 && n.social < 0.5) { const v = pickVisit(r); if (v) add((1 - n.social) * 1.15, () => go(r, v, `visiting ${v.block.name}`, 'visit')); }
+  if (free && h >= 10 && h < 20.5 && n.social < 0.5) { const v = pickVisit(r); if (v) add((1 - n.social) * 1.15, () => go(r, v, `visiting ${v.block.name}`, 'visit')); }
   if (atHome && u.block.bagsDue && r.mesh.userData.char && h >= 6 && h < 10.5) add(1.6, () => carryBags(r));   // collection morning: someone takes the bags out
   if (r.homemaker && atHome && h >= 8.5 && h < 17.5) {   // the one who keeps the house: errands in the day while the others are at work
     if (shops && n.supplies < 0.85 && r.errandDay !== day) { const sh = pickShop(r, u, GROCER); if (sh) add(0.95 + (1 - n.supplies) * 0.6, () => { r.errandDay = day; return go(r, sh, pick(['doing the day\'s shopping', 'off to the shops for the family', 'fetching groceries']), 'shop'); }); }
     add(0.7, () => stay(r, 'home', pick(KEEP_ACTS), rand(0.5, 1.1)));
   }
-  if (!atWork && catchToday() && h >= 10.5 && h < 18.2 && r.fishBuy !== day && (r.homemaker || Math.random() < 0.6)) {   // the catch is in: fish for supper from the quay stall
+  if (free && catchToday() && h >= 10.5 && h < 18.2 && r.fishBuy !== day && (r.homemaker || Math.random() < 0.6)) {   // the catch is in: fish for supper from the quay stall
     const m = landmarkRoads().find(o => o.l.kind === 'fishmarket');
     if (m) add((r.homemaker ? 1.3 : 0.8) + (1 - n.supplies) * 0.8 + (1 - n.food) * 0.2, () => { r.fishBuy = day; return visitLandmark(r, u, m); });
   }
-  if (!atWork && !(workHours && r.lastWorkDay !== day) && ((h >= 5.5 && h < 8.5) || (h >= 15.5 && h < 18.5)) && W.rain < 0.3 && r.fishDay !== day) {   // early morning and late afternoon: off to fish from the quay (some are keen anglers)
+  if (free && ((h >= 5.5 && h < 8.5) || (h >= 15.5 && h < 18.5)) && W.rain < 0.3 && r.fishDay !== day) {   // early morning and late afternoon: off to fish from the quay (some are keen anglers)
     const keen = r.id % 4 === 0, q = landmarkRoads().find(o => o.l.kind === 'pier');
     if (q && (keen || Math.random() < 0.35)) add((keen ? 0.95 : 0.45) + (1 - n.fun) * 0.5, () => { r.fishDay = day; return visitLandmark(r, u, q); });
   }
-  { const ev = eventOn(); if (ev && !atWork && !(workHours && r.lastWorkDay !== day) && r.eventDone !== day + ev.kind) {   // the square is busy: the market in the morning, the festival in the evening
+  { const ev = eventOn(); if (ev && free && r.eventDone !== day + ev.kind) {   // the square is busy: the market in the morning, the festival in the evening
     const fest = ev.kind === 'festival', sc = fest ? 1.45 + (1 - n.fun) * 0.5 : (r.homemaker ? 1.25 : 0.55) + (1 - n.supplies) * 0.7 + (1 - n.fun) * 0.25;
     add(sc, () => { const v = eventVisit(); if (!v) return false; r.eventDone = day + ev.kind; return visitLandmark(r, u, v); });
   } }
   if (atHome) add(0.55 + n.fun * 0.2, () => stay(r, 'home', pick(HOME_ACTS), rand(0.6, 1.4)));
   else if (!(atWork && workHours)) add(0.5, () => go(r, r.home, 'heading home'));
   opts.sort((a, b) => b.score - a.score);
-  for (const o of opts) if (o.run() !== false) return;
-  r.next = S.T + rand(0.3, 0.8);
+  for (const o of opts) if (o.run() !== false) { keepShift(r); return; }
+  r.next = S.T + rand(0.3, 0.8); keepShift(r);
+}
+/** whatever someone settles into before work (breakfast, a sit at home, sleep), it ends in time to leave for the shift */
+function keepShift(r) {
+  if (!r.job || r.at === r.job || r.state !== 'inside' || r.lastWorkDay === dayOf()) return;
+  const leave = Math.floor(S.T / 24) * 24 + r.workStart - (r.commuteH || 0.4);
+  if (S.T < leave && r.next > leave) r.next = leave;
 }
 
 // ── traffic: a vehicle slows for another one close ahead in its own lane (same heading, small side offset) ──
 const tfFwd = new THREE.Vector3(), tfRel = new THREE.Vector3();
-function trafficFactor(obj) {
+const claims = new Map();   // junction cell index → the vehicle inside it
+const isJunction = c => c && c.type === 'road' && roadNeighbors(c).length >= 3;
+/** is this vehicle driving right now (its traffic check ran this step), rather than stopped for a delivery or waiting at a stop? */
+const driving = v => S.T - (v.userData.tfAt ?? -9) < 0.05;
+function trafficFactor(obj, tr = null) {
   let f = 1; tfFwd.set(Math.sin(obj.rotation.y), 0, Math.cos(obj.rotation.y));
   updateSignals();   // lights follow game time, so they also cycle inside fastForward
-  // a red light: stop short of the junction cell ahead (a car already inside it carries on)
-  const here = cellAt(obj.position), aheadCell = cell(Math.floor(obj.position.x + tfFwd.x * 0.6 + HALF), Math.floor(obj.position.z + tfFwd.z * 0.6 + HALF));
+  const ud = obj.userData; ud.tfAt = S.T; const here = cellAt(obj.position), aheadCell = cell(Math.floor(obj.position.x + tfFwd.x * 0.6 + HALF), Math.floor(obj.position.z + tfFwd.z * 0.6 + HALF));
+  // a red light stops the car short of the crossing; at amber only a car that can still stop comfortably does (a car already inside carries on)
   if (aheadCell && aheadCell !== here && signalRed(aheadCell, Math.abs(tfFwd.x) > Math.abs(tfFwd.z) ? 'ew' : 'ns')) {
     const ahead = (cx(aheadCell.i) - obj.position.x) * tfFwd.x + (cz(aheadCell.j) - obj.position.z) * tfFwd.z;   // distance to the junction's centre
-    f = Math.min(f, clamp((ahead - 0.74) / 0.14, 0, 1));
+    const amber = signalState(aheadCell, Math.abs(tfFwd.x) > Math.abs(tfFwd.z) ? 'ew' : 'ns') === 'amber';
+    if (!(amber && ahead < 0.86)) f = Math.min(f, clamp((ahead - 0.74) / 0.14, 0, 1));
+  }
+  // junctions are claimed: the vehicle inside one holds it, and another may follow it in or pass it in the other lane, but a car
+  // crossing its path (a right turn over the oncoming lane, a side street joining) waits at the edge. A long wait lets it go anyway.
+  const hk = here ? here.j * N + here.i : -1;
+  if (ud.claim !== undefined && ud.claim !== hk) { if (claims.get(ud.claim) === obj) claims.delete(ud.claim); ud.claim = undefined; }
+  if (isJunction(here)) { const o = claims.get(hk); if (!o || o === obj || !o.visible || o.userData.parked || !driving(o) || cellAt(o.position) !== here) { claims.set(hk, obj); ud.claim = hk; } }
+  let held = false;
+  if (aheadCell && aheadCell !== here && isJunction(aheadCell)) {
+    const ak = aheadCell.j * N + aheadCell.i, o = claims.get(ak);
+    if (o && o !== obj && o.visible && !o.userData.parked && driving(o) && cellAt(o.position) === aheadCell) {
+      const dot = Math.sin(o.rotation.y) * tfFwd.x + Math.cos(o.rotation.y) * tfFwd.z;
+      tfRel.subVectors(o.position, obj.position); const side = Math.abs(tfRel.x * tfFwd.z - tfRel.z * tfFwd.x);
+      if (!(dot > 0.7 || (dot < -0.7 && side > 0.2))) { const ahead = (cx(aheadCell.i) - obj.position.x) * tfFwd.x + (cz(aheadCell.j) - obj.position.z) * tfFwd.z; f = Math.min(f, clamp((ahead - 0.7) / 0.14, 0, 1)); held = f < 0.05; }
+    }
+  }
+  // pulling out of a parking bay or off the kerb: wait for a gap in the traffic passing the kerb point
+  ud.pullingOut = !!(tr && tr.drive && tr.i === 0 && tr.pts.length > 1);
+  if (ud.pullingOut) {   // only traffic that is coming towards the kerb point counts; another car pulling out does not
+    const kerb = tr.pts[1];
+    for (const v of carMeshes) {
+      if (v === obj || !v.visible || v.userData.parked || v.userData.pullingOut || !driving(v)) continue;
+      tfRel.subVectors(kerb, v.position); tfRel.y = 0; if (tfRel.length() > 0.6) continue;
+      if (tfRel.x * Math.sin(v.rotation.y) + tfRel.z * Math.cos(v.rotation.y) > -0.1) { f = 0; held = true; break; }
+    }
   }
   for (const v of carMeshes) {
     if (v === obj || !v.visible || v.userData.parked) continue;
     tfRel.subVectors(v.position, obj.position); tfRel.y = 0;
-    const ahead = tfRel.dot(tfFwd); if (ahead <= 0.05 || ahead > 1.1) continue;
+    const ahead = tfRel.dot(tfFwd);
+    if (Math.abs(ahead) <= 0.05) {   // two vehicles on top of each other (set off from the same spot): the younger one waits until the other has gone
+      const sameHere = Math.sin(v.rotation.y) * tfFwd.x + Math.cos(v.rotation.y) * tfFwd.z, sideHere = Math.abs(tfRel.x * tfFwd.z - tfRel.z * tfFwd.x);
+      if (sameHere > 0.3 && sideHere <= 0.18 && obj.id > v.id && driving(v)) f = 0;
+      continue;
+    }
+    if (ahead < 0 || ahead > 1.1) continue;   // only what is in front matters
     const cross = tfRel.x * tfFwd.z - tfRel.z * tfFwd.x, side = Math.abs(cross);
+    if (!driving(v) && side <= 0.2 && ahead < 0.9) { f = Math.min(f, clamp((ahead - 0.45) / 0.2, 0, 1)); if (f < 0.05) held = true; continue; }   // a van stopped for a delivery or a bus at its stop: wait behind it, whichever way it faces
     const same = Math.sin(v.rotation.y) * tfFwd.x + Math.cos(v.rotation.y) * tfFwd.z;
-    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.74) / 0.25, 0, 1)); }   // a queue: about a quarter of a car length between bumpers          // a queue: hold back from the car in front
+    if (ahead < 0.4 && side < 0.3) {   // last resort, whatever the headings: never drive into a vehicle right in front (face to face, the younger one waits)
+      const back = -(tfRel.x * Math.sin(v.rotation.y) + tfRel.z * Math.cos(v.rotation.y)), mutual = back > 0 && Math.abs(tfRel.x * Math.cos(v.rotation.y) - tfRel.z * Math.sin(v.rotation.y)) < 0.3;
+      if (!mutual || obj.id > v.id) { f = Math.min(f, clamp((ahead - 0.3) / 0.1, 0, 1)); if (f < 0.05) held = true; }
+    }
+    if (same > 0.3) { if (side <= 0.18) f = Math.min(f, clamp((ahead - 0.66) / 0.22, 0, 1)); }   // a queue: about a quarter of a car length between bumpers          // a queue: hold back from the car in front
     else if (same > -0.3 && side <= 0.4 && cross > 0) f = Math.min(f, clamp((ahead - 0.55) / 0.2, 0, 1));   // a junction: give way to a car crossing from the left (never mutual, so no deadlock)
   }
+  if (held) { ud.heldSince ||= S.T; if (S.T - ud.heldSince > 1) f = Math.max(f, 0.35); } else ud.heldSince = 0;   // after ~10 s at 1× it edges on: never a gridlock
   return f;
 }
 function moveAlong(obj, tr, dist) {
@@ -864,9 +954,9 @@ function updateResidents(simDt, realT) {
     if ((frameNo + r.id) % 20 === 0) { lodV.copy(obj.position).project(camera); r.far = farZoom || Math.abs(lodV.x) > 1.15 || Math.abs(lodV.y) > 1.15; }
     r.lodDist += tr.speed * simDt;
     if (r.far && (frameNo + r.id) % 6 !== 0) continue;
-    if (tr.drive) r.lodDist *= trafficFactor(obj);
+    if (tr.drive) r.lodDist *= trafficFactor(obj, tr);
     const P = tr.pts;   // at a signalled crossing a walker waits at the kerb while the cars along the street have the green
-    if (!tr.drive && !tr.ride && P.crossAt !== undefined && tr.i === P.crossAt && tr.t < 0.03 && signalCells.has(P.crossCell) && !signalRed(P.crossCell, P.crossAxis)) { if (!r.paused) { r.paused = true; r.heldAct = r.activity; r.activity = 'waiting to cross'; } r.lodDist = 0; continue; }
+    if (!tr.drive && !tr.ride && P.crossAt !== undefined && tr.i === P.crossAt && tr.t < 0.03 && signalCells.has(P.crossCell) && signalState(P.crossCell, P.crossAxis) !== 'red') { if (!r.paused) { r.paused = true; r.heldAct = r.activity; r.activity = 'waiting to cross'; } r.lodDist = 0; continue; }
     if (r.paused) { r.paused = false; if (r.heldAct) r.activity = r.heldAct; }
     if (r.meetUntil) { if (S.T < r.meetUntil) { r.lodDist = 0; continue; } r.meetUntil = 0; if (r.heldAct) r.activity = r.heldAct; }   // stopped for a word with a neighbour
     if (!tr.drive && !tr.ride && !r.far && (frameNo + r.id) % 15 === 0 && S.T - (r.metAt || -9) > 3) meetPasser(r);
@@ -919,7 +1009,7 @@ function wanderPick(w) {
   const roads = roadCellsList();
   const homes = w.kind === 'car' && Math.random() < 0.15 ? blocks.filter(b => b.type === 'res' && b.stage === DONE && b.street && b.street.length) : null;
   for (let k = 0; k < 6; k++) {
-    const t = homes && homes.length ? pick(pick(homes).street) : pick(roads); if (t === w.cell) continue; const path = routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
+    const t = homes && homes.length ? pick(pick(homes).street) : pick(roads); if (t === w.cell) continue; const path = w.kind === 'car' ? routeVaried([w.cell], [t], true) : routeCells([w.cell], [t]); if (!path || path.length < 3) continue;
     const y = w.kind === 'car' ? 0.08 : 0.1, side = w.kind === 'car' ? 0.17 : 0.36;
     const pts = buildPoints(path, w.mesh.position.clone().setY(y), new THREE.Vector3(cx(t.i), y, cz(t.j)), side, y, w.kind === 'car' ? -1 : (w.lane || (w.lane = Math.random() < 0.5 ? 1 : -1))); pts.pop();
     w.trip = { pts, i: 0, t: 0, speed: w.kind === 'car' ? rand(2.0, 2.8) : w.kind === 'dog' ? rand(.38, .56) : rand(0.35, 0.6), last: t, cells: path, delivery: !!homes }; return;
@@ -1006,8 +1096,8 @@ function updateCollection() {
 }
 /** a planned drive for the truck: to `t`, stopping there when `stop` */
 function driveTo(w, t, stop) {
-  if (!t || w.cell === t) return false; const path = routeCells([w.cell], [t]); if (!path || path.length < 2) return false;
-  const pts = buildPoints(path, w.mesh.position.clone().setY(0.08), new THREE.Vector3(cx(t.i), 0.08, cz(t.j)), 0.17, 0.08, -1);
+  if (!t || w.cell === t) return false; const path = routeVaried([w.cell], [t], true); if (!path || path.length < 2) return false;
+  const pts = buildPoints(path, w.mesh.position.clone().setY(0.08), new THREE.Vector3(cx(t.i), 0.08, cz(t.j)), 0.17, 0.08, -1); if (pts.length > 2) pts.pop();   // stop in the lane by the kerb, not in the middle of the road
   w.trip = { pts, i: 0, t: 0, speed: 1.9, last: t, cells: path, stop }; return true;
 }
 function updateWanderers(simDt) {
@@ -1239,6 +1329,6 @@ onWorldChange(() => {   // a street removed or built over: ambient traffic on it
   }
 });
 
-export { removeCarPark, setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
+export { routeVaried, removeCarPark, setVehicleSource, adoptWanderer, parkVehicle, reckonShops, changeTrade, hillMarket, HPS, hourOf, dayOf, daylight, routeCells, routeUnits, carMeshes, residents, wanderers, shopUnits, jobUnits, households, hhName, hhLabel, moodWords, restoreResident, restoreHousehold,
   updateResidents, updateWanderers, updateBlocks, growthAllowed, removeBlock, nextTrainAt, spawnNewcomer, removeResident,
   roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, trafficFactor, unitPos, setProgressRate, onTrain };

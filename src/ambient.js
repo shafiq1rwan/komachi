@@ -3,6 +3,7 @@
 import * as THREE from 'three';
 import { PAL } from './palette.js';
 import { rand, pick } from './utils.js';
+import { S } from './state.js';
 import { scene, cx, cz } from './scene.js';
 import { cells, onWorldChange } from './world.js';
 import { coastPoint } from './island.js';
@@ -46,7 +47,9 @@ function placeButterflies() {
 placeButterflies(); onWorldChange(placeButterflies);
 
 function updateAmbient(dt, realT, night) {
-  for (const f of flocks) {
+  const light = S.quality && S.quality.busy === false;
+  for (const [fi, f] of flocks.entries()) {
+    if (light && fi === 1) { for (const b of f.birds) b.mesh.visible = false; continue; }   // busy details off: the second flock stays away
     f.t += dt * f.speed * (night > 0.6 ? 0.3 : 1);
     for (const b of f.birds) {
       const a = f.t - b.off, r = f.radius + b.dr;
@@ -57,7 +60,8 @@ function updateAmbient(dt, realT, night) {
       b.mesh.visible = night < 0.85;
     }
   }
-  for (const b of butterflies) {
+  for (const [bi, b] of butterflies.entries()) {
+    if (light && bi >= 3) { b.visible = false; continue; }
     const u = b.userData;
     if (b.position.distanceTo(u.target) < 0.05 || Math.random() < dt * 0.6) u.target.set(u.home.x + rand(-0.55, 0.55), u.home.y - 0.15 + rand(0, 0.35), u.home.z + rand(-0.55, 0.55));
     const step = Math.min(1, dt * u.speed); b.position.lerp(u.target, step); b.position.y += Math.sin(realT * 6 + u.phase) * 0.002;

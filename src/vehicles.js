@@ -8,7 +8,8 @@ import { PAL } from './palette.js';
 import { box, colorize, mergeMesh } from './geometry.js';
 import { createTruck, TRUCK_KINDS } from './work-trucks-kit.js';
 
-const SCALE = 0.23;                 // a sedan is 2.55 long in the kit; about 0.59 here, close to two people long (people are 0.31 tall)
+const SCALE = 0.2;                 // a sedan is 2.55 long in the kit; 0.51 here, about 0.26 wide in a 0.34 lane (people are 0.26 tall)
+const TRUCK_K = 0.85;               // the work-truck kit is built at the old street scale
 const MODEL = { kei: 'sedan', hatch: 'hatchback-sports', suv: 'suv', van: 'van', truck: 'truck-flat', taxi: 'taxi', garbage: 'garbage-truck', delivery: 'delivery' };
 const NO_REPAINT = new Set(['taxi']);   // keeps its own livery
 const urls = import.meta.glob('../assets/vehicle/{sedan,hatchback-sports,suv,van,truck-flat,taxi,garbage-truck,delivery}.glb', { eager: true, query: '?url', import: 'default' });
@@ -104,12 +105,12 @@ function boxCar(grp, color, kind) {
 /** fill a car group (forward = +z) with the kit model for `kind`, or a box car until the model has loaded */
 export function attachVehicle(grp, color, kind = 'kei') {
   if (TRUCK_KINDS.includes(kind)) {   // the Komachi work trucks (src/work-trucks-kit.js): keitora, crane flatbed, fish van
-    const t = createTruck(kind); t.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); grp.add(t);
+    const t = createTruck(kind); t.scale.setScalar(TRUCK_K); t.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } }); grp.add(t);
     const lights = t.getObjectByName('Headlights'), tail = t.getObjectByName('Taillights');
     lights.material.emissive = new THREE.Color('#ffe2a8'); lights.material.emissiveIntensity = 0; tail.material.emissive = new THREE.Color('#e07060'); tail.material.emissiveIntensity = 0;
     grp.userData.lights = lights; grp.userData.tail = tail; grp.userData.truck = t;
     grp.userData.wheels = ['Wheel_Left_Front', 'Wheel_Right_Front', 'Wheel_Left_Rear', 'Wheel_Right_Rear'].map(n => t.getObjectByName(n)).filter(Boolean);
-    grp.userData.wheelRadius = t.userData.wheelRadius;
+    grp.userData.wheelRadius = t.userData.wheelRadius * TRUCK_K;
     grp.userData.cargo = t.userData.cargoMeshes.map(n => t.getObjectByName(n)).filter(Boolean);
     grp.userData.crane = t.getObjectByName('Crane_Arm') || null;
     return;

@@ -261,6 +261,10 @@ then walks the points back to the kerb and routes home.
 
 ## Tourism
 
+Offline play: the build's `offline` plugin (vite.config.js) writes `dist/sw.js` from `scripts/sw-template.js` with the list of every
+built file and the files in `public/` (manifest, icons); main.js registers it in production builds only. The page is fetched network
+first so a new deploy shows on the next launch; the hashed files are served from the cache.
+
 `picker.js` sits beside input.js (which calls `pickerForTool` on each tool change and reads `currentPick` to cap the drag and pass
 `placeBlock` a preset). It reads world.js tiers and blocks and draws its thumbnails with buildings.js `rebuildUnitMesh` on fake off-grid
 units, rendered by a throwaway WebGLRenderer; nothing else imports it except main.js for the dev hooks.

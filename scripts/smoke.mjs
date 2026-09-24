@@ -3,7 +3,7 @@
 // checks placement rules, construction, residents and removal, and saves screenshots to scripts/out/.
 //
 // Needs a Chromium-based browser. Set BROWSER_PATH if it is not at one of the default locations.
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync } from 'node:fs';
 import puppeteer from 'puppeteer-core';
 
@@ -17,7 +17,11 @@ if (!executablePath) { console.error('No Chromium browser found. Set BROWSER_PAT
 
 const PORT = 4179;
 const server = spawn(process.platform === 'win32' ? 'npx.cmd' : 'npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], { stdio: 'ignore', shell: process.platform === 'win32' });
-await new Promise(r => setTimeout(r, 2500));
+// on Windows the server runs under a shell, and kill() stops only the shell: end the whole tree, also when the run fails early
+let stopped = false;
+const stopServer = () => { if (stopped) return; stopped = true; if (process.platform === 'win32') spawnSync('taskkill', ['/pid', String(server.pid), '/T', '/F'], { stdio: 'ignore' }); else server.kill(); };
+process.on('exit', stopServer);
+for (let k = 0; k < 60; k++) { try { if ((await fetch('http://localhost:' + PORT + '/')).ok) break; } catch { /* not up yet */ } await new Promise(r => setTimeout(r, 500)); }
 mkdirSync('scripts/out', { recursive: true });
 
 let failures = 0;
@@ -185,7 +189,7 @@ try {
     const ww = mk('waterworks'), rc = mk('recycling'); MT.refreshCivicFlags();
     MT.setHour(5.9); let guard = 0; while (MT.dayOf() % 3 !== 0 && guard++ < 4) MT.fastForward(24); for (const r of MT.residents) if (r.home) r.next = 0;
     let bags = 0; for (let k = 0; k < 120 && !bags; k++) { MT.fastForward(0.02); bags = MT.blocks.filter(b => b.bags).length; }   // someone carries them out, or they appear by 7:15
-    MT.setHour(7.6); MT.fastForward(0.2); const truck = MT.wanderers.some(w => w.truck);
+    MT.setHour(7.45); let truck = false; for (let k = 0; k < 40 && !truck; k++) { MT.fastForward(0.01); truck = MT.wanderers.some(w => w.truck); }   // polled: a short round can be over within a fifth of an hour
     return { ww: !!ww, rc: !!rc, watered: home.watered === true, bags, truck, day: MT.dayOf() };
   });
   const ts = await page.evaluate(() => {   // town services: a two-cell town hall from the kit; a household registers there and comes home with a folder
@@ -297,7 +301,7 @@ try {
     if (!plots.length) return { plot: false };
     const b = MT.placeBlock('shop', [plots[0]], { kind: 'ryokan', roofStyle: 'kawara' }); b.stage = MT.DONE; for (const u of b.units) MT.rebuildUnitMesh(u);
     MT.tourism.forceWeekend = true; MT.setHour(12); const ts = []; for (let k = 0; k < 8 && !ts.some(t => t.staying); k++) { const t = MT.spawnTourist(); if (t) ts.push(t); }
-    const guest = ts.find(t => t.staying); let inn = false; for (let k = 0; k < 400 && guest && !inn; k++) { MT.fastForward(0.04); inn = guest.state === 'atInn'; }
+    const guest = ts.find(t => t.staying) || MT.tourists.find(t => t.staying && t.state !== 'atInn') || MT.tourists.find(t => t.staying); let inn = false; for (let k = 0; k < 400 && guest && !inn; k++) { MT.fastForward(0.04); inn = guest.state === 'atInn'; }   // the six rooms may already be booked by earlier visitors: follow one of them
     MT.tourism.forceWeekend = false; return { plot: true, kind: b.kind, guest: !!guest, inn, spawned: ts.length, guests: MT.tourists.filter(t => t.staying).length, h: +(MT.T % 24).toFixed(2), stage: b.stage };
   });
   check('ryokan: a visitor stays the night at the inn on the hill', ry.plot && ry.kind === 'ryokan' && ry.guest && ry.inn, JSON.stringify(ry));
@@ -332,10 +336,52 @@ try {
     const parkOn = strip.querySelector('.chip.on')?.dataset.mode === 'park', streetsLit = document.querySelector('.tool[data-tool="road"]').classList.contains('on');
     MT.setTool('explore'); return { modes, dock, parkOn, streetsLit };
   });
+  const busy = await page.evaluate(() => {   // quality: low turns busy details off (half the rain and leaves, fewer birds, far people animate less often)
+    const card = document.getElementById('options'), pick = v => card.querySelector('[data-set="preset"] button[data-v="' + v + '"]').click();
+    const before = MT.quality.preset; pick('low'); const low = MT.quality.busy, sw = card.querySelector('[data-toggle="busy"]'), swOff = sw && !sw.classList.contains('on');
+    pick('high'); const high = MT.quality.busy; pick(before === 'custom' ? 'auto' : before);
+    return { low, high, swOff, back: MT.quality.preset };
+  });
+  check('quality: the low preset turns busy details off, high keeps them', busy.low === false && busy.high === true && busy.swOff, JSON.stringify(busy));
   check('Streets button: a Street | Car park strip, and car parks sit under Streets', stp.modes === 2 && stp.dock && stp.parkOn && stp.streetsLit, JSON.stringify(stp));
+  const hrs = await page.evaluate(() => {   // every workplace keeps its own hours: the bakery before dawn, the ramen shop late, the factory in two shifts
+    const b = k => ({ type: 'shop', kind: k });
+    return { bakery7: MT.isOpen(b('bakery'), 7), bakery16: MT.isOpen(b('bakery'), 16), ramen21: MT.isOpen(b('ramen'), 21), ramen9: MT.isOpen(b('ramen'), 9),
+      factory: MT.hoursOf({ type: 'work', kind: 'factory' }).shifts.length, bakeryStart: MT.hoursOf(b('bakery')).shifts[0][0] };
+  });
+  check('working hours: shops keep their own opening hours, a factory runs two shifts', hrs.bakery7 && !hrs.bakery16 && hrs.ramen21 && !hrs.ramen9 && hrs.factory === 2 && hrs.bakeryStart < 6, JSON.stringify(hrs));
+  const trf = await page.evaluate(() => {   // traffic: trips between the same two streets vary their route, and each crossing keeps its own light cycle
+    const roads = MT.cells.filter(c => c.type === 'road' && !c.h); let best = null, most = 0;   // some pairs have one sensible way only: try several
+    for (let k = 0; k < 120 && most < 2; k++) {
+      const a = roads[Math.floor(Math.random() * roads.length)], b = roads[Math.floor(Math.random() * roads.length)], p = MT.routeCells([a], [b]); if (!p || p.length < 9) continue;
+      best = [a, b]; const seen = new Set(); for (let q = 0; q < 16; q++) { const v = MT.routeVaried([a], [b], true); if (v) seen.add(v.map(c => c.i + ',' + c.j).join(';')); } most = Math.max(most, seen.size);
+    }
+    const seen = { size: most };
+    const sig = [...MT.signalCells]; let differ = sig.length < 2; const states = new Set();
+    for (let k = 0; k < 40; k++) { const h = 12 + k * 0.03; MT.setHour(h); if (sig.length >= 2 && MT.signalState(sig[0], 'ns') !== MT.signalState(sig[1], 'ns')) differ = true; if (sig.length) states.add(MT.signalState(sig[0], 'ns')); }
+    return { pair: !!best, routes: seen.size, signals: sig.length, differ, states: [...states].sort().join(',') };
+  });
+  check('traffic: routes between two streets vary, crossings keep their own cycles with amber', trf.pair && trf.routes >= 2 && trf.differ && (trf.signals === 0 || trf.states.includes('amber')), JSON.stringify(trf));
+  const qu = await page.evaluate(() => {   // many plots at once: only three crews work, the rest wait roped off in line; an empty finished home shows a for-rent board
+    MT.setSpeed(0); const free = () => MT.cells.filter(c => MT.placeable(c, [c]) && !c.h);
+    const made = []; for (let k = 0; k < 7; k++) { const c = free()[0]; if (!c) break; made.push(MT.placeBlock('res', [c])); }
+    MT.fastForward(0.01, 0.00167);
+    const waiting = made.filter(b => b.waiting && b.queuePos > 0).length, maxPos = Math.max(0, ...made.map(b => b.queuePos || 0));
+    const c = free()[0]; let home = null; if (c) { home = MT.placeBlock('res', [c]); home.stage = MT.DONE; for (const u of home.units) MT.rebuildUnitMesh(u); }
+    window.__qHome = home; return { made: made.length, waiting, maxPos };
+  });
+  let noticeOn = false; for (let k = 0; k < 20 && !noticeOn; k++) { await sleep(150); noticeOn = await page.evaluate(() => !!(window.__qHome && window.__qHome.units[0].notice && window.__qHome.units[0].notice.visible)); }
+  check('build queue: extra plots wait roped off in line; an empty home shows a for-rent board', qu.made >= 5 && qu.waiting >= 2 && qu.maxPos >= 2 && noticeOn, JSON.stringify({ ...qu, noticeOn }));
+  await page.evaluate(() => { for (const b of MT.blocks.filter(b => b.waiting || b === window.__qHome)) MT.removeBlock(b); });   // tidy up for the checks after
+  let pwa = null;   // the installable app: a manifest, and a service worker that has cached the build for offline play (polled)
+  for (let k = 0; k < 60; k++) {
+    pwa = await page.evaluate(async () => { const reg = navigator.serviceWorker && await navigator.serviceWorker.getRegistration(); let n = 0; for (const k of await caches.keys()) n += (await (await caches.open(k)).keys()).length; const m = await (await fetch('./manifest.webmanifest')).json(); return { active: !!(reg && reg.active), cached: n, icons: m.icons.length }; });
+    if (pwa.active && pwa.cached > 30) break; await sleep(500);
+  }
+  check('PWA: manifest with icons, and the service worker has cached the game', pwa.active && pwa.cached > 30 && pwa.icons >= 3, JSON.stringify(pwa));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
-  await browser.close(); server.kill();
+  await browser.close(); stopServer();
 }
 console.log(failures ? `\n${failures} check(s) failed` : '\nall checks passed');
 process.exit(failures ? 1 : 0);

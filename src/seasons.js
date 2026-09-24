@@ -42,7 +42,7 @@ export function updateSeasons(dt, onTurn) {
   const rate = fallRate(season) * Math.min(1, spots.length / 12) * (0.6 + 0.4 * Math.min(1, W.wind.length() * 12));
   spawnAcc += dt * rate * Math.min(spots.length, 40);
   while (spawnAcc >= 1 && spots.length) {
-    spawnAcc -= 1; const l = leaves.find(l => l.t < 0); if (!l) break; const sp = spots[Math.floor(Math.random() * spots.length)];
+    spawnAcc -= 1; const cap = S.quality && S.quality.busy === false ? 100 : LEAF_N, l = leaves.find((l, k) => k < cap && l.t < 0); if (!l) break; const sp = spots[Math.floor(Math.random() * spots.length)];
     l.t = 0; l.life = rand(2.2, 3.6); l.x = sp.x + rand(-0.3, 0.3) * sp.s; l.z = sp.z + rand(-0.3, 0.3) * sp.s; l.y = sp.y + rand(-0.1, 0.15) * sp.s;
     l.vx = W.wind.x * 3 + rand(-0.04, 0.04); l.vz = W.wind.y * 3 + rand(-0.04, 0.04); l.spin = rand(-3, 3); l.phase = rand(0, 6.28);
     l.m.material.color.set(season === 'spring' && biome.blossom ? (Math.random() < 0.5 ? '#f8d7de' : '#f4c4cf') : leafColor(sp.color, season)); l.m.visible = true; l.m.scale.setScalar(rand(0.8, 1.3));

@@ -69,6 +69,48 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Street scale (chosen from a side-by-side render): pavements are 0.16 wide instead of 0.19, so each lane is 0.34 wide, and
+  people, their bikes (and the rack bikes), cars, the work trucks and the tourist bus are 85 % of their old size. A car now
+  sits inside its lane with road round it instead of filling it kerb to centre line (about 75 % of the lane, was 94 %); a
+  person is about 0.26 tall, well under a door. Bikes ride along the kerb (0.315 out), clear of the cars; walkers keep their
+  own lines 0.35–0.43 out; the queueing gap follows the shorter cars.
+- The build queue, instead of a budget: three crews work at a time, so a plot no crew has reached yet stays grass, staked and
+  roped off with a small planned-site board, in the order the plots were zoned; its pill says "waiting" and its card "Waiting for
+  a crew", "waiting · 4th in line". Zoning many plots at once shows as a row of roped-off lots, not instant buildings.
+- Empty buildings look empty: a home nobody lives in yet shows a "for rent" board (pink band) at its front corner until the
+  household moves in; a shop or workplace with no staff shows a "help wanted" board (teal band), and a shop stays dark until
+  someone works there. Nothing is refused or charged; over-building simply looks quiet.
+- Traffic rules:
+  - Routes vary: a trip takes `routeVaried` (sim.js), the shortest way with a small random taste per trip and a cost for turns,
+    so people and drivers going the same way spread over parallel streets instead of following one car in single file; drivers
+    also avoid cells that already have cars in them and signalled crossings. Delivery vans and the service trucks route the same way.
+  - Each crossing keeps its own light cycle (offset by its position), 12 real seconds at 1× with green, amber and a moment of
+    all-red; the kit's amber lens lights. The old shared cycle lasted half a real second. A car that can still stop comfortably
+    stops at amber; walkers cross only once the cross traffic has a full red.
+  - Junctions are claimed: a car may follow another into a crossing or pass it in the other lane, but one crossing its path (a
+    right turn over the oncoming lane, a side street joining) waits at the edge. Cars pulling out of a bay or off the kerb wait
+    for a gap in traffic coming towards them. Nobody drives into a stopped delivery van or a car right in front, whatever the
+    headings; vehicles that set off from the same spot (the ferry) leave one at a time. A long wait always ends (no gridlock).
+  - Service rounds (garbage, fish van, farm truck, fire truck) stop in their lane by the kerb, not in the middle of the road.
+  - Walkers each keep their own line across the pavement, so passers-by no longer walk through each other.
+  - Measured in the demo town with every resident driving, at 60 steps a second: overlapping vehicles in 0–2 % of samples
+    (0–3 % before), with routes now varying. `MT.fastForward(hours, stepH)` takes a step size for such traces.
+- Working hours per workplace (`HOURS` in world.js): the bakery opens at 6 with its baker in before dawn, the konbini and
+  the late-opening shops (ramen, restaurant, arcade, supermarket) run an early and a late shift, the factory changes shift after
+  lunch, offices, workshops and civic jobs keep flexitime in three waves, farms start at dawn, the bath house opens at 15:00.
+  New staff take the next shift in turn; everyone sets off in time for the walk (about 0.1 h a cell) and wakes early enough,
+  and no long stroll, fishing trip or visit starts within two hours of a shift. A shop is lit and takes customers (residents
+  and visitors) only while it is open, and its card shows the hours. The morning rush now spreads from 5:00 to 10:00 instead
+  of everyone leaving between 7 and 8.
+- Installable app (PWA): a web app manifest with icons (from the brand art, a maskable one on cream and an Apple touch icon),
+  and a service worker the build writes into dist/ (the `offline` plugin in vite.config.js fills scripts/sw-template.js with every
+  built file and a version hash). The game plays offline after the first visit: the page is fetched fresh when online, the hashed
+  files come from the cache, the font is kept once loaded. Chrome and Edge show "Install as an app" in the Settings card.
+- Busy details (Settings, off in the low preset): people off screen or far away animate at a quarter of the rate, half the rain
+  and falling leaves, one bird flock and four butterflies fewer. Auto on a phone picks it off.
+- Fixed: a seated resident's right arm now reaches for their phone (the aim call had been swallowed by a comment).
+- Fixed: `npm test` on Windows left its preview server running after each run (kill() stopped only the shell); it now ends the
+  whole process tree, also when a run fails early, and waits for the server to answer instead of a fixed pause.
 - The picker strip takes the dock's width and sits a small gap above it (8px, 10px on phones); its scrollbar is hidden, with arrow
   buttons at either end that show only while there is more to see and dim at the ends; swiping, trackpads and the mouse wheel
   still scroll it sideways (the wheel never zooms the town from there). A short strip keeps its chips centred.

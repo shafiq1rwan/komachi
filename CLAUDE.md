@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 51 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 56 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -38,6 +38,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `mergeGeometries` needs all-indexed or all-non-indexed; `mergeMesh` converts to non-indexed.
 - Building generators must set `u.door` so trips start on the doorstep. Front is local +z.
 - `DONE` (5) in world.js is the finished stage; never compare against a literal stage number.
+- Street scale (2026-09-24): pavement `PW` 0.16 (world.js; kerb at 0.34, rich-streets `KERB`), lanes 0.34; people and bikes at
+  `PEOPLE` 0.85 (sim.js makePerson/makeBike scale the whole group, so held items, helmets and sitting heights follow), kit rack
+  bikes 0.85, vehicles `SCALE` 0.2 (vehicles.js; sedan 0.51 long), work trucks `TRUCK_K` 0.85, bus `BS` 0.51. Car lane offset 0.17,
+  bikes 0.315, walkers 0.35–0.43. New people or vehicle models (the town-life kit) must come in at this scale.
 - Heights: asphalt top 0.08, sidewalk 0.10, plinth 0.12, all relative to the cell's ground `c.h`
   (0 on the flat, `level × 0.55` on hill terraces). Trip points hold height above ground; `moveAlong`
   adds `terrainY(x, z)`. Never set a walker's y from a constant without adding `terrainY`.
@@ -48,8 +52,13 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `c.park = 'public'` (`c.parkRoad` = entry street, list `carParks`), `parkBay(c, k)` places four nose-in bays, `parkVehicle` in sim.js uses
   the nearest car park within `PARK_REACH` (6) cells before the kerb, `b.kerbFull`/`b.parkHint` drive the card line and the one-off notice,
   `removeCarPark` (sim) re-parks the cars. `STATION.taxiPark` is the taxis' automatic car park across the ring road. Saves v3 carry parks. Signals:
-  `signalCells` in world.js, one town-wide phase on `S.T`; `trafficFactor` in sim.js does queueing,
-  give-way and red lights.
+  `signalCells` in world.js, each crossing on its own cycle (`signalState(c, axis)` green | amber | red, SIGNAL_PERIOD 1.2 game h =
+  12 real s, phase offset by `hash` of the cell, per-crossing lamp materials in `signalLamps`); `trafficFactor(obj, tr)` in sim.js does
+  red/amber, junction claims (`claims`, `isJunction`), pull-out gaps (`ud.pullingOut`), stopped-vehicle and close-range guards,
+  the same-spot tie-break (younger `obj.id` waits), queueing and give-way; only `driving(v)` vehicles (traffic check ran this step)
+  hold claims or win tie-breaks; `heldSince` > 1 game h lets a held car edge on. Trips take `routeVaried(srcs, dsts, drive)`
+  (Dijkstra, Float64 costs: jitter per trip, turn 0.35, busy cells and signals for drivers); `routeCells` stays the cached BFS for
+  reachability and distances. Test motion with `MT.fastForward(h, 0.00167)`: the default 0.04 h step moves a car ~1 unit per step.
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
 - People are Kenney Mini Characters by default (CC0, `assets/characters/kenney/`, adopted 2026-09-17);
   `?boxes` brings back the original box people. Loaded via `src/characters.js`: atlas baked to vertex
@@ -102,6 +111,16 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   'chronicle'. `updateFireRound` runs the kei truck (`w.fire`) at 8:30 and hides `u.parkedTruck` while `b.truckOut`.
 - Growth: `maxLevel(b)` in world.js caps houses (detached | narrow | terrace) at two storeys, apartments/manshon at three, civic at one;
   `unitCap` gives a two-storey house 3. Detached generators use `floorY(f)` (ground 0.5, upper `UPPER` 0.4) from buildings.js.
+- Build queue (2026-09-24, instead of currency): construction.js marks `b.waiting` (stage 0, no stageT, no crew working) and `b.queuePos`
+  (1-based among unbooked waiting sites, blocks order) each update, rebuilding the units when `waiting` flips; genConstruction draws
+  the roped grass plot; the pill says "waiting", the card "Waiting for a crew" / "waiting · nth in line". Notice boards: rebuildUnitMesh
+  adds `u.notice` (res units; unit 0 of shop/work, not the ryokan), daynight.js shows it while `u.residents` is empty (res) or the block
+  has no staff; an unstaffed shop is not lit.
+- Working hours (2026-09-24): `HOURS` in world.js per kind ({ open, close, shifts }), `hoursOf(b)`, `isOpen(b, h)`, `hoursLabel(b)`;
+  sim.js `takeShift(r, u, path)` on hiring (next shift in turn, flexitime waves for one-shift work/civic, `r.commuteH` ≈ 0.1 h a
+  cell, saved; wake moved earlier), decide() uses `setOff = workStart - commuteH` for leaving and `workHours`, `free` gates long
+  outings within 1.8 h of the shift, `keepShift(r)` cuts any pre-work activity short; pickShop, tourists and daynight's shop
+  light follow `isOpen`.
 - Size tiers: `TIERS[type][cells]` in world.js is the pool a new block's kind/variant is drawn from (res variants
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
@@ -147,6 +166,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   cell via `cellLevel`); shrine, stairs (drop from the summit to the cell level beyond the edge), torii at the stairs' foot and the
   lanterns (world.js openHill, spaced up to `hillCentre.edge`, y from terrainY) all use it. world.js reserves axis cells below the summit
   (not keep/ramp) as `c.landmark = 'shrine-path'` with a flagstone sandō in rebuildDecor; `hillPlots` and `layTerraceLane` skip landmarks.
+- PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
+  writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in
+  PROD only; network-first page, cache-first files, fonts in `komachi-fonts`. Settings shows #opt-install on beforeinstallprompt.
+- Busy details: `Q.busy` (false in low): characters.js animates `owner.far` people every 4th frame, weather.js halves rain, seasons.js
+  caps the leaf pool at 100, ambient.js hides flock 1 and butterflies past 3.
 - Quality (2026-09-24, src/quality.js): `S.quality` = Q { preset auto|low|medium|high|custom, res, fps, ao, aoHalf, blur, msaa, shadows off|low|high,
   lights, showFps } (`komachi.quality`); PRESETS; `frameDue(now)` gates main.js's frame loop (cap, meter, auto resolution step-down, low
   shadow redraw); scene.js resize uses `Q.res`; look.js `setPasses(q)` toggles GTAO/tilt-shift/MSAA; point lights follow `Q.lights`.
@@ -232,6 +256,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   args) rather than describing what it should look like.
 - Never append a `// comment` in the middle of a one-line statement chain in a patch: everything after it on the line becomes comment
   (this broke smoke.mjs, weather.js and input.js). Put comments on their own line or at the true end of the line.
+- Never pass text containing backticks to `node -e "..."` in Bash: the shell runs them as commands (on 2026-09-24 that started
+  `npm run dev` and tried to run a .js file as a script). Put patch text in a file written with the Write tool.
+- Scratch render scripts on Windows: `server.kill()` on a `shell: true` spawn leaves vite running; end it with
+  `taskkill /pid <pid> /T /F` (smoke.mjs does), and poll the port instead of sleeping.
 - Multi-line code edits: write a small Node patch script with the Write tool and run it. Bash
   heredocs in this environment have mangled backslashes and quotes more than once.
 - Keep CHANGELOG.md (Unreleased section), README.md and docs/ in step with features.
@@ -275,7 +303,6 @@ Decisions already made (do not reopen without asking):
   `state.js` reads the saved seed before island.js runs. Name-tags toggle removed; tags follow/pin only.
 
 Open threads the user has not decided:
-- Pedestrians do not yet wait at traffic lights or cross there; walkers still cross at trip end.
 - Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.
 - Kenney people: watch performance past ~100 people (each is ~1,400 tris); a LOD swap to box people when far is the likely fix.
 
@@ -315,5 +342,5 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 6. ✅ Weather, gentle events, festivals, tourism (complete 2026-09-23; shipped 2026-09-22: weather spells, cloud shade, rain and umbrellas, seasons, snow; agreed next:
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. ✅ Farming and fishing (complete 2026-09-23)
-8. Mobile quality levels, PWA, Electron desktop app
+8. Mobile quality levels ✅, PWA ✅, touch dock ✅ (2026-09-24); Electron desktop app next
 9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)

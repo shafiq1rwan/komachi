@@ -86,7 +86,7 @@ export function updateWeather(dt, dh) {
     rainT += dt * (flakes ? 1.6 : 7);   // snow drifts down slowly
     const cx0 = cam.target.x, cz0 = cam.target.z, wx = W.wind.x * 4, wz = W.wind.y * 4;
     for (let i = 0; i < RAIN_N; i++) {
-      const s = rainSeed[i]; if (i / RAIN_N > rain) { rainPos.set([0, -9, 0, 0, -9, 0], i * 6); continue; }   // lighter rain shows fewer streaks
+      const s = rainSeed[i]; if (i / RAIN_N > rain * (S.quality && S.quality.busy === false ? 0.5 : 1)) { rainPos.set([0, -9, 0, 0, -9, 0], i * 6); continue; }   // lighter rain shows fewer streaks
       const y = RAIN_H - ((s.y + rainT) % RAIN_H); const x = cx0 + s.x + wx * y * 0.08, z = cz0 + s.z + wz * y * 0.08;
       const len = flakes ? 0.045 : s.len, fx = flakes ? Math.sin(rainT * 0.7 + i) * 0.08 : 0;   // flakes: short, wandering
       rainPos.set([x + fx, y, z, x + fx - wx * 0.02, y + len, z - wz * 0.02], i * 6);

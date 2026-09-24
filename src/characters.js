@@ -12,7 +12,7 @@ import { poseBikeRider } from './bikes.js';
 import { updateCharacterProp, clearCharacterProp } from './character-props.js';
 import { updateTeaDrink, aimArm } from './tea-can.js';
 
-const SCALE = 0.46;                 // the models are ~0.67 tall; a person here is about 0.31, a little under a door
+const SCALE = 0.46;                 // the models are ~0.67 tall: 0.31 here, and sim.js scales the whole person group to 0.85 (about 0.26, well under a door)
 const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); the seated underside (legs out) is then ~0.025 above the group (world.js SIT_DROP for benches; the bike saddle has its own offset)
 const ROLE = { none: 0, skin: 1, shirt: 2, pants: 3, hair: 4 };
 // work poses for builders: which clip plays while they stand and do something
@@ -186,7 +186,8 @@ function makeHelmet(top, color) {
   g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return g;
 }
 /** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
-export function updateCharacters(simDt) {
+export function updateCharacters(simDt0) {
+  const light = S.quality && S.quality.busy === false;
   for (const c of chars) {
     // Slimmer silhouettes and smaller heads suit the rich town's architectural scale.
     // Cache the original head scale so toggling looks also restores every rig correctly.
@@ -201,6 +202,8 @@ export function updateCharacters(simDt) {
     }
     const g = c.grp; if (!g.visible) continue;
     const owner = g.userData.res || g.userData.worker || g.userData.tourist;
+    let simDt = simDt0;
+    if (light && owner && owner.far) { c.lag = (c.lag || 0) + simDt0; c.lagN = (c.lagN || 0) + 1; if (c.lagN % 4) continue; simDt = c.lag; c.lag = 0; }   // far or off screen: a quarter of the updates
     const moving = owner ? !owner.paused && (owner.state === 'walking' || owner.state === 'toSite' || owner.state === 'toStation') : false;
     c.blend += ((moving ? 1 : 0) - c.blend) * Math.min(1, simDt * 8);
     const riding = !!(owner?.trip?.ride && owner.bike);
@@ -235,7 +238,7 @@ export function updateCharacters(simDt) {
       if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
       const it = c.item && c.item.userData.handItem ? c.item : null;
       if (c.fidget === 'phone' && it) {   // the phone held in front of the chest, screen tilted up to the face; the right arm reaches to it
-        it.position.set(-0.04, 0.16, 0.085); it.rotation.set(0.65, Math.PI, 0);   // chest height, turned round: the screen faces the reader, tilted up to the face c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);
+        it.position.set(-0.04, 0.16, 0.085); it.rotation.set(0.65, Math.PI, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);   // chest height, turned round: the screen faces the reader, tilted up to the face
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42));
       } else if (c.fidget === 'paper' && it) {   // the paper open in both hands
         it.position.set(0, 0.155, 0.1); it.rotation.set(0.5, Math.PI, 0);   // front page toward the reader c.grp.updateWorldMatrix(true, true);

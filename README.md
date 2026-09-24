@@ -216,12 +216,22 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   ferry.js            the car ferry, its timetable, slipway and wake
   styles.css          all UI styling
 scripts/smoke.mjs     headless browser test
+scripts/sw-template.js  the service worker the build fills in for offline play (see vite.config.js)
+public/               web app manifest and app icons, copied into the build as they are
 docs/                 art direction, architecture notes, reference image, screenshots
 ```
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) for how the pieces fit together,
 [docs/ART_DIRECTION.md](docs/ART_DIRECTION.md) for the visual rules and [docs/ROADMAP.md](docs/ROADMAP.md)
 for what is done and what comes next.
+
+## Installing as an app
+
+Komachi is an installable web app (PWA). Open the deployed build in Chrome, Edge or Safari and use the browser's
+"Install" or "Add to Home Screen" (in Chrome and Edge the Settings card also shows **Install as an app**). After the first
+visit the whole game is cached, so the installed app plays offline; saves stay in the browser's storage as before.
+The build writes the service worker (`dist/sw.js`) from `scripts/sw-template.js`, listing every file of the build; the
+manifest and icons live in `public/`. The service worker only runs in production builds, never under `npm run dev`.
 
 ## Testing
 

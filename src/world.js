@@ -72,22 +72,29 @@ function connectCanal() {
 
 const puddleSpots = []; let puddleVersion = 0;   // flat street cells that hold a puddle after rain: {x, z, s, ry}
 let roadMesh = null, decorMesh = null, lampMesh = null, wireMesh = null, coneMesh = null; const lampHeads = [], lampGlows = [];
-// traffic lights: every crossroads gets a signal; all signals share one phase, so four merged lamp meshes suffice
-const SIGNAL_PERIOD = 0.05;   // game hours (18 s at 1×), so lights keep cycling while time is fast-forwarded
+// traffic lights: every crossroads gets a signal with its own cycle, offset by its position so neighbouring crossings do not
+// switch together. Each axis runs green, amber, then a moment of all-red before the other axis goes green.
+const SIGNAL_PERIOD = 1.2;   // game hours: 12 real seconds at 1× (about 5 s of green each way), and the lights keep cycling while time is fast-forwarded
 const signalCells = new Set();
-const lampMats = { nsRed: null, nsGreen: null, ewRed: null, ewGreen: null };
-for (const k in lampMats) lampMats[k] = new THREE.MeshStandardMaterial({ color: k.endsWith('Red') ? '#e0665a' : '#6fcf9a', emissive: k.endsWith('Red') ? '#ff5a4a' : '#4fe08a', emissiveIntensity: 0, roughness: 0.5 });
+const PW = 0.16, PO = 0.5 - PW / 2;   // pavement width and its centre's offset from the road cell's centre: the kerb is 0.34 out, so each lane is 0.34 wide (decided 2026-09-24)
+const LAMP_TINT = { Red: ['#e0665a', '#ff5a4a'], Amber: ['#e8c26a', '#ffb43a'], Green: ['#6fcf9a', '#4fe08a'] };
+const signalLamps = new Map();   // crossing cell → its six lamp materials { nsRed, nsAmber, nsGreen, ewRed, ewAmber, ewGreen }
 const signalMeshes = [];
-let signalGreen = { ns: true, ew: false };
-/** green for north–south for the first half of the period, east–west for the second, a short all-red between */
-function updateSignals() {
-  const t = S.T % SIGNAL_PERIOD, half = SIGNAL_PERIOD / 2, gap = SIGNAL_PERIOD * 0.07;
-  signalGreen = { ns: t < half - gap, ew: t >= half && t < SIGNAL_PERIOD - gap };
-  lampMats.nsGreen.emissiveIntensity = signalGreen.ns ? 1.6 : 0; lampMats.nsRed.emissiveIntensity = signalGreen.ns ? 0 : 1.6;
-  lampMats.ewGreen.emissiveIntensity = signalGreen.ew ? 1.6 : 0; lampMats.ewRed.emissiveIntensity = signalGreen.ew ? 0 : 1.6;
+let signalT = -1;
+/** 'green' | 'amber' | 'red' for traffic travelling along the axis ('ns' or 'ew') through this crossing */
+function signalState(c, axis) {
+  const t = ((S.T / SIGNAL_PERIOD + hash(c.i * 7 + 3, c.j * 11 + 5)) % 1 + 1) % 1, own = axis === 'ns' ? t : (t + 0.5) % 1;
+  return own < 0.4 ? 'green' : own < 0.47 ? 'amber' : 'red';
 }
-/** is the light red for traffic travelling along the given axis ('ns' or 'ew') at this cell? */
-const signalRed = (c, axis) => signalCells.has(c) && !signalGreen[axis];
+function updateSignals() {
+  if (S.T === signalT) return; signalT = S.T;
+  for (const [c, m] of signalLamps) for (const axis of ['ns', 'ew']) {
+    const st = signalState(c, axis);
+    m[axis + 'Red'].emissiveIntensity = st === 'red' ? 1.6 : 0; m[axis + 'Amber'].emissiveIntensity = st === 'amber' ? 1.8 : 0; m[axis + 'Green'].emissiveIntensity = st === 'green' ? 1.6 : 0;
+  }
+}
+/** is the light against traffic travelling along the given axis at this cell (red or amber)? */
+const signalRed = (c, axis) => signalCells.has(c) && signalState(c, axis) !== 'green';
 const wireMat = new THREE.LineBasicMaterial({ color: '#4a4340', transparent: true, opacity: 0.8 });
 const lampGlowMat = glowMat.clone();
 
@@ -200,8 +207,8 @@ function rebuildRoads() {
   const cones = [];
   if (wireMesh) { scene.remove(wireMesh); wireMesh.geometry.dispose(); wireMesh = null; }
   const poles = [];
-  for (const m of signalMeshes) { scene.remove(m); m.geometry.dispose(); } signalMeshes.length = 0; signalCells.clear();
-  const lampGeo = { nsRed: [], nsGreen: [], ewRed: [], ewGreen: [] };
+  for (const m of signalMeshes) { scene.remove(m); m.geometry.dispose(); m.material.dispose(); } signalMeshes.length = 0; signalCells.clear(); signalLamps.clear();
+  const lampGeo = new Map();   // crossing cell → lens geometry per axis and colour
   for (const h of lampHeads) if (!h.userData.lantern) scene.remove(h); for (const g of lampGlows) if (!g.userData.lantern) scene.remove(g); lampHeads.length = 0; lampGlows.length = 0; lampHeads.push(...keepHeads); lampGlows.push(...keepGlows);
   const g = [], lg = [];
   // a light only where two through-streets cross (every arm runs straight for two cells); other crossroads get stop lines
@@ -215,7 +222,7 @@ function rebuildRoads() {
       const { di, dj, h0, h1 } = c.ramp, dh = h1 - h0, L = Math.hypot(1, dh), ang = Math.atan2(dh, 1), ry = Math.atan2(di, dj);
       const tilt = geo => { geo.rotateX(-ang); geo.rotateY(ry); return geo; };
       const a = tilt(new THREE.BoxGeometry(1, 0.08, L)); a.translate(x, h0 + dh / 2 + 0.04, z); g.push(colorize(a, PAL.asphalt));
-      for (const sgn of [-1, 1]) { const b = tilt(new THREE.BoxGeometry(0.19, 0.1, L)); b.translate(x + dj * 0.405 * sgn, h0 + dh / 2 + 0.05, z - di * 0.405 * sgn); g.push(colorize(b, PAL.sidewalk)); }
+      for (const sgn of [-1, 1]) { const b = tilt(new THREE.BoxGeometry(PW, 0.1, L)); b.translate(x + dj * PO * sgn, h0 + dh / 2 + 0.05, z - di * PO * sgn); g.push(colorize(b, PAL.sidewalk)); }
       for (const o of [-0.25, 0.25]) { const d = tilt(new THREE.BoxGeometry(0.03, 0.004, 0.22)); d.translate(x + di * o, h0 + dh / 2 + dh * o + 0.082, z + dj * o); g.push(colorize(d, PAL.cream2)); }
       if (c.dyn) {   // a slope the town built: it needs the earth wedge the island gives its own slopes
         const sh = new THREE.Shape(); sh.moveTo(-0.5, 0); sh.lineTo(0.5, 0); sh.lineTo(0.5, dh); sh.closePath();
@@ -232,7 +239,7 @@ function rebuildRoads() {
       const along = canalX !== canalZ ? (canalX ? 1 : 0) : (rd(c.i, c.j + 1) || rd(c.i, c.j - 1) ? 1 : 0);   // 0: bridge runs east–west, 1: north–south
       g.push(box(1, 0.035, 1, PAL.asphalt, x, 0.0625, z));   // a thin deck held clear of the water, so the canal runs on beneath; no centre line on a bridge
       // pavements along the deck; a railing on every side that has no street, so a bridge on a bend stays open where the road turns
-      for (const s of [-1, 1]) { const sx = along ? s * 0.405 : 0, sz = along ? 0 : s * 0.405; g.push(box(along ? 0.19 : 1, 0.055, along ? 1 : 0.19, PAL.sidewalk, x + sx, 0.0725, z + sz)); }
+      for (const s of [-1, 1]) { const sx = along ? s * PO : 0, sz = along ? 0 : s * PO; g.push(box(along ? PW : 1, 0.055, along ? 1 : PW, PAL.sidewalk, x + sx, 0.0725, z + sz)); }
       for (const [di, dj] of DIR4) {
         if (rd(c.i + di, c.j + dj)) continue;
         const rx = x + di * 0.445, rz = z + dj * 0.445;
@@ -261,8 +268,8 @@ function rebuildRoads() {
     // asphalt fills the cell (top 0.08); raised sidewalk bands (top 0.10) sit on the closed edges, with
     // corner squares so the pavement wraps around junction corners; an avenue edge has no pavement at all
     g.push(box(1, 0.08, 1, dbl.some(Boolean) ? PAL.asphalt : asp, x, 0.04, z));   // one shade across an avenue, no seam
-    for (let k = 0; k < 4; k++) { const [di, dj] = DIR4[k]; if (!open[k] && !dbl[k]) g.push(box(di ? 0.19 : 1, 0.1, di ? 1 : 0.19, PAL.sidewalk, x + di * 0.405, 0.05, z + dj * 0.405)); }
-    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const kx = sx > 0 ? 1 : 3, kz = sz > 0 ? 2 : 0; if (!dbl[kx] && !dbl[kz]) g.push(box(0.19, 0.1, 0.19, PAL.sidewalk, x + sx * 0.405, 0.05, z + sz * 0.405)); }
+    for (let k = 0; k < 4; k++) { const [di, dj] = DIR4[k]; if (!open[k] && !dbl[k]) g.push(box(di ? PW : 1, 0.1, di ? 1 : PW, PAL.sidewalk, x + di * PO, 0.05, z + dj * PO)); }
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) { const kx = sx > 0 ? 1 : 3, kz = sz > 0 ? 2 : 0; if (!dbl[kx] && !dbl[kz]) g.push(box(PW, 0.1, PW, PAL.sidewalk, x + sx * PO, 0.05, z + sz * PO)); }
     for (let k = 0; k < 4; k++) if (dbl[k]) {   // dashed centre line on the shared edge of an avenue, drawn once
       const [di, dj] = DIR4[k];
       if (di + dj > 0) for (const o of [-0.25, 0.25]) g.push(box(di ? 0.03 : 0.22, 0.004, di ? 0.22 : 0.03, PAL.cream2, x + di * 0.5 + dj * o, 0.082, z + dj * 0.5 + di * o));
@@ -306,7 +313,8 @@ function rebuildRoads() {
       const heads = [['ns', 0, x - 0.42, z + 0.42], ['ew', Math.PI / 2, x + 0.42, z - 0.42]];
       for (const [axis, ry, px, pz] of heads) {
         const parts = furnitureGeometry('traffic-light', null, { x: px, y: 0.1, z: pz, rot: ry });
-        for (const name in parts) { if (name === 'Red_Lens') lampGeo[axis + 'Red'].push(parts[name]); else if (name === 'Green_Lens') lampGeo[axis + 'Green'].push(parts[name]); else lg.push(parts[name]); }
+        let lens = lampGeo.get(c); if (!lens) lampGeo.set(c, lens = { nsRed: [], nsAmber: [], nsGreen: [], ewRed: [], ewAmber: [], ewGreen: [] });
+        for (const name in parts) { const col = name === 'Red_Lens' ? 'Red' : name === 'Amber_Lens' ? 'Amber' : name === 'Green_Lens' ? 'Green' : null; if (col) lens[axis + col].push(parts[name]); else lg.push(parts[name]); }
       }
     }
     // utility poles on the corner opposite the lamp; cables are strung between neighbours below
@@ -425,7 +433,15 @@ function rebuildRoads() {
   for (const c of cells) if (c.type === 'road' && !(c.h || 0) && !c.bridge && !c.ramp && !c.slip && hash(c.i * 3 + 1, c.j * 5 + 2) < 0.28) { const h2 = hash(c.j, c.i + 7); puddleSpots.push({ x: cx(c.i) + (h2 - 0.5) * 0.4, z: cz(c.j) + (hash(c.i + 3, c.j) - 0.5) * 0.4, s: 0.16 + h2 * 0.14, ry: h2 * 3.14 }); }
   roadMesh = mergeMesh(g, false, false); if (roadMesh) { roadMesh.castShadow = false; roadMesh.material = roadMesh.material.clone(); roadMesh.material.color.setScalar(1 - 0.28 * wetK); scene.add(roadMesh); }
   lampMesh = mergeMesh(lg, false, true); if (lampMesh) scene.add(lampMesh);
-  for (const k in lampGeo) if (lampGeo[k].length) { const m = mergeMesh(lampGeo[k], false, false); m.material = lampMats[k]; m.castShadow = false; scene.add(m); signalMeshes.push(m); }
+  for (const [c, lens] of lampGeo) {   // each crossing's lenses get their own materials, so each keeps its own cycle
+    const mats = {};
+    for (const k in lens) {
+      const [col, glow] = LAMP_TINT[k.slice(2)]; mats[k] = new THREE.MeshStandardMaterial({ color: col, emissive: glow, emissiveIntensity: 0, roughness: 0.5 });
+      if (lens[k].length) { const m = mergeMesh(lens[k], false, false); m.material = mats[k]; m.castShadow = false; scene.add(m); signalMeshes.push(m); }
+    }
+    signalLamps.set(c, mats);
+  }
+  signalT = -1; updateSignals();
   if (cones.length) { coneMesh = mergeMesh(cones, false, false); coneMesh.material = coneMat; coneMesh.receiveShadow = false; coneMesh.renderOrder = 6; scene.add(coneMesh); }
 }
 
@@ -799,6 +815,36 @@ function setWet(k) { if (Math.abs(k - wetK) < 0.01) return; wetK = k; if (roadMe
 function refreshWorld() { netCache = null; rebuildRoads(); rebuildDecor(); refreshCivicFlags(); for (const fn of worldListeners) fn(); }
 const isDecor = obj => obj === decorMesh;
 
-export { benchLights, landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalCells,
+// ── working hours: every kind of workplace keeps its own day, so the town wakes in stages (the bakery lit before dawn, the
+// factory's shift change after lunch, the ramen shop busy late) instead of everyone leaving home at once. open/close are the
+// hours customers find it open; shifts are the staff's, taken in turn as people are hired (one shift, or an early and a late one).
+const HOURS = {
+  bakery: { open: 6, close: 15, shifts: [[5.6, 15]] },
+  konbini: { open: 6, close: 22, shifts: [[5.7, 14], [14, 22]] },
+  cafe: { open: 7, close: 18, shifts: [[6.6, 14.5], [11, 18.2]] },
+  florist: { open: 9, close: 19, shifts: [[8.6, 19.1]] },
+  books: { open: 10, close: 20, shifts: [[9.6, 20.1]] },
+  ramen: { open: 11, close: 22, shifts: [[10.4, 16.5], [16, 22]] },
+  restaurant: { open: 11, close: 21.5, shifts: [[10.4, 16], [15.5, 21.7]] },
+  grocery: { open: 9, close: 20, shifts: [[8.5, 15], [14, 20.2]] },
+  supermarket: { open: 9, close: 21, shifts: [[8.5, 15], [14.5, 21.2]] },
+  arcade: { open: 10, close: 22, shifts: [[9.6, 16], [15.5, 22]] },
+  teahouse: { open: 10, close: 17, shifts: [[9.5, 17.2]] },
+  ryokan: { open: 6, close: 23.5, shifts: [[6, 14.5], [14, 22]] },
+  studio: { shifts: [[9.5, 18.5]] }, office: { shifts: [[8.8, 17.8]] }, workshop: { shifts: [[7.8, 16.8]] }, factory: { shifts: [[5.8, 14], [13.8, 22]] },
+  townhall: { shifts: [[8.3, 17.3]] }, clinic: { shifts: [[8.3, 17.5]] }, community: { shifts: [[9, 18]] }, firestation: { shifts: [[7.5, 17.5]] },
+  substation: { shifts: [[7.8, 16.3]] }, waterworks: { shifts: [[7.8, 16.3]] }, recycling: { shifts: [[7, 15.5]] }, bathhouse: { open: 15, close: 22, shifts: [[14.4, 22.1]] },
+  field: { shifts: [[5.8, 15.5]] }, greenhouse: { shifts: [[6.5, 15.5]] }, paddy: { shifts: [[5.8, 15.5]] },
+};
+const DEFAULT_HOURS = { shop: { open: 9, close: 20, shifts: [[8.6, 20.1]] }, work: { shifts: [[8.8, 17.8]] }, civic: { shifts: [[8.3, 17.3]] }, farm: { shifts: [[5.8, 15.5]] } };
+/** a block's hours: { open, close, shifts } (open/close only for places customers visit) */
+const hoursOf = b => HOURS[b.kind || b.variant] || DEFAULT_HOURS[b.type] || DEFAULT_HOURS.work;
+/** is this shop open to customers at hour h (0–24)? */
+function isOpen(b, h) { const o = hoursOf(b); return o.open === undefined || (h >= o.open && h < o.close); }
+/** "6:00–15:00" */
+const clock = h => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
+const hoursLabel = b => { const o = hoursOf(b); return o.open !== undefined ? `${clock(o.open)}–${clock(o.close)}` : o.shifts.map(([a, z]) => `${clock(Math.round(a * 2) / 2)}–${clock(Math.round(z * 2) / 2)}`).join(' · '); };
+export { HOURS, hoursOf, isOpen, hoursLabel };
+export { benchLights, landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalState, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

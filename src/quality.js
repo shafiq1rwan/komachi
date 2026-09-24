@@ -2,16 +2,17 @@
 // resolution, a frame-rate cap, the rich look's effects (ambient occlusion, miniature blur, smoothed edges), shadows and the
 // few real lights; every control can also be changed on its own, live, and the choice is remembered. "Auto" picks a preset
 // from the device and steps the resolution down if the frame rate cannot keep up. The card also holds the look toggles and
-// the camera and new-island buttons that used to sit in the top bar.
+// the camera and new-island buttons that used to sit in the top bar. "Busy details" off (low) thins the small moving things: people
+// off screen or far away animate at a quarter of the rate, half the rain and leaves, fewer birds and butterflies.
 import { S } from './state.js';
 import { scene, sun, resize, cam } from './scene.js';
 import { setLook, setPasses, sizeLook } from './look.js';
 import { clearSave } from './save.js';
 
 const PRESETS = {
-  low: { res: 1, fps: 30, ao: false, aoHalf: true, blur: false, msaa: false, shadows: 'low', lights: false },
-  medium: { res: 1.5, fps: 45, ao: true, aoHalf: true, blur: false, msaa: true, shadows: 'low', lights: true },
-  high: { res: 2, fps: 60, ao: true, aoHalf: false, blur: true, msaa: true, shadows: 'high', lights: true },
+  low: { res: 1, fps: 30, ao: false, aoHalf: true, blur: false, msaa: false, shadows: 'low', lights: false, busy: false },
+  medium: { res: 1.5, fps: 45, ao: true, aoHalf: true, blur: false, msaa: true, shadows: 'low', lights: true, busy: true },
+  high: { res: 2, fps: 60, ao: true, aoHalf: false, blur: true, msaa: true, shadows: 'high', lights: true, busy: true },
 };
 const phone = (() => { try { return matchMedia('(pointer: coarse)').matches && Math.max(screen.width, screen.height) < 1400; } catch { return false; } })();
 const autoPreset = () => (phone ? 'low' : (navigator.hardwareConcurrency || 8) <= 4 ? 'medium' : 'high');
@@ -21,6 +22,7 @@ const Q = (() => {
   const preset = saved && saved.preset || 'auto';
   return { preset, ...PRESETS[preset === 'auto' || preset === 'custom' ? autoPreset() : preset], ...(preset === 'custom' ? saved : {}), showFps: !!(saved && saved.showFps), preset };
 })();
+if (Q.busy === undefined) Q.busy = PRESETS[Q.preset === 'auto' || Q.preset === 'custom' ? autoPreset() : Q.preset].busy;
 S.quality = Q;
 const store = () => { try { localStorage.setItem('komachi.quality', JSON.stringify(Q)); } catch { /* storage unavailable */ } };
 
@@ -71,7 +73,7 @@ const seg = (name, value) => card.querySelectorAll(`[data-set="${name}"] button`
 function sync() {
   seg('preset', Q.preset); seg('fps', Q.fps); seg('shadows', Q.shadows);
   const res = card.querySelector('#opt-res'); res.value = Q.res; card.querySelector('#opt-res-v').textContent = `×${Q.res}`;
-  for (const [id, on] of [['look', S.look === 'rich'], ['ao', Q.ao], ['blur', Q.blur], ['msaa', Q.msaa], ['lights', Q.lights], ['pixel', S.pixelLook], ['showFps', Q.showFps]]) {
+  for (const [id, on] of [['look', S.look === 'rich'], ['ao', Q.ao], ['blur', Q.blur], ['msaa', Q.msaa], ['lights', Q.lights], ['busy', Q.busy], ['pixel', S.pixelLook], ['showFps', Q.showFps]]) {
     const t = card.querySelector(`[data-toggle="${id}"]`); if (t) { t.classList.toggle('on', on); t.setAttribute('aria-checked', on ? 'true' : 'false'); }
   }
   for (const id of ['ao', 'blur', 'msaa']) card.querySelector(`[data-toggle="${id}"]`).closest('.opt-row').classList.toggle('dim', S.look !== 'rich');
@@ -87,8 +89,13 @@ card.addEventListener('click', e => {
   if (t) { set(t, !Q[t]); return; }
   if (b.id === 'opt-close') { card.classList.remove('show'); document.getElementById('btn-options').classList.remove('on'); return; }
   if (b.id === 'opt-centre') { cam.target.set(0, 0, 0); cam.tView = 18; return; }
+  if (b.id === 'opt-install' && installPrompt) { installPrompt.prompt(); installPrompt.userChoice.finally(() => { installPrompt = null; b.hidden = true; }); return; }
   if (b.id === 'opt-new' && confirm('Start a new island? The current town will be lost.')) { clearSave(); location.href = location.pathname; }
 });
+// the browser offers installing the app (Chrome, Edge, Android): the Settings card shows an Install button while it may
+let installPrompt = null;
+addEventListener('beforeinstallprompt', e => { e.preventDefault(); installPrompt = e; card.querySelector('#opt-install').hidden = false; });
+addEventListener('appinstalled', () => { installPrompt = null; card.querySelector('#opt-install').hidden = true; });
 card.querySelector('#opt-res').addEventListener('input', e => set('res', +e.target.value));
 document.getElementById('btn-options').addEventListener('click', e => { const open = card.classList.toggle('show'); e.currentTarget.classList.toggle('on', open); sync(); });
 

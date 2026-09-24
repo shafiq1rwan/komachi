@@ -7,7 +7,7 @@ import { GIVEN, FAMILY, SKIN, HAIR } from './palette.js';
 import { peopleGroup, disposeGroup, cx, cz } from './scene.js';
 import { detachCharacter, holdTool } from './characters.js';
 import { blocks, STATION, DONE, terrainY } from './world.js';
-import { unitLocal, dims } from './buildings.js';
+import { unitLocal, dims, rebuildUnitMesh } from './buildings.js';
 import * as THREE from 'three';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { hourOf, routeCells, roadNeighbors, frontRoad, buildPoints, makePerson, makeCar, moveAlong, setProgressRate, onTrain, carMeshes, trafficFactor } from './sim.js';
@@ -217,6 +217,14 @@ function updateConstruction(dh, simDt, realT) {
   updateHillCrew(simDt);
   while (pending.length && S.T >= pending[0].t) pending.shift().fn();
   for (const b of activeSites()) if (b.stage !== b.deliveredStage && b.stage >= 1 && h >= 6 && h < 20) { b.deliveredStage = b.stage; sendTruck(b); }
+  // the queue: three crews work at once, so a plot no crew has reached yet is only staked and roped off, waiting its turn (in the
+  // order the plots were zoned); the card says its place in line. Once builders stand on it, it becomes a survey site.
+  let line = 0;
+  for (const b of activeSites()) {
+    const waiting = b.stage === 0 && b.stageT === 0 && !b.crew.some(k => k.state === 'working');
+    b.queuePos = waiting && !b.crewBooked && !b.crew.length ? ++line : 0;
+    if (waiting !== !!b.waiting) { b.waiting = waiting; for (const u of b.units) rebuildUnitMesh(u); }
+  }
   for (let i = workers.length - 1; i >= 0; i--) {
     const k = workers[i];
     if (!blocks.includes(k.site)) { removeWorker(k); continue; }

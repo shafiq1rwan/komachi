@@ -1,7 +1,7 @@
 // Komachi — DOM references, the inspect card and the stats strip
 import { clamp } from './utils.js';
 import { S } from './state.js';
-import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions, maxLevel } from './world.js';
+import { blocks, unitCap, DONE, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, STATION, KIND_LABEL, facingOptions, maxLevel, hoursOf, hoursLabel } from './world.js';
 import { jobUnits, residents, growthAllowed, nextTrainAt, hhName, hhLabel, moodWords } from './sim.js';
 import { chronicle } from './chronicle.js';
 import { eventInfo, eventOn } from './events.js';
@@ -51,12 +51,14 @@ function renderInspect(target, follow = null) {
   else if (target.unit) {
     const u = target.unit, b = u.block, type = b.type;
     html += `<div class="kind" style="--k:${TYPE_COLOR[type]}">${TYPE_LABEL[type]}</div><h2>${esc(b.name)}</h2>`;
-    html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < DONE ? STAGE_NAMES[b.stage] : b.renoT > 0 ? `Level ${b.level} · being extended` : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
+    html += `<div class="sub">${esc(KIND_LABEL[b.kind || u.variant] || '')} · ${b.cells.length > 1 ? `Block of ${b.cells.length} · ` : ''}${b.stage < DONE ? (b.waiting ? 'Waiting for a crew' : STAGE_NAMES[b.stage]) : b.renoT > 0 ? `Level ${b.level} · being extended` : `Level ${b.level}${b.level < 3 ? '' : ' · fully grown'}`}</div>`;
     if (b.stage < DONE) {
       const SH = stageHours(b), totalH = SH.reduce((a, c) => a + c, 0), done = SH.slice(0, b.stage).reduce((a, c) => a + c, 0) + b.stageT;
       html += `<div class="row"><span>Construction</span><b>${Math.round(100 * done / totalH)}%</b></div><div class="bar"><i style="width:${100 * done / totalH}%"></i></div>`;
       const onSite = b.crew.filter(x => x.state === 'working').length, h = (S.T % 24);
-      html += `<div class="row"><span>Crew</span><b>${onSite ? `${onSite} on site` : b.crew.length ? (h >= 18 || h < 6 ? 'gone home for the night' : 'on their way') : 'arriving by train'}</b></div>`;
+      const nth = n => n + (n % 10 === 1 && n !== 11 ? 'st' : n % 10 === 2 && n !== 12 ? 'nd' : n % 10 === 3 && n !== 13 ? 'rd' : 'th');
+      html += `<div class="row"><span>Crew</span><b>${onSite ? `${onSite} on site` : b.crew.length ? (h >= 18 || h < 6 ? 'gone home for the night' : 'on their way') : b.crewBooked ? 'on the next train' : b.queuePos ? `waiting · ${nth(b.queuePos)} in line` : 'arriving by train'}</b></div>`;
+      if (b.queuePos) html += `<div class="small">Three crews work at a time; this plot is roped off until one is free.</div>`;
       if (b.summoned) html += `<div class="empty">The new household is on its way by train.</div>`;
     } else {
       const inside = Array.from(u.inside);
@@ -77,6 +79,7 @@ function renderInspect(target, follow = null) {
       } else {
         const staffIn = u.staff.filter(r => r.at === u), visitors = inside.filter(r => !u.staff.includes(r));
         if (b.kind !== 'square') html += `<div class="row"><span>${type === 'shop' ? 'Staff' : type === 'farm' ? 'Farmers' : 'Workers'}</span><b>${u.staff.length} / ${unitCap(u)}</b></div>`;
+        if (b.kind !== 'square' && b.stage === DONE) html += `<div class="row"><span>${hoursOf(b).open !== undefined ? 'Open' : 'Hours'}</span><b>${hoursLabel(b)}</b></div>`;
         else { const ev = eventOn(); html += `<div class="row"><span>On the square</span><b>${ev && ev.block === b ? ev.spots.reduce((s, x) => s + x.taken, 0) : 0}</b></div><div class="empty">${esc(eventInfo(b))}</div>`; }
         if (type === 'farm') html += `<div class="row"><span>In the fields</span><b>${{ spring: b.kind === 'paddy' ? 'planting the rice' : 'planting', summer: 'growing', autumn: 'harvest time', winter: 'resting till spring' }[seasonNow()]}</b></div>`;
         if (b.kind !== 'square') html += `<div class="row"><span>Here now</span><b>${inside.length}</b></div>`;

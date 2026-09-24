@@ -259,11 +259,14 @@ effect through the town instead.
 
 - **Landmarks**: a fish market by the pier, rice paddies with a water wheel on the canal, a greenhouse
 
-## ⬜ Phase 8 — Mobile quality and PWA
+## Phase 8 — Mobile quality and PWA (in progress)
 
-- Quality levels (shadows, pixel look, ambient density) chosen automatically on phones
-- Installable PWA with offline play
-- Touch-first tool bar layout at phone width
+- ✅ Quality levels chosen automatically on phones (2026-09-24): the Settings card (src/quality.js) with Auto, low, medium and high
+  presets for resolution, frame cap, the rich look's effects, shadows, lamp light and busy details (fewer birds, leaves and
+  raindrops, far people animate less often); Auto steps the resolution down while frames drop
+- ✅ Installable PWA with offline play (2026-09-24): manifest and icons in public/, a service worker written by the build
+- ✅ Touch-first tool bar layout at phone width (2026-09-24): the phone dock, the building picker strip with arrows and swipe,
+  Streets and Car park under one button, compact cards
 - **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native
   window, saves in the user data folder instead of browser storage, and installers from CI
 

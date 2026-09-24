@@ -727,7 +727,13 @@ function genSquare(b, u, g, k) {
 
 function genConstruction(b, u, g, wg) {
   const st = b.stage, { w, d, H } = dims(b.type, b.level), y0 = 0.12;
-  if (st === 0) {          // surveying: stakes and string, a sign, a heap of earth
+  if (st === 0 && b.waiting) {   // waiting for a crew: the grass left as it is, staked and roped off, a small planned-site board
+    for (const [x, z] of [[-0.4, -0.36], [0.4, -0.36], [-0.4, 0.36], [0.4, 0.36]]) g.push(cyl(0.016, 0.016, 0.2, PAL.wood, x, y0 + 0.1, z, 4));
+    for (const z of [-0.36, 0.36]) g.push(box(0.8, 0.008, 0.008, PAL.roofRose, 0, y0 + 0.17, z));
+    for (const x of [-0.4, 0.4]) g.push(box(0.008, 0.008, 0.72, PAL.roofRose, x, y0 + 0.17, 0));
+    g.push(box(0.8, 0.012, 0.72, PAL.grass2, 0, y0 + 0.006, 0)); for (let k = 0; k < 5; k++) g.push(blob(0.035 + (k % 2) * 0.015, k % 2 ? PAL.bush : PAL.bush2, -0.25 + k * 0.12, y0 + 0.02, -0.12 + ((k * 7) % 3) * 0.1, 0, 0.5));
+    g.push(cyl(0.012, 0.012, 0.3, PAL.wood2, 0.3, y0 + 0.15, 0.42, 4)); g.push(box(0.16, 0.11, 0.015, PAL.cream2, 0.3, y0 + 0.3, 0.43)); g.push(box(0.12, 0.022, 0.017, PAL.roofSage, 0.3, y0 + 0.32, 0.43)); g.push(box(0.09, 0.012, 0.017, PAL.kawara2, 0.3, y0 + 0.28, 0.43));
+  } else if (st === 0) {          // surveying: stakes and string, a sign, a heap of earth
     g.push(box(0.82, 0.03, 0.72, PAL.dirt, 0, y0 + 0.015, 0));
     for (const [x, z] of [[-0.38, -0.33], [0.38, -0.33], [-0.38, 0.33], [0.38, 0.33]]) g.push(cyl(0.02, 0.02, 0.22, PAL.wood, x, y0 + 0.11, z, 4));
     g.push(box(0.8, 0.012, 0.012, PAL.cream2, 0, y0 + 0.2, 0.33)); g.push(box(0.012, 0.012, 0.7, PAL.cream2, 0.38, y0 + 0.2, 0));
@@ -908,6 +914,14 @@ function rebuildUnitMesh(u, pop = false) {
       }
       const lm = mergeMesh(lg, false); if (lm) grp.add(lm);
     }
+  }
+  // a notice board at the front corner: "for rent" on a home nobody lives in yet, "help wanted" on a shop or workplace with no
+  // staff; daynight.js shows it only while that is so (built once here, just shown and hidden)
+  u.notice = null;
+  if (b.stage >= DONE && (b.type === 'res' || ((b.type === 'shop' || b.type === 'work') && Math.max(0, b.units.indexOf(u)) === 0)) && b.kind !== 'ryokan') {
+    const band = b.type === 'res' ? PAL.roofRose : PAL.roofTeal, ng = [];
+    ng.push(cyl(0.011, 0.011, 0.26, PAL.kawara2, 0, 0.13, 0, 5)); ng.push(box(0.15, 0.1, 0.014, PAL.cream2, 0, 0.27, 0.008)); ng.push(box(0.11, 0.026, 0.016, band, 0, 0.29, 0.009)); ng.push(box(0.08, 0.01, 0.016, PAL.kawara2, 0, 0.255, 0.009)); ng.push(box(0.05, 0.01, 0.016, PAL.kawara2, -0.015, 0.24, 0.009));
+    const nm = mergeMesh(ng, false); nm.position.set(0.4, 0.12, 0.42); nm.rotation.y = -0.25; nm.visible = false; grp.add(nm); u.notice = nm;
   }
   grp.position.set(cx(u.cell.i), u.cell.h || 0, cz(u.cell.j)); grp.rotation.y = u.facing || 0;
   grp.userData.unit = u; u.mesh = grp; townGroup.add(grp);

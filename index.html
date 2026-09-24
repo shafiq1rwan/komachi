@@ -8,6 +8,13 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&display=swap" rel="stylesheet">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%2712%27 width=%2728%27 height=%2718%27 rx=%274%27 fill=%27%23f3e6cf%27/%3E%3Cpath d=%27M2 14 L16 3 L30 14 Z%27 fill=%27%23d98b7a%27/%3E%3Crect x=%2712%27 y=%2719%27 width=%278%27 height=%2711%27 rx=%272%27 fill=%27%23b98a5b%27/%3E%3C/svg%3E">
+<link rel="manifest" href="./manifest.webmanifest">
+<meta name="theme-color" content="#f3e6cf">
+<link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Komachi">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
 <link rel="stylesheet" href="./src/styles.css">
 </head>
 <body>
@@ -78,6 +85,7 @@
   <div class="opt-row"><span>Frame rate</span><div class="seg" data-set="fps"><button data-v="30">30</button><button data-v="45">45</button><button data-v="60">60</button></div></div>
   <div class="opt-row"><span>Shadows</span><div class="seg" data-set="shadows"><button data-v="off">Off</button><button data-v="low">Low</button><button data-v="high">High</button></div></div>
   <div class="opt-row"><span>Lamp light<small>real light from the bench lamps and festival</small></span><button class="switch" data-toggle="lights" role="switch"></button></div>
+  <div class="opt-row"><span>Busy details<small>off: fewer birds, leaves and raindrops; far people animate less often</small></span><button class="switch" data-toggle="busy" role="switch"></button></div>
   <div class="opt-sec">Look</div>
   <div class="opt-row"><span>Rich look<small>off: the lighter classic look</small></span><button class="switch" data-toggle="look" role="switch"></button></div>
   <div class="opt-row"><span>Soft contact shadows</span><button class="switch" data-toggle="ao" role="switch"></button></div>
@@ -86,7 +94,7 @@
   <div class="opt-row"><span>Pixel look<small>half resolution, chunky</small></span><button class="switch" data-toggle="pixel" role="switch"></button></div>
   <div class="opt-row"><span>Show frame rate</span><button class="switch" data-toggle="showFps" role="switch"></button></div>
   <div class="opt-sec">Island</div>
-  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-rotate-left"></i> Start a new island</button></div>
+  <div class="opt-btns"><button class="cta ghost" id="opt-centre"><i class="fa-solid fa-crosshairs"></i> Centre the camera</button><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button><button class="cta ghost warn" id="opt-new"><i class="fa-solid fa-rotate-left"></i> Start a new island</button></div>
 </div>
 <div id="fps" hidden></div>
 <div id="toast"></div>

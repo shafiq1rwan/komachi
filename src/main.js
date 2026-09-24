@@ -3,7 +3,7 @@ import * as THREE from 'three';
 import { lerp, hash } from './utils.js';
 import { S } from './state.js';
 import { scene, camera, cam, cx, cz, N, HALF, resize, updateCamera } from './scene.js';
-import { puddleSpots, puddleVersionOf, refreshCivicFlags, placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, onHillOpened, lanterns, lightLanterns, updateLanterns, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots } from './world.js';
+import { puddleSpots, puddleVersionOf, refreshCivicFlags, placeCarPark, carParks, placeable, cell, blocks, placeBlock, placeStation, STATION, unitCap, wireMat, DONE, rebuildDecor, rebuildRoads, cells, terrainY, openHill, hill, onHillOpened, lanterns, lightLanterns, updateLanterns, updateSignals, signalCells, parkCells, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, TIERS, tierLabel, chooseKind, hillPlots, hoursOf, isOpen, signalState } from './world.js';
 import { updateConstruction, workers, trucks, sendHillCrew, holdHillCrew, hillCrew } from './construction.js';
 import { placeLandmarks, updateLandmarks, landmarks, landmarkRoads } from './landmarks.js';
 import { updateEvents, onEventStart, eventOn, festivalDay } from './events.js';
@@ -18,6 +18,8 @@ import { updateSea } from './sea.js';
 import { initFerry, updateFerry, ferry } from './ferry.js';
 import { hillCentre, pierFrame, canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
+// the installed app plays offline: the service worker the build writes (vite.config.js) caches the whole game; not in dev
+if (import.meta.env.PROD && 'serviceWorker' in navigator && location.protocol.startsWith('http')) addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(() => { /* offline play unavailable */ }));
 import { setSwayTime } from './geometry.js';
 import { chronicle } from './chronicle.js';
 import { W, setWeather, updateWeather, setPuddleSource } from './weather.js';
@@ -61,7 +63,7 @@ onHillOpened(() => {
     at, view: Math.min(12, Math.max(5, span * 2.6 + 2)), onLook: () => { setFollow(null); lightLanterns(); holdHillCrew(0.8); } });
 });
 function onSeasonTurn() { rebuildDecor(); for (const b of blocks) if (b.type === 'station' || b.type === 'farm') for (const u of b.units) rebuildUnitMesh(u); }   // canopies, the station's planters and the fields turn
-import { routeCells, HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
+import { routeVaried, routeCells, HPS, dayOf, residents, updateResidents, updateWanderers, updateBlocks, removeBlock, makeCar, parkVehicle, moveAlong, carMeshes, wanderers, hillMarket } from './sim.js';
 import { envUpdate } from './daynight.js';
 import { updateAmbient, flocks } from './ambient.js';
 import { daylight } from './sim.js';
@@ -103,8 +105,8 @@ function frame(now) {
 
 // ───────────────────────────── dev hooks & demo town (?demo) ─────────────────────────────
 /** Step the simulation forward by a number of game hours without rendering. */
-function fastForward(hours) {
-  const stepH = 0.04, stepS = stepH / HPS;
+function fastForward(hours, stepH = 0.04) {   // stepH: game hours per step (tests of motion use 1/60 s, i.e. 0.00167)
+  const stepS = stepH / HPS;
   for (let h = 0; h < hours; h += stepH) { S.T += stepH; W.winter = seasonOf() === 'winter'; updateWeather(stepS, stepH); updateSeasons(0, onSeasonTurn); updateBlocks(stepH); updateResidents(stepS, realT += stepS); updateWanderers(stepS); updateConstruction(stepH, stepS, realT); updateFerry(stepH, stepS); updateTourists(stepS, realT); updateEvents(stepS, realT, 1 - daylight()); updateFishing(); }
 }
 function demoTown() {
@@ -147,7 +149,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
+  hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, quality: S.quality, pickerForTool, currentPick, hillCentre, hillCrew, lanterns, landmarks, landmarkRoads, catchToday, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
