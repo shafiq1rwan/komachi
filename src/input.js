@@ -8,6 +8,7 @@ import { cell, blocks, placeBlock, isDecor, DONE, stageHours, placeable, STATION
 import { removeBlock, removeCarPark, residents, daylight } from './sim.js';
 import { workers } from './construction.js';
 import { tourists } from './tourists.js';
+import { pickerForTool, currentPick, pickLabel } from './picker.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
 
@@ -17,7 +18,7 @@ const raycaster = new THREE.Raycaster(); const groundPlane = new THREE.Plane(new
 const keys = new Set();
 const touches = new Map();   // pointerId -> {x, y}
 let gesture = null;          // {dist, ang, view, yaw} while two fingers are down
-function setTool(t) { tool = t; ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
+function setTool(t) { tool = t; pickerForTool(t); ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === t)); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', x === b)); }));
 // the inspect card's follow button
@@ -54,7 +55,8 @@ function groundCell() {
 }
 function setNdc(e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); }
 function selectable(c, sel) {
-  if (!placeable(c, sel) || sel.includes(c) || sel.length >= (tool === 'park' ? 2 : 3)) return false;
+  const pk = currentPick(), max = tool === 'park' ? 2 : pk ? Math.max(...pk.sizes) : 3;   // a picked kind caps the drag at its largest size
+  if (!placeable(c, sel) || sel.includes(c) || sel.length >= max) return false;
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);
 }
 canvas.addEventListener('pointerdown', e => {
@@ -115,7 +117,9 @@ function endPointer(e) {
   }
   if (ptr.road) { const { a, b } = ptr.road; ptr.road = null; const laid = drawRoad(a, b); if (!laid) toast('Streets run over land on one level, or straight across the canal'); else if (laid.length === 1) toast('Drag to draw a longer street'); else if (!joinedToTown(laid[0])) toast('Join this street to the station ring so people can reach it'); return; }
   if (ptr.sel && tool === 'park') { const sel = ptr.sel; ptr.sel = null; if (sel.length && !sel.every(c => placeable(c, sel))) toast('A car park needs a street on one side'); else if (sel.length) { placeCarPark(sel); toast(sel.length > 1 ? 'A car park with eight bays. Cars from homes and workplaces nearby will use it' : 'A small car park with four bays. Cars from homes and workplaces nearby will use it'); } return; }
-  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel); if (blocks.length === 1) toast('Your first block. Draw more streets with the Streets tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
+  const pk = currentPick();
+  if (ptr.sel && pk && ptr.sel.length && !pk.sizes.includes(ptr.sel.length)) { const n = pk.sizes; toast(`${pickLabel()} needs ${n.length > 1 ? n[0] + ' or ' + n[n.length - 1] : n[0]} cell${n[n.length - 1] > 1 ? 's' : ''}: drag along the street`); ptr.sel = null; return; }
+  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel, pk ? (tool === 'res' ? { variant: pk.kind, picked: true } : { kind: pk.kind, picked: true }) : null); pickerForTool(tool); if (blocks.length === 1) toast('Your first block. Draw more streets with the Streets tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -141,7 +145,7 @@ const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
   const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm');
-  if (zoneDrag) { const t = tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
+  if (zoneDrag) { const pk = currentPick(), t = pk && tool !== 'park' ? `${pickLabel()} · ${ptr.sel.length} of ${pk.sizes.length > 1 ? pk.sizes[0] + '–' + pk.sizes[pk.sizes.length - 1] : pk.sizes[0]} cell${Math.max(...pk.sizes) > 1 ? 's' : ''}` : tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm';
   if (zone && !ptr.panning) {

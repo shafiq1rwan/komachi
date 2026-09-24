@@ -8,7 +8,7 @@ import { chronicle, restoreChronicle } from './chronicle.js';
 import { weatherSnapshot, restoreWeather } from './weather.js';
 
 export const SAVE_KEY = 'komachi.save';
-const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor'];
+const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor', 'picked'];
 const RES_KEYS = ['id', 'name', 'wake', 'workStart', 'workEnd', 'hasCar', 'hasBike', 'commuter', 'homemaker', 'lastWorkDay', 'lunched', 'skin', 'shirt', 'pants', 'hair', 'hat', 'hatColor', 'bag', 'bagColor', 'carColor', 'carKind', 'arrivedDay', 'needs', 'carOrdered'];
 const pickKeys = (o, keys) => Object.fromEntries(keys.filter(k => o[k] !== undefined).map(k => [k, o[k]]));
 

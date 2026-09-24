@@ -242,19 +242,24 @@ function genApartment(b, u, g, wg) {
 }
 
 // ── shops ──
+const OWN_FRONTS = new Set(['bakery', 'florist', 'books', 'ramen']);   // kinds that draw their whole storefront, so each reads from across the street
 function genShop(b, u, g, wg) {
   if (b.kind === 'supermarket') return genSupermarket(b, u, g, wg);
   if (b.kind === 'arcade') return genArcade(b, u, g, wg);
   if (b.kind === 'teahouse') return genTeahouse(b, u, g, wg);
   if (b.kind === 'ryokan') return genRyokan(b, u, g, wg);
   const L = b.level, { w, d, H } = dims('shop', L), y0 = 0.12, [a1, a2] = b.awning, kind = b.kind || 'cafe';
-  const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : -0.24;
+  const doorX = kind === 'konbini' ? 0.22 : kind === 'grocery' ? -0.2 : kind === 'books' ? 0 : -0.24, own = OWN_FRONTS.has(kind);   // own: a kind with a storefront of its own
+  const wall = kind === 'bakery' ? (sub(u.seed, 9) > 0.5 ? '#f2e1c2' : PAL.cream2) : kind === 'florist' ? (sub(u.seed, 9) > 0.5 ? '#eef0e2' : PAL.mint) : b.wall;
   u.door = { x: doorX, z: d / 2 + 0.02 };
-  g.push(box(w, H, d, b.wall, 0, y0 + H / 2, 0));
+  if (kind === 'florist') {   // the ground floor set back 0.12 under the storey above, the side walls carried forward
+    g.push(box(w, 0.5, d - 0.12, wall, 0, y0 + 0.25, -0.06)); g.push(box(w, H - 0.5, d, wall, 0, y0 + 0.5 + (H - 0.5) / 2, 0));
+    for (const s of [-1, 1]) g.push(box(0.05, 0.5, 0.12, wall, s * (w / 2 - 0.025), y0 + 0.25, d / 2 - 0.06));
+  } else g.push(box(w, H, d, wall, 0, y0 + H / 2, 0));
   const finish = u.finish = sub(u.seed, 2) < 0.34 ? 'timber' : sub(u.seed, 2) < 0.67 ? 'tile' : 'render', awnShape = b.popular ? 0.5 : sub(u.seed, 3);   // a busy shop has put up a new striped awning
   if (b.popular) { const sx = doorX > 0 ? -0.3 : 0.3; for (let q = 0; q < 3; q++) g.push(box(0.14, 0.09, 0.12, q === 2 ? PAL.wood : K.frame, sx + (q === 2 ? 0 : (q - 0.5) * 0.15), y0 + 0.045 + (q === 2 ? 0.09 : 0), d / 2 + 0.14)); for (let q = 0; q < 4; q++) g.push(blob(0.03, [PAL.roofPeach, K.red, PAL.treeGreen, PAL.cream2][q], sx - 0.05 + q * 0.035, y0 + 0.16, d / 2 + 0.14, 0, 0.9)); }   // and stock in crates by the door
   if (b.popular) for (const x of [-0.44, 0.44]) { g.push(cyl(0.012, 0.012, 0.6, K.metal2, x, y0 + 0.3, 0.46, 5)); g.push(box(0.09, 0.42, 0.012, x < 0 ? a1 : K.red, x + (x < 0 ? 0.05 : -0.05), y0 + 0.4, 0.46)); g.push(box(0.11, 0.012, 0.012, K.metal2, x + (x < 0 ? 0.05 : -0.05), y0 + 0.6, 0.46)); for (let q = 0; q < 3; q++) g.push(box(0.045, 0.045, 0.006, PAL.cream2, x + (x < 0 ? 0.05 : -0.05), y0 + 0.52 - q * 0.1, 0.467)); }   // nobori banners: a busy shop
-  if (finish === 'timber') slatWall(g, w, d, y0 + 0.08, y0 + H - 0.06, sub(u.seed, 4) > 0.5 ? 'x' : '-x', PAL.wood, 0.085);
+  if (own) { /* the four storefronts below bring their own */ } else if (finish === 'timber') slatWall(g, w, d, y0 + 0.08, y0 + H - 0.06, sub(u.seed, 4) > 0.5 ? 'x' : '-x', PAL.wood, 0.085);
   else if (finish === 'tile') tileBand(g, w, d, y0, 0.22, b.roof);
   const awn = (x, y, z, ww, c1, c2) => awnShape < 0.35 ? plainAwning(g, x, y, z, ww, c1) : awnShape < 0.7 ? stripedAwning(g, x, y, z, ww, c1, c2) : boxCanopy(g, x, y, z, ww, c1);   // cloth, striped cloth or a box canopy
   // three silhouettes by the block's roof style, so a shop street is not a row of identical boxes
@@ -279,33 +284,80 @@ function genShop(b, u, g, wg) {
     g.push(box(0.16, 0.22, 0.14, PAL.cream2, w / 2 + 0.1, y0 + 0.11, 0.1)); g.push(box(0.16, 0.02, 0.14, PAL.roofBlue, w / 2 + 0.1, y0 + 0.23, 0.1));
     bikeRack(g, -0.28, 0.44, 3, 0, u.seed);
   } else {
-    windowPane(g, wg, 0.1, y0 + 0.31, d / 2 + 0.005, 0.4, 0.3);
-    door(g, doorX, y0, d / 2 + 0.005, 0.16, 0.34, kind === 'ramen' ? K.red : PAL.wood);
-    if (kind === 'ramen') {
-      plainAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, K.chalk);
-      noren(g, doorX, y0 + 0.36, d / 2 + 0.03, 0.2, PAL.indigo, PAL.cream2);                  // split cloth over the door
-      chochin(g, wg, 0.08, y0 + 0.41, d / 2 + 0.27, 3);                                         // a row of red lanterns under the awning
+    if (!own) { windowPane(g, wg, 0.1, y0 + 0.31, d / 2 + 0.005, 0.4, 0.3); door(g, doorX, y0, d / 2 + 0.005, 0.16, 0.34, PAL.wood); }
+    if (kind === 'ramen') {   // a ramen-ya: dark timber front under a tiled hisashi, a red noren over the sliding door, big red lanterns, a ticket machine, an exhaust stack
+      const dark = '#6b4a38';
+      for (let t = -w / 2 + 0.03; t < w / 2 - 0.02; t += 0.05) g.push(box(0.024, 0.5, 0.014, dark, t, y0 + 0.25, d / 2 + 0.008));
+      latticeWindow(g, wg, 0.1, y0 + 0.3, d / 2 + 0.016, 0.3, 0.18, 0, '#4a3a30');
+      g.push(box(0.36, 0.025, 0.08, PAL.wood2, 0.1, y0 + 0.2, d / 2 + 0.05));   // the counter's sill under the window
+      door(g, doorX, y0, d / 2 + 0.016, 0.18, 0.36, '#4a3a30'); wg.push(box(0.12, 0.2, 0.012, PAL.window, doorX, y0 + 0.2, d / 2 + 0.04));
+      hisashi(g, w, d, y0 + 0.5, PAL.kawara2);
+      noren(g, doorX, y0 + 0.4, d / 2 + 0.05, 0.22, K.red, PAL.cream2);
+      for (const x of [-0.03, 0.31]) {   // two big red lanterns hung from the eave
+        g.push(box(0.006, 0.06, 0.006, '#3a302a', x, y0 + 0.44, d / 2 + 0.13)); g.push(cyl(0.035, 0.035, 0.015, '#3a302a', x, y0 + 0.41, d / 2 + 0.13, 8));
+        g.push(cyl(0.055, 0.055, 0.11, K.red, x, y0 + 0.345, d / 2 + 0.13, 10)); wg.push(cyl(0.057, 0.057, 0.035, PAL.window, x, y0 + 0.345, d / 2 + 0.13, 10)); g.push(cyl(0.035, 0.035, 0.015, '#3a302a', x, y0 + 0.285, d / 2 + 0.13, 8));
+      }
+      g.push(box(0.1, 0.22, 0.08, '#e9e4d8', 0.34, y0 + 0.11, d / 2 + 0.07)); wg.push(box(0.07, 0.07, 0.01, PAL.window, 0.34, y0 + 0.17, d / 2 + 0.112));   // the ticket machine
+      for (let k = 0; k < 3; k++) g.push(box(0.018, 0.018, 0.01, [K.red, PAL.roofBlue, PAL.roofSage][k], 0.315 + k * 0.025, y0 + 0.11, d / 2 + 0.112));
+      g.push(box(0.2, 0.02, 0.07, PAL.wood2, 0.05, y0 + 0.11, d / 2 + 0.12)); for (const x of [-0.03, 0.13]) g.push(box(0.02, 0.1, 0.05, PAL.wood2, x, y0 + 0.05, d / 2 + 0.12));   // a bench for the queue
+      g.push(box(w * 0.74, 0.1, 0.03, K.red, 0, y0 + 0.58, d / 2 + 0.02)); for (let k = 0; k < 3; k++) g.push(box(0.07, 0.06, 0.01, PAL.cream2, -0.1 + k * 0.1, y0 + 0.58, d / 2 + 0.037));
+      wg.push(box(w * 0.6, 0.02, 0.012, PAL.window, 0, y0 + 0.52, d / 2 + 0.036));
+      g.push(box(0.07, H + 0.2, 0.07, K.metal2, w / 2 + 0.035, y0 + 0.2 + (H + 0.2) / 2, -0.24)); g.push(box(0.13, 0.03, 0.13, K.metal, w / 2 + 0.035, y0 + H + 0.42, -0.24));   // the kitchen's exhaust stack
+      for (let k = 0; k < 3; k++) g.push(blob(0.045 + k * 0.012, '#f4f1ea', w / 2 + 0.035 - k * 0.03, y0 + H + 0.5 + k * 0.08, -0.24 + k * 0.02, 0, 0.7));   // and its steam
       tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, K.red, PAL.cream2, true);
-      for (const x of [0.28, 0.4]) g.push(cyl(0.04, 0.035, 0.12, PAL.wood2, x, y0 + 0.06, 0.42, 6));
-      signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, K.red, PAL.cream2, true);
     } else if (kind === 'grocery') {
       awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofSage, PAL.cream2);
       for (let k = 0; k < 3; k++) { const x = 0.06 + k * 0.15; g.push(box(0.13, 0.08, 0.12, PAL.wood, x, y0 + 0.04, 0.42)); for (let m = 0; m < 3; m++) g.push(blob(0.03, [PAL.roofPeach, '#8fae78', K.red][(k + m) % 3], x - 0.04 + m * 0.04, y0 + 0.1, 0.42 + (m % 2) * 0.03, 0, 1)); }
       signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.44, PAL.cream2, PAL.roofSage); tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.roofSage, PAL.cream2, false, 0.36);
-    } else if (kind === 'florist') {
-      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.pink, PAL.cream2);
-      for (let k = 0; k < 3; k++) { const x = 0.08 + k * 0.14; g.push(cyl(0.05, 0.04, 0.12, K.metal2, x, y0 + 0.06, 0.42, 7)); g.push(blob(0.06, [PAL.flower, PAL.roofPeach, PAL.lilac][k], x, y0 + 0.16, 0.42, 0, 0.9)); }
-      g.push(box(0.03, 0.03, 0.03, K.rail, -0.3, y0 + 0.75, d / 2 + 0.08)); g.push(blob(0.07, PAL.bush2, -0.3, y0 + 0.68, d / 2 + 0.08, 0, 0.9));
-      signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.cream2, PAL.pink);
-    } else if (kind === 'bakery') {
-      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofRose, PAL.cream2);
-      signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.roofPeach, PAL.cream2); g.push(blob(0.045, '#d9a066', 0.13, y0 + H - 0.14, d / 2 + 0.05, 0, 0.7));
-      g.push(box(0.14, 0.1, 0.12, PAL.wood, 0.36, y0 + 0.05, 0.42)); g.push(blob(0.04, '#d9a066', 0.36, y0 + 0.12, 0.42, 0, 0.7));
-    } else if (kind === 'books') {
-      awn(0, y0 + 0.55, d / 2 + 0.02, w, PAL.roofBlue, PAL.cream2);
-      for (let k = 0; k < 5; k++) g.push(box(0.05, 0.12 + (k % 2) * 0.03, 0.03, [PAL.roofRose, PAL.roofBlue, PAL.roofSage, PAL.roofPeach, PAL.lilac][k], -0.02 + k * 0.06, y0 + 0.22, d / 2 + 0.0));
-      signBoard(g, wg, 0, y0 + H - 0.14, d / 2 + 0.02, 0.4, PAL.cream2, PAL.roofBlue); tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, PAL.roofBlue, PAL.cream2, false, 0.36);
-      g.push(box(0.16, 0.12, 0.14, PAL.wood, 0.38, y0 + 0.06, 0.42)); for (let k = 0; k < 3; k++) g.push(box(0.14, 0.02, 0.1, [PAL.roofRose, PAL.cream2, PAL.roofBlue][k], 0.38, y0 + 0.13 + k * 0.02, 0.42));
+    } else if (kind === 'florist') {   // a hanaya: the ground floor set back under a deep green awning, tiers of buckets spilling out, hanging baskets, a vine up the corner
+      const green = '#6f8f5e', blooms = [PAL.flower, PAL.roofPeach, PAL.lilac, '#f2d27a', PAL.pink, '#e98f86', PAL.cream2], z0 = d / 2 - 0.12, f = Math.floor(u.seed * 7);
+      windowPane(g, wg, 0.1, y0 + 0.3, z0 + 0.005, 0.4, 0.28); door(g, doorX, y0, z0 + 0.005, 0.16, 0.34, green);
+      for (let t = 0; t < 3; t++) {   // a stepped stand of buckets, tallest at the back
+        const z = z0 + 0.05 + t * 0.065, h = 0.17 - t * 0.055; g.push(box(0.46, h, 0.06, PAL.wood, 0.1, y0 + h / 2, z));
+        for (let k = 0; k < 5; k++) { const x = -0.08 + k * 0.09; g.push(cyl(0.025, 0.02, 0.05, K.metal2, x, y0 + h + 0.025, z, 6)); g.push(blob(0.036, blooms[(k + t * 2 + f) % blooms.length], x, y0 + h + 0.07, z, 0, 0.85)); }
+      }
+      for (let k = 0; k < 3; k++) { const x = 0.3 + (k % 2) * 0.1, z = 0.43 + (k === 2 ? 0.04 : 0); g.push(cyl(0.035, 0.03, 0.08, K.metal2, x - (k === 2 ? 0.05 : 0), y0 + 0.04, z, 7)); g.push(blob(0.05, blooms[(k * 3 + f + 1) % blooms.length], x - (k === 2 ? 0.05 : 0), y0 + 0.12, z, 0, 0.9)); }
+      const aw = new THREE.BoxGeometry(w + 0.06, 0.025, 0.26); aw.rotateX(0.26); aw.translate(0, y0 + 0.5, d / 2 + 0.09); g.push(colorize(aw, green));
+      g.push(box(w + 0.06, 0.05, 0.012, PAL.cream2, 0, y0 + 0.44, d / 2 + 0.22));   // the awning's valance
+      for (const x of [-0.05, 0.25]) { g.push(box(0.004, 0.07, 0.004, K.rail, x, y0 + 0.41, d / 2 + 0.12)); g.push(blob(0.045, PAL.bush2, x, y0 + 0.36, d / 2 + 0.12, 0, 0.8)); g.push(blob(0.022, blooms[(f + (x > 0 ? 2 : 4)) % blooms.length], x + 0.025, y0 + 0.345, d / 2 + 0.15, 0, 1)); }
+      for (let k = 0; k < Math.floor((H - 0.1) / 0.1); k++) g.push(blob(0.05, k % 2 ? PAL.bush : PAL.bush2, -w / 2 - 0.005, y0 + 0.08 + k * 0.1, d / 2 - 0.03 - (k % 3) * 0.04, 0, 0.9));   // a vine up the corner
+      g.push(box(0.38, 0.08, 0.03, PAL.cream2, 0.06, y0 + 0.575, d / 2 + 0.02)); g.push(blob(0.035, PAL.pink, -0.08, y0 + 0.575, d / 2 + 0.04, 0, 0.8)); g.push(box(0.2, 0.03, 0.01, green, 0.08, y0 + 0.575, d / 2 + 0.037));
+      if (L >= 2) for (const x of [-0.18, 0.18]) { g.push(box(0.2, 0.04, 0.05, PAL.wood, x, y0 + 0.8, d / 2 + 0.03)); for (let k = 0; k < 3; k++) g.push(blob(0.03, blooms[(k + f) % blooms.length], x - 0.06 + k * 0.06, y0 + 0.84, d / 2 + 0.03, 0, 0.9)); }
+    } else if (kind === 'bakery') {   // a pan-ya: brick skirting, a bow window of loaves under a scalloped canopy, a glazed door, the oven's chimney
+      const brick = '#b9765a', crust = ['#d9a066', '#c98a4e', '#e6b778'], bx = 0.1, bw = 0.42, stripe = sub(u.seed, 8) > 0.5 ? '#8a5a3c' : PAL.roofRose;
+      g.push(box(w + 0.01, 0.13, 0.03, brick, 0, y0 + 0.065, d / 2 + 0.01));
+      for (let k = 0; k < 2; k++) g.push(box(w + 0.012, 0.006, 0.032, '#a5654b', 0, y0 + 0.045 + k * 0.045, d / 2 + 0.011));
+      g.push(box(bw + 0.08, 0.05, 0.15, PAL.wood2, bx, y0 + 0.155, d / 2 + 0.07));   // the bay's sill
+      wg.push(box(bw, 0.24, 0.1, PAL.window, bx, y0 + 0.3, d / 2 + 0.05));
+      g.push(box(bw + 0.05, 0.03, 0.13, PAL.wood2, bx, y0 + 0.435, d / 2 + 0.065)); for (const x of [-bw / 2, -bw / 6, bw / 6, bw / 2]) g.push(box(0.02, 0.24, 0.02, PAL.wood2, bx + x, y0 + 0.3, d / 2 + 0.1));
+      for (let k = 0; k < 5; k++) g.push(blob(0.03, crust[k % 3], bx - 0.17 + k * 0.085, y0 + 0.2, d / 2 + 0.125, 0, 0.6));   // loaves on the sill
+      for (let k = 0; k < 6; k++) { const s = new THREE.BoxGeometry((bw + 0.12) / 6, 0.02, 0.17); s.rotateX(0.35); s.translate(bx - (bw + 0.12) / 2 + (k + 0.5) * (bw + 0.12) / 6, y0 + 0.49, d / 2 + 0.1); g.push(colorize(s, k % 2 ? PAL.cream2 : stripe)); }
+      for (let k = 0; k < 6; k++) { const c = new THREE.CylinderGeometry(0.035, 0.035, 0.01, 10, 1, false, 0, Math.PI); c.rotateX(Math.PI / 2); c.rotateZ(Math.PI); c.translate(bx - (bw + 0.12) / 2 + (k + 0.5) * (bw + 0.12) / 6, y0 + 0.455, d / 2 + 0.18); g.push(colorize(c, k % 2 ? PAL.cream2 : stripe)); }   // the scalloped edge
+      door(g, doorX, y0, d / 2 + 0.005, 0.16, 0.34, PAL.wood2, stripe); wg.push(box(0.1, 0.16, 0.012, PAL.window, doorX, y0 + 0.24, d / 2 + 0.03));
+      g.push(box(0.46, 0.1, 0.03, PAL.cream2, 0.02, y0 + 0.565, d / 2 + 0.02)); g.push(box(0.26, 0.035, 0.01, '#8a5a3c', 0.06, y0 + 0.565, d / 2 + 0.037));
+      for (let k = 0; k < 3; k++) g.push(blob(0.022, crust[k], -0.16 + k * 0.022, y0 + 0.565 + (k === 1 ? 0.012 : 0), d / 2 + 0.04, 0, 0.7));   // a croissant on the sign
+      g.push(box(0.11, 0.44, 0.11, brick, 0.28, y0 + H + 0.1, -0.2)); g.push(box(0.14, 0.03, 0.14, '#8a5a44', 0.28, y0 + H + 0.33, -0.2));   // the oven's chimney
+      g.push(blob(0.04, '#f4f1ea', 0.28, y0 + H + 0.4, -0.2, 0, 0.7));
+      addNeighbourhood(g, 'a-board', -0.42, y0, 0.43, 0.3, { scale: 0.8 });
+    } else if (kind === 'books') {   // a honya: a painted shopfront with pilasters and a deep fascia, windows of spines either side of a centre door, book carts outside
+      const paint = sub(u.seed, 8) > 0.5 ? '#4f6a64' : '#4e5d78', gold = '#e8c877', spines = [PAL.roofRose, PAL.roofBlue, PAL.roofSage, PAL.roofPeach, PAL.lilac, PAL.cream2, '#8a5a3c', PAL.indigo];
+      for (const s of [-1, 1]) g.push(box(0.05, 0.5, 0.04, paint, s * (w / 2 - 0.025), y0 + 0.25, d / 2 + 0.02));
+      g.push(box(w + 0.02, 0.1, 0.05, paint, 0, y0 + 0.54, d / 2 + 0.025)); g.push(box(0.4, 0.035, 0.01, gold, 0, y0 + 0.54, d / 2 + 0.052));
+      g.push(box(w + 0.02, 0.05, 0.04, paint, 0, y0 + 0.025, d / 2 + 0.02));
+      for (const s of [-1, 1]) {
+        const x = s * 0.22; wg.push(box(0.24, 0.36, 0.02, PAL.window, x, y0 + 0.29, d / 2 + 0.01));
+        for (let row = 0; row < 3; row++) {   // shelves of spines behind the glass
+          const yy = y0 + 0.13 + row * 0.11; g.push(box(0.24, 0.012, 0.04, PAL.wood2, x, yy, d / 2 + 0.03));
+          for (let t = -0.115, k = 0; t < 0.1; k++) { const bw = 0.016 + ((k * 7 + row * 3 + (s > 0 ? 5 : 0)) % 3) * 0.006, bh = 0.05 + ((k * 5 + row) % 3) * 0.012; g.push(box(bw, bh, 0.03, spines[(k + row * 3 + (s > 0 ? 4 : 0)) % spines.length], x + t + bw / 2, yy + 0.006 + bh / 2, d / 2 + 0.03)); t += bw + 0.004; }
+        }
+        g.push(box(0.015, 0.36, 0.03, paint, x, y0 + 0.29, d / 2 + 0.035));
+      }
+      door(g, 0, y0, d / 2 + 0.005, 0.16, 0.4, paint); wg.push(box(0.1, 0.2, 0.012, PAL.window, 0, y0 + 0.26, d / 2 + 0.03));
+      for (const x of [-0.29, 0.29]) {   // bargain carts
+        g.push(box(0.19, 0.06, 0.1, PAL.wood, x, y0 + 0.13, 0.44)); for (const sx of [-0.08, 0.08]) g.push(box(0.015, 0.1, 0.015, PAL.wood2, x + sx, y0 + 0.05, 0.44));
+        for (let k = 0; k < 5; k++) g.push(box(0.032, 0.022, 0.075, spines[(k + (x > 0 ? 3 : 0)) % spines.length], x - 0.07 + k * 0.035, y0 + 0.171, 0.44));
+      }
+      tateKanban(g, wg, -w / 2 - 0.07, y0 + 0.55, d / 2 + 0.06, paint, gold, false, 0.36);
     } else if (kind === 'restaurant') {   // a shokudō: plain awning, noren, a row of lanterns, a menu stand and a lit sign
       plainAwning(g, 0, y0 + 0.55, d / 2 + 0.02, w, a1);
       noren(g, doorX, y0 + 0.36, d / 2 + 0.03, 0.22, sub(u.seed, 4) > 0.5 ? PAL.indigo : K.red, PAL.cream2);
@@ -334,8 +386,8 @@ function genShop(b, u, g, wg) {
   }
   if (L >= 2) { g.push(cyl(0.07, 0.07, 0.14, K.metal2, -0.25, y0 + H + 0.2, -0.18, 8)); for (const [lx, lz] of [[-0.3, -0.23], [-0.2, -0.13]]) g.push(box(0.02, 0.1, 0.02, K.metal, lx, y0 + H + 0.08, lz)); }   // rooftop water tank
   if (L >= 3) { g.push(cyl(0.02, 0.02, 0.36, PAL.lamp, 0.18, y0 + H + 0.28, -0.1, 5)); g.push(cyl(0.001, 0.2, 0.09, a1, 0.18, y0 + H + 0.45, -0.1, 8)); g.push(box(0.16, 0.03, 0.16, PAL.wood, 0.18, y0 + H + 0.2, -0.1)); }
-  if (u.seed > 0.55 && kind !== 'konbini') { g.push(box(0.14, 0.32, 0.12, u.seed > 0.75 ? PAL.pink : PAL.mint, w / 2 + 0.09, y0 + 0.16, -0.12)); wg.push(box(0.09, 0.14, 0.02, PAL.window, w / 2 + 0.09, y0 + 0.22, -0.055)); }
-  if (kind !== 'konbini' && kind !== 'ramen' && sub(u.seed, 5) > 0.5) hangingSign(g, wg, w / 2 - 0.02, y0 + 0.5, d / 2 + 0.02, a1, PAL.cream2, sub(u.seed, 6) > 0.5);   // a round sign off the front corner
+  if (u.seed > 0.55 && kind !== 'konbini' && kind !== 'ramen') { g.push(box(0.14, 0.32, 0.12, u.seed > 0.75 ? PAL.pink : PAL.mint, w / 2 + 0.09, y0 + 0.16, -0.12)); wg.push(box(0.09, 0.14, 0.02, PAL.window, w / 2 + 0.09, y0 + 0.22, -0.055)); }
+  if (kind !== 'konbini' && kind !== 'ramen' && kind !== 'florist' && kind !== 'books' && sub(u.seed, 5) > 0.5) hangingSign(g, wg, w / 2 - 0.02, y0 + 0.5, d / 2 + 0.02, a1, PAL.cream2, sub(u.seed, 6) > 0.5);   // a round sign off the front corner
   if (L >= 2 && sub(u.seed, 7) > 0.5) for (const x of [-0.18, 0.18]) for (const s of [-1, 1]) g.push(box(0.05, 0.2, 0.015, K.shutter, x + s * 0.12, y0 + 0.9, d / 2 + 0.012));   // shutters beside the upstairs windows
   windowPane(g, wg, 0.1, y0 + 0.36, -d / 2 - 0.005, 0.2, 0.16, Math.PI); if (L >= 2) windowPane(g, wg, -0.15, y0 + 0.9, -d / 2 - 0.005, 0.16, 0.16, Math.PI);
   g.push(box(0.08, 0.12, 0.72, PAL.bush, -0.43, 0.18, -0.04));

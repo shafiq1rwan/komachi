@@ -11,7 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 48 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 49 checks + screenshots in scripts/out/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -106,6 +106,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   detached | narrow | terrace | apartment | manshon; shop kinds add restaurant | supermarket | arcade; work adds factory);
   `CAP_BONUS` per kind/variant; every unit of a block shares the block's variant; multi-cell generators read
   `b.units.indexOf(u)`. The tier label (`#tier`) shows under the tool bar while dragging.
+- Shop storefronts: `OWN_FRONTS` in buildings.js (bakery | florist | books | ramen) skip the shared window/door/finish and draw their own
+  front in genShop (bakery bow window + chimney, florist set-back ground floor, books painted front with centre door `doorX` 0, ramen timber
+  front + hisashi + exhaust stack); café, grocery, restaurant and konbini keep the shared body.
 - Detached homes pick a style from the seed (`u.style`: cottage | machiya | modern), shops a finish (`u.finish`), offices a
   facade (`u.facade`); `sub(seed, k)` in buildings.js gives independent per-unit values for details.
 - Roof styles: `kawara` (grey tiles, irimoya from level 2), `tile`, `metal`; the kit's Japanese parts are
@@ -135,6 +138,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   facades still read. The rich HUD reskin in styles.css sits under `body.rich-hud` (never set): the rich look uses the standard HUD.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
+- Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed
+  when built); `pickerForTool(t)` from input.js setTool; `currentPick()` caps the drag and sets placeBlock's preset ({ kind | variant, picked });
+  placeBlock honours `preset.kind`/`preset.variant` before naming; reckonShops skips `b.picked`; thumbnails via a throwaway WebGLRenderer on
+  fake units (rebuildUnitMesh, then removed from townGroup).
+- Shrine approach (2026-09-24): island.js `shrineAxis` = the hill centre moved sideways onto its cell column + `edge` (summit extent, by
+  cell via `cellLevel`); shrine, stairs (drop from the summit to the cell level beyond the edge), torii at the stairs' foot and the
+  lanterns (world.js openHill, spaced up to `hillCentre.edge`, y from terrainY) all use it. world.js reserves axis cells below the summit
+  (not keep/ramp) as `c.landmark = 'shrine-path'` with a flagstone sandō in rebuildDecor; `hillPlots` and `layTerraceLane` skip landmarks.
 - Quality (2026-09-24, src/quality.js): `S.quality` = Q { preset auto|low|medium|high|custom, res, fps, ao, aoHalf, blur, msaa, shadows off|low|high,
   lights, showFps } (`komachi.quality`); PRESETS; `frameDue(now)` gates main.js's frame loop (cap, meter, auto resolution step-down, low
   shadow redraw); scene.js resize uses `Q.res`; look.js `setPasses(q)` toggles GTAO/tilt-shift/MSAA; point lights follow `Q.lights`.
@@ -216,6 +227,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 - The user reviews by screenshot. Render with puppeteer-core (see scripts/smoke.mjs for launch
   args) rather than describing what it should look like.
+- Never append a `// comment` in the middle of a one-line statement chain in a patch: everything after it on the line becomes comment
+  (this broke smoke.mjs, weather.js and input.js). Put comments on their own line or at the true end of the line.
 - Multi-line code edits: write a small Node patch script with the Write tool and run it. Bash
   heredocs in this environment have mangled backslashes and quotes more than once.
 - Keep CHANGELOG.md (Unreleased section), README.md and docs/ in step with features.
@@ -240,7 +253,9 @@ Decisions already made (do not reopen without asking):
 - Everyone arrives by train. Nobody sleeps on a bench: last train 22:00, back at 06:00. Households
   are booked when their home enters the finishing stage. Builders also come and go by train and
   nothing is built without a crew on site (06:00–18:00).
-- Two parallel adjacent road cells form a two-lane avenue, not a doubled road (slope roads and links excepted).
+- Two parallel adjacent road cells form a two-lane avenue, not a doubled road (slope roads and links excepted; the coast road may pair
+  with a drawn street, the station ring and slip may not). `dbl[k]` in rebuildRoads also needs the pair to end at c and n, or every
+  edge along two side-by-side streets reads as shared (rails and dashes across the road, fixed 2026-09-24).
   Since Phase 4.9 (2026-09-21) streets come first: the player draws them with the Road tool and zones beside
   them; the town lays no streets on the flat (a stub-plus-connector version was tried and dropped the same day
   because side-by-side blocks got odd joins). Only the station has a ring. Cables only run along streets

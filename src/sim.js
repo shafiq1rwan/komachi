@@ -1067,7 +1067,7 @@ function reckonShops() {
     const popular = b.lastVisits >= 5 * b.level;
     if (popular !== !!b.popular) { b.popular = popular; for (const u of b.units) rebuildUnitMesh(u); }
     if (b.renoT > 0) continue;
-    if (b.kind === 'ryokan') { b.quietDays = 0; continue; }   // the inn keeps its trade through quiet weeks
+    if (b.kind === 'ryokan' || b.picked) { b.quietDays = 0; continue; }   // the inn, and a shop the player chose, keep their trade through quiet weeks
     if (b.lastVisits < b.level && staffed && S.T - b.created > 30 && shops.length >= 3) b.quietDays = (b.quietDays || 0) + 1; else b.quietDays = 0;
     if (b.quietDays >= 3) changeTrade(b);
   }
@@ -1122,7 +1122,7 @@ function layTerraceLane() {
     const { di, dj, h1 } = r.ramp, H = cell(r.i + di, r.j + dj); if (!H || H.type !== 'road') continue;
     for (const [pi, pj] of [[-dj, di], [dj, -di]]) {
       // the lane may run through the terrace woods: those cells are cleared first, and so are the plots either side of it
-      const ok = c => !!c && !c.keep && !c.ramp && Math.abs((c.h || 0) - h1) < 1e-6 && (c.type === 'empty' || c.type === 'hill' || c.type === 'road');
+      const ok = c => !!c && !c.keep && !c.ramp && !c.landmark && Math.abs((c.h || 0) - h1) < 1e-6 && (c.type === 'empty' || c.type === 'hill' || c.type === 'road');
       const run = []; for (let k = 1; k <= 3; k++) { const c = cell(H.i + pi * k, H.j + pj * k); if (!ok(c)) break; run.push(c); }
       if (run.length < 2) continue;
       for (const c of run) if (c.type === 'hill') { c.type = 'empty'; c.tree = null; }

@@ -196,6 +196,12 @@ const onHill = (x, z) => hillLevel(x, z) > 0;
 const hillTop = TERRACE * 3;
 const cellHash = (i, j) => { const v = Math.sin(i * 12.9898 + j * 78.233 + S.seed) * 43758.5453; return v - Math.floor(v); };
 
+const cellLevel = (x, z) => hillLevel(cx(Math.floor(x + HALF)), cz(Math.floor(z + HALF)));   // the terrace level of the cell under a point
+const shrineAxis = (() => {
+  const fx = shrineDir[0], fz = shrineDir[1], x = fx ? HX : cx(Math.round(HX + HALF - 0.5)), z = fz ? HZ : cz(Math.round(HZ + HALF - 0.5));
+  let edge = 0.3; while (edge < 3 && cellLevel(x + fx * (edge + 0.02), z + fz * (edge + 0.02)) >= 3) edge += 0.02;   // by cell: the terraces are drawn cell by cell
+  return { x, z, edge };
+})();
 // ramps: along the grid axis that points from the hill centre toward the town, find each lip and make the
 // three cells L (low, flat) → R (slope) → H (high, flat) permanent roads
 const ramps = [];
@@ -252,12 +258,25 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
   const tm = mergeMesh(g, true); if (tm) { tm.receiveShadow = true; scene.add(tm); }
   // the summit shrine set from the landmark kit (hall, offering box, bell rope, stone lanterns, its own torii), facing
   // the town along the slope roads' axis, and a second, larger torii at the foot of the lantern path on the terrace below
-  const fx = shrineDir[0], fz = shrineDir[1], ang = Math.atan2(fx, fz), y0 = hillTop;
-  const shrine = createLandmark('shrine'); shrine.position.set(HX - fx * 0.25, y0, HZ - fz * 0.25); shrine.rotation.y = ang; snowKit(shrine); scene.add(shrine);
-  const gx = HX + fx * 2.3, gz = HZ + fz * 2.3, gate = createLandmark('torii'); gate.scale.setScalar(0.9); gate.position.set(gx, hillLevel(gx, gz) * TERRACE, gz); gate.rotation.y = ang; snowKit(gate); scene.add(gate);
+  // everything on the approach shares one centre line: the column of cells the slope road climbs (shrine, lanterns, stairs, gate, sandō)
+  const fx = shrineDir[0], fz = shrineDir[1], ang = Math.atan2(fx, fz), y0 = hillTop, AX = shrineAxis.x, AZ = shrineAxis.z;
+  const shrine = createLandmark('shrine'); shrine.position.set(AX - fx * 0.25, y0, AZ - fz * 0.25); shrine.rotation.y = ang; snowKit(shrine); scene.add(shrine);
+  // stone stairs (ishidan) down the summit's cliff to the approach below, with cheek walls; the torii stands at their foot
+  const edge = shrineAxis.edge, low = cellLevel(AX + fx * (edge + 0.3), AZ + fz * (edge + 0.3)) * TERRACE, drop = y0 - low, run = 0.44, n = 6, sx = -fz, sz = fx;
+  const st = [], at = (d, s) => [AX + fx * d + sx * s, AZ + fz * d + sz * s];
+  for (let k = 0; k < n; k++) {
+    const d = edge + (k + 0.5) * run / n, top = y0 - (k + 1) * drop / (n + 1), [x, z] = at(d, 0);
+    st.push(box(fx ? run / n + 0.005 : 0.42, top - low, fz ? run / n + 0.005 : 0.42, k % 2 ? '#bdb6a6' : '#c9c2b2', x, low + (top - low) / 2, z));
+  }
+  for (const s of [-0.24, 0.24]) for (let k = 0; k < n; k++) {
+    const d = edge + (k + 0.5) * run / n, top = y0 - k * drop / (n + 1) + 0.04, [x, z] = at(d, s);
+    st.push(box(fx ? run / n + 0.005 : 0.06, top - low, fz ? run / n + 0.005 : 0.06, '#a9a292', x, low + (top - low) / 2, z));
+  }
+  const sm = mergeMesh(st, true); if (sm) { sm.castShadow = true; sm.receiveShadow = true; scene.add(sm); }
+  const [gx, gz] = at(edge + run + 0.14, 0), gate = createLandmark('torii'); gate.scale.setScalar(0.9); gate.position.set(gx, low, gz); gate.rotation.y = ang; snowKit(gate); scene.add(gate);
 }
 
-const hillCentre = { x: HX, z: HZ, fx: shrineDir[0], fz: shrineDir[1], top: hillTop };
+const hillCentre = { x: shrineAxis.x, z: shrineAxis.z, fx: shrineDir[0], fz: shrineDir[1], top: hillTop, edge: shrineAxis.edge };
 
 // ── the canal: a gently meandering channel from shore to shore on the pier's side of the island, clear of the
 //    town centre and the hill. Cells are keyed "i,j". The coast road follows the beach just inland, one cell

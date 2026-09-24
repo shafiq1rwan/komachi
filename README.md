@@ -51,6 +51,7 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons behind the sliders button in the clock card, or Space to pause |
+| Picker | Choosing Homes, Shops, Work, Civic or Farms opens a strip of buildings above the dock: Auto lets the town choose by size, or pick a kind (its picture shows the building) and drag the cells it needs beside a street. The town hall, fire station and community centre grey out once built; shops you chose keep their trade |
 | Settings | The gear in the top-left card opens Settings: a quality preset (Auto picks one for your device) or each setting on its own, resolution, frame rate, shadows, lamp light and the look's effects, applied as you change them; plus the rich and pixel looks, centre the camera and start a new island. Turn on the frame-rate readout to tune it on a phone |
 | Look | The standard look has soft contact shadows, a light miniature focus and calm bay water; the wand button (or `?look=classic`) switches to the lighter classic look and is remembered. "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
 
@@ -203,6 +204,7 @@ assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few
   water.js            the sea: calm bay water shaded in the material (swells, shallows, glints)
   milestone.js        the milestone card and the camera glide to go and look
   landmarks.js        lighthouse, arched footbridge and park pavilion: placement, beam, visits
+  picker.js           the building picker strip: a chip per kind with a thumbnail of its model, sizes from the tiers
   tourists.js         day visitors off the trains, their camera, and the weekend tourist bus with its stops
   work-trucks-kit.js  keitora, builder's crane flatbed and refrigerated fish van
   events.js           the town square's market mornings and summer festival, and the fireworks

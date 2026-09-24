@@ -69,6 +69,28 @@ Phases 4 and 4.5 plus the polish that went with them.
   warped by noise, and a faint fine ripple bend its normals for soft diffuse light; sparse short glints on the crests fade at
   night; a faint hint of the sky colour, no Fresnel and no mirror. Matte and opaque, it keeps the sun, the cloud shade and the fog.
   The two tiled ripple layers over the sea are gone (the canal keeps its drifting ripples).
+- Fixed: two streets drawn side by side grew a guard rail and centre dashes across the road at every cell edge. The avenue test
+  (`dbl` in rebuildRoads) saw the next cell along each street as a parallel partner too; a pair now counts only where it ends at
+  both cells. A street drawn beside the coast road now joins it as a two-lane avenue instead of a row of crossroads with zebras.
+- The welcome card is compact on phones (narrower, smaller heading, text and button), and its line now says to draw a street first.
+  The inspect card's type badge is smaller, and its rows, lists and notes step down half a size (more on phones).
+- Four small shops now have storefronts of their own, so they read apart from across the street (they had shared one window,
+  one door and a cloth awning). The bakery has brick skirting, a bow window of loaves under a scalloped canopy and a chimney from the oven.
+  The florist's ground floor is set back under a deep green awning, with tiers of flower buckets, hanging baskets and a vine up the corner.
+  The bookshop has a painted front with pilasters, windows of book spines either side of a centre door, and bargain carts outside.
+  The ramen shop has a dark timber front under a tiled eave, a red noren, big red lanterns, a ticket machine, a bench for the queue
+  and an exhaust stack with steam.
+- The building picker (src/picker.js): choosing Homes, Shops, Work, Civic or Farms opens a strip of chips above the dock, one per
+  kind with a picture of its real model (rendered once, off-grid, by a small renderer of its own), scrolling sideways on phones.
+  Auto (the first chip) keeps the old way: the drag length sets the size and the town picks what the neighbourhood lacks. A picked
+  kind fixes the sizes it comes in (a substation one cell, the town hall two, a public bath two or three) and the drag stops there;
+  the label while dragging says how many cells it needs. The town hall, fire station and community centre grey out once built.
+  Shops you picked keep their trade through quiet weeks (`b.picked`, saved).
+- The shrine approach: the shrine, its lanterns, a new stone staircase and the big torii now share one centre line, the column of
+  cells the slope road climbs, so the road leads straight to stone stairs (with cheek walls) up the summit's cliff and the torii stands
+  square at their foot. The cells on that line below the summit are kept as a flagstone sandō with low stone lanterns: nothing is
+  zoned or drawn there, and the hill plot market and its terrace lanes leave them alone (a villa had been built right below the
+  shrine). The path lanterns now fit the summit and stand on their own ground (one pair used to float over the road below).
 - Settings (src/quality.js; the gear in the top-left card): quality presets Auto, Low, Medium and High, and every setting on its
   own, applied live and remembered: render resolution, a frame-rate cap (30, 45, 60; paused never runs above 30), shadows (off, low
   redrawn a few times a second, high), real lamp light, and the rich look's soft contact shadows (half resolution below High),

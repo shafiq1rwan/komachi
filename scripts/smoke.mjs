@@ -316,6 +316,13 @@ try {
     return { placed: true, kind: b.kind, label: MT.tierLabel('farm', 2), farmers: b.units[0].staff.length, out, dbg: out ? null : { h: +(MT.T % 24).toFixed(2), rain: +MT.weather.rain.toFixed(2), season: MT.seasonOf(), f: idle.map(r => [r.state, r.activity, r.at === r.job ? 'J' : r.at === r.home ? 'H' : '-', r.lastWorkDay, +(r.next - MT.T).toFixed(2), r.job === b.units[0]]) } };
   });
   check('farming: a farm zone with farmers out in the fields in summer', fm.placed && fm.kind === 'field' && fm.farmers >= 1 && fm.out, JSON.stringify(fm));
+  const pkr = await page.evaluate(() => {   // the building picker: a strip of kinds for a zone tool; a picked kind is built as that kind and a shop keeps its trade
+    MT.setTool('civic'); const chips = document.querySelectorAll('#picker .chip').length, open = document.getElementById('picker').classList.contains('show');
+    const c = MT.cells.find(c => MT.placeable(c, [c])); if (!c) return { chips, open, placed: false };
+    const b = MT.placeBlock('civic', [c], { kind: 'clinic', picked: true }); MT.setTool('explore');
+    return { chips, open, placed: true, kind: b.kind, picked: b.picked, closed: !document.getElementById('picker').classList.contains('show') };
+  });
+  check('building picker: a strip of kinds per zone tool, and a picked kind is built as chosen', pkr.open && pkr.chips >= 10 && pkr.placed && pkr.kind === 'clinic' && pkr.picked && pkr.closed, JSON.stringify(pkr));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); server.kill();

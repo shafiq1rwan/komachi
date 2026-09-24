@@ -51,6 +51,14 @@ for (const c of cells) {   // water outside the coast; sparse, gently clustered 
   const h = hash(c.i, c.j), cl = hash(Math.floor(c.i / 4) + 100, Math.floor(c.j / 4) + 100);
   if (h < (S.look === 'rich' ? 0.22 + cl * 0.45 : 0.06 + cl * 0.3) * biome.treeDensity) c.tree = treeSpec(c.i, c.j);
 }
+// the shrine approach (sandō): the cells on the line from the summit shrine down the hill, below the summit itself and other than the
+// island's slope road, stay open as a flagstone path. Nothing is zoned or drawn there, and the plot market and its lanes leave it alone
+for (let k = 1; k <= 9; k++) {
+  const { x, z, fx, fz, top } = hillCentre, c = cell(Math.floor(x + fx * k + HALF), Math.floor(z + fz * k + HALF));
+  if (!c || !((c.h || 0) > 0)) break;
+  if ((c.h || 0) >= top - 1e-6 || c.keep || c.pendingRamp) continue;
+  c.landmark = 'shrine-path'; c.type = 'empty'; c.tree = null;
+}
 /** A bridge spans the canal wherever roads face each other across it; a bridge nobody needs goes back to water. */
 function connectCanal() {
   const road = c => c && c.type === 'road' && !c.canal;
@@ -130,6 +138,15 @@ function rebuildDecor() {
     gh.push(box(0.3, 0.025, 0.1, PAL.wood, x - 0.2, 0.19, z + 0.3)); for (const s of [-1, 1]) gh.push(box(0.03, 0.07, 0.08, PAL.lamp, x - 0.2 + s * 0.12, 0.035, z + 0.3));   // bench
     for (let k = 0; k < 4; k++) gh.push(blob(0.1, k % 2 ? PAL.bush : PAL.bush2, x - 0.36 + k * 0.24, 0.08, z - 0.42, 0, 0.7));   // hedge along the back
     gh.push(cyl(0.03, 0.04, 0.3, PAL.wood2, x + 0.34, 0.15, z + 0.32, 5)); gh.push(blob(0.2, biome.treeColors[0], x + 0.34, 0.4, z + 0.32, 0, 0.9));
+  }
+  // the sandō: pale flagstones up the middle of each reserved approach cell, gravel either side, a low stone lantern pair at its top
+  for (const c of cells) {
+    if (c.landmark !== 'shrine-path') continue;
+    const x = cx(c.i), z = cz(c.j), y = (c.h || 0), { fx, fz } = hillCentre, sx = -fz, sz = fx;
+    gh.push(box(fx ? 0.96 : 0.46, 0.012, fz ? 0.96 : 0.46, '#d8d2c2', x, y + 0.006, z));
+    for (let k = -2; k <= 2; k++) gh.push(box(fx ? 0.16 : 0.3, 0.016, fz ? 0.16 : 0.3, k % 2 ? '#bdb6a6' : '#c9c2b2', x + fx * k * 0.19, y + 0.014, z + fz * k * 0.19));
+    for (const s of [-1, 1]) { const lx = x + sx * s * 0.34, lz = z + sz * s * 0.34; gh.push(cyl(0.025, 0.035, 0.14, PAL.concrete, lx, y + 0.07, lz, 6)); gh.push(box(0.08, 0.06, 0.08, PAL.concrete, lx, y + 0.17, lz)); gh.push(box(0.11, 0.02, 0.11, PAL.concrete, lx, y + 0.21, lz)); }
+    for (const s of [-1, 1]) gh.push(blob(0.09, PAL.bush, x + sx * s * 0.42 + fx * 0.3, y + 0.06, z + sz * s * 0.42 + fz * 0.3, 0, 0.7));
   }
   const treeSpots = [];   // crowns the season's leaves fall from: broadleaf and cherry only
   for (const c of cells) {
@@ -233,7 +250,11 @@ function rebuildRoads() {
     const road = q => q && q.type === 'road';
     const dbl = DIR4.map(([di, dj], k) => {
       if (!nb[k]) return false; const n = cell(c.i + di, c.j + dj), pi = di ? 0 : 1, pj = di ? 1 : 0;
-      if (c.keep || c.dyn || c.link || n.keep || n.dyn || n.link || (c.h || 0) !== (n.h || 0)) return false;   // slope roads and links beside a ring road are not an avenue
+      const fixed = q => (q.keep && !(q.coast && !q.slip)) || q.dyn || q.link;   // the coast road may pair with a street drawn beside it; the ring and slip may not
+      if (fixed(c) || fixed(n) || (c.h || 0) !== (n.h || 0)) return false;   // slope roads and links beside a ring road are not an avenue
+      // the pair must end at c and n: across two side-by-side streets it does, along either street it does not (the next cell of a
+      // street has its partner beside it too, which alone once made every cell edge along an avenue read as a shared one)
+      if (road(cell(c.i - di, c.j - dj)) || road(cell(n.i + di, n.j + dj))) return false;
       return (road(cell(c.i + pi, c.j + pj)) && road(cell(n.i + pi, n.j + pj))) || (road(cell(c.i - pi, c.j - pj)) && road(cell(n.i - pi, n.j - pj)));
     });
     const open = nb.map((v, k) => v && !dbl[k]);
@@ -476,13 +497,16 @@ function updateLanterns() {
 function openHill(quiet = false) {
   if (hill.open) return; hill.open = true;
   for (const c of cells) if (c.keep) { c.type = 'road'; c.tree = null; if (c.pendingRamp) { c.ramp = c.pendingRamp; } }
-  const g = [], { x, z, fx, fz, top } = hillCentre, rx = -fz, rz = fx;
+  const g = [], { x, z, fx, fz } = hillCentre, rx = -fz, rz = fx;
+  const edge = hillCentre.edge;   // how far the summit runs in front of the shrine (island.js)
+  const d0 = Math.min(0.55, edge - 0.45), d1 = Math.max(d0 + 0.3, edge - 0.14);
   for (let k = 0; k < 3; k++) for (const side of [-0.42, 0.42]) {   // stone lanterns down the flagged path, lit at night like the street lamps
-    const px = x + fx * (0.9 + k * 0.45) + rx * side, pz = z + fz * (0.9 + k * 0.45) + rz * side;
-    g.push(cyl(0.03, 0.04, 0.22, PAL.concrete, px, top + 0.11, pz, 6)); g.push(box(0.11, 0.09, 0.11, PAL.concrete, px, top + 0.27, pz)); g.push(box(0.15, 0.025, 0.15, PAL.concrete, px, top + 0.33, pz));
-    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.06), lampHeadMat.clone()); head.position.set(px, top + 0.27, pz); head.userData.lantern = true; scene.add(head); lampHeads.push(head);
-    const gl = makeGlow(px, top + 0.005, pz, 0.9); gl.material = lampGlowMat.clone(); gl.userData.lantern = true; scene.add(gl); lampGlows.push(gl);
-    lanterns.push({ head, glow: gl, order: (2 - k) * 2 + (side > 0 ? 1 : 0), pos: new THREE.Vector3(px, top, pz) });   // lit from the foot of the path up to the shrine
+    const d = d0 + (d1 - d0) * k / 2, px = x + fx * d + rx * side, pz = z + fz * d + rz * side;
+    const gy = terrainY(px, pz);   // each lantern stands on its own ground
+    g.push(cyl(0.03, 0.04, 0.22, PAL.concrete, px, gy + 0.11, pz, 6)); g.push(box(0.11, 0.09, 0.11, PAL.concrete, px, gy + 0.27, pz)); g.push(box(0.15, 0.025, 0.15, PAL.concrete, px, gy + 0.33, pz));
+    const head = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.05, 0.06), lampHeadMat.clone()); head.position.set(px, gy + 0.27, pz); head.userData.lantern = true; scene.add(head); lampHeads.push(head);
+    const gl = makeGlow(px, gy + 0.005, pz, 0.9); gl.material = lampGlowMat.clone(); gl.userData.lantern = true; scene.add(gl); lampGlows.push(gl);
+    lanterns.push({ head, glow: gl, order: (2 - k) * 2 + (side > 0 ? 1 : 0), pos: new THREE.Vector3(px, gy, pz) });   // lit from the foot of the path up to the shrine
   }
   lanternMesh = mergeMesh(g, false); if (lanternMesh) scene.add(lanternMesh);
   refreshWorld();
@@ -526,7 +550,7 @@ function frontRoads(sel) {
   return out;
 }
 /** free terrace plots beside a hill street that reaches the town: where the town's own villas and tea house may go */
-function hillPlots() { return cells.filter(c => c.type === 'empty' && (c.h || 0) > 0 && !c.ramp && frontRoads([c]).some(r => townNetCached().has(r))); }
+function hillPlots() { return cells.filter(c => c.type === 'empty' && (c.h || 0) > 0 && !c.ramp && !c.landmark && frontRoads([c]).some(r => townNetCached().has(r))); }
 /** streets a block relies on: its road neighbours */
 const isStreet = c => blocks.some(b => b.street && b.street.includes(c));
 const joined = (a, b, di, dj) => { const ax = r => !!r && Math.abs(r.di) === Math.abs(di) && Math.abs(r.dj) === Math.abs(dj); return (a.h || 0) === (b.h || 0) || ax(a.ramp) || ax(b.ramp); };
@@ -730,8 +754,8 @@ function placeBlock(type, sel, preset = null) {
     roof: ROOFS[Math.floor(seed * ROOFS.length)],
     wall: type === 'res' ? pick(WALLS) : type === 'shop' ? pick(SHOP_WALLS) : pick(WORK_WALLS),
     awning: pick(AWNINGS), family,
-    kind: type === 'res' ? null : chooseKind(type, sel),   // the tier decides the pool; the neighbourhood decides the kind
-    variant: type === 'res' ? pick(TIERS.res[Math.min(3, sel.length)]) : null,
+    kind: type === 'res' ? null : (preset && preset.kind) || chooseKind(type, sel),   // the tier decides the pool; the neighbourhood decides the kind (unless the player picked one)
+    variant: type === 'res' ? (preset && preset.variant) || pick(TIERS.res[Math.min(3, sel.length)]) : null,
     roofStyle: seed < 0.38 ? 'kawara' : seed < 0.68 ? 'tile' : 'metal',   // grey kawara tiles, pastel tiles, or a corrugated metal roof
   };
   block.name = type === 'res' ? `${pick(PLACE)} ${block.variant === 'manshon' ? pick(['Heights', 'Mansion', 'Court']) : block.variant === 'apartment' ? pick(['Heights', 'Court', 'Residence']) : block.variant === 'terrace' ? 'Terrace' : pick(HOME_SUFFIX)}` : type === 'shop' ? uniqueName(SHOP_NAMES[block.kind]) : type === 'civic' ? uniqueName(CIVIC_NAMES[block.kind]) : type === 'farm' ? uniqueName(FARM_NAMES[block.kind]) : uniqueName(WORK_NAMES[block.kind]);

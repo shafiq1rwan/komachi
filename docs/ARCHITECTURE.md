@@ -261,6 +261,10 @@ then walks the points back to the kerb and routes home.
 
 ## Tourism
 
+`picker.js` sits beside input.js (which calls `pickerForTool` on each tool change and reads `currentPick` to cap the drag and pass
+`placeBlock` a preset). It reads world.js tiers and blocks and draws its thumbnails with buildings.js `rebuildUnitMesh` on fake off-grid
+units, rendered by a throwaway WebGLRenderer; nothing else imports it except main.js for the dev hooks.
+
 `tourists.js` sits above sim.js, landmarks.js and ferry.js and is driven from main.js (`updateTourists` in the frame loop and in
 fastForward). Visitors are plain objects with a character mesh (`userData.tourist`), not residents: they have no home or needs, are
 not saved, and are removed at the station or at midnight. `onTrain` queues arrivals on dry mornings; each visitor gets a plan of
