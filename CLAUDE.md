@@ -207,6 +207,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
+- Opening scene (2026-09-25, src/opening.js, Phase 9 slice 1): the carriage stands at X0 420 (past the sea plane's 600-unit edge) in the
+  main scene, so the shared ortho camera, post chain and bubbles.js apply; `startOpening()` builds it once (`buildCarriage`,
+  `seatPassengers` via makePerson with `userData.rider` owners, `char.sitting`, fidgets phone | paper, `char.gaze`, startTalk), sets
+  cam.view small, swaps the sky for a dark background and drops the fog; `updateOpening(dt)` sways, slides the tunnel lights and aims
+  the camera itself; main.js's frame loop runs only updateCharacters, updateOpening, updateBubbles and renderFrame while `opening.active`.
+  `?opening` previews it after characterReady. Slice 2: iris wipe, skip, replay from the menu, the flow from Start.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
 - Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed

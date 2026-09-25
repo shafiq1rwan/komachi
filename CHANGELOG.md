@@ -10,6 +10,11 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Opening scene, slice 1 (2026-09-25, Phase 9, src/opening.js): the underground train into Komachi as a diorama carriage built
+  from boxes (bench, window band with tunnel lights sliding past, route map, hand straps, poles and doors, light strips, a dark
+  tunnel round it) with four seated newcomers from the Kenney people: two chatting with a speech bubble, one on a phone, one
+  behind a newspaper; a gentle sway. Preview with `?opening` or `MT.startOpening()`. Slice 2 adds the iris wipe onto the island,
+  the skip button and the menu's replay entry.
 - Harbour island (2026-09-25, the "Harbor Town" reference picture): every new town is now built on an island with a straight stone
   quay along its south shore, two breakwater arms with red and green beacons and an entrance in front of the ferry berth, a stone
   jetty square to the quay with fishing boats moored alongside and along the wall, a waterfront street the length of the quay, a

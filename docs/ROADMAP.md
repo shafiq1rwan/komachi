@@ -273,7 +273,7 @@ effect through the town instead.
 
 - ✅ Title screen and pause menu, multiple named saves, island seed and biome pickers (2026-09-24: src/title.js, src/slots.js)
 - Photo mode: hide the HUD, frame a shot, save to an in-game album
-- **Opening cinematic** (idea from 2026-09-17): a short scene of newcomers chatting on a train, then an iris
+- **Opening cinematic** (slice 1 shipped 2026-09-25: the carriage scene with seated newcomers; the wipe, skip and replay next) (idea from 2026-09-17): a short scene of newcomers chatting on a train, then an iris
   wipe, the picture shrinking to a black circle and reopening from a point over the island. Built from the
   existing Kenney characters and a clip-path overlay; skippable, replayable from the menu
 

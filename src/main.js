@@ -75,6 +75,8 @@ import { save, loadData, restore, clearSave, thumbDue, captureThumb } from './sa
 import { initMenus } from './title.js';
 import { islandReady } from './loading.js';
 import { updateKitsune, callKitsune, kitsune } from './kitsune.js';
+import { opening, startOpening, stopOpening, updateOpening } from './opening.js';
+import { characterReady } from './characters.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
 import { pickerForTool, currentPick } from './picker.js';
@@ -84,6 +86,10 @@ const followV = new THREE.Vector3();
 function frame(now) {
   if (!frameDue(now)) { requestAnimationFrame(frame); return; }   // the frame-rate cap: skipped frames cost nothing
   if (document.body.classList.contains('menu-full') && !thumbDue()) { last = now; requestAnimationFrame(frame); return; }   // the main menu covers the town: nothing to draw
+  if (opening.active) {   // the opening scene (src/opening.js): the train carriage instead of the town; the town's clock stands still
+    const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
+    updateCharacters(dt); updateOpening(dt); updateBubbles(realT); renderFrame(); requestAnimationFrame(frame); return;
+  }
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   const simDt = dt * S.speed;
   if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); updateTourists(simDt, realT); }
@@ -154,7 +160,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
+  opening, startOpening, stopOpening, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, quality: S.quality, pickerForTool, currentPick, hillCentre, hillCrew, lanterns, landmarks, landmarkRoads, catchToday, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
@@ -177,3 +183,4 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
 addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
 islandReady();   // the loading screen (src/loading.js) now waits for the people, cars and the rest, then shows the menu
 requestAnimationFrame(frame);
+if (new URLSearchParams(location.search).has('opening')) characterReady.then(startOpening);   // preview the opening scene once the people are in
