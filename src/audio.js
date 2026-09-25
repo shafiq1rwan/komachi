@@ -4,10 +4,10 @@
 // or key press unlocks playback; until then nothing is loaded either (the tracks are large). Settings card: a Music switch and
 // a volume slider, kept in localStorage `komachi.audio`.
 import menuUrl from '../assets/audio/bgm/menu.mp3?url';
-import nightUrl from '../assets/audio/bgm/night.mp3?url';
 import rainUrl from '../assets/audio/bgm/raining.mp3?url';
 
-const TRACKS = { menu: menuUrl, night: nightUrl, rain: rainUrl };
+// menu.mp3 also carries the day and the night in town for now (the user's choice, 2026-09-25); night.mp3 stays in the folder unused
+const TRACKS = { menu: menuUrl, rain: rainUrl };
 const A = (() => { let s = null; try { s = JSON.parse(localStorage.getItem('komachi.audio') || 'null'); } catch { /* storage unavailable */ } return { on: true, volume: 0.6, ...(s || {}) }; })();
 const store = () => { try { localStorage.setItem('komachi.audio', JSON.stringify(A)); } catch { /* storage unavailable */ } };
 const players = {};
@@ -20,7 +20,7 @@ const unlock = () => { unlocked = true; };
 addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
 
 /** which loop the moment calls for: the menu first, then rain, then night; null keeps quiet */
-const pickTrack = ({ menu, rain, night }) => menu ? 'menu' : rain ? 'rain' : night ? 'night' : null;
+const pickTrack = ({ menu, rain }) => menu ? 'menu' : rain ? 'rain' : 'menu';
 
 /** every frame from main.js: fade the wanted loop in (about two seconds) and the others out (about one), pause what is silent */
 function updateAudio(dt, state) {

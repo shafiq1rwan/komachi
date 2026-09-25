@@ -146,9 +146,14 @@ function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2)
 // placement preview meshes
 const prevMat = { keep: new THREE.MeshBasicMaterial({ color: PAL.concrete2, transparent: true, opacity: 0.5, depthWrite: false }), ok: new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.55, depthWrite: false }), bad: new THREE.MeshBasicMaterial({ color: PAL.roofRose, transparent: true, opacity: 0.5, depthWrite: false }), road: new THREE.MeshBasicMaterial({ color: PAL.cream2, transparent: true, opacity: 0.45, depthWrite: false }) };
 const prevPool = []; for (let k = 0; k < 20; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.04, 0.92), prevMat.ok); m.visible = false; m.position.y = 0.16; scene.add(m); prevPool.push(m); }
-const ringMat = new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.7, depthWrite: false });
-// one ring per cell: blocks hold up to 3, the station 9
-const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(1.06, 0.03, 1.06), ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
+const ringMat = new THREE.MeshBasicMaterial({ color: '#fff6e4', transparent: true, opacity: 0.7, depthWrite: false });
+// one frame per cell, a thin cream outline round the plot's edge (a solid mint slab until 2026-09-25): blocks hold up to 3, the station 9
+const frameGeo = (() => {
+  const sq = (r, p) => { p.moveTo(-r, -r); p.lineTo(r, -r); p.lineTo(r, r); p.lineTo(-r, r); p.closePath(); return p; };
+  const s = sq(0.535, new THREE.Shape()); s.holes.push(sq(0.465, new THREE.Path()));
+  const g = new THREE.ShapeGeometry(s); g.rotateX(-Math.PI / 2); return g;
+})();
+const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(frameGeo, ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
 const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
@@ -204,7 +209,7 @@ function finishHover() {
   const target = pinned || hovered;
   const hu = target && target.unit ? target.unit : null;
   hoverRings.forEach((m, k) => { const u = hu ? hu.block.units[k] : null; m.visible = !!u && hu.block.stage >= 0; if (u) m.position.set(cx(u.cell.i), 0.135 + (u.cell.h || 0), cz(u.cell.j)); });
-  if (tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station') ringMat.color.set(PAL.roofRose); else ringMat.color.set(PAL.mint);
+  if (tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station') ringMat.color.set(PAL.roofRose); else ringMat.color.set('#fff6e4');
   ringMat.opacity = 0.25 + 0.45 * daylight();   // the highlight is unlit, so it would glow at night; fade it with the light
   canvas.style.cursor = tool !== 'explore' ? 'crosshair' : (hovered ? 'pointer' : (ptr.panning ? 'grabbing' : 'grab'));
 }

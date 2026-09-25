@@ -38,6 +38,9 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- The hover and selection highlight on a building is a thin cream outline round each plot instead of a solid mint slab (2026-09-25).
+- Music: the menu loop also plays through the day and the night in town for now; only rain switches the track. night.mp3 is kept in
+  the folder but not bundled (2026-09-25).
 - Menus (2026-09-25): a tighter pause card (less padding, a smaller heading); the title's footer (version, motto) sits in a small
   card; rename and delete use the menu's own dialog card (`ask()` in title.js, #mm-dialog) instead of the browser's prompt and
   confirm; the help page offers "Watch the opening again" while playing.
