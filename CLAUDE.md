@@ -207,6 +207,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
+- Music (2026-09-25, src/audio.js): TRACKS menu | night | rain from assets/audio/bgm (imported with `?url`, streamed by HTMLAudio,
+  `preload none`; vite.config.js keeps mp3/ogg out of the service worker's precache); `updateAudio(dt, { menu, rain, night })` every
+  frame from main.js (menu-full path passes { menu: true }, the opening too; the town path menuOpen() / W.rain > 0.25 / daylight() < 0.35),
+  `pickTrack` menu → rain → night → silence, linear fades (in 2.5 s, out 1.5 s), play only after the first pointerdown/keydown.
+  Settings rows #opt-music / #opt-volume bound in audio.js (`komachi.audio` { on, volume }). Dev hook `MT.audioState()`. A `day.mp3`
+  would take the daytime slot. night.mp3 is 26 MB (the user's file); worth re-encoding to ~3 MB when convenient.
 - Opening scene (2026-09-25, src/opening.js, Phase 9 slice 1): the carriage stands at X0 420 (past the sea plane's 600-unit edge) in the
   main scene, so the shared ortho camera, post chain and bubbles.js apply; `startOpening()` builds it once (`buildCarriage`,
   `seatPassengers` via makePerson with `userData.rider` owners, `char.sitting`, fidgets phone | paper, `char.gaze`, startTalk), sets

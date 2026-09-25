@@ -10,6 +10,10 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Background music (2026-09-25, src/audio.js): three loops from assets/audio/bgm, crossfaded by the moment: `menu.mp3` while the
+  title or pause menu is open (and through the opening's train ride), `raining.mp3` while it rains, `night.mp3` after dusk; a clear
+  day is silent until a day track exists. Playback starts on the first click or key, as browsers require. Settings has a Music
+  switch and a volume slider (`komachi.audio`). The tracks are not precached by the service worker; they are cached as they play.
 - Opening scene, slice 1 (2026-09-25, Phase 9, src/opening.js): the underground train into Komachi as a diorama carriage built
   from boxes (bench, window band with tunnel lights sliding past, route map, hand straps, poles and doors, light strips, a dark
   tunnel round it) with four seated newcomers from the Kenney people: two chatting with a speech bubble, one on a phone, one

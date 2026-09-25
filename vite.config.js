@@ -13,7 +13,7 @@ function offline() {
     name: 'komachi-offline',
     apply: 'build',
     generateBundle(_, bundle) {
-      const files = [...Object.keys(bundle), ...walk('public')].filter(f => !f.endsWith('.map') && f !== 'sw.js').sort();
+      const files = [...Object.keys(bundle), ...walk('public')].filter(f => !f.endsWith('.map') && f !== 'sw.js' && !/\.(mp3|ogg)$/i.test(f)).sort();   // music is cached as it plays, not up front
       const version = createHash('sha1').update(files.join('\n')).digest('hex').slice(0, 10);
       const list = ['./', ...files.map(f => './' + f)];
       const source = readFileSync('scripts/sw-template.js', 'utf8').replace('__VERSION__', version).replace('__FILES__', JSON.stringify(list, null, 1));
