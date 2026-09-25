@@ -350,6 +350,8 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMout
     }
     // never run along the coast road: two consecutive canal cells on it would make a bridge with water both sides
     for (let k = 0; k + 1 < cellsHere.length && !bad; k++) if (coastCells.has(key(...cellsHere[k])) && coastCells.has(key(...cellsHere[k + 1]))) bad = true;
+    // on the harbour island the canal keeps clear of the jetty: its mouth on the quay is never within the jetty's reach
+    if (harborIsland && pierInfo && !bad) for (const [i, j] of cellsHere) if (Math.abs(cx(i) - pierInfo.root.x) < 2.4 && cz(j) > QUAY_Z - 4.5) { bad = true; break; }
     // the canal may only touch the coast at its two ends: a run alongside the beach would spill over at every cell
     for (let k = 3; k + 3 < cellsHere.length && !bad; k++) if (coastDist(cx(cellsHere[k][0]), cz(cellsHere[k][1])) < 1.8) bad = true;
     if (bad || cellsHere.length < 8) continue;

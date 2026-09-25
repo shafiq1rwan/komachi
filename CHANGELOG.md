@@ -47,6 +47,9 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Fixed
 
+- Harbour island (2026-09-25): on some seeds the canal reached the quay right at the jetty, so the waterfall poured through
+  the jetty's root. Canal candidates whose cells come within the jetty's reach on the quay side are rejected; twelve seeds checked
+  keep the mouth at least 3.7 units away.
 - Komachi Station (2026-09-25): everyone off a train now comes up the pavilion's stairs onto the plaza, and everyone leaving
   (newcomers on the last train, commuters, tourists, building crews) walks to the entrance and down them, instead of appearing
   or vanishing on the plaza in front of the pavilion. `STATION.stairTop` / `stairFoot` and `stationStairs(up)` in world.js;
