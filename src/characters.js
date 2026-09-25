@@ -242,10 +242,10 @@ export function updateCharacters(simDt0) {
       if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
       const it = c.item && c.item.userData.handItem ? c.item : null;
       if (c.fidget === 'phone' && it) {   // the phone held in front of the chest, screen tilted up to the face; the right arm reaches to it
-        it.position.set(-0.04, 0.16, 0.085); it.rotation.set(0.65, Math.PI, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);   // chest height, turned round: the screen faces the reader, tilted up to the face
+        it.position.set(-0.04, 0.2 + c.root.position.y, 0.1); it.rotation.set(0.65, Math.PI, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);   // chest height, turned round: the screen faces the reader, tilted up to the face
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42));
       } else if (c.fidget === 'paper' && it) {   // the paper open in both hands
-        it.position.set(0, 0.155, 0.1); it.rotation.set(0.5, Math.PI, 0);   // front page toward the reader c.grp.updateWorldMatrix(true, true);
+        it.position.set(0, 0.19 + c.root.position.y, 0.11); it.rotation.set(0.5, Math.PI, 0);   // front page toward the reader c.grp.updateWorldMatrix(true, true);
         if (c.armR) aimArm(c, c.armR, it.position.clone().add(new THREE.Vector3(-0.045, -0.02, 0))); if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.045, -0.02, 0)), true);
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.3));
       }

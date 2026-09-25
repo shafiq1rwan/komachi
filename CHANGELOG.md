@@ -13,8 +13,11 @@ Phases 4 and 4.5 plus the polish that went with them.
 - Opening scene, slice 1 (2026-09-25, Phase 9, src/opening.js): the underground train into Komachi as a diorama carriage built
   from boxes (bench, window band with tunnel lights sliding past, route map, hand straps, poles and doors, light strips, a dark
   tunnel round it) with four seated newcomers from the Kenney people: two chatting with a speech bubble, one on a phone, one
-  behind a newspaper; a gentle sway. Preview with `?opening` or `MT.startOpening()`. Slice 2 adds the iris wipe onto the island,
-  the skip button and the menu's replay entry.
+  behind a newspaper; a gentle sway. Slice 2 the same day: `playOpening(onDone)` runs the whole thing when a new town starts
+  (the menu's Start and Create buttons): six and a half seconds of the ride, an iris wipe closing to a point (#iris, a radial
+  gradient hole), the island opening from that point over the station with the camera gliding from wide to close, then the
+  welcome card. A Skip button (Esc, Space or Enter too) jumps straight to the town. The pause menu's How to play page has
+  "Watch the opening again". Islands without the rigged people (the box look) go straight in. `?opening` plays it in a scratch tab.
 - Harbour island (2026-09-25, the "Harbor Town" reference picture): every new town is now built on an island with a straight stone
   quay along its south shore, two breakwater arms with red and green beacons and an entrance in front of the ferry berth, a stone
   jetty square to the quay with fishing boats moored alongside and along the wall, a waterfront street the length of the quay, a
@@ -31,6 +34,13 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Changed
 
+- Menus (2026-09-25): a tighter pause card (less padding, a smaller heading); the title's footer (version, motto) sits in a small
+  card; rename and delete use the menu's own dialog card (`ask()` in title.js, #mm-dialog) instead of the browser's prompt and
+  confirm; the help page offers "Watch the opening again" while playing.
+- Harbour island (2026-09-25): the moored fishing boats each have their own hull colour (the shared colour map redrawn through a
+  hue rotation, `hueBoat` in island.js), none is moored within reach of a waterfall, and no bushes grow on the quay paving or the
+  shore rocks; the hill's foot road joins the station ring directly (the ring now counts as connected, so no second road is laid
+  beside it). Seated people hold the phone and the newspaper at chest height (the items follow the sit clip's lift).
 - The Komachi wordmark is about 30 % smaller on the main menu (240 px, 210 px on the title page, 170 px on phones) and the loading screen (250 px) (2026-09-25).
 - README screenshots retaken (2026-09-25) in the rich look from the dense demo town; scripts/capture-readme.mjs redoes them
   (day, night, the station plaza, the whole island, a shop going up).

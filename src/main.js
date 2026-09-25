@@ -75,7 +75,7 @@ import { save, loadData, restore, clearSave, thumbDue, captureThumb } from './sa
 import { initMenus } from './title.js';
 import { islandReady } from './loading.js';
 import { updateKitsune, callKitsune, kitsune } from './kitsune.js';
-import { opening, startOpening, stopOpening, updateOpening } from './opening.js';
+import { opening, startOpening, stopOpening, updateOpening, playOpening } from './opening.js';
 import { characterReady } from './characters.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
@@ -160,7 +160,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  opening, startOpening, stopOpening, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
+  opening, startOpening, stopOpening, playOpening, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, quality: S.quality, pickerForTool, currentPick, hillCentre, hillCrew, lanterns, landmarks, landmarkRoads, catchToday, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },
@@ -176,11 +176,11 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
   else if (new URLSearchParams(location.search).has('demo')) demoTown();
   placeLandmarks();   // after the town is back, so the lighthouse, bridge and pavilion keep clear of anything already built
   // the title screen on a plain visit (src/title.js); straight in after choosing a town or an island, and in test tabs
-  const entered = initMenus({ townIsFresh: () => blocks.filter(b => b.type !== 'station').length === 0, onStart: () => { const i = document.getElementById('intro'); if (i) i.hidden = false; } });
+  const entered = initMenus({ townIsFresh: () => blocks.filter(b => b.type !== 'station').length === 0, onStart: () => playOpening(() => { const i = document.getElementById('intro'); if (i) i.hidden = false; }), onReplay: () => playOpening() });
   if (entered === 'title') { const i = document.getElementById('intro'); if (i) i.hidden = true; }
   else if (restored) toast('Welcome back to Komachi');
 }
 addEventListener('pagehide', () => { if (blocks.length > 1) save(); });
 islandReady();   // the loading screen (src/loading.js) now waits for the people, cars and the rest, then shows the menu
 requestAnimationFrame(frame);
-if (new URLSearchParams(location.search).has('opening')) characterReady.then(startOpening);   // preview the opening scene once the people are in
+if (new URLSearchParams(location.search).has('opening')) characterReady.then(() => playOpening());   // play the opening once the people are in (tests, previews)

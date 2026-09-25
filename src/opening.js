@@ -10,7 +10,8 @@ import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { PAL, SKIN, SHIRTS, HAIR, GIVEN, FAMILY } from './palette.js';
 import { pick } from './utils.js';
 import { makePerson } from './sim.js';
-import { holdItem } from './characters.js';
+import { holdItem, characterAvailable } from './characters.js';
+import { STATION } from './world.js';
 import { createPhone, createNewspaper } from './hand-items.js';
 import { startTalk, endTalk } from './bubbles.js';
 
@@ -120,4 +121,34 @@ function updateOpening(dt) {
   camera.position.copy(view.target).addScaledVector(dir, 120); camera.lookAt(view.target);
 }
 
-export { opening, startOpening, stopOpening, updateOpening };
+// ── the whole opening: the ride, an iris wipe down to a point, then the island opening from that point with the camera gliding
+//    down onto the station. Skippable (the button, Esc); replayable from the pause menu's help page. `onDone` runs at the end. ──
+const RIDE = 6.5, CLOSE = 1.1, OPEN = 2.6;   // seconds
+let playing = false;
+function playOpening(onDone) {
+  if (playing) return;
+  if (!characterAvailable()) { if (onDone) onDone(); return; }   // no rigged people (box look or a failed load): straight in
+  const iris = document.getElementById('iris'), skip = document.getElementById('skip-opening'); if (!iris || !skip) { if (onDone) onDone(); return; }
+  playing = true; startOpening(); document.body.classList.add('opening'); iris.hidden = false; skip.hidden = false;
+  const wasSpeed = S.speed; S.speed = 0;
+  const t0 = performance.now(); let phase = 'ride', done = false;
+  const full = () => Math.hypot(innerWidth, innerHeight) / 2 + 8;
+  const setHole = r => { iris.style.background = r >= full() ? 'transparent' : `radial-gradient(circle at 50% 50%, transparent ${Math.max(0, r).toFixed(1)}px, #12171f ${(Math.max(0, r) + 2).toFixed(1)}px)`; };
+  const land = () => {   // out of the tunnel: the camera high over the station, ready to glide in
+    stopOpening(); document.body.classList.remove('opening'); skip.hidden = true; S.speed = wasSpeed || 1;
+    const E = STATION.entrance; cam.target.set(E.x, 0, E.z - 0.9); cam.tYaw = cam.yaw; cam.view = cam.tView = 46;
+  };
+  const finish = () => { if (done) return; done = true; if (phase === 'ride' || phase === 'close') land(); cam.view = cam.tView = 12; setHole(full()); iris.hidden = true; iris.style.background = ''; skip.onclick = null; removeEventListener('keydown', onKey); playing = false; if (onDone) onDone(); };
+  const onKey = e => { if (e.code === 'Escape' || e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); finish(); } };
+  const tick = () => {
+    if (done) return;
+    const t = (performance.now() - t0) / 1000;
+    if (phase === 'ride') { setHole(full()); if (t >= RIDE) phase = 'close'; }
+    if (phase === 'close') { const k = Math.min(1, (t - RIDE) / CLOSE); setHole(full() * (1 - k) ** 1.6); if (k >= 1) { phase = 'open'; land(); } }
+    else if (phase === 'open') { const k = Math.min(1, (t - RIDE - CLOSE) / OPEN); setHole(full() * k ** 1.3); cam.view = cam.tView = 12 + 34 * (1 - k) ** 2; if (k >= 1) { finish(); return; } }
+    requestAnimationFrame(tick);
+  };
+  skip.onclick = finish; addEventListener('keydown', onKey); requestAnimationFrame(tick);
+}
+
+export { opening, startOpening, stopOpening, updateOpening, playOpening };

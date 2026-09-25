@@ -83,7 +83,8 @@ function show(screen) {
       <p><b>Zone blocks.</b> Pick Homes (2), Shops (3), Work (4), Civic (8) or Farms (9) and drag across one to three cells beside a street. The strip above the tools lets you choose exactly which building; Auto lets the town decide.</p>
       <p><b>Watch it grow.</b> Builders arrive by train and work in daylight, three crews at a time. Newcomers come by train and move in; residents find work, shop, stroll, fish, and go to the bath house in the evening.</p>
       <p><b>Look closer.</b> Hover or tap anything to see who lives, works or waits there. Click a name to follow someone. Nothing can go wrong: an empty home simply waits for its family.</p>
-      <p><b>Around the island.</b> Drag to pan, scroll or pinch to zoom, <kbd>Q</kbd> / <kbd>E</kbd> to turn the camera, <kbd>R</kbd> turns a building, <kbd>Esc</kbd> opens this menu.</p></div>`;
+      <p><b>Around the island.</b> Drag to pan, scroll or pinch to zoom, <kbd>Q</kbd> / <kbd>E</kbd> to turn the camera, <kbd>R</kbd> turns a building, <kbd>Esc</kbd> opens this menu.</p></div>
+      ${mode === 'pause' ? `<button class="mm-link" data-act="replay"><i class="fa-solid fa-train-subway"></i> Watch the opening again</button>` : ''}`;
   }
 }
 function open(kind) {
@@ -92,6 +93,19 @@ function open(kind) {
   mode = kind; root.classList.add('show'); setLayout(); show('main');
 }
 function close() { park(); mode = null; root.classList.remove('show', 'pause'); document.body.classList.remove('menu-full', 'menu-pause'); S.speed = wasSpeed; }
+/** the menu's own dialog in place of prompt/confirm: a title, an optional line and text field, Cancel and the action; resolves
+ *  with the text (or true) on OK and null on Cancel, Esc or a click outside */
+let dlg = null;
+function ask({ title, text = '', input = null, ok = 'OK', danger = false }) {
+  return new Promise(resolve => {
+    if (!dlg) { dlg = document.createElement('div'); dlg.id = 'mm-dialog'; root.appendChild(dlg); }
+    dlg.innerHTML = `<div class="mm-dlg"><b>${esc(title)}</b>${text ? `<p>${esc(text)}</p>` : ''}${input !== null ? `<input id="mm-dlg-in" type="text" maxlength="40" value="${esc(input)}">` : ''}<div class="mm-dlg-b"><button data-dlg="no">Cancel</button><button data-dlg="ok"${danger ? ' class="warn"' : ''}>${esc(ok)}</button></div></div>`;
+    dlg.classList.add('show'); const inp = dlg.querySelector('#mm-dlg-in'); if (inp) { inp.focus(); inp.select(); }
+    const end = v => { dlg.classList.remove('show'); dlg.onclick = null; dlg.onkeydown = null; resolve(v); };
+    dlg.onclick = e => { e.stopPropagation(); const b = e.target.closest('[data-dlg]'); if (b) end(b.dataset.dlg === 'ok' ? (inp ? inp.value : true) : null); else if (e.target === dlg) end(null); };
+    dlg.onkeydown = e => { e.stopPropagation(); if (e.key === 'Enter') { e.preventDefault(); end(inp ? inp.value : true); } else if (e.key === 'Escape') end(null); };
+  });
+}
 /** the title is the full page over the island picture; the pause menu a small card over the paused town */
 function setLayout() { const p = mode === 'pause'; root.classList.toggle('pause', p); document.body.classList.toggle('menu-full', !p); document.body.classList.toggle('menu-pause', p); }
 function reloadInto(enter) { holdSaves(); try { sessionStorage.setItem('komachi.enter', enter); } catch { /* no session storage */ } location.href = location.pathname; }
@@ -105,6 +119,7 @@ root.addEventListener('click', e => {
   else if (act === 'save') { toast(save() ? 'Saved' : 'Could not save: the browser storage is full'); saveCard(); }
   else if (act === 'new' || act === 'towns' || act === 'settings' || act === 'help') show(act);
   else if (act === 'back') show('main');
+  else if (act === 'replay') { close(); if (hooks.onReplay) hooks.onReplay(); }
   else if (act === 'title') { toast(save() ? 'Saved' : 'Could not save'); mode = 'title'; setLayout(); show('main'); }
   else if (act === 'exit') { save(); window.close(); }
   else if (act === 'dice') root.querySelector('#m-seed').value = Math.floor(Math.random() * 1e9) + 1;
@@ -117,8 +132,8 @@ root.addEventListener('click', e => {
     else reloadInto('new');
   }
   else if (act === 'play' && id) { save(); setActive(id); reloadInto('continue'); }
-  else if (act === 'rename' && id) { const s = listSlots().find(x => x.id === id), n = prompt('Rename the town', s ? s.name : ''); if (n && n.trim()) { renameSlot(id, n.trim()); show('towns'); } }
-  else if (act === 'delete' && id) { const s = listSlots().find(x => x.id === id); if (confirm(`Delete ${s ? s.name : 'this town'}? It cannot be brought back.`)) { const playing = id === activeId(); deleteSlot(id); if (playing) reloadInto('title'); else show('towns'); } }
+  else if (act === 'rename' && id) { const s = listSlots().find(x => x.id === id); ask({ title: 'Rename the town', input: s ? s.name : '', ok: 'Rename' }).then(n => { if (n && n.trim()) { renameSlot(id, n.trim()); show('towns'); } }); }
+  else if (act === 'delete' && id) { const s = listSlots().find(x => x.id === id); ask({ title: `Delete ${s ? s.name : 'this town'}?`, text: 'It cannot be brought back.', ok: 'Delete', danger: true }).then(yes => { if (!yes) return; const playing = id === activeId(); deleteSlot(id); if (playing) reloadInto('title'); else show('towns'); }); }
 });
 
 /** main.js, once the town is up: the menu on a plain visit, straight in after choosing a town or an island (and in test tabs) */

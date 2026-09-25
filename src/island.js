@@ -141,7 +141,7 @@ let pierTheta = null, shoreVeg = []; const seaRocks = [], moorings = []; let pie
       if (r < 0.35) { const [x, z] = coastPoint(t, 0.4 + rng() * 0.6); for (let k = 0; k < 4; k++) veg.push(cyl(0.012, 0.02, 0.45 + rng() * 0.25, '#b9c084', x + (rng() - 0.5) * 0.2, -0.28, z + (rng() - 0.5) * 0.2, 4)); }
       if (r > 0.8) { coastPoint(t, 0.5 + rng() * 0.5); }   // (pale pebbles here floated on the water once the beach went; the draws keep the island's seed stable)
     } else {
-      if (r < 0.45) { const [x, z] = coastPoint(t, -0.25 - rng() * 0.4); veg.push(blob(0.14 + rng() * 0.1, rng() < 0.5 ? PAL.bush : PAL.bush2, x, 0.06, z, 0, 0.6)); }
+      if (!harborIsland && r < 0.45) { const [x, z] = coastPoint(t, -0.25 - rng() * 0.4); veg.push(blob(0.14 + rng() * 0.1, rng() < 0.5 ? PAL.bush : PAL.bush2, x, 0.06, z, 0, 0.6)); }
     }
   }
   // the stone quay on the first beach stretch, pointing out to sea: a pale concrete deck just below the town's ground on coursed
@@ -191,16 +191,7 @@ let pierTheta = null, shoreVeg = []; const seaRocks = [], moorings = []; let pie
     const berth = new THREE.Group(); berth.name = 'quay-boat';
     const [boatX, , boatZ] = at(len - 0.15, HW / 2 + 0.33); // beyond the beach, clear of the head and steps
     berth.position.set(boatX, -0.76, boatZ); berth.rotation.y = ang; scene.add(berth);
-    createFishingBoat().then(model => berth.add(model)).catch(err => console.warn('Komachi: quay boat model skipped', err));
-  }
-  if (harborIsland) {
-    const qx = pierInfo ? pierInfo.root.x : -5;
-    for (const [x, flip] of [[qx - 3.2, 1], [qx - 2.1, -1], [qx + 2.6, 1]]) {
-      if (x > QUAY_EAST - 1.2) continue;
-      const berth = new THREE.Group(); berth.name = 'moored-boat'; berth.position.set(x, -0.76, QUAY_Z + 0.62); berth.rotation.y = flip * Math.PI / 2;
-      scene.add(berth); createFishingBoat().then(model => berth.add(model)).catch(err => console.warn('Komachi: moored boat skipped', err));
-      moorings.push({ x, z: QUAY_Z + 0.62, r: 0.55 });
-    }
+    createFishingBoat().then(model => berth.add(hueBoat(model, 150))).catch(err => console.warn('Komachi: quay boat model skipped', err));   // a green-hulled boat at the jetty
   }
   // pebbles further out in the water
   seaRocks.length = 0;
@@ -381,8 +372,9 @@ if (harborIsland) {
   const root = key(22, 22), neighbours = k => { const [i, j] = k.split(',').map(Number); return DIRS.map(([di, dj]) => [i + di, j + dj]); };
   const passable = (i, j) => i >= 0 && j >= 0 && i < N && j < N && isLand(cx(i), cz(j)) && !terraceInfo(i, j)
     && Math.max(Math.abs(cx(i)), Math.abs(cz(j))) >= 2 && (!canalCells.has(key(i, j)) || coastCells.has(key(i, j)));
+  const ring = []; for (let i = HALF - 2; i <= HALF + 2; i++) for (let j = HALF - 2; j <= HALF + 2; j++) if (Math.max(Math.abs(i - HALF), Math.abs(j - HALF)) === 2) ring.push(key(i, j));   // the station's ring road joins everything it touches
   const connected = () => {
-    const seen = new Set([root]), q = [root];
+    const seen = new Set([root, ...ring]), q = [root, ...ring];
     for (let n = 0; n < q.length; n++) for (const [i, j] of neighbours(q[n])) { const k = key(i, j); if (coastCells.has(k) && !seen.has(k)) { seen.add(k); q.push(k); } }
     return seen;
   };
@@ -496,6 +488,32 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
     return true;
   });
   const vm = mergeMesh(keep, true); if (vm) { vm.name = 'shore-vegetation'; vm.material = swayMat; vm.castShadow = false; scene.add(vm); }
+}
+/** the fishing boats share one model and one colour map; each moored boat gets its own hue (the map redrawn through a hue
+ *  rotation once per angle), so the harbour is not a row of identical blue hulls */
+const hueMaps = new Map();
+function hueBoat(model, deg) {
+  if (!deg) return model;
+  model.traverse(o => {
+    if (!o.isMesh || !o.material || !o.material.map || !o.material.map.image) return;
+    const src = o.material.map; let tex = hueMaps.get(deg);
+    if (!tex) {
+      const img = src.image, c = document.createElement('canvas'); c.width = img.width; c.height = img.height; const ctx = c.getContext('2d');
+      ctx.filter = 'hue-rotate(' + deg + 'deg)'; ctx.drawImage(img, 0, 0);
+      tex = new THREE.CanvasTexture(c); tex.colorSpace = src.colorSpace; tex.flipY = src.flipY; tex.magFilter = src.magFilter; tex.minFilter = src.minFilter; tex.wrapS = src.wrapS; tex.wrapT = src.wrapT; hueMaps.set(deg, tex);
+    }
+    o.material = o.material.clone(); o.material.map = tex;
+  });
+  return model;
+}
+if (harborIsland) {   // fishing boats tied up along the quay wall, clear of the jetty, the ferry berth and every waterfall
+  const qx = pierInfo ? pierInfo.root.x : -5, mouths = canalMouths.map(th => coastPoint(th, 0)[0]);
+  for (const [x, flip, deg] of [[qx - 3.2, 1, 40], [qx - 2.1, -1, 200], [qx + 2.6, 1, 300]]) {
+    if (x > QUAY_EAST - 1.2 || mouths.some(mx => Math.abs(mx - x) < 2.2)) continue;
+    const berth = new THREE.Group(); berth.name = 'moored-boat'; berth.position.set(x, -0.76, QUAY_Z + 0.62); berth.rotation.y = flip * Math.PI / 2;
+    scene.add(berth); createFishingBoat().then(model => berth.add(hueBoat(model, deg))).catch(err => console.warn('Komachi: moored boat skipped', err));
+    moorings.push({ x, z: QUAY_Z + 0.62, r: 0.55 });
+  }
 }
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;

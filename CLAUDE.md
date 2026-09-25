@@ -212,7 +212,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `seatPassengers` via makePerson with `userData.rider` owners, `char.sitting`, fidgets phone | paper, `char.gaze`, startTalk), sets
   cam.view small, swaps the sky for a dark background and drops the fog; `updateOpening(dt)` sways, slides the tunnel lights and aims
   the camera itself; main.js's frame loop runs only updateCharacters, updateOpening, updateBubbles and renderFrame while `opening.active`.
-  `?opening` previews it after characterReady. Slice 2: iris wipe, skip, replay from the menu, the flow from Start.
+  `playOpening(onDone)`: RIDE 6.5 s, CLOSE 1.1 s (the #iris hole shrinks), `land()` (stopOpening, camera over the station at view 46),
+  OPEN 2.6 s (hole grows, view eases to 12), then onDone; skip via #skip-opening or Esc/Space/Enter (`finish`); body.opening hides
+  the HUD. main.js passes it as the menu's `onStart` (then shows #intro) and `onReplay` (the help page's button, pause mode only);
+  `?opening` plays it in a scratch tab after characterReady. Headless screenshots stall the page, so time the sequence by polling
+  state, not by stills.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
 - Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed
@@ -404,5 +408,5 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. ✅ Farming and fishing (complete 2026-09-23)
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
-9. Menus, saves UI, photo album, opening cinematic (train scene + iris wipe onto the island)
+9. Menus, saves UI, photo album, opening cinematic (✅ menus and saves 2026-09-24, ✅ opening cinematic 2026-09-25; photo mode and album remain)
 10. Electron desktop app: the last phase, after every feature is checked (decided 2026-09-24)
