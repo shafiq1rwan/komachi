@@ -18,6 +18,11 @@ Phases 4 and 4.5 plus the polish that went with them.
   (src/island-profile.js, `QUAY_Z`, `QUAY_EAST`, `QUAY_EASE`). Saves carry `terrainVersion`; towns saved before this keep their
   original coastline, and `?new&seed=7&terrain=1` makes one for regression checks (npm test runs on it). scripts/check-harbor.mjs
   checks six seeds against a dev server; docs/harbor-island/ holds the reports and captures.
+  Later the same day: the harbour island has no coast ring (it doubled the waterfront street and the west shore two and three
+  columns deep); its only island streets are the waterfront street and the approach from the station. The ferry slipway is a real
+  concrete ramp from the waterfront street down through the quay wall to a landing out in the basin, with stone side walls, so
+  cars drive up a slope again; the quay's walk is paved flush with the street behind a low stone kerb wall, so no tan strip of
+  the land's bevel reads as sand along the front.
 
 ### Changed
 

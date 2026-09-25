@@ -80,6 +80,17 @@ function addRichWaterfront() {
   m.castShadow = true; m.receiveShadow = true; m.userData.lookOnly = 'rich'; m.visible = S.look === 'rich'; scene.add(m);
   scene.add(waterfrontBand(-0.5, 0.29, -0.151));
   scene.add(waterfrontBand(0.14, 0.34, -0.112));
+  if (harborIsland) {   // the harbour quay: paving flush with the street over the land's bevel, and a kerb wall down to the walk
+    scene.add(waterfrontBand(-0.7, 0.165, 0.004));
+    const kw = [], kc = [], nn = 200;
+    for (let k = 0; k < nn; k++) {
+      const a = k / nn * TAU, b = (k + 1) / nn * TAU; if (coastZone((a + b) / 2) !== 'quay') continue;
+      const p = coastPoint(a, 0.165), q = coastPoint(b, 0.165), c = stones[(k * 5) % stones.length];
+      for (const v of [[p[0], 0.004, p[1]], [q[0], 0.004, q[1]], [q[0], -0.15, q[1]], [p[0], 0.004, p[1]], [q[0], -0.15, q[1]], [p[0], -0.15, p[1]]]) { kw.push(...v); kc.push(c.r, c.g, c.b); }
+    }
+    const kg = new THREE.BufferGeometry(); kg.setAttribute('position', new THREE.Float32BufferAttribute(kw, 3)); kg.setAttribute('color', new THREE.Float32BufferAttribute(kc, 3)); kg.computeVertexNormals();
+    const km = new THREE.Mesh(kg, new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 1, side: THREE.DoubleSide })); km.receiveShadow = true; km.userData.lookOnly = 'rich'; km.visible = S.look === 'rich'; scene.add(km);
+  }
 }
 const rippleLayers = []; let rippleTex = null;   // the ripple tile, shared with the canal
 /** drift the ripple textures a little each frame */
@@ -314,7 +325,9 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMout
   const stops = []; for (let k = 0; k < 8; k++) { const [x, z] = coastPoint((k + 0.5) / 8 * TAU, -3.0); stops.push([Math.floor(x + HALF), Math.floor(z + HALF)]); }   // eight stops: a rounded rectangle, corners on the diagonals
   const skipRoad = (i, j) => !!terraceInfo(i, j) || coastDist(cx(i), cz(j)) <= 0.8;
   const run = (a, b) => { const out = []; let [i, j] = a; while (i !== b[0]) { i += Math.sign(b[0] - i); out.push([i, j]); } while (j !== b[1]) { j += Math.sign(b[1] - j); out.push([i, j]); } return out; };
-  for (let k = 0; k < 8; k++) {
+  // the harbour island has no coast ring: its only island streets are the waterfront street along the quay and the approach from
+  // the station (below); everything else is the player's to draw, and the ring doubled the waterfront and the west shore
+  for (let k = 0; k < (harborIsland ? 0 : 8); k++) {
     const a = stops[k], b = stops[(k + 1) % 8];
     const viaX = run(a, b), viaZ = run(a, [a[0], b[1]]).concat(run([a[0], b[1]], b));   // corner at (b.x, a.z) or (a.x, b.z)
     const inland = path => path.reduce((m, [i, j]) => Math.min(m, coastDist(cx(i), cz(j))), 99);

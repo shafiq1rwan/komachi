@@ -199,7 +199,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   forces it): src/island-profile.js has the shared coast math (`coastRadius` clamps the south shore to the straight quay at `QUAY_Z`
   10.3 west of `QUAY_EAST` 4.5, easing back over `QUAY_EASE`; `coastZone` quay | beach | rock; water.js draws the same in GLSL via
   `uBay`). island.js: `harborIsland`, the jetty square to the quay at `pierTheta` = HARBOR_ANGLE + 0.48, `moorings` (fishing boats
-  along the wall), the waterfront street on row `coastPoint(π/2, -2)` the length of the quay plus one approach from the station,
+  along the wall), the waterfront street on row `coastPoint(π/2, -2)` the length of the quay plus one approach from the station
+  (no coast ring on the harbour island: it doubled the waterfront and the west shore; landmarks wait for the player's streets),
+  the quay walk paved flush at y 0.004 with a kerb wall to the lower walk; ferry.js layout uses `be` ≥ 1.25 so the slip landing
+  sits out past the wall and buildSlip adds stone side walls,
   ridge `HILL_STEPS` [1, .76, .5] with rock-coloured 0.1-wide banks, TERRACE 0.7. src/harbor.js `buildHarbor(ferry)`: arms from
   the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`

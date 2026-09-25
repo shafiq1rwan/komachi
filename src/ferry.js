@@ -47,7 +47,7 @@ function placeSlip() {
    *  stretch at the landing, a waterfall or the pier close by, or a sea boulder on the berth or the sailing line */
   const layout = (c, ux, uz, strict) => {
     const x0 = cx(c.i), z0 = cz(c.j);
-    const [ex, ez] = marchFrom(x0, z0, ux, uz, -0.12); const thE = Math.atan2(ez / SZ, ex / SX), be = beachExtra(thE);   // the edge sits just past the land's bevel, so the slope starts clear of it
+    const [ex, ez] = marchFrom(x0, z0, ux, uz, -0.12); const thE = Math.atan2(ez / SZ, ex / SX), be = Math.max(beachExtra(thE), harborIsland ? 1.25 : 0);   // on the harbour quay the landing is a slipway out past the wall   // the edge sits just past the land's bevel, so the slope starts clear of it
     if (coastDist(ex, ez) > 0.2) return null;   // never reached the shore
     const dl = Math.hypot(ex - x0, ez - z0); if (dl > 6.5) return null;   // the lane must reach the shore within a few cells, not run along it
     for (let k = 1; k <= Math.ceil(dl); k++) { const n = cell(c.i + ux * k, c.j + uz * k); if (!n) break; if (coastDist(cx(n.i), cz(n.j)) < 0.35) break; if (n.type !== 'empty' || (n.h || 0) > 0 || n.canal || n.block) return null; }   // and cross only free flat ground
@@ -125,6 +125,11 @@ function buildSlip() {
   const rampLen = Math.hypot(drop, 0.58), tilt = Math.atan2(0.58, drop);
   const ramp = new THREE.BoxGeometry(0.8, 0.06, rampLen + 0.1); ramp.rotateX(tilt); ramp.rotateY(ang); ramp.translate((E.x + L.x) / 2, (0.08 - 0.5) / 2 + 0.01, (E.z + L.z) / 2); g.push(colorize(ramp, PAL.concrete));
   for (const sd of [-1, 1]) { const kerb = new THREE.BoxGeometry(0.06, 0.06, rampLen + 0.1); kerb.rotateX(tilt); kerb.rotateY(ang); kerb.translate((E.x + L.x) / 2 + Math.cos(ang) * sd * 0.4, (0.08 - 0.5) / 2 + 0.05, (E.z + L.z) / 2 - Math.sin(ang) * sd * 0.4); g.push(colorize(kerb, PAL.cream2)); }
+  if (harborIsland) {   // stone side walls carry the slip out past the quay wall, down to the water
+    const len = Math.hypot(L.x - E.x, L.z - E.z), mid = 0.55, wl = len * 0.9;
+    for (const sd of [-1, 1]) g.push(box(0.07, 0.72, wl, PAL.waterfront.stone[1], E.x + ux * len * mid + Math.cos(ang) * sd * 0.43, -0.46, E.z + uz * len * mid - Math.sin(ang) * sd * 0.43, ang));
+    g.push(box(0.8, 0.5, 0.2, PAL.waterfront.stone[0], L.x + ux * 0.05, -0.78, L.z + uz * 0.05, ang));   // the toe of the slip under the landing
+  }
   for (let k = 0; k < 4; k++) g.push(box(0.04, 0.02, 0.36, k % 2 ? PAL.cream2 : '#4a4340', L.x + ux * 0.1 + Math.cos(ang) * (-0.3 + k * 0.2), -0.47, L.z + uz * 0.1 - Math.sin(ang) * (-0.3 + k * 0.2), ang));   // striped landing edge
   for (const sd of [-1, 1]) { g.push(cyl(0.025, 0.03, 0.5, PAL.lamp, x0 + Math.cos(ang) * sd * 0.46 + ux * 0.3, 0.08 + 0.25, z0 - Math.sin(ang) * sd * 0.46 + uz * 0.3, 6)); g.push(box(0.14, 0.1, 0.02, PAL.cream2, x0 + Math.cos(ang) * sd * 0.46 + ux * 0.3, 0.08 + 0.46, z0 - Math.sin(ang) * sd * 0.46 + uz * 0.3, ang)); }   // ferry signs at the lane's start
   if (ferry.yard) {   // fence round the yard with an open gate toward the slip

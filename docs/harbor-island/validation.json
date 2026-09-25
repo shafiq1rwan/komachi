@@ -5,11 +5,11 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 91,
+    "coastRoads": 24,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 390,
+    "flatPlots": 455,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 2,
@@ -23,8 +23,8 @@
     ],
     "plot": [
       [
-        7,
-        14
+        18,
+        17
       ]
     ],
     "savedVersion": 2,
@@ -53,24 +53,26 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 99,
+    "coastRoads": 36,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 374,
+    "flatPlots": 439,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 2,
     "canal": 19,
     "landmarks": [
       "lighthouse",
+      "bridge",
+      "pavilion",
       "pier",
       "fishmarket"
     ],
     "plot": [
       [
-        13,
-        12
+        21,
+        15
       ]
     ],
     "savedVersion": 2,
@@ -99,11 +101,11 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 89,
+    "coastRoads": 25,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 364,
+    "flatPlots": 426,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 4,
@@ -117,8 +119,8 @@
     ],
     "plot": [
       [
-        8,
-        14
+        18,
+        17
       ]
     ],
     "savedVersion": 2,
@@ -147,24 +149,26 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 97,
+    "coastRoads": 35,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 370,
+    "flatPlots": 435,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 2,
-    "canal": 21,
+    "canal": 20,
     "landmarks": [
       "lighthouse",
+      "bridge",
+      "pavilion",
       "pier",
       "fishmarket"
     ],
     "plot": [
       [
-        13,
-        12
+        21,
+        15
       ]
     ],
     "savedVersion": 2,
@@ -193,24 +197,26 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 93,
+    "coastRoads": 27,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 375,
+    "flatPlots": 438,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 3,
-    "canal": 20,
+    "canal": 21,
     "landmarks": [
       "lighthouse",
+      "bridge",
+      "pavilion",
       "pier",
       "fishmarket"
     ],
     "plot": [
       [
-        13,
-        13
+        18,
+        17
       ]
     ],
     "savedVersion": 2,
@@ -239,24 +245,26 @@
     "waterBayDepth": 1,
     "ready": true,
     "connected": true,
-    "coastRoads": 93,
+    "coastRoads": 26,
     "disconnectedCoast": 0,
-    "clearance": 1.6618198638691108,
+    "clearance": 1.5663213973010524,
     "armCount": 4,
-    "flatPlots": 381,
+    "flatPlots": 446,
     "cliffsOffLand": 0,
     "offLand": 0,
     "hillPlots": 2,
     "canal": 25,
     "landmarks": [
       "lighthouse",
+      "bridge",
+      "pavilion",
       "pier",
       "fishmarket"
     ],
     "plot": [
       [
-        28,
-        13
+        18,
+        17
       ]
     ],
     "savedVersion": 2,

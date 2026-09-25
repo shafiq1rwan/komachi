@@ -21,7 +21,8 @@ extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
 Since 2026-09-25 new towns use the harbour profile (`S.terrainVersion` 2, saved per town): `island-profile.js` clamps the
 south shore to a straight quay line (`QUAY_Z`) west of `QUAY_EAST`, and `water.js` applies the same clamp in the sea shader.
 `harbor.js` builds the breakwater arms from the quay's corners with the entrance in front of the ferry berth; `island.js` draws
-the stone jetty square to the quay, moors fishing boats along the wall, lays the waterfront street the length of the quay and
+the stone jetty square to the quay, moors fishing boats along the wall, lays the waterfront street the length of the quay (the
+only island street besides the approach from the station: the harbour island has no coast ring) and
 makes the hill a cliff ridge (rock-faced terrace banks, a wide summit). Older saves without a terrain version keep the original
 coast so nothing already built is moved.
 
