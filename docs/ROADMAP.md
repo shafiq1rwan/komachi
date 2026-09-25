@@ -277,6 +277,12 @@ effect through the town instead.
   wipe, the picture shrinking to a black circle and reopening from a point over the island. Built from the
   existing Kenney characters and a clip-path overlay; skippable, replayable from the menu
 
+## Mini-games (agreed 2026-09-25, gentle, nothing scored)
+
+- Fishing at the jetty (built 2026-09-25, hidden behind a flag until its bugs are fixed): cast, wait for the bite, strike; catches open the fish stall
+- Festival stalls (goldfish scooping, ring toss), a spotting album with photo mode, the postman's round, garden tending,
+  lighting the shrine lanterns, piloting the ferry through the harbour entrance
+
 ## ⬜ Phase 10 — Desktop app (the last phase)
 
 - **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native

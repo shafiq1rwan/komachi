@@ -11,6 +11,7 @@ import { S } from './state.js';
 import { poseBikeRider } from './bikes.js';
 import { updateCharacterProp, clearCharacterProp } from './character-props.js';
 import { updateTeaDrink, aimArm } from './tea-can.js';
+import { posePhone } from './phone-pose.js';
 
 const SCALE = 0.46;                 // the models are ~0.67 tall: 0.31 here, and sim.js scales the whole person group to 0.85 (about 0.26, well under a door)
 const SIT_LIFT = 0.09 - 0.026 * SCALE;   // the sit clip drops the root 0.15 and the hips rest at 0.176 (model units); the seated underside (legs out) is then ~0.025 above the group (world.js SIT_DROP for benches; the bike saddle has its own offset)
@@ -242,7 +243,7 @@ export function updateCharacters(simDt0) {
       if (c.head && c.gazeBlend > 0.01) c.head.quaternion.multiply(qTurn.setFromAxisAngle(Y, (c.gazeHeld || 0) * c.gazeBlend));
       const it = c.item && c.item.userData.handItem ? c.item : null;
       if (c.fidget === 'phone' && it) {   // the phone held in front of the chest, screen tilted up to the face; the right arm reaches to it
-        it.position.set(-0.04, 0.2 + c.root.position.y, 0.1); it.rotation.set(0.65, Math.PI, 0); c.grp.updateWorldMatrix(true, true); if (c.armR) aimArm(c, c.armR, it.position);   // chest height, turned round: the screen faces the reader, tilted up to the face
+        posePhone(c);
         if (c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.42));
       } else if (c.fidget === 'paper' && it) {   // the paper open in both hands
         it.position.set(0, 0.19 + c.root.position.y, 0.11); it.rotation.set(0.5, Math.PI, 0);   // front page toward the reader c.grp.updateWorldMatrix(true, true);

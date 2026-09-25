@@ -10,6 +10,11 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Fishing at the jetty, the first mini-game (2026-09-25, src/minigame-fishing.js): zoom in on the stone jetty and a "Cast a line"
+  button floats over its head; a card at the bottom has one button: Cast, then strike when the float dips (rings spread on the
+  water). A catch opens the fish stall at the market and the first goes into the chronicle; a miss just lets the float settle;
+  an old boot goes back. Esc or "Enough for today" ends it. Nothing is scored. Hidden for now (`ENABLED` false in the module; the
+  user found it buggy on 2026-09-25): `MT.startFishing()` still runs it for testing.
 - Background music (2026-09-25, src/audio.js): three loops from assets/audio/bgm, crossfaded by the moment: `menu.mp3` while the
   title or pause menu is open (and through the opening's train ride), `raining.mp3` while it rains, `night.mp3` after dusk; a clear
   day is silent until a day track exists. Playback starts on the first click or key, as browsers require. Settings has a Music
@@ -41,7 +46,8 @@ Phases 4 and 4.5 plus the polish that went with them.
 - The hover and selection highlight on a building is a thin cream outline round each plot instead of a solid mint slab (2026-09-25).
 - Music: the menu loop also plays through the day and the night in town for now; only rain switches the track. night.mp3 is kept in
   the folder but not bundled (2026-09-25).
-- Menus (2026-09-25): a tighter pause card (less padding, a smaller heading); the title's footer (version, motto) sits in a small
+- Menus (2026-09-25): on phones the pause card no longer inherits the title page's 40 px top padding (the two rules had equal
+  weight and the phone one came last); a tighter pause card (less padding, a smaller heading); the title's footer (version, motto) sits in a small
   card; rename and delete use the menu's own dialog card (`ask()` in title.js, #mm-dialog) instead of the browser's prompt and
   confirm; the help page offers "Watch the opening again" while playing.
 - Harbour island (2026-09-25): the moored fishing boats each have their own hull colour (the shared colour map redrawn through a

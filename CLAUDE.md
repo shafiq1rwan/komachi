@@ -207,6 +207,13 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
+- Mini-games (2026-09-25): src/minigame-fishing.js, the jetty fishing game, HIDDEN (`ENABLED` false: no invitation button; the user
+  reported bugs, not yet described; `MT.startFishing()` still works for testing). `updateFishingGame(dt)` from the main loop shows #fish-near
+  (projected over `pierFrame().at(len - 0.1, 0)` when cam.view < 9 and the target is within 5) and runs phases idle → cast (0.9 s arc
+  to `P.at(len + 0.55, 0.15)` at WATER_Y) → wait (bite after 2–7 s) → bite (1.1 s window) → catch (0.8 s) → idle, or settle on a miss;
+  #fishing card with #fish-tap / #fish-sub / #fish-end; body.fishing hides the dock; a catch calls landmarks.js `setFishStall(true)`
+  and records the first. Dev hooks `MT.startFishing`, `MT.stopFishing`, `MT.fishingGame` (set `biteAt = 0` to force a bite).
+  Other ideas agreed as candidates: festival stalls, a spotting album with photo mode, a postal round, garden tending, lantern lighting, ferry piloting.
 - Music (2026-09-25, src/audio.js): TRACKS menu | night | rain from assets/audio/bgm (imported with `?url`, streamed by HTMLAudio,
   `preload none`; vite.config.js keeps mp3/ogg out of the service worker's precache); `updateAudio(dt, { menu, rain, night })` every
   frame from main.js (menu-full path passes { menu: true }, the opening too; the town path menuOpen() / W.rain > 0.25 / daylight() < 0.35),

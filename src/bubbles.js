@@ -33,7 +33,7 @@ export function updateBubbles(realT) {
   if (cam.view > 20) { for (const child of [...el.children]) child.remove(); return; }
   for (const t of talks) {
     const beat = Math.floor((realT + t.t0 * 37) / 1.1) % 2, who = beat ? t.b : t.a;   // the speakers alternate
-    const p = who.mesh.position; v.copy(p); v.y += 0.5; v.project(camera);
+    who.mesh.getWorldPosition(v); v.y += who.passenger ? 0.34 : 0.5; v.project(camera);
     let node = t.node; if (!node || node.parentNode !== el) { node = document.createElement('div'); node.className = 'bubble'; node.__talk = t; t.node = node; el.appendChild(node); }
     const off = v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2; node.style.display = off ? 'none' : '';
     if (off) continue;
