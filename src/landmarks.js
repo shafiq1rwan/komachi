@@ -9,10 +9,10 @@
 import * as THREE from 'three';
 import { scene, cx, cz, HALF } from './scene.js';
 import { cells, cell, rebuildDecor, landmarkTrees, terrainY, placeCarPark, DIR4, joinedToTown } from './world.js';
-import { coastDist, shoreKind, pierAngle, canalMouths, islandEllipse, radius, pierFrame } from './island.js';
+import { coastDist, shoreKind, pierAngle, canalMouths, islandEllipse, radius, pierFrame, harborIsland, cellHash } from './island.js';
 import { createStreetFurniture } from './street-furniture.js';
 import { createBike } from './bikes.js';
-import { box, cyl, colorize, mergeMesh } from './geometry.js';
+import { box, cyl, blob, colorize, mergeMesh } from './geometry.js';
 import { createFestivalLandmark } from './festival-landmark-kit.js';
 import { snowKit } from './geometry.js';
 import { PAL } from './palette.js';
@@ -69,6 +69,15 @@ function placeLighthouse() {
   lens = g.getObjectByName('Lighthouse_Lens');
   if (lens) { lens.material = lens.material.clone(); lens.material.emissive = new THREE.Color(PAL.lampGlow); lens.material.emissiveIntensity = 0; }
   snowKit(g, lens ? [lens] : null); scene.add(g); g.updateMatrixWorld(true);
+  if (harborIsland) {   // the harbour town's lighthouse stands on a rocky point: boulders piled round its seaward foot and out into the water
+    const rocks = [], side = new THREE.Vector3(-out.z, 0, out.x);
+    for (let k = 0; k < 9; k++) {
+      const h = cellHash(best.i + k, best.j * 3 + k), d = 0.55 + (k % 3) * 0.45, s = (h - 0.5) * 2.4, r = 0.32 + h * 0.3;
+      const q = p.clone().addScaledVector(out, d).addScaledVector(side, s);
+      rocks.push(blob(r, biome.rock[k % 2], q.x, -0.62 + Math.min(0.42, d * 0.18) - k * 0.02, q.z, 0, 0.8 + h * 0.4));
+    }
+    const rm = mergeMesh(rocks, true); if (rm) { rm.castShadow = true; rm.receiveShadow = true; scene.add(rm); }
+  }
   // the sweeping beams: two long flat wedges from the lens, additive, fading toward their tips
   const geo = new THREE.BufferGeometry(), L = 4.2, W0 = 0.05, W1 = 0.42, pos = [], col = [];
   for (const s of [1]) {   // one beam; it dims as it swings over the land (a lamp shield on the town side)

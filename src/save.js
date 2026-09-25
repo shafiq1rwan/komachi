@@ -19,7 +19,7 @@ export function snapshot() {
   const town = blocks.filter(b => b.type !== 'station');
   const ref = u => { if (!u) return null; const bi = town.indexOf(u.block); return bi < 0 ? null : [bi, u.block.units.indexOf(u)]; };
   return {
-    v: 3, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, chronicle: chronicle.slice(), weather: weatherSnapshot(),
+    v: 3, terrainVersion: S.terrainVersion, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, chronicle: chronicle.slice(), weather: weatherSnapshot(),
     roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     parks: cells.filter(c => c.park === 'public').map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),

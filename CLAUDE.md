@@ -11,6 +11,7 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
+node scripts/capture-readme.mjs   # after a build: retakes the five docs/screenshot-*.png used by the README
 npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
 ```
 
@@ -92,6 +93,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   hold claims or win tie-breaks; `heldSince` > 1 game h lets a held car edge on. Trips take `routeVaried(srcs, dsts, drive)`
   (Dijkstra, Float64 costs: jitter per trip, turn 0.35, busy cells and signals for drivers); `routeCells` stays the cached BFS for
   reachability and distances. Test motion with `MT.fastForward(h, 0.00167)`: the default 0.04 h step moves a car ~1 unit per step.
+- Station stairs (2026-09-25): `STATION.stairTop` / `stairFoot` (0.30 below the plaza) and `stationStairs(up)` in world.js; sim.js
+  `comeUpStairs(r, then)` (arrivals, `then` at the entrance) and `goDownStairs(r, label, then)` (via plazaDetour, `then` at the
+  foot) wrap spawnNewcomer, returnFromCity, waitDecide and departForCity; tourists' `t.leave` and construction's `walkToSite` take the
+  same points. `buildPoints` keeps any non-zero point height (the foot is below ground), so only exactly 0 means "ground".
+  Builder's truck return (construction.js): yard → station side → the farthest reachable road cell, `tr.road` remembers the site's street.
+  bikes.js `poseBikeRider`: `userData.pedalBlend` / `lastPhase` ease the pedal swing out whenever the crank is not turning (2026-09-25).
 - Time: `S.T` in game hours, `HPS = 0.1` hours per real second. One day ≈ 4 real minutes.
 - People are Kenney Mini Characters by default (CC0, `assets/characters/kenney/`, adopted 2026-09-17);
   `?boxes` brings back the original box people. Loaded via `src/characters.js`: atlas baked to vertex
@@ -188,6 +195,15 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Rich look buildings (2026-09-23): src/rich-buildings.js `genRichBuilding` (slate hip-roof house) is used only for one-cell detached homes and
   villas; shops, workspaces and every other home keep their own generators in the rich look too, so 1/2/3-cell tiers, kinds, finishes and
   facades still read. The rich HUD reskin in styles.css sits under `body.rich-hud` (never set): the rich look uses the standard HUD.
+- Harbour island (2026-09-25, default for every new town, `S.terrainVersion` 2; saves without it keep the old coastline, `?terrain=1`
+  forces it): src/island-profile.js has the shared coast math (`coastRadius` clamps the south shore to the straight quay at `QUAY_Z`
+  10.3 west of `QUAY_EAST` 4.5, easing back over `QUAY_EASE`; `coastZone` quay | beach | rock; water.js draws the same in GLSL via
+  `uBay`). island.js: `harborIsland`, the jetty square to the quay at `pierTheta` = HARBOR_ANGLE + 0.48, `moorings` (fishing boats
+  along the wall), the waterfront street on row `coastPoint(π/2, -2)` the length of the quay plus one approach from the station,
+  ridge `HILL_STEPS` [1, .76, .5] with rock-coloured 0.1-wide banks, TERRACE 0.7. src/harbor.js `buildHarbor(ferry)`: arms from
+  the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
+  outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
+  against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
 - Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed
@@ -335,6 +351,8 @@ Decisions already made (do not reopen without asking):
 - Phase 3 model: households (`hh` on every resident), needs 0–1 shown only as words, `decide()` scores
   options at `r.next`, trips carry a `purpose`, save slot `komachi.save` (v1) via `src/save.js`;
   `state.js` reads the saved seed before island.js runs. Name-tags toggle removed; tags follow/pin only.
+
+Known bugs the user has reported but not had fixed yet are listed in docs/BUGS.md: read it at the start of a session.
 
 Open threads the user has not decided:
 - Nothing else pending from Phase 3; Phase 3.5 (hill terraces) is done.

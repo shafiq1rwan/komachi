@@ -36,7 +36,7 @@ try {
   const errors = []; page.on('pageerror', e => errors.push(e.message)); page.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
 
   // ── interaction on an empty island ──
-  await page.goto(`http://localhost:${PORT}/?seed=7&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);   // a fixed island keeps the checks deterministic; the checks run in the lighter classic look (same simulation, far quicker frames under software GL), the screenshots in the standard one
+  await page.goto(`http://localhost:${PORT}/?seed=7&terrain=1&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(800);   // fixed legacy plot coordinates also cover older saved towns; check-harbor.mjs covers the new default terrain
   let s = await page.evaluate(() => ({ blocks: MT.blocks.length, type: MT.blocks[0]?.type, centre: MT.cell(20, 20).type, ring: MT.cell(20, 22).type }));
   check('station is placed at the centre with a ring road', s.blocks === 1 && s.type === 'station' && s.centre === 'lot' && s.ring === 'road', JSON.stringify(s));
   await page.evaluate(() => MT.fastForward(6));
@@ -139,7 +139,7 @@ try {
   await page.evaluate(() => MT.clearSave());
 
   // ── demo town screenshots ──
-  await page.goto(`http://localhost:${PORT}/?demo&seed=7&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
+  await page.goto(`http://localhost:${PORT}/?demo&seed=7&terrain=1&look=classic`, { waitUntil: 'networkidle0', timeout: 60000 }); await sleep(2000);
   // the screenshots show the standard (rich) look: post chain on, it must keep rendering
   const rich0 = await page.evaluate(() => { MT.setLook('rich'); return MT.T; }); await sleep(2500);
   await page.screenshot({ path: 'scripts/out/day.png' });

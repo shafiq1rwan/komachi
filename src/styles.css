@@ -168,7 +168,7 @@
   #menu .mm-bg{position:absolute;inset:0;background-size:cover;background-position:62% 50%}
   #menu .mm-bg::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,rgba(251,246,238,.97) 0,rgba(251,246,238,.9) 30%,rgba(251,246,238,.5) 42%,rgba(251,246,238,0) 56%)}
   #menu .mm-side{position:relative;z-index:1;height:100%;box-sizing:border-box;width:min(470px,100%);padding:44px 40px 22px 64px;display:flex;flex-direction:column;gap:14px;overflow:auto;scrollbar-width:thin}
-  #menu .mm-logo{margin:0 0 2px;line-height:0}#menu .mm-logo img{width:min(340px,100%);height:auto}
+  #menu .mm-logo{margin:0 0 2px;line-height:0}#menu .mm-logo img{width:min(240px,100%);height:auto}
   #menu .mm-blurb{margin:0 0 6px;font-size:15px;line-height:1.5;color:#5b534e;font-weight:600;max-width:340px}
   #menu .mm-page{display:flex;flex-direction:column;gap:10px}
   #menu .mm-list{display:flex;flex-direction:column;gap:9px}
@@ -220,14 +220,14 @@
   #options.in-menu .opt-head{display:none}
   @media (max-width:720px){
     #menu .mm-bg{background-position:70% 100%;background-size:auto 62%;background-repeat:no-repeat;background-color:#a9c3c6}#menu .mm-bg::after{background:linear-gradient(180deg,rgba(251,246,238,.98) 0,rgba(251,246,238,.95) 48%,rgba(251,246,238,.6) 64%,rgba(251,246,238,0) 80%)}
-    #menu .mm-side{width:100%;padding:26px 18px 16px;gap:11px}#menu .mm-logo img{width:min(220px,70%)}#menu .mm-blurb{font-size:13.5px}
+    #menu .mm-side{width:100%;padding:26px 18px 16px;gap:11px}#menu .mm-logo img{width:min(170px,56%)}#menu .mm-blurb{font-size:13.5px}
     #menu .mm-btn{padding:11px 13px}#menu .mm-btn.main{padding:14px}#menu .mm-btn b{font-size:15px}#menu .mm-btn.main b{font-size:17px}
     #menu .mm-slogan,#menu .mm-motto{display:none}#menu .mm-thumb{width:104px;height:58px}#menu .mm-stats{gap:10px}
     /* the whole island in the middle band, sized by the width (the picture is landscape): sea above it for the logo, cream below for the buttons */
     #menu[data-screen="main"] .mm-bg{background-size:200% auto;background-position:80% 28%;background-repeat:no-repeat;background-color:#a3c1c2}
     #menu[data-screen="main"] .mm-bg::after{background:linear-gradient(180deg,rgba(236,241,236,.55) 0,rgba(236,241,236,.15) 14%,rgba(251,246,238,0) 22%,rgba(251,246,238,0) 50%,rgba(251,246,238,.75) 58%,rgba(251,246,238,.97) 64%,#fbf6ee 70%)}
     #menu[data-screen="main"] .mm-side{padding:40px 22px 18px;gap:10px}
-    #menu[data-screen="main"] .mm-logo{text-align:center}#menu[data-screen="main"] .mm-logo img{width:min(300px,86%)}
+    #menu[data-screen="main"] .mm-logo{text-align:center}#menu[data-screen="main"] .mm-logo img{width:min(210px,64%)}
     #menu[data-screen="main"] .mm-blurb,#menu[data-screen="main"] .mm-card,#menu .desk-only{display:none!important}
     #menu[data-screen="main"] .mm-page{margin-top:auto}
     #menu .mm-btn.main{justify-content:center;padding:16px 18px;border-radius:16px}#menu .mm-btn.main>i:first-child{font-size:26px;width:30px}#menu .mm-btn.main .mm-go{display:none}
@@ -264,7 +264,7 @@
   #loading::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(251,246,238,.93) 0,rgba(251,246,238,.82) 32%,rgba(251,246,238,.35) 70%,rgba(251,246,238,.2) 100%)}
   #loading.gone{opacity:0;pointer-events:none}
   #loading .ld-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;width:min(420px,calc(100vw - 48px))}
-  #loading .ld-mark{width:min(360px,86%);height:auto}
+  #loading .ld-mark{width:min(250px,64%);height:auto}
   #loading .ld-bar{width:100%;height:8px;border-radius:6px;background:rgba(74,67,64,.12);overflow:hidden}
   #loading .ld-bar i{display:block;height:100%;width:0;border-radius:6px;background:#6f9468;transition:width .2s linear}
   #loading .ld-line{margin:0;font-weight:800;font-size:14px;color:#5b534e;min-height:1.4em;text-align:center}

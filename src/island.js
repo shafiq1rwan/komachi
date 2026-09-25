@@ -10,6 +10,7 @@ import { scene, HALF, N, cx, cz } from './scene.js';
 import { biome } from './biome.js';
 import { createLandmark } from './landmark-kit.js';
 import { createFishingBoat } from './watercraft.js';
+import { coastRadius, coastZone, HARBOR_ANGLE, angleDistance, QUAY_Z, QUAY_EAST } from './island-profile.js';
 
 function mulberry(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
 const rng = mulberry(S.seed);
@@ -17,19 +18,22 @@ const rng = mulberry(S.seed);
 const R0 = HALF - 4.6;                       // base radius; the grid must contain the whole coast
 const SX = 1.08, SZ = 0.94;                  // gentle ellipse so the island is not a circle
 const harm = [[2, rng() * 6.28, 2.2], [3, rng() * 6.28, 1.5], [5, rng() * 6.28, 0.75], [8, rng() * 6.28, 0.3]];
+const harborIsland = S.terrainVersion >= 2;
+// A stable bay/ridge composition with seeded variation in the headlands, not a randomly rotating port.
+if (harborIsland) for (const h of harm) h[2] *= 0.48;
 const shorePhase = [rng() * 6.28, rng() * 6.28];
 const TAU = Math.PI * 2;
 const DIRS = [[0, -1], [1, 0], [0, 1], [-1, 0]];
 
-function radius(theta) { let r = R0; for (const [k, p, a] of harm) r += a * Math.sin(k * theta + p); return r; }
+function radius(theta) { return coastRadius(theta, R0, harm, harborIsland, SX, SZ); }
 function coastPoint(theta, extra = 0) { const r = radius(theta) + extra; return [Math.cos(theta) * r * SX, Math.sin(theta) * r * SZ]; }
 /** Signed distance-ish to the coast: positive inland, negative out to sea (in radial units). */
 function coastDist(x, z) { const theta = Math.atan2(z / SZ, x / SX); return radius(theta) - Math.hypot(x / SX, z / SZ); }
 const isLand = (x, z) => coastDist(x, z) > 0.8;
 function shoreValue(theta) { return Math.sin(3 * theta + shorePhase[0]) + 0.7 * Math.sin(4 * theta + shorePhase[1]) + biome.shoreBias; }
-function shoreKind(theta) { const v = shoreValue(theta); return v > 0.35 ? 'beach' : v < -0.55 ? 'rock' : 'grass'; }
+function shoreKind(theta) { if (harborIsland) { const zone = coastZone(theta); return zone === 'quay' ? 'grass' : zone; } const v = shoreValue(theta); return v > 0.35 ? 'beach' : v < -0.55 ? 'rock' : 'grass'; }
 /** beach terrace width: wide sandy beaches where the shore value is high, a narrow lip along rocky and grassy stretches */
-function beachExtra(theta) { const v = Math.max(0, Math.min(1, (shoreValue(theta) + 0.2) / 1.2)); return 0.3 + v * v * 1.2; }
+function beachExtra(theta) { if (harborIsland) return coastZone(theta) === 'beach' ? 1.05 : coastZone(theta) === 'quay' ? 0.05 : 0.14; const v = Math.max(0, Math.min(1, (shoreValue(theta) + 0.2) / 1.2)); return 0.3 + v * v * 1.2; }
 function polygon(extra, n = 180) {
   const s = new THREE.Shape();
   for (let k = 0; k < n; k++) { const t = k / n * TAU; const [x, z] = coastPoint(t, typeof extra === 'function' ? extra(t) : extra); if (k === 0) s.moveTo(x, z); else s.lineTo(x, z); }
@@ -46,6 +50,7 @@ function waterfrontBand(inner, outer, y, n = 240) {
   };
   for (let k = 0; k < n; k++) {
     const a = k / n * TAU, b = (k + 1) / n * TAU;
+    if (harborIsland && coastZone((a + b) / 2) !== 'quay') continue;
     const p = coastPoint(a, inner), q = coastPoint(b, inner), r = coastPoint(b, outer), s = coastPoint(a, outer);
     quad([p[0], y, p[1]], [q[0], y, q[1]], [r[0], y, r[1]], [s[0], y, s[1]], shades[k % shades.length]);
   }
@@ -62,6 +67,7 @@ function addRichWaterfront() {
     const top = -0.16 - row * 0.165, bottom = top - 0.163;
     for (let k = 0; k < n; k++) {
       const a = (k + (row % 2) * 0.5) / n * TAU, b = (k + 1 + (row % 2) * 0.5) / n * TAU;
+      if (harborIsland && coastZone((a + b) / 2) !== 'quay') continue;
       const p = coastPoint(a, 0.28), q = coastPoint(b, 0.28), c = stones[(k * 7 + row * 3) % stones.length];
       for (const v of [[p[0], top, p[1]], [q[0], top, q[1]], [q[0], bottom, q[1]], [p[0], top, p[1]], [q[0], bottom, q[1]], [p[0], bottom, p[1]]]) {
         wall.push(...v); colors.push(c.r, c.g, c.b);
@@ -85,10 +91,10 @@ function updateWater(dt) { tickWater(dt); for (const l of rippleLayers) { l.t.of
   const land = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(0), { depth: 1.5, bevelEnabled: true, bevelThickness: 0.2, bevelSize: 0.2, bevelSegments: 2 }), [landTop, mat(PAL.landSide)]);
   land.rotation.x = Math.PI / 2; land.position.y = -0.2; land.receiveShadow = true; land.userData.lookColors = { classic: biome.grass, rich: '#9db68a' }; scene.add(land);
   const beach = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(beachExtra), { depth: 0.4, bevelEnabled: true, bevelThickness: 0.08, bevelSize: 0.08, bevelSegments: 1 }), mat(biome.sand));
-  beach.rotation.x = Math.PI / 2; beach.position.y = -0.58; beach.receiveShadow = true; beach.userData.lookOnly = 'classic'; beach.visible = S.look !== 'rich'; scene.add(beach);
+  beach.rotation.x = Math.PI / 2; beach.position.y = -0.58; beach.receiveShadow = true; if (!harborIsland) beach.userData.lookOnly = 'classic'; beach.visible = harborIsland || S.look !== 'rich'; scene.add(beach);
   const foam = new THREE.Mesh(new THREE.ExtrudeGeometry(polygon(t => beachExtra(t) + 0.6), { depth: 0.1, bevelEnabled: false }), mat(PAL.foam));
   foam.rotation.x = Math.PI / 2; foam.position.y = -0.7; foam.userData.lookOnly = 'classic'; foam.visible = S.look !== 'rich'; scene.add(foam);
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), makeSeaMaterial(harm, R0, SX, SZ));   // calm bay water, shaded in water.js
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(600, 600), makeSeaMaterial(harm, R0, SX, SZ, harborIsland));   // calm bay water, shaded in water.js
   water.rotation.x = -Math.PI / 2; water.position.y = -0.78; water.receiveShadow = true; water.name = 'sea'; scene.add(water);
   addRichWaterfront();
   // the ripple tile (blurry lighter blobs): the canal's drifting overlay uses it; the sea draws its own waves in water.js
@@ -105,13 +111,18 @@ function updateWater(dt) { tickWater(dt); for (const l of rippleLayers) { l.t.of
 }
 
 // ── shoreline props: rocks, reeds, cliff grass, a pier and a boat ──
-let pierTheta = null, shoreVeg = []; const seaRocks = []; let pierInfo = null;   // pierInfo: the stone quay's frame, deck height and fishing spots (landmarks.js)   // seaRocks: boulders out in the water {x, z, r}, for the ferry to steer clear of
+let pierTheta = null, shoreVeg = []; const seaRocks = [], moorings = []; let pierInfo = null;   // moorings: boats tied up along the quay {x, z, r}   // pierInfo: the stone quay's frame, deck height and fishing spots (landmarks.js)   // seaRocks: boulders out in the water {x, z, r}, for the ferry to steer clear of
 {
   const solid = [], veg = [];
-  pierTheta = null;
+  pierTheta = harborIsland ? HARBOR_ANGLE + 0.48 : null;
   for (let t = 0; t < TAU; t += 0.045) {
     const kind = shoreKind(t), r = rng();
     if (kind === 'rock') {
+      if (harborIsland) {
+        // Broad interlocking faces rather than a necklace of small pebbles; no boulders in the working bay.
+        const [x, z] = coastPoint(t, 0.12 + r * 0.18), size = 0.46 + r * 0.36;
+        solid.push(blob(size, biome.rock[r < 0.5 ? 0 : 1], x, -0.42, z, 0, 0.95 + r * 0.35));
+      }
       if (r < 0.7) { const [x, z] = coastPoint(t, 0.1 + rng() * 0.9); solid.push(blob(0.22 + rng() * 0.38, biome.rock[rng() < 0.5 ? 0 : 1], x, -0.55 + rng() * 0.3, z, 0, 0.55 + rng() * 0.3)); }
       if (r < 0.25) { const [x, z] = coastPoint(t, -0.3); solid.push(blob(0.18 + rng() * 0.2, biome.rock[0], x, 0.05, z, 0, 0.6)); }
     } else if (kind === 'beach') {
@@ -126,7 +137,8 @@ let pierTheta = null, shoreVeg = []; const seaRocks = []; let pierInfo = null;  
   // stone walls, a T-head at the end with steps down to the water on one side, bollards along the edges and a lamp on the head;
   // the little boat is moored alongside. People fish from its edges (landmarks.js reads pierInfo)
   if (pierTheta !== null) {
-    const [ax, az] = coastPoint(pierTheta, -0.45), [bx, bz] = coastPoint(pierTheta, 2.3);
+    let [ax, az] = coastPoint(pierTheta, -0.45), [bx, bz] = coastPoint(pierTheta, 2.3);
+    if (harborIsland) { const px = coastPoint(pierTheta, 0)[0]; ax = bx = px; az = QUAY_Z - 0.45; bz = QUAY_Z + 2.3; }   // square to the straight quay
     const dx = bx - ax, dz = bz - az, len = Math.hypot(dx, dz), ang = Math.atan2(dx, dz);
     const fx = Math.sin(ang), fz = Math.cos(ang), sx = Math.cos(ang), sz = -Math.sin(ang);   // along the quay, and across it
     const W = 0.72, D = -0.147, BOT = -0.9, HW = 1.5, HD = 0.62;   // slab surface meets the waterfront coping at -0.112
@@ -170,9 +182,18 @@ let pierTheta = null, shoreVeg = []; const seaRocks = []; let pierInfo = null;  
     berth.position.set(boatX, -0.76, boatZ); berth.rotation.y = ang; scene.add(berth);
     createFishingBoat().then(model => berth.add(model)).catch(err => console.warn('Komachi: quay boat model skipped', err));
   }
+  if (harborIsland) {
+    const qx = pierInfo ? pierInfo.root.x : -5;
+    for (const [x, flip] of [[qx - 3.2, 1], [qx - 2.1, -1], [qx + 2.6, 1]]) {
+      if (x > QUAY_EAST - 1.2) continue;
+      const berth = new THREE.Group(); berth.name = 'moored-boat'; berth.position.set(x, -0.76, QUAY_Z + 0.62); berth.rotation.y = flip * Math.PI / 2;
+      scene.add(berth); createFishingBoat().then(model => berth.add(model)).catch(err => console.warn('Komachi: moored boat skipped', err));
+      moorings.push({ x, z: QUAY_Z + 0.62, r: 0.55 });
+    }
+  }
   // pebbles further out in the water
   seaRocks.length = 0;
-  for (let k = 0; k < 14; k++) { const t = rng() * TAU; const [x, z] = coastPoint(t, 2.4 + rng() * 3), r = 0.25 + rng() * 0.45; solid.push(blob(r, biome.rock[1], x, -0.76, z, 0, 0.5)); seaRocks.push({ x, z, r }); }
+  for (let k = 0; k < 14; k++) { const t = rng() * TAU; const [x, z] = coastPoint(t, 2.4 + rng() * 3), r = 0.25 + rng() * 0.45; if (harborIsland && angleDistance(t, HARBOR_ANGLE) < 0.95) continue; solid.push(blob(r * (harborIsland ? 1.7 : 1), biome.rock[1], x, -0.76, z, 0, harborIsland ? 1.2 : 0.5)); seaRocks.push({ x, z, r: r * (harborIsland ? 1.7 : 1) }); }
   const sm = mergeMesh(solid, true); if (sm) scene.add(sm);
   shoreVeg = veg;   // merged once the canal is known, so nothing grows in its mouth
 }
@@ -180,15 +201,15 @@ let pierTheta = null, shoreVeg = []; const seaRocks = []; let pierInfo = null;  
 // ── the hill: cell-aligned terraces opposite the pier. Each hill cell sits wholly on one terrace, so every
 //    terrace cell is a flat plot at its own height; retaining walls run along cell edges. Some cells stay wild
 //    and wooded, the summit keeps its shrine, and one slope road per lip on the town side joins the terraces. ──
-const TERRACE = 0.55, HILL_STEPS = [1, 0.64, 0.3];
-const hillTheta = pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
+const TERRACE = harborIsland ? 0.7 : 0.55, HILL_STEPS = harborIsland ? [1, 0.76, 0.5] : [1, 0.64, 0.3];   // the harbour town's ridge keeps a broad wooded plateau
+const hillTheta = harborIsland ? -Math.PI / 2 : pierTheta !== null ? pierTheta + Math.PI : rng() * TAU;
 const [HX, HZ] = coastPoint(hillTheta, -0.34 * radius(hillTheta));   // far enough out that the town around the station stays flat
-const HR = 4.7, hillPhase = [rng() * TAU, rng() * TAU];
+const HR = harborIsland ? 5.4 : 4.7, hillPhase = [rng() * TAU, rng() * TAU];
 const hct = Math.cos(hillTheta), hst = Math.sin(hillTheta);
 const shrineDir = Math.abs(hct) >= Math.abs(hst) ? [-Math.sign(hct) || -1, 0] : [0, -Math.sign(hst) || -1];   // the slope roads' axis, toward the town: the shrine faces along it
 function hillOutline(a) { return HR * (1 + 0.12 * Math.sin(2 * a + hillPhase[0]) + 0.07 * Math.sin(3 * a + hillPhase[1])); }
 function hillFrac(x, z) {
-  const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / 0.9, v = (-dx * hst + dz * hct) / 1.3;   // squashed radially, stretched along the shore
+  const dx = x - HX, dz = z - HZ, u = (dx * hct + dz * hst) / (harborIsland ? 0.78 : 0.9), v = (-dx * hst + dz * hct) / (harborIsland ? 1.65 : 1.3);   // squashed radially, stretched along the shore
   return Math.hypot(u, v) / hillOutline(Math.atan2(v, u));
 }
 function hillLevel(x, z) { const f = hillFrac(x, z); return f < HILL_STEPS[2] ? 3 : f < HILL_STEPS[1] ? 2 : f < HILL_STEPS[0] ? 1 : 0; }
@@ -221,13 +242,16 @@ const ramps = [];
 }
 /** what the grid should make of cell (i, j): null off the hill, else { level, ramp, keep, wild } */
 function terraceInfo(i, j) {
+  if (harborIsland && !isLand(cx(i), cz(j))) return null;
   for (const r of ramps) {
     if (r.R.i === i && r.R.j === j) return { level: r.level, ramp: r, keep: true, wild: false };
     if (r.H.i === i && r.H.j === j) return { level: r.level + 1, ramp: null, keep: true, wild: false };
     if (r.L.i === i && r.L.j === j) return { level: r.level, ramp: null, keep: true, wild: false };
   }
   const level = hillLevel(cx(i), cz(j)); if (!level) return null;
-  return { level, ramp: null, keep: false, wild: level === 3 || cellHash(i, j) < 0.38 };
+  const roadside = harborIsland && level < 3 && ramps.some(r =>
+    [[r.H, r.level + 1], [r.L, r.level]].some(([c, h]) => h === level && Math.abs(c.i - i) + Math.abs(c.j - j) === 1));
+  return { level, ramp: null, keep: false, wild: !roadside && (level === 3 || cellHash(i, j) < (harborIsland ? 0.64 : 0.38)) };
 }
 const buildableTerrace = info => !!info && !info.keep && !info.wild;
 {
@@ -242,10 +266,11 @@ const buildableTerrace = info => !!info && !info.keep && !info.wild;
       const ni = i + di, nj = j + dj, nInfo = terraceInfo(ni, nj), nl = nInfo ? nInfo.level : 0;
       if (nl >= info.level || (nInfo && nInfo.ramp)) continue;
       const drop = (info.level - nl) * TERRACE, base = nl * TERRACE;
-      const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(0.3, 0); sh.lineTo(0, drop); sh.closePath();   // a shallow bank from the flat plot down to the next level
+      const bank = harborIsland ? 0.1 : 0.3;   // the harbour town's terraces drop as rock faces, the classic island's as grassy banks
+      const sh = new THREE.Shape(); sh.moveTo(0, 0); sh.lineTo(bank, 0); sh.lineTo(0, drop); sh.closePath();   // a shallow bank from the flat plot down to the next level
       const w = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false });
       w.translate(0, 0, -0.5); w.rotateY(Math.atan2(-dj, di)); w.translate(x + di * 0.5, base, z + dj * 0.5);   // local +x points outward
-      g.push(colorize(w, S.look === 'rich' ? '#a4b692' : PAL.landSide));
+      g.push(colorize(w, harborIsland ? biome.rock[(i + j) % 2] : S.look === 'rich' ? '#a4b692' : PAL.landSide));
       const r = cellHash(i * 11 + di, j * 13 + dj);
       if (r < 0.3) g.push(blob(0.12 + r * 0.2, r < 0.15 ? PAL.bush : PAL.bush2, x + di * 0.6 + (dj ? (r - 0.15) * 2 : 0), base + 0.08, z + dj * 0.6 + (di ? (r - 0.15) * 2 : 0), 0, 0.7));
       else if (r > 0.82) g.push(blob(0.09, biome.rock[0], x + di * 0.62 + (dj ? (r - 0.9) * 3 : 0), base + 0.04, z + dj * 0.62 + (di ? (r - 0.9) * 3 : 0), 0, 0.6));
@@ -297,7 +322,16 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMout
     for (const [i, j] of [a, ...path]) if (!skipRoad(i, j)) coastCells.add(key(i, j));
   }
 
-  const base = pierTheta !== null ? pierTheta : rng() * TAU;
+  if (harborIsland) {
+    // A level waterfront street and one approach from the station. Its actual coastal distance chooses its row.
+    const j = Math.floor(coastPoint(HARBOR_ANGLE, -2.0)[1] + HALF);
+    for (let i = 0; i < N; i++) if (cx(i) < QUAY_EAST + 2.5 && isLand(cx(i), cz(j)) && isLand(cx(i), cz(j + 1)) && !skipRoad(i, j)) coastCells.add(key(i, j));
+    for (let row = 22; row <= j; row++) if (!skipRoad(22, row)) coastCells.add(key(22, row));
+    // The hill's lower ramp connects to the north station ring before its terraces open.
+    const foot = ramps.find(r => r.level === 0)?.L;
+    if (foot) for (let row = foot.j + 1; row <= 18; row++) if (!skipRoad(foot.i, row)) coastCells.add(key(foot.i, row));
+  }
+  const base = harborIsland ? Math.PI : pierTheta !== null ? pierTheta : rng() * TAU;
   for (let attempt = 0; attempt < 12 && !canalCells.size; attempt++) {
     const th = base + (attempt % 2 ? -1 : 1) * Math.ceil(attempt / 2) * 0.35, phi = rng() * TAU;
     const nx = Math.cos(th), nz = Math.sin(th), vx = -nz, vz = nx, off = 8.8;
@@ -316,6 +350,34 @@ const canalCells = new Set(), canalOrder = [], coastCells = new Set(), canalMout
     for (let k = 3; k + 3 < cellsHere.length && !bad; k++) if (coastDist(cx(cellsHere[k][0]), cz(cellsHere[k][1])) < 1.8) bad = true;
     if (bad || cellsHere.length < 8) continue;
     for (const c of cellsHere) { canalCells.add(key(...c)); canalOrder.push(c); }
+  }
+}
+if (harborIsland && !canalCells.size) {
+  // Some broad ridge seeds leave no room for the meandering canal. A straight edge channel keeps its crossings usable.
+  for (const i of [9, 30, 8, 31, 7, 32]) {
+    const line = [];
+    for (let j = 0; j < N; j++) if (isLand(cx(i), cz(j))) line.push([i, j]);
+    if (line.length < 8 || line.some(([x, z]) => terraceInfo(x, z))) continue;
+    if (line.some(([x, z], k) => k && (z !== line[k - 1][1] + 1 || (coastCells.has(key(x, z)) && coastCells.has(key(...line[k - 1])))))) continue;
+    for (const c of line) { canalCells.add(key(...c)); canalOrder.push(c); }
+    break;
+  }
+}
+if (harborIsland) {
+  // Connect any fragments left by the concave shoreline or ridge. Cross the canal only at existing bridges.
+  const root = key(22, 22), neighbours = k => { const [i, j] = k.split(',').map(Number); return DIRS.map(([di, dj]) => [i + di, j + dj]); };
+  const passable = (i, j) => i >= 0 && j >= 0 && i < N && j < N && isLand(cx(i), cz(j)) && !terraceInfo(i, j)
+    && Math.max(Math.abs(cx(i)), Math.abs(cz(j))) >= 2 && (!canalCells.has(key(i, j)) || coastCells.has(key(i, j)));
+  const connected = () => {
+    const seen = new Set([root]), q = [root];
+    for (let n = 0; n < q.length; n++) for (const [i, j] of neighbours(q[n])) { const k = key(i, j); if (coastCells.has(k) && !seen.has(k)) { seen.add(k); q.push(k); } }
+    return seen;
+  };
+  for (const target of [...coastCells]) {
+    const net = connected(); if (net.has(target)) continue;
+    const previous = new Map([...net].map(k => [k, null])), q = [...net];
+    for (let n = 0; n < q.length && !previous.has(target); n++) for (const [i, j] of neighbours(q[n])) { const k = key(i, j); if (!previous.has(k) && passable(i, j)) { previous.set(k, q[n]); q.push(k); } }
+    if (previous.has(target)) for (let k = target; k !== null; k = previous.get(k)) coastCells.add(k);
   }
 }
 const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coastCells.has(key(i, j));
@@ -425,4 +487,4 @@ const isCanal = (i, j) => canalCells.has(key(i, j)), isCoastRoad = (i, j) => coa
 const islandEllipse = [SX, SZ];
 const pierAngle = () => pierTheta;
 const pierFrame = () => pierInfo;
-export { pierFrame, pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet, seaRocks };
+export { harborIsland, moorings, pierFrame, pierAngle, isLand, coastDist, shoreKind, radius, coastPoint, rng as islandRng, updateWater, onHill, hillLevel, terraceInfo, buildableTerrace, TERRACE, hillCentre, cellHash, polygon, beachExtra, islandEllipse, isCanal, isCoastRoad, canalCells, canalMouths, fallFeet, seaRocks };

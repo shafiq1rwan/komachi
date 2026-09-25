@@ -18,6 +18,12 @@ toast (standalone, used by sim, input, main); milestone (scene only, used by mai
 sine harmonics, squashed into a gentle ellipse) defines the coast, and a cell is land only if it
 sits at least 0.8 units inside it. The same curve drives the land, beach terrace and foam
 extrusions, so geometry and gameplay always agree. `?seed=` fixes the shape.
+Since 2026-09-25 new towns use the harbour profile (`S.terrainVersion` 2, saved per town): `island-profile.js` clamps the
+south shore to a straight quay line (`QUAY_Z`) west of `QUAY_EAST`, and `water.js` applies the same clamp in the sea shader.
+`harbor.js` builds the breakwater arms from the quay's corners with the entrance in front of the ferry berth; `island.js` draws
+the stone jetty square to the quay, moors fishing boats along the wall, lays the waterfront street the length of the quay and
+makes the hill a cliff ridge (rock-faced terrace banks, a wide summit). Older saves without a terrain version keep the original
+coast so nothing already built is moved.
 
 **Hill and ground height.** `island.js` places a terraced hill opposite the pier. A noisy ellipse
 (`hillFrac`, `hillLevel`) assigns each cell a terrace level 0–3 by its centre; terraces are drawn as one
@@ -60,7 +66,9 @@ glow decal and the people currently inside it. Capacities depend on type and lev
 benches on the north edge (the south, in front of the stairs, is kept clear), vending machines, planters and lamps (`genStation` in `buildings.js`). `STATION` in
 `world.js` holds the world-space seat, standing and vending spots. Trips to and from the station
 use the south-edge unit as their routing anchor (`STATION.anchor`), since only edge cells touch
-the ring road.
+the ring road. Nobody appears or vanishes on the plaza: `stationStairs(up)` gives the walk through the pavilion
+(`STATION.stairFoot`, 0.30 below the plaza at the bottom tread, `stairTop`, `entrance`); `comeUpStairs` / `goDownStairs` in
+`sim.js` use it for newcomers and commuters, tourists.js and construction.js for visitors and crews.
 
 **Newcomer.** A resident with `home === null`. `updateStation()` in `sim.js` runs the train
 timetable (every 1.5 game hours, 6:00–23:30): passenger count depends on free beds in town and

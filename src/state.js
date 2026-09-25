@@ -5,6 +5,8 @@ const island = activeIsland(), saved = island ? { seed: island.seed, biome: isla
 const fresh = params.has('new') || params.has('demo');   // ?new ignores the save (and overwrites it); ?demo is always a fresh sample town
 export const S = {
   fresh,
+  // Saves without a terrain version retain their original land and plot coordinates.
+  terrainVersion: !fresh && island?.save ? (island.save.terrainVersion || 1) : params.get('terrain') === '1' ? 1 : 2,
   look: (() => { try { return params.get('look') || localStorage.getItem('komachi.lookStyle') || 'rich'; } catch { return 'rich'; } })() === 'classic' ? 'classic' : 'rich',   // rich is the standard since 2026-09-23
   T: 7.0,            // game hours since start (day 1 begins at 0:00)
   speed: 1,          // 0 = paused, 1, 2, 4

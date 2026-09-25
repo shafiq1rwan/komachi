@@ -102,7 +102,11 @@ const aim = new THREE.Vector3(), hand = new THREE.Vector3();
 /** The Kenney rig has rigid limbs: aim hands at grips and swing legs with the crank. */
 export function poseBikeRider(rider, bike) {
   const phase = bike.bikeParts ? bike.bikeParts.crank.rotation.x : bike.userData.pedals ? (bike.userData.wheels[0]?.rotation.x || 0) / 2 : null;   // a scooter has no pedals: the legs rest
-  const g = bike.userData.grip || [0.064, 0.22, 0.018];
+  const g = bike.userData.grip || [0.064, 0.22, 0.018], ud = bike.userData;
+  // pedalling only while the crank turns: the swing eases in as the bike moves off and out to the seated rest when it stops
+  const turning = phase !== null && ud.lastPhase !== undefined && Math.abs(phase - ud.lastPhase) > 1e-4; ud.lastPhase = phase;
+  ud.pedalBlend = (ud.pedalBlend || 0) + ((turning ? 1 : 0) - (ud.pedalBlend || 0)) * (turning ? 0.25 : 0.12);
+  const swing = ud.pedalBlend > 0.01 ? .38 * ud.pedalBlend : 0;
   rider.updateWorldMatrix(true, true); bike.updateWorldMatrix(true, true);
   for (const [side, s] of [['left', 1], ['right', -1]]) {
     const arm = rider.getObjectByName(`arm-${side}`), leg = rider.getObjectByName(`leg-${side}`);
@@ -110,7 +114,7 @@ export function poseBikeRider(rider, bike) {
       aim.set(s * g[0], g[1], g[2]); bike.localToWorld(aim); arm.parent.worldToLocal(aim); aim.sub(arm.position).normalize();
       hand.set(s * .145, -.01, .03).normalize(); arm.quaternion.setFromUnitVectors(hand, aim);
     }
-    if (leg && phase !== null) leg.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), s * .38 * Math.sin(phase)));   // pedalling, on top of the seated pose
+    if (leg && swing) leg.quaternion.multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), s * swing * Math.sin(phase)));   // pedalling, on top of the seated pose
   }
 }
 

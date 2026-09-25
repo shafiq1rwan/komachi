@@ -6,11 +6,15 @@ import { PAL } from './palette.js';
 import { S } from './state.js';
 import { scene } from './scene.js';
 import { box, mergeMesh } from './geometry.js';
-import { polygon, beachExtra, coastPoint, radius, islandEllipse, fallFeet } from './island.js';
+import { polygon, beachExtra, coastPoint, radius, islandEllipse, fallFeet, harborIsland } from './island.js';
+import { HARBOR_ANGLE, angleDistance, BAY_DEPTH } from './island-profile.js';
 import { createDolphin, dolphinClips } from './dolphins.js';
 import { createFishingBoat } from './watercraft.js';
 
 const WATER_Y = -0.78, rand = (a, b) => a + Math.random() * (b - a);
+// Ambient craft/pods round the outside of the harbor, never through its protective arms.
+const harborBypass = theta => harborIsland ? (BAY_DEPTH + 4) * Math.exp(-((angleDistance(theta, HARBOR_ANGLE) / 0.9) ** 4)) : 0;
+const offshorePoint = (theta, extra) => coastPoint(theta, extra + harborBypass(theta));
 
 // ── waves: three foam bands beyond the beach that brighten in turn, so the water seems to run up the sand ──
 const waves = [];
@@ -93,7 +97,7 @@ const pod = [];
 function updatePod(dt, realT) {
   for (const d of pod) {
     d.theta += 0.05 * dt; d.t += dt; const p = (d.t % d.period) / d.period;   // one surfacing arc per period: up out of the water and back in
-    const [x, z] = coastPoint(d.theta, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta)), [nx, nz] = coastPoint(d.theta + 0.02, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta + 0.02));
+    const [x, z] = offshorePoint(d.theta, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta)), [nx, nz] = offshorePoint(d.theta + 0.02, d.r + 0.3 * Math.sin(realT * 0.3 + d.theta + 0.02));
     const up = p < 0.45 ? Math.sin(p / 0.45 * Math.PI) : 0;   // the arc lasts 45 % of the period; the rest is under water
     d.mesh.visible = up > 0.02; if (!d.mesh.visible) { if (!d.splashed && p >= 0.45) { d.splashed = true; splash(x, z); } if (p < 0.02) d.splashed = false; continue; }
     d.mesh.position.set(x, WATER_Y - 0.28 + up * 0.62, z);
@@ -116,8 +120,8 @@ function updateSea(dt, realT) {
   { const [x, z] = coastPoint(school.theta, 1.6 + 0.5 * Math.sin(realT * 0.17)); school.centre.set(x, 0, z); }
   for (const m of school.members) { const wob = Math.sin(realT * 1.7 + m.phase) * 0.06; m.mesh.position.x = school.centre.x + m.ox + wob; m.mesh.position.z = school.centre.z + m.oz + Math.cos(realT * 1.3 + m.phase) * 0.05; m.mesh.rotation.y = school.theta + Math.PI / 2 + Math.sin(realT * 2 + m.phase) * 0.2; }
   boatTheta += 0.028 * dt;
-  const r = radius(boatTheta) + 4.5, [ex, ez] = islandEllipse; const bx = Math.cos(boatTheta) * r * ex, bz = Math.sin(boatTheta) * r * ez;
-  const r2 = radius(boatTheta + 0.01) + 4.5, nx = Math.cos(boatTheta + 0.01) * r2 * ex, nz = Math.sin(boatTheta + 0.01) * r2 * ez;
+  const r = radius(boatTheta) + 4.5 + harborBypass(boatTheta), [ex, ez] = islandEllipse; const bx = Math.cos(boatTheta) * r * ex, bz = Math.sin(boatTheta) * r * ez;
+  const r2 = radius(boatTheta + 0.01) + 4.5 + harborBypass(boatTheta + 0.01), nx = Math.cos(boatTheta + 0.01) * r2 * ex, nz = Math.sin(boatTheta + 0.01) * r2 * ez;
   boat.position.set(bx, WATER_Y + (boatModel ? 0.02 : 0) + Math.sin(realT * 1.3) * 0.015, bz);
   boat.rotation.set(Math.sin(realT * 0.9) * 0.03, Math.atan2(nx - bx, nz - bz), Math.sin(realT * 1.1) * 0.05, 'YXZ');
   const hy = boat.rotation.y, sx = Math.sin(hy), sz = Math.cos(hy);                  // heading; the stern is behind

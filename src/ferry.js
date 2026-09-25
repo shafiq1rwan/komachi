@@ -9,7 +9,8 @@ import { S } from './state.js';
 import { scene, peopleGroup, cx, cz, HALF } from './scene.js';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
 import { cells, cell, blocks, DONE, refreshWorld } from './world.js';
-import { coastPoint, pierAngle, islandEllipse, coastDist, shoreKind, canalMouths, beachExtra, seaRocks } from './island.js';
+import { coastPoint, pierAngle, islandEllipse, coastDist, shoreKind, canalMouths, beachExtra, seaRocks, harborIsland } from './island.js';
+import { buildHarbor } from './harbor.js';
 const [SX, SZ] = islandEllipse;
 import { makeCar, moveAlong, buildPoints, routeCells, roadNeighbors, frontRoad, carMeshes, parkVehicle, adoptWanderer, setVehicleSource, hourOf } from './sim.js';
 import { setYardStart } from './construction.js';
@@ -60,7 +61,19 @@ function placeSlip() {
     return { ex, ez, lx, lz, bx, bz, ox, oz, thE, ux, uz };
   };
   let best = null, bd = 1e9;
+  if (harborIsland) {
+    // Berth in the recessed basin, with a grid-aligned approach through the breakwater entrance.
+    for (const c of cells) {
+      const x = cx(c.i), z = cz(c.j);
+      if (!c.coast || c.bridge || c.type !== 'road' || Math.abs(x) > 3.6 || z < 5) continue;
+      const lay = layout(c, 0, 1, true); if (!lay) continue;
+      const score = Math.abs(x - 1.5) + Math.abs(lay.ez - z - 2) * 0.2;
+      if (score < bd) { bd = score; best = { c, th: lay.thE, lay }; }
+    }
+  }
+  const harborBest = best;
   for (const dth of [0.34, -0.34, 0.5, -0.5, 0.7, -0.7, 0.9, -0.9, 1.2, -1.2, 1.6, -1.6, 2.0, -2.0, 2.4, -2.4, 2.8, -2.8]) {   // round the shore from the pier, nearest first
+    if (harborBest) break;
     const th = base + dth, [lx, lz] = coastPoint(th, -0.6);
     for (const c of cells) {
       if (!c.coast || c.bridge || c.type !== 'road') continue;
@@ -202,6 +215,7 @@ function launch(q) {
 }
 export function initFerry() {
   if (ferry.ready || !placeSlip()) return;
+  buildHarbor(ferry);
   buildSlip(); buildFerry(); buildYardStock(); ferry.ready = true;
   setVehicleSource({ requestWanderer, orderCar, boardCar, slip: () => ferry.lane || ferry.slip });
   setYardStart(() => ferry.slip);

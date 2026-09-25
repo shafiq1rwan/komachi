@@ -10,7 +10,7 @@ import { S } from './state.js';
 import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR } from './palette.js';
 import { peopleGroup, disposeGroup, cx, cz, scene, HALF } from './scene.js';
-import { cell, STATION, blocks, DONE, isOpen } from './world.js';
+import { cell, STATION, stationStairs, blocks, DONE, isOpen } from './world.js';
 import { hourOf, dayOf, routeCells, roadNeighbors, frontRoad, buildPoints, makePerson, moveAlong, onTrain, carMeshes, shopUnits, trafficFactor } from './sim.js';
 import { landmarkRoads } from './landmarks.js';
 import { detachCharacter, holdItem, dropItem } from './characters.js';
@@ -66,7 +66,7 @@ function walkTo(t, destRoad, end, label, onArrive) {
 function spawnTourist() {
   const opts = landmarkRoads().filter(o => o.l.kind !== 'pier' && o.l.kind !== 'fishmarket' && routeCells(stationRoads(), [o.road])); if (!opts.length) return null;
   const t = makeTourist(); tourists.push(t);
-  t.mesh.position.copy(STATION.entrance); t.mesh.visible = true;
+  t.leave = stationStairs(true); t.mesh.position.copy(t.leave[0]); t.mesh.visible = true;   // up the pavilion's stairs first
   const pool = opts.slice().sort(() => Math.random() - 0.5), first = pool[0], lh = pool.find(o => o.l.kind === 'lighthouse');
   const picks = [bus.state !== 'away' && lh && Math.random() < 0.6 ? lh : first];   // with the bus running, most ride out to the lighthouse
   const second = pool.find(o => o !== picks[0]); if (second && Math.random() < 0.5) picks.push(second);
@@ -124,7 +124,7 @@ function next(t) {
       best.block.visitsToday = (best.block.visitsToday || 0) + 1; best.block.visitScore = (best.block.visitScore || 0) + 1;   // a customer like any other
     })) return next(t);
   } else {   // home: back down the station stairs
-    if (!walkTo(t, stationRoads()[0], [STATION.entrance.clone()], 'heading back to the station', () => removeTourist(t))) removeTourist(t);
+    if (!walkTo(t, stationRoads()[0], stationStairs(false), 'heading back to the station', () => removeTourist(t))) removeTourist(t);
   }
 }
 function faceRoad(t, road) { t.mesh.rotation.y = Math.atan2(cx(road.i) - t.mesh.position.x, cz(road.j) - t.mesh.position.z); }

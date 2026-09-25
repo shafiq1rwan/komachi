@@ -23,7 +23,7 @@ import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 const PARK_REACH = 6;   // cells: how far a home or workplace sends its cars to a car park
 const CARRY_HOME = new Set(['grocery', 'supermarket', 'konbini', 'arcade', 'bakery']);   // shops you leave with a bag
 import { attachVehicle } from './vehicles.js';
-import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalState, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel, hoursOf, isOpen } from './world.js';
+import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, stationStairs, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalState, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel, hoursOf, isOpen } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
 import { createService, serviceReady } from './service-vehicles.js';
@@ -113,7 +113,7 @@ const entryPts = u => unitDoorPoints(u).reverse();      // kerb → doorstep
  */
 function buildPoints(cellPath, start, end, side, y, lane = null) {
   const sArr = Array.isArray(start) ? start : [start], eArr = Array.isArray(end) ? end : [end];
-  const keepY = p => p.y > 0 ? p.clone() : p.clone().setY(y);
+  const keepY = p => Math.abs(p.y) > 1e-6 ? p.clone() : p.clone().setY(y);
   const pts = sArr.map(keepY);
   const n = cellPath.length, C = cellPath.map(c => new THREE.Vector3(cx(c.i), y, cz(c.j)));
   const dirs = [];
@@ -279,10 +279,11 @@ function spawnNewcomer(hh = null) {
   r.hasBike = !r.hasCar && Math.random() < 0.45; r.bikeKind = r.hasBike && Math.random() < 0.3 ? 'scooter' : 'bike';   // a gentsuki for about a third of them
   r.mesh = makePerson(r); residents.push(r);
   const anchor = STATION.anchor; r.at = anchor; anchor.inside.add(r);
-  r.mesh.position.copy(STATION.entrance); r.mesh.rotation.y = 0; r.mesh.visible = true;
-  const spot = takeSpot(r);
-  if (spot) startDirectTrip(r, STATION.entrance, spot.pos.clone().setY(0.12), 'looking for a seat', () => sitDown(r));
-  else { r.state = 'inside'; r.activity = 'waiting for a home'; }
+  comeUpStairs(r, () => {
+    const spot = takeSpot(r);
+    if (spot) startDirectTrip(r, STATION.entrance, spot.pos.clone().setY(0.12), 'looking for a seat', () => sitDown(r));
+    else { r.state = 'inside'; r.activity = 'waiting for a home'; }
+  });
   return r;
 }
 /** next decision time for someone waiting at the station: never sleeps past the 22:00 last train */
@@ -351,9 +352,22 @@ function startDirectTrip(r, from, to, label, onArrive, y = 0.12) {
   r.trip = { pts, i: 0, t: 0, dest: null, drive: false, speed: 0.85 * rand(0.9, 1.1), baseY: y, onArrive };
   r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]); setPose(r, false);
 }
+/** everyone off a train comes up the pavilion's stairs onto the plaza; `then` runs at the entrance */
+function comeUpStairs(r, then) {
+  clearFidget(r);
+  r.trip = { pts: stationStairs(true), i: 0, t: 0, dest: null, drive: false, speed: 0.7 * rand(0.9, 1.1), baseY: 0.12, onArrive: then };
+  r.state = 'walking'; r.activity = 'coming up from the platform'; r.mesh.visible = true; r.mesh.position.copy(r.trip.pts[0]); r.mesh.rotation.y = 0; setPose(r, false);
+}
+/** and everyone leaving walks to the entrance and down them; `then` runs at the foot, out of sight */
+function goDownStairs(r, label, then) {
+  freeSpot(r);
+  const here = r.mesh.position, pts = [here.clone().setY(0.12), ...plazaDetour(here, STATION.entrance).map(p => p.setY(0.12)), ...stationStairs(false)];
+  r.trip = { pts, i: 0, t: 0, dest: null, drive: false, speed: 0.85 * rand(0.9, 1.1), baseY: 0.12, onArrive: then };
+  r.state = 'walking'; r.activity = label; r.mesh.visible = true; r.mesh.position.copy(pts[0]); setPose(r, false);
+}
 function waitDecide(r) {
   const h = hourOf();
-  if (h >= 22 || h < 5.5) { freeSpot(r); startDirectTrip(r, r.mesh.position, STATION.entrance, 'taking the last train to the city', () => leaveForCity(r)); return; }
+  if (h >= 22 || h < 5.5) { goDownStairs(r, 'taking the last train to the city', () => leaveForCity(r)); return; }
   if (r.vendingAt) {   // finished at the machine: the empty can goes in the bin, then back to the seat
     r.vendingAt.taken = null; r.vendingAt = null; r.sipAt = 0; const ch = r.mesh.userData.char; if (ch) { dropItem(ch); ch.pose = null; }
     if (!r.spot) takeSpot(r);
@@ -579,16 +593,19 @@ function leaveForCity(r) {
   r.trip = null; r.mesh.visible = false; r.state = 'away'; r.activity = 'staying in the city tonight'; r.next = S.T + 24;
 }
 function returnFromCity(r) {
-  r.state = 'inside'; r.at = STATION.anchor; STATION.anchor.inside.add(r); r.mesh.position.copy(STATION.entrance); r.mesh.visible = true;
+  r.at = STATION.anchor; STATION.anchor.inside.add(r);
   r.needsT = S.T;   // the day away is not charged to their needs all at once
-  if (r.home) {
-    r.needs.food = Math.max(0.15, r.needs.food - 0.35); r.needs.energy = Math.max(0.2, r.needs.energy - 0.3); r.purpose = null;
-    // most of them catch their breath on the plaza first: a bench, the planters, a drink, and then the walk home
-    if (Math.random() < 0.7 && takeSpot(r)) { startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => restAtStation(r, pick(PLAZA_ACTS), S.T + rand(0.12, 0.35))); return; }
-    r.activity = 'back from the city'; r.next = S.T + 0.02; return;
-  }
-  if (takeSpot(r)) startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => sitDown(r));
-  else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
+  if (r.home) { r.needs.food = Math.max(0.15, r.needs.food - 0.35); r.needs.energy = Math.max(0.2, r.needs.energy - 0.3); r.purpose = null; }
+  comeUpStairs(r, () => {
+    r.state = 'inside';
+    if (r.home) {
+      // most of them catch their breath on the plaza first: a bench, the planters, a drink, and then the walk home
+      if (Math.random() < 0.7 && takeSpot(r)) { startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => restAtStation(r, pick(PLAZA_ACTS), S.T + rand(0.12, 0.35))); return; }
+      r.activity = 'back from the city'; r.next = S.T + 0.02; return;
+    }
+    if (takeSpot(r)) startDirectTrip(r, STATION.entrance, r.spot.pos.clone().setY(0.12), 'back from the city', () => sitDown(r));
+    else { r.activity = 'waiting for a home'; r.next = S.T + 0.5; }
+  });
 }
 const PLAZA_ACTS = ['stretching after the ride', 'waiting for a neighbour off the same train', 'checking messages before the walk home', 'catching their breath on the bench', 'watching the plaza for a while'];
 /** someone with a home pausing on a station spot (a commuter waiting for the train, or just off it) */
@@ -733,7 +750,7 @@ function arrive(r) {
       r.at = STATION.anchor; STATION.anchor.inside.add(r); r.mesh.position.copy(endPos);
       const at = nextTrain; startDirectTrip(r, endPos, r.spot.pos.clone().setY(0.12), 'waiting for the train', () => restAtStation(r, 'waiting for the train', at)); return;
     }
-    departForCity(r); return;
+    r.mesh.position.copy(endPos); goDownStairs(r, 'down to the platform', () => departForCity(r)); return;
   }
   if (tr.dest === STATION.anchor) { r.mesh.position.copy(endPos); arriveAtStation(r); return; }
   if ((tr.dest.cell.h || 0) > 0) hillVisits++;   // someone made it up the hill
@@ -778,7 +795,7 @@ function decide(r) {
   const h = hourOf(), day = dayOf(), u = r.at;
   if (!u) { r.next = S.T + 0.5; return; }
   if (u === STATION.anchor && !r.home) { r.actKind = 'wait'; tickNeeds(r); waitDecide(r); return; }
-  if (u === STATION.anchor && r.purpose === 'commute') { departForCity(r); return; }   // the train they were waiting for has pulled in
+  if (u === STATION.anchor && r.purpose === 'commute') { goDownStairs(r, 'down to the platform', () => departForCity(r)); return; }   // the train they were waiting for has pulled in
   if (!r.home) { go(r, STATION.anchor, 'heading back to the station'); return; }
   tickNeeds(r);
   if (u === STATION.anchor) {   // just off the train: home, or a bite first

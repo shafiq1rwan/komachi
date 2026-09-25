@@ -8,6 +8,7 @@
 //  - a faint, view-independent hint of the sky colour, a little more where the surface tilts; no Fresnel, no mirror
 // Matte (roughness 0.9, no metal), fully opaque. `waterUniforms` are driven by updateWater (time) and daynight.js (sky, day).
 import * as THREE from 'three';
+import { QUAY_Z, QUAY_EAST, QUAY_EASE } from './island-profile.js';
 
 const waterUniforms = {
   uTime: { value: 0 }, uDay: { value: 1 },
@@ -16,10 +17,11 @@ const waterUniforms = {
   uRich: { value: 0 },
   uHarm: { value: [new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4(), new THREE.Vector4()] },
   uIsle: { value: new THREE.Vector3(1, 1, 1) },   // base radius, ellipse x, ellipse z
+  uBay: { value: new THREE.Vector3(QUAY_Z, QUAY_EAST, 0) },   // the harbour quay line (z), where it ends (x), on/off
 };
 
 const COMMON = /* glsl */`
-uniform float uTime, uDay, uRich; uniform vec3 uSky, uDeep, uShallow; uniform vec4 uHarm[4]; uniform vec3 uIsle;
+uniform float uTime, uDay, uRich; uniform vec3 uSky, uDeep, uShallow; uniform vec4 uHarm[4]; uniform vec3 uIsle, uBay;
 varying vec3 vSeaPos;
 float seaHash(vec2 p) { return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453); }
 float seaNoise(vec2 p) {
@@ -30,6 +32,8 @@ float seaNoise(vec2 p) {
 float seaCoast(vec2 p) {
   vec2 q = vec2(p.x / uIsle.y, p.y / uIsle.z); float th = atan(q.y, q.x), r = uIsle.x;
   for (int i = 0; i < 4; i++) r += uHarm[i].z * sin(uHarm[i].x * th + uHarm[i].y);
+  float s = sin(th);
+  if (uBay.z > 0.5 && s > 0.2) { float rc = uBay.x / (s * uIsle.z); if (rc < r) { float x = cos(th) * rc * uIsle.y; float w = x <= uBay.y ? 1.0 : max(0.0, 1.0 - (x - uBay.y) / ${QUAY_EASE.toFixed(1)}); r = mix(r, rc, w); } }
   return r - length(q);
 }
 // three broad swells: x = height, yz = slope (d height / d x, d height / d z)
@@ -44,9 +48,10 @@ vec3 seaWaves(vec2 p) {
 `;
 
 /** the sea's material; `harm` is island.js's coastline [[k, phase, amp] × 4] */
-function makeSeaMaterial(harm, R0, SX, SZ) {
+function makeSeaMaterial(harm, R0, SX, SZ, harbor = false) {
   harm.forEach(([k, p, a], i) => waterUniforms.uHarm.value[i].set(k, p, a, 0));
   waterUniforms.uIsle.value.set(R0, SX, SZ);
+  waterUniforms.uBay.value.z = harbor ? 1 : 0;
   const m = new THREE.MeshStandardMaterial({ color: '#ffffff', roughness: 0.9, metalness: 0 });
   m.onBeforeCompile = sh => {
     Object.assign(sh.uniforms, waterUniforms);

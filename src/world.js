@@ -618,8 +618,12 @@ const SIT_DROP = 0.025;                          // a seated Kenney person's und
 const STATION = {
   block: null, anchor: null,                     // anchor = the south-edge unit; its cell touches the ring road
   entrance: new THREE.Vector3(SX, 0.12, SZ + 0.9),
+  // the pavilion's stairs (subway-station.js, at plinth height 0.12): the top tread at local z 0.30, the bottom one at z -0.265, 0.30 down
+  stairTop: new THREE.Vector3(SX, 0.12, SZ + 0.36), stairFoot: new THREE.Vector3(SX, 0.12 - 0.30, SZ - 0.265),
   seats: [], stands: [], vending: [],
 };
+/** the walk through the pavilion: up the stairs from the platform onto the plaza (`up`), or from the plaza down to the platform */
+function stationStairs(up) { const p = [STATION.stairFoot, STATION.stairTop, STATION.entrance].map(v => v.clone()); return up ? p : p.reverse(); }
 for (const bx of [-0.25, 0.25]) for (const sx of [-0.115, 0.115])   // two benches on the north edge only; the entrance side is kept clear
   // the kit's two seat places; 0.04 forward of the bench centre so the back clears the backrest and the legs rest on the slats
   STATION.seats.push({ kind: 'seat', pos: new THREE.Vector3(SX + bx + sx, BENCH_Y - SIT_DROP, SZ - 1.3 + 0.04), rot: 0, taken: null });
@@ -844,7 +848,7 @@ function isOpen(b, h) { const o = hoursOf(b); return o.open === undefined || (h 
 /** "6:00–15:00" */
 const clock = h => `${Math.floor(h)}:${String(Math.round((h % 1) * 60)).padStart(2, '0')}`;
 const hoursLabel = b => { const o = hoursOf(b); return o.open !== undefined ? `${clock(o.open)}–${clock(o.close)}` : o.shifts.map(([a, z]) => `${clock(Math.round(a * 2) / 2)}–${clock(Math.round(z * 2) / 2)}`).join(' · '); };
-export { HOURS, hoursOf, isOpen, hoursLabel };
+export { HOURS, hoursOf, isOpen, hoursLabel, stationStairs };
 export { benchLights, landmarkTrees, lanterns, lightLanterns, updateLanterns, onHillOpened, puddleSpots, puddleVersionOf, setWet, maxLevel, refreshCivicFlags, CIVIC_REACH, placeCarPark, clearCarPark, carParks, parkBay, chooseKind, cells, cell, DIR4, treeSpec, parkCells, rebuildDecor, rebuildRoads, lotAdjacent4, lotAdjacent8, lampGlowMat, placeable, terrainY, connectHillRoads, connectCanal, hill, openHill, HILL_UNLOCK, updateSignals, signalRed, signalState, signalCells,
   blocks, units, CAP, DONE, STAGE_HOURS, STAGE_NAMES, stageHours, TYPE_LABEL, TYPE_COLOR, unitCap, placeBlock, pickFacing, refreshWorld, onWorldChange, isDecor,
   STATION, placeStation, KIND_LABEL, TIERS, tierLabel, wireMat, facingOptions, rotateUnit, frontRoads, hillPlots, isStreet, townNet, joinedToTown, rebuildNetwork, roadRun, drawable, drawRoad, eraseRoad, roadKeepReason };

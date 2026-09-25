@@ -10,6 +10,36 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Harbour island (2026-09-25, the "Harbor Town" reference picture): every new town is now built on an island with a straight stone
+  quay along its south shore, two breakwater arms with red and green beacons and an entrance in front of the ferry berth, a stone
+  jetty square to the quay with fishing boats moored alongside and along the wall, a waterfront street the length of the quay, a
+  cliff ridge across the back (a broad wooded plateau, rock faces between the terraces, the shrine on top), two sand coves and a
+  rocky outer coast, and the lighthouse on a boulder-strewn point. The bay is the same equation in the terrain and the sea shader
+  (src/island-profile.js, `QUAY_Z`, `QUAY_EAST`, `QUAY_EASE`). Saves carry `terrainVersion`; towns saved before this keep their
+  original coastline, and `?new&seed=7&terrain=1` makes one for regression checks (npm test runs on it). scripts/check-harbor.mjs
+  checks six seeds against a dev server; docs/harbor-island/ holds the reports and captures.
+
+### Changed
+
+- The Komachi wordmark is about 30 % smaller on the main menu (240 px, 210 px on the title page, 170 px on phones) and the loading screen (250 px) (2026-09-25).
+- README screenshots retaken (2026-09-25) in the rich look from the dense demo town; scripts/capture-readme.mjs redoes them
+  (day, night, the station plaza, the whole island, a shop going up).
+
+### Fixed
+
+- Komachi Station (2026-09-25): everyone off a train now comes up the pavilion's stairs onto the plaza, and everyone leaving
+  (newcomers on the last train, commuters, tourists, building crews) walks to the entrance and down them, instead of appearing
+  or vanishing on the plaza in front of the pavilion. `STATION.stairTop` / `stairFoot` and `stationStairs(up)` in world.js;
+  `comeUpStairs` / `goDownStairs` in sim.js; trip points below ground keep their height in `buildPoints`.
+- Builder's truck (2026-09-25): after unloading it drives back to the yard, or to the station side when the yard is cut off from the
+  town's streets (as the way out already did), or failing that as far along the street as it can get; it no longer vanishes on the
+  spot in front of the site. The truck remembers its site's street (`tr.road`) in case the block is removed meanwhile.
+- Bicycle riders (2026-09-25): the pedal swing eases out to the seated rest whenever the crank or wheel stops turning, so the kōban
+  officer at a patrol stop, and a resident at a red light, sit with both feet down instead of frozen mid-stroke
+  (`userData.pedalBlend` in bikes.js `poseBikeRider`).
+
+### Added
+
 - Quay now shares the island waterfront's cool stone and paving palette, course heights and
   coping level. Deck slabs no longer overlap at the T-head; water steps have solid supports,
   and stone colour indexing handles both sides consistently. Shore plants clear the quay's

@@ -6,7 +6,7 @@ import { pick, rand } from './utils.js';
 import { GIVEN, FAMILY, SKIN, HAIR } from './palette.js';
 import { peopleGroup, disposeGroup, cx, cz } from './scene.js';
 import { detachCharacter, holdTool } from './characters.js';
-import { blocks, STATION, DONE, terrainY } from './world.js';
+import { blocks, cells, STATION, stationStairs, DONE, terrainY } from './world.js';
 import { unitLocal, dims, rebuildUnitMesh } from './buildings.js';
 import * as THREE from 'three';
 import { box, cyl, colorize, mergeMesh } from './geometry.js';
@@ -132,7 +132,7 @@ function spawnWorker(b) {
     skin: pick(SKIN), shirt: VEST, pants: '#4a4340', hair: pick(HAIR), hat: true, hatColor: HELMET, bag: false, builder: true };
   k.mesh = makePerson(k); k.mesh.userData.res = null; k.mesh.userData.worker = k;
   workers.push(k); b.crew.push(k);
-  walkToSite(k, STATION.entrance.clone()); return k;
+  walkToSite(k, stationStairs(true)); return k;
 }
 function removeWorker(k) {
   giveTool(k, null); detachCharacter(k.mesh); peopleGroup.remove(k.mesh); disposeGroup(k.mesh);
@@ -142,12 +142,13 @@ function walkToSite(k, from) {
   const u = site(k.site), [lx, lz] = SPOTS[Math.max(0, k.site.crew.indexOf(k)) % SPOTS.length];
   const dest = unitLocal(u, lx, lz, 0.1); k.spotPos = dest; k.faceTo = unitLocal(u, 0, 0, 0.1);
   const path = routeCells(crewRoads(), frontRoad(u));
-  const pts = path ? buildPoints(path, from.setY(0.12), dest, 0.34, 0.1) : [from.clone().setY(0.12), dest.clone()];
+  const start = Array.isArray(from) ? from : [from.clone().setY(0.12)];   // crews off the train start at the foot of the pavilion's stairs
+  const pts = path ? buildPoints(path, start, dest, 0.34, 0.1) : [...start, dest.clone()];
   k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toSite'; k.activity = 'walking to the site'; k.mesh.visible = true; k.mesh.position.copy(pts[0]);
 }
 function walkToStation(k, why) {
   const u = site(k.site), path = routeCells(frontRoad(u), crewRoads());
-  const pts = path ? buildPoints(path, k.mesh.position.clone().setY(0.12), STATION.entrance.clone(), 0.34, 0.1) : [k.mesh.position.clone().setY(0.12), STATION.entrance.clone().setY(0.12)];
+  const pts = path ? buildPoints(path, k.mesh.position.clone().setY(0.12), stationStairs(false), 0.34, 0.1) : [k.mesh.position.clone().setY(0.12), ...stationStairs(false)];
   k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toStation'; k.activity = why;
 }
 
@@ -156,7 +157,7 @@ function walkToStation(k, why) {
 onTrain(h => {
   if (h >= 16.5) return;
   let t = S.T + 0.1;
-  for (const k of workers) if (k.state === 'away' && h < 9) { pending.push({ t: (t += 0.06), fn: () => { if (blocks.includes(k.site) && k.site.stage < DONE) walkToSite(k, STATION.entrance.clone()); else removeWorker(k); } }); }
+  for (const k of workers) if (k.state === 'away' && h < 9) { pending.push({ t: (t += 0.06), fn: () => { if (blocks.includes(k.site) && k.site.stage < DONE) walkToSite(k, stationStairs(true)); else removeWorker(k); } }); }
   for (const b of activeSites()) {
     if (b.crew.length || b.crewBooked) continue;
     const n = Math.min(CREW_SIZE, MAX_WORKERS - workers.length - pending.length); if (n <= 0) break;
@@ -178,7 +179,7 @@ function sendTruck(b) {
   const kerb = unitLocal(u, -0.2, 0.88, 0.08);   // on the asphalt in front of the plot, clear of the pavement
   const mesh = makeCar(null, 'builder'); mesh.visible = true;
   const pts = buildPoints(path, startPos, kerb, 0.17, 0.08, -1);
-  trucks.push({ mesh, site: b, trip: { pts, i: 0, t: 0, speed: 2.2 }, state: 'toSite', wait: 0 });
+  trucks.push({ mesh, site: b, road: frontRoad(u)[0], trip: { pts, i: 0, t: 0, speed: 2.2 }, state: 'toSite', wait: 0 });
   mesh.position.copy(pts[0]);
 }
 function removeTruck(tr) { peopleGroup.remove(tr.mesh); disposeGroup(tr.mesh); const ci = carMeshes.indexOf(tr.mesh); if (ci >= 0) carMeshes.splice(ci, 1); trucks.splice(trucks.indexOf(tr), 1); }
@@ -204,7 +205,7 @@ function updateHillCrew(simDt) {
     if (k.state === 'standing') {
       if (S.T < k.until) continue;
       const path = routeCells([k.top], crewRoads());
-      const from = k.mesh.position.clone().setY(0.12), pts = path ? buildPoints(path, from, STATION.entrance.clone(), 0.34, 0.1) : [from, STATION.entrance.clone().setY(0.12)];
+      const from = k.mesh.position.clone().setY(0.12), pts = path ? buildPoints(path, from, stationStairs(false), 0.34, 0.1) : [from, ...stationStairs(false)];
       k.trip = { pts, i: 0, t: 0, speed: 0.95 }; k.state = 'toStation'; k.activity = 'heading down to the station, job done';
     } else if (moveAlong(k.mesh, k.trip, k.trip.speed * simDt)) {
       detachCharacter(k.mesh); peopleGroup.remove(k.mesh); disposeGroup(k.mesh); hillCrew.splice(i, 1);
@@ -252,9 +253,13 @@ function updateConstruction(dh, simDt, realT) {
     else if (tr.state === 'unloading') {
       tr.wait -= dh;
       if (tr.wait <= 0) {
-        const path = tr.site.units[0] && blocks.includes(tr.site) ? routeCells(frontRoad(tr.site.units[0]), stationRoads()) : null;
+        // back to the yard; to the station side if the yard is cut off (as the way out does); failing that, as far along the
+        // street as it can get. It only ever vanishes at the end of a drive, never on the spot in front of the site
+        const from = blocks.includes(tr.site) && tr.site.units[0] && frontRoad(tr.site.units[0]).length ? frontRoad(tr.site.units[0]) : [tr.road];
+        let path = routeCells(from, stationRoads()) || routeCells(from, roadNeighbors(STATION.anchor.cell));
+        if (!path) { let far = null, fl = 1; for (const c of cells) if (c.type === 'road') { const p = routeCells(from, [c]); if (p && p.length > fl) { fl = p.length; far = p; } } path = far; }
         if (!path) { removeTruck(tr); continue; }
-        const end = unitLocal({ cell: stationRoads()[0], facing: 0 }, 0, 0, 0.08);
+        const end = unitLocal({ cell: path[path.length - 1], facing: 0 }, 0, 0, 0.08);
         tr.trip = { pts: buildPoints(path, tr.mesh.position.clone().setY(0.08), end, 0.17, 0.08, -1), i: 0, t: 0, speed: 2.2 }; tr.state = 'back';
       }
     } else if (moveAlong(tr.mesh, tr.trip, tr.trip.speed * simDt * trafficFactor(tr.mesh))) removeTruck(tr);
