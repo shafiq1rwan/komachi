@@ -293,11 +293,13 @@ effect through the town instead.
 - Festival stalls (goldfish scooping, ring toss), a spotting album with photo mode, the postman's round, garden tending,
   lighting the shrine lanterns, piloting the ferry through the harbour entrance
 
-## ⬜ Phase 10 — Desktop app (the last phase)
+## ✅ Phase 10 — Desktop app (2026-09-29)
 
-- **Desktop app with Electron**: the same Vite build wrapped for Windows, macOS and Linux, with a native
-  window, saves in the user data folder instead of browser storage, and installers from CI
-- Comes last, once every feature has been checked in the browser build (decided 2026-09-24)
+- ✅ **Desktop app with Electron**: the same Vite build in a native window (electron/main.cjs, preload.cjs), window state
+  remembered, F11, downloads through the system dialog, Exit in the menu; saves and the album in the app's user data
+  folder (Electron's own storage); `npm run app:build` makes the Windows installer and portable exe with electron-builder
+- ✅ Releases from CI: a version tag builds Windows, macOS and Linux installers into a draft GitHub Release (release.yml)
+- Left for later: code signing and notarisation (certificates as secrets)
 
 ---
 

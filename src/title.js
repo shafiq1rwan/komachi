@@ -21,7 +21,7 @@ const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 2 
 const clock = h => `${Math.floor(h)}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
 const biomeName = id => (BIOMES[id] || BIOMES.suburban).name;
 const swatch = id => (BIOMES[id] || BIOMES.suburban).treeColors.map(c => `<i style="background:${c}"></i>`).join('');
-const standalone = (() => { try { return matchMedia('(display-mode: standalone)').matches; } catch { return false; } })();
+const standalone = !!window.komachiApp || (() => { try { return matchMedia('(display-mode: standalone)').matches; } catch { return false; } })();   // the desktop app (electron/preload.cjs) or an installed PWA: the menu shows Exit
 const row = (act, icon, label, sub = '', cls = '') => `<button class="mm-btn ${cls}" data-act="${act}"><i class="fa-solid ${icon}"></i><span class="mm-l"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span><i class="fa-solid fa-chevron-right mm-go"></i></button>`;
 const back = () => '<button class="icon-btn" data-act="back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>';
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'town';

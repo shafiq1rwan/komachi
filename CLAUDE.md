@@ -14,6 +14,8 @@ npm run lint       # ESLint, must be clean (no-undef is an error)
 node scripts/capture-readme.mjs   # after a build: retakes the six docs/screenshot-*.png used by the README
 node scripts/build-icons.mjs      # rebuilds public/favicon.ico and public/icons/favicon-*.png, icon-256.png from assets/brand/komachi-icon.png
 npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
+npm run app:check  # after a build: the Electron app launches, photographs its own window (scripts/out/electron.png) and quits
+npm run app:build  # Windows installer + portable exe in release/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -265,6 +267,16 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   cell via `cellLevel`); shrine, stairs (drop from the summit to the cell level beyond the edge), torii at the stairs' foot and the
   lanterns (world.js openHill, spaced up to `hillCentre.edge`, y from terrainY) all use it. world.js reserves axis cells below the summit
   (not keep/ramp) as `c.landmark = 'shrine-path'` with a flagstone sandō in rebuildDecor; `hillPlots` and `layTerraceLane` skip landmarks.
+- Desktop app (2026-09-29, Phase 10, electron/): main.cjs (BrowserWindow over dist/index.html, `window.json` bounds in userData,
+  F11 full screen, F12 devtools unpackaged, setWindowOpenHandler/will-navigate → shell.openExternal, will-download → save dialog,
+  KOMACHI_SHOT=<png> + KOMACHI_SHOT_WAIT ms → capturePage then quit) and preload.cjs (`window.komachiApp` { version from
+  `--komachi-version=` in additionalArguments, platform }; sandboxed preloads have no process.env). title.js `standalone` =
+  komachiApp || display-mode standalone. package.json: "main", scripts app / app:check (scripts/check-electron.mjs: spawns the
+  binary with ELECTRON_RUN_AS_NODE deleted, which VS Code sets in its terminals and would make Electron run as plain Node, then
+  checks scripts/out/electron.png is drawn) / app:build (electron-builder --win: nsis + portable into release/, gitignored);
+  `build` config there (appId town.komachi.app, icons public/favicon.ico and icon-512.png, `publish` github draft). Run `npm run build`
+  before app/app:check. Releases: .github/workflows/release.yml on tags v* (matrix win/mac/linux, `electron-builder --publish always`
+  with GITHUB_TOKEN, CSC_IDENTITY_AUTO_DISCOVERY false) makes a draft GitHub Release; `npm version x.y.z && git push --tags`.
 - PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
   writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in
   PROD only; network-first page, cache-first files, fonts in `komachi-fonts`. Settings shows #opt-install on beforeinstallprompt.
@@ -446,4 +458,4 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 7. ✅ Farming and fishing (complete 2026-09-23)
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
-10. Electron desktop app: the last phase, after every feature is checked (decided 2026-09-24)
+10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe; macOS/Linux builds and signing left for CI

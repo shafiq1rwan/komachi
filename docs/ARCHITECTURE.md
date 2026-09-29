@@ -119,6 +119,12 @@ drawing buffer), and the JPEG data URL goes to `album.js`, a small IndexedDB sto
 with an in-memory fallback so nothing throws where IndexedDB is blocked. title.js lists a town's photos on its Album page and
 opens the viewer (#mm-photo) over the menu; input.js maps P and Esc and clears the tool, the pinned card and the follow on entry.
 
+**Desktop app.** electron/main.cjs is the only process-side code: it opens a sandboxed BrowserWindow (contextIsolation, no
+Node in the page) on dist/index.html, keeps window bounds in the user data folder, routes external links to the system browser,
+lets downloads reach the save dialog and, with KOMACHI_SHOT set, captures the window after load and quits (the check script).
+preload.cjs exposes `window.komachiApp`; title.js reads it as "standalone" alongside the PWA display-mode query. The service
+worker is skipped under file:// (main.js registers it only over http), and Vite's relative base makes the bundle load from disk.
+
 **Menus, keyboard and files.** title.js focuses the first button of every page (`focusFirst`, not on coarse pointers), moves
 focus with the arrow keys inside the page, and takes Esc through `menuEscape()` from input.js (subpage → main → close the pause
 card; the title page stays; the dialog and the photo viewer own Esc while shown). save.js keeps `saveStatus()` for the pause

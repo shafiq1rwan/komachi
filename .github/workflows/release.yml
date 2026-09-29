@@ -1,0 +1,53 @@
+name: Release desktop app
+
+# Push a version tag (v0.2.0) and each platform builds its own installer with electron-builder, which creates a draft
+# GitHub Release for that tag and attaches the files: the Windows setup and portable exe, the macOS dmg and the Linux
+# AppImage. Publish the draft from the Releases page once the assets look right. Builds are unsigned unless certificates
+# are added as secrets (CSC_LINK / CSC_KEY_PASSWORD, and for macOS notarisation APPLE_ID / APPLE_APP_SPECIFIC_PASSWORD /
+# APPLE_TEAM_ID); without them Windows SmartScreen and macOS Gatekeeper warn on first run.
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            target: --win
+          - os: macos-latest
+            target: --mac
+          - os: ubuntu-latest
+            target: --linux
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build
+      - name: Package and upload to the draft release
+        run: npx electron-builder ${{ matrix.target }} --publish always
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # unsigned builds unless a certificate is configured; keeps the macOS runner from failing on identity lookup
+          CSC_IDENTITY_AUTO_DISCOVERY: false
+      - name: Keep the installers as workflow artifacts too
+        uses: actions/upload-artifact@v4
+        with:
+          name: komachi-${{ matrix.os }}
+          path: |
+            release/*.exe
+            release/*.dmg
+            release/*.AppImage
+          if-no-files-found: error

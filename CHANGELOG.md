@@ -21,6 +21,17 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Release workflow (2026-09-29, .github/workflows/release.yml): a version tag builds the desktop app on Windows, macOS and
+  Ubuntu runners and electron-builder attaches the installers to a draft GitHub Release (package.json `build.publish`, github,
+  draft); the files are also kept as workflow artifacts. Unsigned until certificates are added as secrets.
+- Desktop app (2026-09-29, Phase 10, electron/): the same built game in an Electron window. electron/main.cjs opens one
+  BrowserWindow over dist/index.html (size and place remembered in the user data folder, F11 full screen, no menu bar, links
+  open in the system browser, downloads such as exported towns and photos go to the system save dialog); electron/preload.cjs
+  exposes only `window.komachiApp` { version, platform }, which makes the menu show Exit. Saves and the album live in the app's
+  own profile (Electron's storage is the user data folder, not a browser's). Scripts: `npm run app` (run over dist/),
+  `npm run app:check` (launches the app, which photographs its own window after the game loads, scripts/out/electron.png),
+  `npm run app:build` (Windows installer and portable exe in release/ via electron-builder; `app:build:mac` / `:linux` need
+  those platforms). Icons from public/favicon.ico and icon-512.png.
 - Harbour arms clear of the ferry (2026-09-29, src/harbor.js): an arm's root is walked along the coast until it stands outside
   the entrance span round the berth, so neither its leg nor the outer breakwater is built through the ferry's berth or sailing
   line (on seed 7 the west root sat at the berth's x and the Komachi Maru berthed inside the wall). `MT.harbor` exposes the

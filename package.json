@@ -11,13 +11,20 @@
     "lint": "eslint src && node scripts/check-comments.mjs",
     "test": "node scripts/smoke.mjs",
     "test:architecture": "node scripts/check-architecture.mjs",
-    "preview:architecture": "node scripts/preview-architecture.mjs"
+    "preview:architecture": "node scripts/preview-architecture.mjs",
+    "app": "electron .",
+    "app:check": "node scripts/check-electron.mjs",
+    "app:build": "vite build && electron-builder --win",
+    "app:build:mac": "vite build && electron-builder --mac",
+    "app:build:linux": "vite build && electron-builder --linux"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",
     "three": "^0.160.0"
   },
   "devDependencies": {
+    "electron": "^44.4.5",
+    "electron-builder": "^26.15.3",
     "eslint": "^9.0.0",
     "globals": "^15.0.0",
     "puppeteer-core": "^23.0.0",
@@ -25,5 +32,71 @@
   },
   "engines": {
     "node": ">=18"
+  },
+  "main": "electron/main.cjs",
+  "build": {
+    "appId": "town.komachi.app",
+    "productName": "Komachi",
+    "copyright": "Komachi",
+    "directories": {
+      "output": "release",
+      "buildResources": "public/icons"
+    },
+    "files": [
+      "dist/**",
+      "electron/**",
+      "public/icons/**",
+      "package.json"
+    ],
+    "asar": true,
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "public/favicon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "Komachi",
+      "artifactName": "Komachi-${version}-setup.exe"
+    },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "public/icons/icon-512.png",
+      "category": "public.app-category.games",
+      "artifactName": "Komachi-${version}-mac.${ext}"
+    },
+    "linux": {
+      "target": [
+        "AppImage"
+      ],
+      "icon": "public/icons/icon-512.png",
+      "category": "Game",
+      "artifactName": "Komachi-${version}-linux.${ext}"
+    },
+    "portable": {
+      "artifactName": "Komachi-${version}-portable.exe"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "shafiq1rwan",
+      "repo": "komachi",
+      "releaseType": "draft"
+    }
   }
 }

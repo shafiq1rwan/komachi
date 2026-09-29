@@ -202,6 +202,7 @@ src/
   vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
   sea.js              waves, jumping fish, a school near the shore, the fishing boat
   trailer.js          hidden trailer camera (MT.trailer): HUD away, slow turn, for recording
+electron/             the desktop app: main.cjs (window, downloads, F11, self-screenshot), preload.cjs (window.komachiApp)
   photo.js            photo mode: the HUD away, the caption line, the capture after the frame's render
   album.js            the photos of each town in IndexedDB (list, caption, delete)
 assets/characters/    Kenney Mini Characters (CC0) under kenney/
@@ -249,6 +250,31 @@ Komachi is an installable web app (PWA). Open the deployed build in Chrome, Edge
 visit the whole game is cached, so the installed app plays offline; saves stay in the browser's storage as before.
 The build writes the service worker (`dist/sw.js`) from `scripts/sw-template.js`, listing every file of the build; the
 manifest and icons live in `public/`. The service worker only runs in production builds, never under `npm run dev`.
+
+## Desktop app
+
+The same build runs as a desktop app with Electron (`electron/main.cjs`, `electron/preload.cjs`):
+
+```bash
+npm run build && npm run app   # run the app over dist/
+npm run app:check              # launch it once and check it drew the game (scripts/out/electron.png)
+npm run app:build              # Windows installer + portable exe in release/
+```
+
+The window remembers its size, F11 toggles full screen, links open in your browser, exported towns and photos go through
+the system save dialog, and the menu gains an Exit row. Saves and the album live in the app's own profile folder.
+macOS and Linux builds (`app:build:mac`, `app:build:linux`) have to be made on those platforms or in CI.
+
+**Releases.** Pushing a version tag builds all three platforms on GitHub Actions (`.github/workflows/release.yml`) and
+attaches the installers to a draft GitHub Release for that tag, which you then publish:
+
+```bash
+npm version 0.2.1          # bumps package.json and makes the tag v0.2.1
+git push && git push --tags
+```
+
+The builds are unsigned until certificates are added as repository secrets (see the workflow file), so Windows and macOS warn
+on first run.
 
 ## Testing
 
