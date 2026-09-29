@@ -11,7 +11,8 @@ import { tourists } from './tourists.js';
 import { pickerForTool, currentPick, pickLabel, onPickerMode } from './picker.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
-import { openMenu, closeMenu, menuOpen } from './title.js';
+import { openMenu, menuOpen, menuEscape } from './title.js';
+import { initPhoto, enterPhoto, exitPhoto, photoActive } from './photo.js';
 
 let tool = 'explore', pinned = null, hovered = null, follow = null;
 const ptr = { x: 0, y: 0, ndc: new THREE.Vector2(), down: false, button: 0, panning: false, moved: 0, sel: null, last: { x: 0, y: 0 } };
@@ -22,6 +23,7 @@ let gesture = null;          // {dist, ang, view, yaw} while two fingers are dow
 function setTool(t) { tool = t; pickerForTool(t); ptr.sel = null; ptr.road = null; ptr.erase = null; if (t !== 'explore') follow = null; document.querySelectorAll('.tool').forEach(b => b.classList.toggle('on', b.dataset.tool === (t === 'park' ? 'road' : t))); document.body.classList.toggle('placing', t !== 'explore'); if (t !== 'explore') pinned = null; }
 document.querySelectorAll('.tool').forEach(b => b.addEventListener('click', () => setTool(b.dataset.tool)));
 onPickerMode(setTool);   // the Streets strip's Street | Car park chips switch between the two tools
+initPhoto({ onEnter: () => { setTool('explore'); pinned = null; follow = null; } });   // photo mode starts from a clean view
 // the speed dropdown beside the clock: 1×, 2× or 4×; pausing is the menu (Esc, the ☰ button) or Space, and the label then says so
 const speedDD = document.getElementById('speed-dd'), speedLabel = document.getElementById('speed-label');
 function showSpeed() { speedLabel.textContent = S.speed ? S.speed + '×' : 'Paused'; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
@@ -137,8 +139,9 @@ addEventListener('keydown', e => {
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic'); if (e.code === 'Digit9') setTool('farm');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;
   if (e.code === 'KeyR') rotateTarget();
+  if (e.code === 'KeyP' && !menuOpen()) { if (photoActive()) exitPhoto(); else enterPhoto(); }
   if (e.code === 'Space') { e.preventDefault(); S.speed = S.speed ? 0 : 1; showSpeed(); }
-  if (e.code === 'Escape') { if (menuOpen()) closeMenu(); else if (tool === 'explore' && !pinned && !follow) openMenu('pause'); else { setTool('explore'); pinned = null; follow = null; } }   // Esc clears the tool first, then opens the menu
+  if (e.code === 'Escape' && !document.body.classList.contains('opening')) { if (menuOpen()) menuEscape(); else if (photoActive()) exitPhoto(); else if (tool === 'explore' && !pinned && !follow) openMenu('pause'); else { setTool('explore'); pinned = null; follow = null; } }   // Esc clears the tool first, then opens the pause card; on the title page it does nothing
 });
 addEventListener('keyup', e => keys.delete(e.code));
 function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2); cam.target.z = clamp(cam.target.z, -HALF - 2, HALF + 2); }

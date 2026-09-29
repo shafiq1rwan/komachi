@@ -27,7 +27,9 @@ export function snapshot() {
     residents: residents.map(r => ({ ...pickKeys(r, RES_KEYS), hh: r.hh.id, home: ref(r.home), job: ref(r.job), state: r.state === 'away' ? 'away' : 'here' })),
   };
 }
-export function save() { if (resetting) return false; if (!activeId()) newSlot('Komachi', S.seed, S.biome); if (S.T - thumbT > 2) wantThumb = true; return writeSlot(activeId(), snapshot(), thumb); }
+let lastSave = { at: 0, ok: null };   // the pause menu's "Saved just now" line
+export function save() { if (resetting) return false; if (!activeId()) newSlot('Komachi', S.seed, S.biome); if (S.T - thumbT > 2) wantThumb = true; const ok = writeSlot(activeId(), snapshot(), thumb); lastSave = { at: Date.now(), ok }; return ok; }
+export const saveStatus = () => lastSave;
 // the save card's picture: a 320×180 crop of the view, taken just after a frame is drawn (the canvas keeps no copy afterwards)
 let thumb = null, thumbT = -1e9, wantThumb = true;
 export const thumbDue = () => wantThumb;

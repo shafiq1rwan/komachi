@@ -7,7 +7,9 @@
 <meta name="description" content="Komachi (小町, “small town”): a cosy, retro-flavoured city diorama. Zone homes, shops and workplaces and watch a little town come alive.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@500;700;800&family=Caveat:wght@600&display=swap" rel="stylesheet">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 32 32%27%3E%3Crect x=%272%27 y=%2712%27 width=%2728%27 height=%2718%27 rx=%274%27 fill=%27%23f3e6cf%27/%3E%3Cpath d=%27M2 14 L16 3 L30 14 Z%27 fill=%27%23d98b7a%27/%3E%3Crect x=%2712%27 y=%2719%27 width=%278%27 height=%2711%27 rx=%272%27 fill=%27%23b98a5b%27/%3E%3C/svg%3E">
+<link rel="icon" href="./favicon.ico" sizes="16x16 32x32 48x48 256x256">
+<link rel="icon" type="image/png" sizes="32x32" href="./icons/favicon-32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="./icons/favicon-16.png">
 <link rel="manifest" href="./manifest.webmanifest">
 <meta name="theme-color" content="#f3e6cf">
 <link rel="apple-touch-icon" href="./icons/apple-touch-icon.png">
@@ -49,6 +51,7 @@
         <button data-s="4" role="menuitem">4× <small>fast</small></button>
       </div>
     </div>
+    <button class="icon-btn" id="btn-photo" data-tip="Photo mode (P)"><i class="fa-solid fa-camera"></i></button>
     <button class="icon-btn" id="btn-menu" data-tip="Menu (Esc)"><i class="fa-solid fa-bars"></i></button>
   </div>
 </header>
@@ -91,6 +94,7 @@
   <div class="opt-row"><span>Busy details<small>off: fewer birds, leaves and raindrops; far people animate less often</small></span><button class="switch" data-toggle="busy" role="switch"></button></div>
   <div class="opt-sec">Sound</div>
   <div class="opt-row"><span>Music<small>the menu, night and rain loops</small></span><button class="switch" id="opt-music" role="switch"></button></div>
+  <div class="opt-row"><span>Sound effects<small>a party pop when a building is finished</small></span><button class="switch" id="opt-effects" role="switch" aria-label="Sound effects"></button></div>
   <div class="opt-row"><span>Volume</span><div class="opt-range"><input type="range" id="opt-volume" min="0" max="1" step="0.05"><b id="opt-volume-v"></b></div></div>
   <div class="opt-sec">Look</div>
   <div class="opt-row"><span>Rich look<small>off: the lighter classic look</small></span><button class="switch" data-toggle="look" role="switch"></button></div>
@@ -110,6 +114,8 @@
 <div id="bubbles"></div>
 <button id="fish-near" class="cta" hidden><i class="fa-solid fa-fish"></i> Cast a line</button>
 <div id="fishing" hidden><button id="fish-tap" class="cta">Cast</button><small id="fish-sub"></small><button id="fish-end" class="mm-link">Enough for today</button></div>
+<div id="photo" hidden><div id="photo-last"></div><div class="ph-cap"><b>Komachi</b><small>Drag to frame · scroll to zoom · Q / E turn · Space pauses</small></div><button id="photo-take" class="cta"><i class="fa-solid fa-camera"></i> Take photo</button><button id="photo-done" class="mm-link">Done</button></div>
+<div id="photo-flash"></div>
 <div id="iris" hidden></div>
 <button id="skip-opening" class="cta ghost" hidden><i class="fa-solid fa-forward"></i> Skip</button>
 <div id="bars"></div>

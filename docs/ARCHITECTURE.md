@@ -112,6 +112,20 @@ with needs and references to home and job. `restore()` re-places blocks through 
 sel, preset)`, then rebuilds households and residents; nobody is restored mid-trip. `state.js` reads
 the saved seed and biome before the island is built, unless `?seed=`, `?new` or `?demo` is present.
 
+**Photo mode and the album (Phase 9).** `photo.js` owns body.photo (the HUD hidden by CSS, the #photo bar shown), the
+caption line refreshed each frame from the clock, season and weather, and a one-frame request: `takePhoto` sets a flag,
+main.js calls `capturePhoto()` right after `renderFrame` while the canvas still holds the frame (the renderer keeps no
+drawing buffer), and the JPEG data URL goes to `album.js`, a small IndexedDB store (`komachi-album`, indexed by the slot id)
+with an in-memory fallback so nothing throws where IndexedDB is blocked. title.js lists a town's photos on its Album page and
+opens the viewer (#mm-photo) over the menu; input.js maps P and Esc and clears the tool, the pinned card and the follow on entry.
+
+**Menus, keyboard and files.** title.js focuses the first button of every page (`focusFirst`, not on coarse pointers), moves
+focus with the arrow keys inside the page, and takes Esc through `menuEscape()` from input.js (subpage → main → close the pause
+card; the title page stays; the dialog and the photo viewer own Esc while shown). save.js keeps `saveStatus()` for the pause
+card's line and the pause menu saves on opening. Export writes the slot's snapshot as JSON through a Blob link; import parses the
+file, checks the save shape (v 1–3, blocks, seed), makes a new slot and restores the active one. trailer.js is a dev-only camera:
+body.trailer hides the HUD, `updateTrailer` turns `cam.yaw` each frame.
+
 **Commuting and vehicles (Phase 4).** `r.commuter` residents (a quarter of movers-in, plus anyone who finds
 no local job) go to the station at `workStart` with purpose `commute`, become `away` with `returnAt`, and
 ride back on the first train after it; `updateStation` lists them among the returners. A resident's car and

@@ -10,6 +10,28 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Release polish (2026-09-29): the pause card says when the town was last saved (pausing saves, so it reads "Saved just now",
+  or warns when the browser storage refused); Load town has Export as a file on every town and "Import a town from a file"
+  (a JSON of the snapshot, photos stay in the browser's album; an import becomes a new kept town); Save and quit and Exit ask
+  before going on only when the save failed; the menus are keyboard-complete (the first button takes focus, arrows move,
+  Enter chooses, Esc goes back a page, then closes the pause card; the title page stays) with visible focus rings on every
+  button, tool and switch; Esc during the opening only skips it (it used to open the pause card as well); a real favicon set
+  (public/favicon.ico with 16/32/48/256 PNG entries, icons/favicon-16/32/48.png, icon-256.png for Electron, from
+  scripts/build-icons.mjs); a hidden trailer camera `MT.trailer({ view, rate, speed, hours, at })` that hides the HUD and turns
+  slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
+  berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
+  showed as a blank strip on the menu's subpages.
+- Harbour arms clear of the ferry (2026-09-29, src/harbor.js): an arm's root is walked along the coast until it stands outside
+  the entrance span round the berth, so neither its leg nor the outer breakwater is built through the ferry's berth or sailing
+  line (on seed 7 the west root sat at the berth's x and the Komachi Maru berthed inside the wall). `MT.harbor` exposes the
+  arms and entrance for checks.
+- Photo mode and the album (2026-09-29, Phase 9, src/photo.js and src/album.js): the camera button in the top bar or P puts the HUD
+  away and leaves the town living under one bar at the foot: the caption the picture will get (town, day, time, season, weather),
+  Take photo and Done; the ordinary camera frames the shot and Space holds the moment. A photo is the rendered frame as it is
+  (JPEG, at most 1280 wide), taken with a flash and kept per town in IndexedDB with a small preview of the last shot in the bar;
+  the first one goes into the chronicle. The menu has an Album page (title and pause): a grid of the town's photos newest first,
+  and a viewer with Save to device, Caption and Delete. Deleting a town deletes its photos. Dev hooks `MT.enterPhoto`,
+  `MT.takePhoto`, `MT.exitPhoto`, `MT.photo`.
 - Fishing at the jetty, the first mini-game (2026-09-25, src/minigame-fishing.js): zoom in on the stone jetty and a "Cast a line"
   button floats over its head; a card at the bottom has one button: Cast, then strike when the float dips (rings spread on the
   water). A catch opens the fish stall at the market and the first goes into the chronicle; a miss just lets the float settle;

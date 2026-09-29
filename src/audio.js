@@ -8,7 +8,7 @@ import rainUrl from '../assets/audio/bgm/raining.mp3?url';
 
 // menu.mp3 also carries the day and the night in town for now (the user's choice, 2026-09-25); night.mp3 stays in the folder unused
 const TRACKS = { menu: menuUrl, rain: rainUrl };
-const A = (() => { let s = null; try { s = JSON.parse(localStorage.getItem('komachi.audio') || 'null'); } catch { /* storage unavailable */ } return { on: true, volume: 0.6, ...(s || {}) }; })();
+const A = (() => { let s = null; try { s = JSON.parse(localStorage.getItem('komachi.audio') || 'null'); } catch { /* storage unavailable */ } return { effects: true, on: true, volume: 0.6, ...(s || {}) }; })();
 const store = () => { try { localStorage.setItem('komachi.audio', JSON.stringify(A)); } catch { /* storage unavailable */ } };
 const players = {};
 let unlocked = false, want = null;
@@ -16,7 +16,33 @@ function player(name) {
   if (!players[name]) { const a = new Audio(TRACKS[name]); a.loop = true; a.preload = 'none'; a.volume = 0; players[name] = { a, gain: 0 }; }
   return players[name];
 }
-const unlock = () => { unlocked = true; };
+let context = null, lastPop = -Infinity;
+const unlock = () => {
+  unlocked = true;
+  try { context ||= new (window.AudioContext || window.webkitAudioContext)(); context.resume().catch(() => {}); } catch { /* sound effects unavailable */ }
+};
+/** Original short noise pop and warm rising chime; clustered completions share one sound. */
+function playCompletionSound() {
+  if (!unlocked || !A.effects || !A.volume || !context || context.state !== 'running') return;
+  const t = context.currentTime;
+  if (t - lastPop < 0.12) return;
+  lastPop = t;
+  const gain = context.createGain(); gain.gain.setValueAtTime(A.volume * 0.22, t);
+  gain.gain.exponentialRampToValueAtTime(0.001, t + 0.16); gain.connect(context.destination);
+  const noise = context.createBuffer(1, Math.ceil(context.sampleRate * 0.16), context.sampleRate);
+  const data = noise.getChannelData(0);
+  for (let i = 0; i < data.length; i++) data[i] = Math.random() * 2 - 1;
+  const pop = context.createBufferSource(); pop.buffer = noise; pop.connect(gain); pop.start(t);
+  pop.onended = () => { pop.disconnect(); gain.disconnect(); };
+  for (const [i, hz] of [660, 880, 1320].entries()) {
+    const note = context.createOscillator(), envelope = context.createGain(), start = t + i * 0.055;
+    note.type = 'sine'; note.frequency.value = hz;
+    envelope.gain.setValueAtTime(0, start); envelope.gain.linearRampToValueAtTime(A.volume * 0.07, start + 0.012);
+    envelope.gain.exponentialRampToValueAtTime(0.001, start + 0.3);
+    note.connect(envelope); envelope.connect(context.destination); note.start(start); note.stop(start + 0.31);
+    note.onended = () => { note.disconnect(); envelope.disconnect(); };
+  }
+}
 addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
 
 /** which loop the moment calls for: the menu first, then rain, then night; null keeps quiet */
@@ -37,18 +63,21 @@ function updateAudio(dt, state) {
   }
 }
 /** dev hook: what is playing */
-const audioState = () => ({ on: A.on, volume: A.volume, want, unlocked, playing: Object.entries(players).filter(([, p]) => !p.a.paused).map(([n, p]) => [n, +p.a.volume.toFixed(2)]) });
+const audioState = () => ({ on: A.on, effects: A.effects, volume: A.volume, want, unlocked, playing: Object.entries(players).filter(([, p]) => !p.a.paused).map(([n, p]) => [n, +p.a.volume.toFixed(2)]) });
 
 // the Settings card's Sound rows
 {
+  const effects = document.getElementById('opt-effects');
   const sw = document.getElementById('opt-music'), vol = document.getElementById('opt-volume'), volV = document.getElementById('opt-volume-v');
   const sync = () => {
+    if (effects) { effects.classList.toggle('on', A.effects); effects.setAttribute('aria-checked', String(A.effects)); }
     if (sw) { sw.classList.toggle('on', A.on); sw.setAttribute('aria-checked', A.on ? 'true' : 'false'); }
     if (vol) { vol.value = A.volume; if (volV) volV.textContent = Math.round(A.volume * 100) + '%'; }
   };
   if (sw) sw.addEventListener('click', () => { A.on = !A.on; store(); sync(); unlocked = true; });
   if (vol) vol.addEventListener('input', e => { A.volume = +e.target.value; store(); sync(); });
+  if (effects) effects.addEventListener('click', () => { A.effects = !A.effects; store(); sync(); unlock(); });
   sync();
 }
 
-export { updateAudio, audioState };
+export { updateAudio, audioState, playCompletionSound };

@@ -181,13 +181,13 @@
   #menu .mm-btn.main small,#menu .mm-btn.main .mm-go{color:rgba(255,255,255,.88)}#menu .mm-btn.main .mm-l{align-items:center}
   #menu .mm-head{display:flex;align-items:center;gap:8px;font-size:20px;font-weight:800}#menu .mm-head b{flex:1}
   #menu .mm-card{display:flex;gap:12px;align-items:center;background:rgba(255,255,255,.78);backdrop-filter:blur(6px);border-radius:14px;padding:10px;box-shadow:0 2px 10px rgba(60,70,60,.08);margin-top:6px}
-  #menu .mm-thumb{flex:none;width:132px;height:74px;border-radius:9px;background:#cfe0d6 center/cover;display:flex;align-items:center;justify-content:center}#menu .mm-thumb.sm{width:84px;height:48px}
+  #menu .mm-card[hidden]{display:none}#menu .mm-thumb{flex:none;width:132px;height:74px;border-radius:9px;background:#cfe0d6 center/cover;display:flex;align-items:center;justify-content:center}#menu .mm-thumb.sm{width:84px;height:48px}
   #menu .mm-card-t{display:flex;flex-direction:column;gap:3px;min-width:0}#menu .mm-card-t b{font-size:14px}#menu .mm-card-t small{font-size:12px;color:var(--ink2);font-weight:700}
   #menu .mm-stats{display:flex;gap:14px;margin-top:4px;font-size:12.5px;font-weight:800}#menu .mm-stats i{color:#4c5a53;margin-right:5px;font-size:11px}
   #menu .mm-foot{margin-top:auto;padding:10px 14px;font-size:11.5px;font-weight:700;color:#7a706a;background:rgba(251,246,238,.85);border-radius:12px;box-shadow:0 2px 10px rgba(40,52,58,.08);display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
   #menu .mm-foot-motto{letter-spacing:2px;font-size:10.5px}
   /* the menu's own dialog (rename, delete): a small card over the menu, never the browser's prompt or confirm */
-  #mm-dialog{position:absolute;inset:0;z-index:5;display:none;align-items:center;justify-content:center;background:rgba(40,52,58,.35)}#mm-dialog.show{display:flex}
+  #mm-dialog{position:absolute;inset:0;z-index:8;display:none;align-items:center;justify-content:center;background:rgba(40,52,58,.35)}#mm-dialog.show{display:flex}
   #mm-dialog .mm-dlg{width:min(340px,calc(100vw - 40px));background:var(--cream);border-radius:18px;padding:18px;box-shadow:0 12px 40px rgba(40,52,58,.3);display:flex;flex-direction:column;gap:10px}
   #mm-dialog .mm-dlg b{font-size:17px}#mm-dialog .mm-dlg p{margin:0;font-size:13.5px;color:var(--ink2)}
   #mm-dialog input{font:inherit;font-weight:700;padding:9px 11px;border-radius:10px;border:2px solid #dcd3c3;background:#fff;color:var(--ink)}
@@ -272,7 +272,7 @@
   /* phones: a compact welcome card that leaves the island visible around it */
   @media (max-width:720px){#intro{width:calc(100vw - 48px);max-width:300px;padding:16px 16px 14px;border-radius:16px}#intro h2{font-size:18px;margin-bottom:4px}#intro p{font-size:11.5px;line-height:1.45;margin-bottom:11px}#intro button{font-size:12.5px;padding:8px 18px;border-radius:10px}}
   /* the loading screen (src/loading.js): the menu's island picture, the wordmark, a progress bar and a line of what is loading */
-  #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#dfe9e4 url('../assets/backgrounds/komachi-menu.jpg') 62% 50%/cover;transition:opacity .5s ease}
+  #loading{position:fixed;inset:0;z-index:60;display:flex;align-items:center;justify-content:center;background:#dfe9e4 url('../assets/backgrounds/komachi-menu-game.jpg') 62% 50%/cover;transition:opacity .5s ease}
   #loading::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 50%,rgba(251,246,238,.93) 0,rgba(251,246,238,.82) 32%,rgba(251,246,238,.35) 70%,rgba(251,246,238,.2) 100%)}
   #loading.gone{opacity:0;pointer-events:none}
   #loading .ld-card{position:relative;display:flex;flex-direction:column;align-items:center;gap:18px;width:min(420px,calc(100vw - 48px))}
@@ -291,6 +291,29 @@
   #skip-opening{border:0;font:inherit;font-weight:800;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px}
   body.fishing #tools,body.fishing #picker,body.fishing #tier,body.fishing #inspect{display:none!important}
   /* the opening scene (src/opening.js): the iris wipe is a full-screen layer with a transparent hole drawn by a radial gradient */
+  /* photo mode (src/photo.js): the HUD away, one bar at the foot with the caption the picture will get; the album page in the menu */
+  body.photo #hud,body.photo #tools,body.photo #hint,body.photo #inspect,body.photo #minimap,body.photo #picker,body.photo #intro,body.photo #bars,body.photo #tags,body.photo #bubbles,body.photo #tier,body.photo #milestone,body.photo #fish-near{display:none!important}
+  #photo{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:14;background:var(--cream);border-radius:18px;padding:10px 12px 10px 12px;box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;max-width:calc(100vw - 32px);box-sizing:border-box}
+  #photo[hidden]{display:none}
+  #photo .ph-cap{display:flex;flex-direction:column;gap:2px;min-width:0;max-width:320px}#photo .ph-cap b{font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#photo .ph-cap small{font-size:11px;color:var(--ink2);font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  #photo-take{border:0;background:var(--teal);color:#fff;font:inherit;font-weight:800;font-size:15px;padding:11px 16px;border-radius:12px;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap}#photo-take:hover{filter:brightness(1.06)}
+  #photo-done{border:0;background:none;font:inherit;font-weight:800;font-size:12.5px;color:#4c5a53;cursor:pointer;padding:4px 8px}
+  #photo-last{width:56px;height:32px;border-radius:8px;background:#cfe0d6 center/cover;flex:none;display:none}#photo-last.show{display:block}
+  #photo-flash{position:fixed;inset:0;z-index:13;pointer-events:none;background:#fff;opacity:0}#photo-flash.go{animation:phFlash .5s ease-out}@keyframes phFlash{from{opacity:.85}to{opacity:0}}
+  #menu .mm-btn:focus-visible,#menu .mm-cta:focus-visible,#menu .icon-btn:focus-visible,#menu .mm-link:focus-visible,#menu .mm-shot:focus-visible,#menu .mm-biome:focus-visible,#menu .seg button:focus-visible,#menu .switch:focus-visible,#mm-dialog button:focus-visible,#mm-photo button:focus-visible{outline:3px solid #6f9468;outline-offset:2px}
+  .icon-btn:focus-visible,.tool:focus-visible,.speed-btn:focus-visible,#photo button:focus-visible,#skip-opening:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+  #menu .mm-pause-head .mm-saved{margin-left:auto;font-size:11.5px;font-weight:800;color:#6f9468;display:flex;align-items:center;gap:5px}#menu .mm-pause-head .mm-saved.warn{color:#b85148}
+  #menu .mm-import{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}#menu .mm-import small{font-size:11.5px;font-weight:700;color:var(--ink2)}
+  body.trailer #hud,body.trailer #tools,body.trailer #hint,body.trailer #inspect,body.trailer #minimap,body.trailer #picker,body.trailer #toast,body.trailer #intro,body.trailer #bars,body.trailer #tags,body.trailer #tier,body.trailer #milestone,body.trailer #fish-near,body.trailer #photo,body.trailer #fps{display:none!important}
+  #menu .mm-album{display:grid;grid-template-columns:repeat(2,1fr);gap:8px}
+  #menu .mm-shot{border:0;padding:0;aspect-ratio:16/9;border-radius:10px;background:#cfe0d6 center/cover;cursor:pointer;position:relative;overflow:hidden;box-shadow:0 2px 10px rgba(60,70,60,.1)}#menu .mm-shot:hover{outline:2px solid #6f9468}
+  #menu .mm-shot span{position:absolute;left:0;right:0;bottom:0;padding:14px 8px 5px;font-size:10.5px;font-weight:800;color:#fff;background:linear-gradient(transparent,rgba(30,40,40,.65));text-align:left}
+  #menu .mm-empty kbd{font:inherit;font-size:11px;padding:0 5px;border-radius:5px;background:#fff;border:1px solid #dcd3c3}
+  #mm-photo{position:absolute;inset:0;z-index:6;display:none;align-items:center;justify-content:center;background:rgba(24,32,36,.88)}#mm-photo.show{display:flex}
+  #mm-photo .mm-ph{display:flex;flex-direction:column;gap:10px;max-width:min(1100px,calc(100vw - 40px));max-height:calc(100vh - 40px)}
+  #mm-photo img{max-width:100%;max-height:calc(100vh - 130px);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.4);object-fit:contain;display:block;margin:0 auto}
+  #mm-photo .mm-ph-t{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#fff}#mm-photo .mm-ph-t b{font-size:14px}
+  #mm-photo .mm-ph-b{display:flex;gap:6px;flex-wrap:wrap}#mm-photo .mm-ph-b button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;gap:6px}#mm-photo .mm-ph-b button:hover{background:rgba(255,255,255,.28)}#mm-photo .mm-ph-b button.warn{color:#f3b3ab}
   #iris{position:fixed;inset:0;z-index:50;pointer-events:none;background:transparent}
   #skip-opening{position:fixed;right:18px;bottom:18px;z-index:55;padding:10px 16px;border-radius:12px;background:rgba(251,246,238,.9);box-shadow:var(--shadow)}
   body.opening #hud,body.opening #tools,body.opening #hint,body.opening #inspect,body.opening #minimap,body.opening #picker,body.opening #toast,body.opening #intro,body.opening #bars,body.opening #tags,body.opening #tier,body.opening #milestone{display:none!important}
@@ -302,6 +325,7 @@
   @keyframes dot{0%,100%{opacity:.3;transform:translateY(0)}40%{opacity:1;transform:translateY(-2px)}}
   @keyframes pop{from{transform:translate(-50%,-100%) translateY(2px) scale(.6);opacity:0}to{transform:translate(-50%,-100%) translateY(-6px) scale(1);opacity:1}}
   .tag{position:fixed;transform:translate(-50%,-100%);background:rgba(251,246,238,.92);color:var(--ink);font-size:11px;font-weight:800;padding:2px 7px;border-radius:7px;pointer-events:none;white-space:nowrap;box-shadow:0 1px 4px rgba(0,0,0,.1)}
+  @media (max-width:720px){#photo{bottom:10px;gap:8px;padding:8px 10px}#photo .ph-cap small{display:none}#photo .ph-cap b{font-size:12px}#photo-take{font-size:13px;padding:9px 12px}#photo-last{width:44px;height:26px}#mm-photo .mm-ph-t b{font-size:12.5px}}
   @media (max-width:720px){#toast{top:58px;left:8px;max-width:calc(100vw - 240px);font-size:11.5px;padding:8px 10px 8px 9px}   /* phones: a narrow card under the brand card, leaving the inspect card its column on the right */#hint{display:none}#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:42px;border-radius:14px}#brand{padding:0 8px}#brand > * + *, #clock > * + *{margin-left:6px}#brand > .fold.collapsed, #clock > .fold.collapsed{margin-left:0}#brand .brand-icon{width:32px;height:32px}#stats{gap:3px}#stats .stat{padding:4px 6px;font-size:11px;gap:4px}#stats .stat i{font-size:10px}.icon-btn{width:26px;height:26px;font-size:12px}#clock{padding:0 8px}#sun{width:18px;height:18px;box-shadow:0 0 0 3px rgba(240,194,122,.25)}#sun.night{box-shadow:0 0 0 3px rgba(167,184,221,.3)}#clock-text{min-width:60px}#time{font-size:13px}#day{font-size:9px}.seg button{min-width:24px;height:22px;font-size:10px;padding:0 5px}.divider-v{height:22px}#inspect{top:58px;right:8px;left:auto;bottom:auto;width:210px;max-height:calc(100vh - 150px);padding:9px 11px 8px;gap:5px;border-radius:14px}#inspect .row{font-size:10px}#inspect h2{font-size:13.5px}#inspect .sub{font-size:10px;margin-top:-3px}#inspect .kind{font-size:8.5px;padding:1px 5px;border-radius:5px;letter-spacing:.6px}#inspect ul{gap:3px}#inspect li{font-size:10.5px}#inspect li span{font-size:9.5px}#inspect .small,#inspect .empty{font-size:10px}#inspect .hh{font-size:10.5px}#inspect .hh span{font-size:9.5px}#inspect li.chron{font-size:10px}#inspect li.chron .d{font-size:9px;width:38px}#inspect.person .row{font-size:10px}#inspect.person h2{font-size:13.5px}#inspect.person{width:200px}#inspect .cta{padding:4px 8px;font-size:10.5px}#tools{bottom:8px;gap:1px;padding:5px 3px;border-radius:12px;width:calc(100vw - 12px);max-width:470px;box-sizing:border-box}.tool{width:auto;flex:1 1 0;min-width:0;padding:5px 0 4px;font-size:9px;letter-spacing:-.1px;gap:3px;border-radius:10px}.tool .sw{width:24px;height:18px;border-radius:6px;font-size:10px}.tool kbd{display:none}}
 
   /* phones: the tool dock as one compact row of eight, larger icon tiles, the chosen tool on a flat pale teal tile */
@@ -419,3 +443,7 @@
     body.rich-hud #milestone{top:111px}
   }
   @media (max-width:360px){body.rich-hud #day{display:none}body.rich-hud #brand h1{font-size:14px}body.rich-hud #stats .stat{font-size:10px}}
+
+/* Credits share the menu page on desktop and small screens. */
+#menu .mm-credits a{color:#326e64;text-decoration:underline;text-underline-offset:3px}
+#menu .mm-credits a:focus-visible{outline:2px solid #326e64;outline-offset:3px}

@@ -1,3 +1,4 @@
+import { celebrateBuilding } from './celebration.js';
 // Komachi — simulation: time, road routing, residents and their schedules, ambient traffic, block lifecycle
 import * as THREE from 'three';
 import { GIVEN, FAMILY, SKIN, SHIRTS, HAIR, CARS, SHOP_NAMES, uniqueName, PAL } from './palette.js';
@@ -1355,7 +1356,7 @@ function updateBlocks(dh) {
       b.stageT += dh * progressRate(b);
       if (b.type === 'res' && b.stage === DONE - 1 && !b.summoned) { b.summoned = true; for (const u of b.units) for (const size of splitHouseholds(unitCap(u))) bookings.push({ hh: makeHousehold(size, u) }); }
       if (b.stageT >= stageHours(b)[b.stage]) {
-        b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) { toast(`${b.name} is finished`); if (b.type === 'civic') { refreshCivicFlags(); record(`${b.name} opened`); } else if (!blocks.some(x => x !== b && x.type === b.type && x.stage === DONE)) record(b.type === 'res' ? `The first home, ${b.name}, was finished` : b.type === 'shop' ? `The first shop, ${b.name}, opened` : `The first workplace, ${b.name}, opened`); }
+        b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) { celebrateBuilding(b); toast(`${b.name} is finished`); if (b.type === 'civic') { refreshCivicFlags(); record(`${b.name} opened`); } else if (!blocks.some(x => x !== b && x.type === b.type && x.stage === DONE)) record(b.type === 'res' ? `The first home, ${b.name}, was finished` : b.type === 'shop' ? `The first shop, ${b.name}, opened` : `The first workplace, ${b.name}, opened`); }
         if (b.stage === DONE && b.villaFor) {   // the household that ordered the villa moves up; if they are gone, it is let like any home
           const hh = households.find(h => h.id === b.villaFor); b.villaFor = null;
           if (hh && hh.home && hh.members.length) moveUp(hh, b.units[0]); else b.summoned = false;

@@ -1,3 +1,4 @@
+import { updateCelebrations } from './celebration.js';
 // Komachi — entry point: wires modules together, runs the frame loop, exposes dev hooks and the ?demo town
 import * as THREE from 'three';
 import { lerp, hash } from './utils.js';
@@ -16,6 +17,7 @@ import { rebuildUnitMesh } from './buildings.js';
 import { updateWater } from './island.js';
 import { updateSea } from './sea.js';
 import { initFerry, updateFerry, ferry } from './ferry.js';
+import { harbor } from './harbor.js';
 import { hillCentre, pierFrame, canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
 import '@fortawesome/fontawesome-free/css/all.min.css';
 // the installed app plays offline: the service worker the build writes (vite.config.js) caches the whole game; not in dev
@@ -82,6 +84,8 @@ import { characterReady } from './characters.js';
 import { toast } from './toast.js';
 import { frameDue } from './quality.js';
 import { pickerForTool, currentPick } from './picker.js';
+import { photoDue, capturePhoto, updatePhotoMode, enterPhoto, exitPhoto, takePhoto, photo } from './photo.js';
+import { trailer, startTrailer, stopTrailer, updateTrailer } from './trailer.js';
 
 let last = performance.now(), realT = 0, uiAcc = 0, lastSave = 0;
 const followV = new THREE.Vector3();
@@ -106,13 +110,14 @@ function frame(now) {
   if (keys.has('KeyS') || keys.has('ArrowDown')) cam.target.addScaledVector(up, -mv);
   if (keys.has('KeyA') || keys.has('ArrowLeft')) cam.target.addScaledVector(right, -mv);
   if (keys.has('KeyD') || keys.has('ArrowRight')) cam.target.addScaledVector(right, mv);
-  updateCharacters(simDt);
+  updateCharacters(simDt); updateTrailer(dt);
   clampTarget(); updateCamera();
   wireMat.opacity = Math.max(0, Math.min(0.8, (20 - cam.view) / 10));   // cables fade out when zoomed far away
-  setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateFishing(); for (const b of blocks) if (b.type === 'farm') for (const u of b.units) if (u.wheel) u.wheel.rotation.x += dt * 0.7 * Math.min(1, S.speed); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateKitsune(dt, simDt); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars(); updateFishingGame(dt); updateAudio(dt, { menu: menuOpen(), rain: W.rain > 0.25, night: daylight() < 0.35 });
+  updateCelebrations(dt); setSwayTime(realT); updateWater(dt); updateSea(dt, realT); updateSignals(); W.winter = seasonOf() === 'winter'; updateWeather(dt, simDt * HPS); updateSeasons(dt, onSeasonTurn); envUpdate(realT); updateEvents(dt, realT, 1 - daylight()); updateFishing(); for (const b of blocks) if (b.type === 'farm') for (const u of b.units) if (u.wheel) u.wheel.rotation.x += dt * 0.7 * Math.min(1, S.speed); updateLanterns(); updateLandmarks(dt, 1 - daylight()); updateKitsune(dt, simDt); updateMilestone(); updateAmbient(dt, realT, 1 - daylight()); updatePreview(); updateHover(); updateTags(); updateBubbles(realT); updateBars(); updateFishingGame(dt); updatePhotoMode(); updateAudio(dt, { menu: menuOpen(), rain: W.rain > 0.25, night: daylight() < 0.35 });
   uiAcc += dt; if (uiAcc > 0.25) { uiAcc = 0; renderInspect(inspectTarget(), followTarget()); updateStats(); }
   if (S.speed > 0 && S.T - lastSave >= 0.5) { lastSave = S.T; save(); }
   renderFrame(); if (thumbDue() && blocks.length > 1) { captureThumb(); if (document.body.classList.contains('menu-full')) save(); }
+  if (photoDue()) capturePhoto();   // photo mode: the canvas still holds this frame
   requestAnimationFrame(frame);
 }
 
@@ -139,6 +144,12 @@ function demoTown() {
       if (i % 4 !== 2 && j % 4 !== 2) continue;
       const c = cell(i, j);
       if (c.type !== 'empty' || c.h || c.keep || c.landmark || coastDist(cx(i), cz(j)) < 2.4) continue;
+      // Leave the canal banks open: automatic bridges otherwise join parallel banks into a broad road.
+      if ([-1, 0, 1].some(di => [-1, 0, 1].some(dj => cell(i + di, j + dj)?.canal))) continue;
+      // Never widen an existing street into a two-cell ribbon in the showcase town.
+      const widens = [-1, 1].some(di => [-1, 1].some(dj =>
+        cell(i + di, j)?.type === 'road' && cell(i, j + dj)?.type === 'road' && cell(i + di, j + dj)?.type === 'road'));
+      if (widens) continue;
       c.type = 'road'; c.tree = null; c.drawn = true;
     }
     rebuildRoads(); rebuildDecor();
@@ -162,7 +173,7 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
-  opening, startOpening, stopOpening, playOpening, audioState, startFishing, stopFishing, fishingGame, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
+  opening, startOpening, stopOpening, playOpening, audioState, startFishing, stopFishing, fishingGame, enterPhoto, exitPhoto, takePhoto, photo, trailer: Object.assign(o => startTrailer(o), { stop: stopTrailer, state: trailer }), harbor, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
   parkCells, hash, townNet, drawRoad, eraseRoad, frontRoads, roadKeepReason, wanderers, TIERS, tierLabel, chooseKind, parkVehicle, renderInspect, refreshCivicFlags, dayOf, chronicle, weather: W, setWeather, seasonOf, talks, puddleSpots, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind, placeCarPark, carParks, placeable, hillMarket, hillPlots, ferry, quality: S.quality, pickerForTool, currentPick, hillCentre, hillCrew, lanterns, landmarks, landmarkRoads, catchToday, eventOn, pierFrame, tourists, tourism, bus, spawnTourist, isWeekend, setLook, milestoneShown, cancelGlide, gliding,
   roadCount: () => { let n = 0; for (let i = 0; i < N; i++) for (let j = 0; j < N; j++) if (cell(i, j).type === 'road') n++; return n; },

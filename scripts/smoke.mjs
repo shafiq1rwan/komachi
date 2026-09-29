@@ -394,7 +394,7 @@ try {
   await menuTab.evaluate(() => document.querySelector('#menu [data-act="start"], #menu [data-act="continue"]').click()); await sleep(400);
   const started = await menuTab.evaluate(() => ({ closed: !document.getElementById('menu').classList.contains('show'), slots: JSON.parse(localStorage.getItem('komachi.slots') || '[]').length, active: !!localStorage.getItem('komachi.active') }));
   await menuTab.evaluate(() => document.getElementById('btn-menu').click()); await sleep(300);
-  const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && document.querySelectorAll('#menu .mm-btn').length <= 3);   // the short pause menu
+  const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && !!document.querySelector('#menu [data-act="credits"]') && document.querySelectorAll('#menu .mm-btn').length <= 5);   // Resume, Album, Settings, Credits, quit
   await menuTab.close();
   check('title screen on a plain visit; Start makes a town; the menu button pauses', ttl && ttl.open && ttl.screen === 'main' && ttl.logo && ttl.bg && started.closed && started.slots >= 1 && started.active && paused, JSON.stringify({ ttl, started, paused }));
   let fx2 = null;   // the kitsune: once the hill is open, a fox comes down from the shrine at dusk; the first sighting is recorded and stone foxes appear

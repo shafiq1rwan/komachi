@@ -13,6 +13,7 @@ There is nothing to lose and nothing to optimise. The pleasure is in watching.
 ![Komachi by night](docs/screenshot-night.png)
 ![Komachi Station at night](docs/screenshot-station.png)
 ![The whole island](docs/screenshot-island.png)
+![The harbour at five o'clock](docs/screenshot-harbour.png)
 ![A shop going up](docs/screenshot-construction.png)
 
 ## Quick start
@@ -51,6 +52,8 @@ Other scripts:
 | Follow | Press Follow on a resident card, or click any name on a building card. Pan, zoom, a key or another tool lets go |
 | Rotate a building | Hover it and press R, or use the Rotate button on its card. The door turns to the next side that faces a street |
 | Time | Speed buttons behind the sliders button in the clock card, or Space to pause |
+| Photo | The camera button in the top bar or P; Take photo, Done or Esc; the Album is in the menu |
+| Menus | Arrows move, Enter chooses, Esc goes back a page; Load town exports a town as a file and imports one |
 | Picker | Choosing Homes, Shops, Work, Civic or Farms opens a strip of buildings above the dock: Auto lets the town choose by size, or pick a kind (its picture shows the building) and drag the cells it needs beside a street. The town hall, fire station and community centre grey out once built; shops you chose keep their trade |
 | Settings | The gear in the top-left card opens Settings: a quality preset (Auto picks one for your device) or each setting on its own, resolution, frame rate, shadows, lamp light and the look's effects, applied as you change them; plus the rich and pixel looks, centre the camera and start a new island. Turn on the frame-rate readout to tune it on a phone. Sound: a Music switch and volume for the menu, night and rain loops |
 | Look | The standard look has soft contact shadows, a light miniature focus and calm bay water; the wand button (or `?look=classic`) switches to the lighter classic look and is remembered. "Pixel look" (off by default) switches to the half-resolution chunky render and is remembered; the sliders button also holds Centre and Start over. `?boxes` in the URL brings back the original box people |
@@ -92,6 +95,9 @@ Some things worth knowing:
   signboards, noren and red chōchin lanterns on the shop street, a glowing konbini, painted stop marks
   and white kerb lines on the streets, a red post box, a kōban by the station, a hokora on a quiet bend,
   pruned pines, bamboo groves and pocket parks with swings.
+- **Streets are streets.** Raised sidewalks with kerbs, dashed centre lines, zebra crossings at
+  junctions. People walk on the pavement and cross at the end of their trip; cars keep left.
+  Zone two blocks two cells apart and the shared gap becomes a two-lane avenue.
 - **Buildings vary.** Detached homes are cottages, timber machiya townhouses or modern render boxes; homes also come as narrow two-storey
   houses with exterior stairs, or small apartment blocks with balconies. Shops take one of three shapes, a
   tiled machiya gable, a mono-pitch metal roof with a tall fascia, or a flat roof with a parapet, and become cafés,
@@ -150,6 +156,9 @@ Some things worth knowing:
   morning ferry and runs between the station and the lighthouse.
 - **People talk.** Neighbours on the station benches chat, and residents who know each other stop on the pavement for a
   word; a small bubble over the speaker shows dots or a pictogram, never text.
+- **Photo mode and the album.** The camera button in the top bar (or P) puts the HUD away; frame the town with the ordinary
+  camera, pause with Space for the moment you want, and take the photo. It goes into the town's album in the menu, with a
+  caption of the day, time, season and weather that you can change, and can be saved to your device.
 - **The town saves itself** in your browser every half game hour and when you leave, and is back on
   your next visit. The rotate-left button behind the sliders starts a new island; `?new` in the URL
   ignores the save for one session.
@@ -192,6 +201,9 @@ src/
   builder-model.js    editable Kenney builder derivative: fitted hard hat and reflective workwear
   vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
   sea.js              waves, jumping fish, a school near the shore, the fishing boat
+  trailer.js          hidden trailer camera (MT.trailer): HUD away, slow turn, for recording
+  photo.js            photo mode: the HUD away, the caption line, the capture after the frame's render
+  album.js            the photos of each town in IndexedDB (list, caption, delete)
 assets/characters/    Kenney Mini Characters (CC0) under kenney/
 assets/vehicle/       Kenney Car Kit models (CC0) and their atlas
 assets/watercraft/    Kenney Watercraft models (CC0): the fishing boat and a few kept for later

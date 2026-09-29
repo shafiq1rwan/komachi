@@ -269,13 +269,23 @@ effect through the town instead.
   Streets and Car park under one button, compact cards
 - The desktop app moved to Phase 10, the last phase (decided 2026-09-24): every feature is checked first
 
-## ⬜ Phase 9 — Menus, saves UI, photo album
+## ✅ Phase 9 — Menus, saves UI, photo album, opening cinematic (complete 2026-09-29)
 
 - ✅ Title screen and pause menu, multiple named saves, island seed and biome pickers (2026-09-24: src/title.js, src/slots.js)
-- Photo mode: hide the HUD, frame a shot, save to an in-game album
+- ✅ Photo mode and album (2026-09-29: src/photo.js, src/album.js; the camera button or P hides the HUD, Take photo keeps the
+  rendered frame per town in IndexedDB; the menu's Album page shows them with a viewer: save to device, caption, delete)
 - ✅ **Opening cinematic** (shipped 2026-09-25: the carriage scene with seated newcomers, the iris wipe onto the island, skip, replay from the pause menu) (idea from 2026-09-17): a short scene of newcomers chatting on a train, then an iris
   wipe, the picture shrinking to a black circle and reopening from a point over the island. Built from the
   existing Kenney characters and a clip-path overlay; skippable, replayable from the menu
+
+## Release polish (2026-09-29, from the "how sellable" review)
+
+- ✅ Save safety: "Saved just now" on the pause card, export/import of a town as a file (photos excepted)
+- ✅ Small friction: a confirm only when a save fails before quitting, keyboard-complete menus with focus rings, Esc in the opening
+  only skips, the favicon set (favicon.ico, 16/32/48/256) for the browser and Electron
+- ✅ Trailer material: `MT.trailer` orbit camera without the HUD; docs/STORE.md storyboard
+- ✅ Store page basics: six screenshots, the one-line and short/long descriptions in docs/STORE.md
+- Still to do before selling: music with a known licence and a credits page; a guided first town; the box-people LOD past ~100 residents
 
 ## Mini-games (agreed 2026-09-25, gentle, nothing scored)
 

@@ -11,7 +11,7 @@ export const harbor = { arms: [], entrance: null };
 export function buildHarbor(ferry) {
   if (!harborIsland || harbor.arms.length) return;
   const left = coastPoint(HARBOR_ANGLE + 0.67, -0.12), right = coastPoint(HARBOR_ANGLE - 0.67, -0.12);
-  const outerZ = Math.max(left[1], right[1], QUAY_Z + 2) + 3.6;
+  const outerZ = Math.max(left[1], right[1], QUAY_Z + 2) + 3.6;   // the roots may move along the coast below; the quay is straight there
   // New islands berth along +Z. Leave a generous fallback opening if a seed needs a different slip.
   // the entrance sits in front of the berth whenever the ferry sails out on +Z (every harbour berth does)
   const axisZ = !!ferry.berth && ferry.offshore.z > ferry.berth.z + 1;
@@ -37,11 +37,14 @@ export function buildHarbor(ferry) {
       seaRocks.push({ x, z, r: 0.55 });
     }
   };
-  // At this angle the natural shoulders lie beyond the bay, so both arms start on solid coast.
-  const leftTip = [Math.min(entryX - halfGap, right[0] - 1), outerZ];
-  const rightTip = [Math.max(entryX + halfGap, left[0] + 1), outerZ];
-  segment(left, [left[0], outerZ]); segment([left[0], outerZ], leftTip);
-  segment(right, [right[0], outerZ]); segment([right[0], outerZ], rightTip);
+  // Both arms start on solid coast. Their roots are walked along the coast until they stand outside the entrance span (seed 7's
+  // west root sat at the berth's x, so the leg and the outer breakwater were built through the ferry's sailing line).
+  const rootAt = (th0, dir, limitX) => { let th = th0, p = coastPoint(th, -0.12); for (let k = 0; k < 40 && (dir > 0 ? p[0] > limitX : p[0] < limitX); k++) { th += dir * 0.03; p = coastPoint(th, -0.12); } return p; };
+  const westFirst = left[0] <= right[0];
+  const W = rootAt(HARBOR_ANGLE + (westFirst ? 0.67 : -0.67), westFirst ? 1 : -1, entryX - halfGap - 0.4), E = rootAt(HARBOR_ANGLE + (westFirst ? -0.67 : 0.67), westFirst ? -1 : 1, entryX + halfGap + 0.4);
+  const wTip = [entryX - halfGap, outerZ], eTip = [entryX + halfGap, outerZ], leftTip = wTip, rightTip = eTip;
+  segment(W, [W[0], outerZ]); if (W[0] < wTip[0] - 0.05) segment([W[0], outerZ], wTip);
+  segment(E, [E[0], outerZ]); if (E[0] > eTip[0] + 0.05) segment([E[0], outerZ], eTip);
   for (const [tip, color] of [[leftTip, '#b85148'], [rightTip, '#698e79']]) {
     g.push(cyl(0.15, 0.19, 0.18, paving[0], tip[0], 0.14, tip[1], 8));
     g.push(cyl(0.07, 0.10, 0.52, color, tip[0], 0.49, tip[1], 8));

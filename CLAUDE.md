@@ -11,7 +11,8 @@ The player zones blocks; the simulation does the rest. Design rule for every fea
 npm run dev        # Vite dev server
 npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
-node scripts/capture-readme.mjs   # after a build: retakes the five docs/screenshot-*.png used by the README
+node scripts/capture-readme.mjs   # after a build: retakes the six docs/screenshot-*.png used by the README
+node scripts/build-icons.mjs      # rebuilds public/favicon.ico and public/icons/favicon-*.png, icon-256.png from assets/brand/komachi-icon.png
 npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
 ```
 
@@ -204,7 +205,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   the quay walk paved flush at y 0.004 with a kerb wall to the lower walk; ferry.js layout uses `be` ≥ 1.25 so the slip landing
   sits out past the wall and buildSlip adds stone side walls,
   ridge `HILL_STEPS` [1, .76, .5] with rock-coloured 0.1-wide banks, TERRACE 0.7. src/harbor.js `buildHarbor(ferry)`: arms from
-  the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
+  the quay corners out to `QUAY_Z + 5.6`, entrance at the berth's x; `rootAt` walks each root along the coast (0.03 rad steps) until
+  it is outside the entrance span ± 0.4 (2026-09-29: seed 7's west root was at the berth's x and the arm ran through the ferry),
+  legs drop straight to outerZ and the outer breakwater stops at the entrance edges; `MT.harbor` = { arms, entrance }. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
 - Mini-games (2026-09-25): src/minigame-fishing.js, the jetty fishing game, HIDDEN (`ENABLED` false: no invitation button; the user
@@ -220,6 +223,27 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `pickTrack` menu → rain → menu (the menu loop covers day and night for now; night.mp3 is in the folder, not imported), linear fades (in 2.5 s, out 1.5 s), play only after the first pointerdown/keydown.
   Settings rows #opt-music / #opt-volume bound in audio.js (`komachi.audio` { on, volume }). Dev hook `MT.audioState()`. A `day.mp3`
   would take the daytime slot. night.mp3 is 26 MB (the user's file); worth re-encoding to ~3 MB when convenient.
+- Release polish (2026-09-29): save.js `saveStatus()` { at, ok } feeds the pause card's `savedLine()` (title.js; opening the
+  pause menu calls save() when a slot is active); Load town rows have data-act export (Blob JSON { komachi: 1, name, town }) and
+  the page an Import row (#m-import file input, handled on root's change event: shape check v 1–3 / blocks / seed, `newSlot` +
+  `writeSlot`, the active id restored unless scratch); 'title' and 'exit' save first and `ask` only when the save failed.
+  Keyboard: `focusFirst()` in show() (skipped on coarse pointers), root keydown moves focus with ArrowUp/Down, `menuEscape()`
+  (exported; input.js calls it for Esc: subpage → main, main → close in pause, nothing on the title; dialog/viewer own Esc, ask()
+  focuses OK when there is no input); input.js ignores Esc while body.opening (the opening's skip handles it). Focus rings:
+  `:focus-visible` rules in styles.css for menu buttons, tools, switches. `#menu .mm-card[hidden]{display:none}` (the flex rule
+  beat the attribute). src/trailer.js: `MT.trailer({ view, rate, speed, hours, at, pitch })` / `MT.trailer.stop()` / `.state`,
+  body.trailer hides the HUD, `updateTrailer(dt)` before clampTarget in the frame loop. Icons: scripts/build-icons.mjs (headless
+  canvas, PNG-in-ICO), index.html links favicon.ico + icons/favicon-32/16.png. docs/STORE.md holds the store text and the
+  trailer storyboard; capture-readme.mjs takes docs/screenshot-harbour.png (ferry berthed on the 17:00 call).
+- Photo mode and album (2026-09-29, Phase 9, src/photo.js, src/album.js): #btn-photo in the top bar or P calls `enterPhoto()`
+  (body.photo hides the HUD, the #photo bar shows the caption `town · Day n · h:mm · Season · weather`, Take photo, Done; the hook
+  from input.js clears the tool, pinned card and follow); `takePhoto()` sets a flag, main.js calls `capturePhoto()` after
+  renderFrame (the canvas is only readable in that same task), the JPEG (max 1280 wide, q 0.86) goes to album.js (IndexedDB
+  `komachi-album`, store `photos` indexed by `town` = slot id, 'scratch' in test tabs; memory fallback; `addPhoto`, `listPhotos`,
+  `countPhotos`, `updatePhoto`, `deletePhoto`, `deleteTownPhotos`), #photo-flash, #photo-last preview, chronicle line on the first.
+  title.js: 'album' row (title when a town exists, pause always) and page (.mm-album grid of .mm-shot), `viewPhoto(p)` (#mm-photo
+  viewer: Save to device via a download link, Caption via `ask`, Delete); deleteSlot also calls `deleteTownPhotos`. The smoke
+  pause-menu check allows four rows. Dev hooks `MT.enterPhoto/exitPhoto/takePhoto/photo`.
 - Opening scene (2026-09-25, src/opening.js, Phase 9 slice 1): the carriage stands at X0 420 (past the sea plane's 600-unit edge) in the
   main scene, so the shared ortho camera, post chain and bubbles.js apply; `startOpening()` builds it once (`buildCarriage`,
   `seatPassengers` via makePerson with `userData.rider` owners, `char.sitting`, fidgets phone | paper, `char.gaze`, startTalk), sets
@@ -421,5 +445,5 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
    speech bubbles, puddles, tourists with camera prop and bus, landmarks placed, summer festival with fireworks, ryokan)
 7. ✅ Farming and fishing (complete 2026-09-23)
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
-9. Menus, saves UI, photo album, opening cinematic (✅ menus and saves 2026-09-24, ✅ opening cinematic 2026-09-25; photo mode and album remain)
+9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
 10. Electron desktop app: the last phase, after every feature is checked (decided 2026-09-24)
