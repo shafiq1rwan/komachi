@@ -37,7 +37,7 @@
   "build": {
     "appId": "town.komachi.app",
     "productName": "Komachi",
-    "copyright": "Komachi",
+    "copyright": "Copyright © 2026 Saiss",
     "directories": {
       "output": "release",
       "buildResources": "public/icons"
@@ -98,5 +98,7 @@
       "repo": "komachi",
       "releaseType": "draft"
     }
-  }
+  },
+  "license": "UNLICENSED",
+  "author": "Saiss"
 }

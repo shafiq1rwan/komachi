@@ -96,14 +96,17 @@ function show(screen) {
     page.innerHTML = `<div class="mm-head">${back()}<b>Settings</b></div>`; page.appendChild(options); options.classList.add('in-menu');
     options.dispatchEvent(new Event('menu-show'));
   } else if (screen === 'credits') {
-    page.innerHTML = `<div class="mm-head">${back()}<b>Credits</b></div><div class="mm-help mm-credits">
-      <p><b>Komachi</b><br>A little town made with care. Thank you for spending time here.</p>
-      <p><b>Character, vehicle &amp; watercraft models</b><br><a href="https://kenney.nl" target="_blank" rel="noopener noreferrer">Kenney</a> — Mini Characters, Car Kit and Watercraft Kit (CC0). Some models are adapted for Komachi.</p>
-      <p><b>Custom models &amp; development assistance</b><br>OpenAI Codex</p>
-      <p><b>Procedural buildings &amp; development assistance</b><br>Claude by Anthropic</p>
-      <p><b>Music &amp; recorded sound</b><br>From the creators at <a href="https://freesound.org/" target="_blank" rel="noopener noreferrer">Freesound</a>.</p>
-      <p><b>Completion sound</b><br>Original synthesised party pop and chime, made for Komachi.</p>
-      <p>Thank you to the asset creators and everyone who visits this little island.</p></div>`;
+    const cr = (label, body) => `<div class="cr-row"><small>${label}</small><span>${body}</span></div>`;
+    page.innerHTML = `<div class="mm-head">${back()}<b>Credits</b></div><div class="mm-credits">
+      <div class="cr-head"><span class="cr-town">Komachi</span><b>made by Saiss</b><em>A little town made with care. Thank you for spending time here.</em></div>
+      ${cr('Design &amp; development', 'Saiss')}
+      ${cr('People, cars &amp; boats', '<a href="https://kenney.nl" target="_blank" rel="noopener noreferrer">Kenney</a> · Mini Characters, Car Kit and Watercraft Kit (CC0), some adapted for Komachi')}
+      ${cr('Buildings, streets &amp; the island', 'Generated in code for Komachi')}
+      ${cr('Music &amp; recorded sound', 'Creators at <a href="https://freesound.org/" target="_blank" rel="noopener noreferrer">Freesound</a>; the completion pop and chime are original')}
+      ${cr('Type &amp; icons', '<a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Nunito and Caveat</a> (Open Font License) · <a href="https://fontawesome.com/" target="_blank" rel="noopener noreferrer">Font Awesome Free</a> (CC BY 4.0)')}
+      ${cr('Built with', '<a href="https://threejs.org/" target="_blank" rel="noopener noreferrer">Three.js</a> · <a href="https://vite.dev/" target="_blank" rel="noopener noreferrer">Vite</a> · <a href="https://www.electronjs.org/" target="_blank" rel="noopener noreferrer">Electron</a>')}
+      ${cr('Made with help from', 'Claude by Anthropic · OpenAI Codex')}
+      <div class="cr-foot">© 2026 Saiss · all rights reserved<br>Thank you to the asset creators and everyone who visits this little island.</div></div>`;
   } else if (screen === 'help') {
     page.innerHTML = `<div class="mm-head">${back()}<b>How to play</b></div><div class="mm-help">
       <p><b>Streets first.</b> Choose <kbd>Streets</kbd> (5) and drag to draw a street from the station ring. Everything is built beside a street.</p>

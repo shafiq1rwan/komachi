@@ -301,4 +301,6 @@ Kenney's Car Kit (CC0), both recoloured per owner;
 
 ## License
 
-[MIT](LICENSE)
+Komachi is made by Saiss. © 2026 Saiss, all rights reserved: see [LICENSE](LICENSE). The code is published for viewing, not
+for reuse or redistribution. Kenney's models are CC0; the fonts and icons keep their own licences; the music is credited in
+`assets/audio/CREDITS.md`. Until 2026-09-29 the repository was MIT; copies taken under that licence keep its terms.

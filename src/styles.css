@@ -445,5 +445,11 @@
   @media (max-width:360px){body.rich-hud #day{display:none}body.rich-hud #brand h1{font-size:14px}body.rich-hud #stats .stat{font-size:10px}}
 
 /* Credits share the menu page on desktop and small screens. */
+#menu .mm-credits{background:rgba(255,255,255,.78);border-radius:14px;padding:14px 16px 12px;font-size:13px;line-height:1.5;color:#4a4340;display:flex;flex-direction:column;gap:9px}
+#menu .mm-credits .cr-head{display:flex;flex-direction:column;gap:2px;padding-bottom:10px;border-bottom:1px solid rgba(74,67,64,.12);margin-bottom:2px}
+#menu .mm-credits .cr-town{font-family:'Caveat',cursive;font-size:30px;line-height:1;color:#326e64}#menu .mm-credits .cr-head b{font-size:16px}#menu .mm-credits .cr-head em{font-style:normal;color:#6f6660;font-size:12.5px}
+#menu .mm-credits .cr-row{display:grid;grid-template-columns:118px 1fr;gap:10px;align-items:baseline}#menu .mm-credits .cr-row small{font-size:10px;font-weight:800;letter-spacing:1.2px;text-transform:uppercase;color:#8a817a}
+#menu .mm-credits .cr-foot{margin-top:6px;padding-top:10px;border-top:1px solid rgba(74,67,64,.12);font-size:11.5px;color:#6f6660}
+#menu.pause .mm-credits{background:var(--cream2)}@media (max-width:720px){#menu .mm-credits .cr-row{grid-template-columns:1fr;gap:1px}}
 #menu .mm-credits a{color:#326e64;text-decoration:underline;text-underline-offset:3px}
 #menu .mm-credits a:focus-visible{outline:2px solid #326e64;outline-offset:3px}

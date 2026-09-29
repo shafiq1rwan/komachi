@@ -1,5 +1,7 @@
 # Audio credits
 
+Komachi is made by Saiss; this file credits the sounds that are not Saiss's own.
+
 The project owner identifies Freesound (https://freesound.org/) as the source of the music and recorded audio.
 
 | Local file | Use | Original sound / creator / license |
