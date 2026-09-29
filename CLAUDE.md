@@ -224,7 +224,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   frame from main.js (menu-full path passes { menu: true }, the opening too; the town path menuOpen() / W.rain > 0.25 / daylight() < 0.35),
   `pickTrack` menu → rain → menu (the menu loop covers day and night for now; night.mp3 is in the folder, not imported), linear fades (in 2.5 s, out 1.5 s), play only after the first pointerdown/keydown.
   Settings rows #opt-music / #opt-volume bound in audio.js (`komachi.audio` { on, volume }). Dev hook `MT.audioState()`. A `day.mp3`
-  would take the daytime slot. night.mp3 is 26 MB (the user's file); worth re-encoding to ~3 MB when convenient.
+  would take the daytime slot. night.mp3 is 26 MB (the user's file); worth re-encoding to ~3 MB when convenient. The loops are from
+  Pixabay (Content Licence: commercial use, no attribution required; confirmed by the user 2026-09-29), credited in assets/audio/CREDITS.md.
 - Release polish (2026-09-29): save.js `saveStatus()` { at, ok } feeds the pause card's `savedLine()` (title.js; opening the
   pause menu calls save() when a slot is active); Load town rows have data-act export (Blob JSON { komachi: 1, name, town }) and
   the page an Import row (#m-import file input, handled on root's change event: shape check v 1–3 / blocks / seed, `newSlot` +

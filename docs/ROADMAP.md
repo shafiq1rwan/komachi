@@ -285,7 +285,7 @@ effect through the town instead.
   only skips, the favicon set (favicon.ico, 16/32/48/256) for the browser and Electron
 - ✅ Trailer material: `MT.trailer` orbit camera without the HUD; docs/STORE.md storyboard
 - ✅ Store page basics: six screenshots, the one-line and short/long descriptions in docs/STORE.md
-- Still to do before selling: music with a known licence and a credits page; a guided first town; the box-people LOD past ~100 residents
+- ✅ Music licence settled (Pixabay Content Licence) and a credits page; still to do: a guided first town; the box-people LOD past ~100 residents
 
 ## Mini-games (agreed 2026-09-25, gentle, nothing scored)
 

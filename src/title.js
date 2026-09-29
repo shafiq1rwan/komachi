@@ -102,7 +102,7 @@ function show(screen) {
       ${cr('Design &amp; development', 'Saiss')}
       ${cr('People, cars &amp; boats', '<a href="https://kenney.nl" target="_blank" rel="noopener noreferrer">Kenney</a> · Mini Characters, Car Kit and Watercraft Kit (CC0), some adapted for Komachi')}
       ${cr('Buildings, streets &amp; the island', 'Generated in code for Komachi')}
-      ${cr('Music &amp; recorded sound', 'Creators at <a href="https://freesound.org/" target="_blank" rel="noopener noreferrer">Freesound</a>; the completion pop and chime are original')}
+      ${cr('Music', 'Loops from <a href="https://pixabay.com/music/" target="_blank" rel="noopener noreferrer">Pixabay</a> under the Pixabay Content Licence; the completion pop and chime are original')}
       ${cr('Type &amp; icons', '<a href="https://fonts.google.com/" target="_blank" rel="noopener noreferrer">Nunito and Caveat</a> (Open Font License) · <a href="https://fontawesome.com/" target="_blank" rel="noopener noreferrer">Font Awesome Free</a> (CC BY 4.0)')}
       ${cr('Built with', '<a href="https://threejs.org/" target="_blank" rel="noopener noreferrer">Three.js</a> · <a href="https://vite.dev/" target="_blank" rel="noopener noreferrer">Vite</a> · <a href="https://www.electronjs.org/" target="_blank" rel="noopener noreferrer">Electron</a>')}
       ${cr('Made with help from', 'Claude by Anthropic · OpenAI Codex')}

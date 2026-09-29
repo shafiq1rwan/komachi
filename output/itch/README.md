@@ -14,4 +14,4 @@ The six screenshots are actual 1920 × 1080 game captures. The screenshot script
 
 The cover was created with the built-in image_gen tool. Its complete prompt is in `cover-prompt.txt`.
 
-Audio attribution is tracked in `assets/audio/CREDITS.md`; original Freesound track links are still needed to complete individual creator and license credits.
+Audio attribution is tracked in `assets/audio/CREDITS.md`: the loops are from Pixabay (Content Licence, commercial use allowed); track links can be added when convenient.

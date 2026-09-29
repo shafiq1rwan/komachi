@@ -2,14 +2,17 @@
 
 Komachi is made by Saiss; this file credits the sounds that are not Saiss's own.
 
-The project owner identifies Freesound (https://freesound.org/) as the source of the music and recorded audio.
+The three music loops come from Pixabay (https://pixabay.com/music/) under the Pixabay Content Licence
+(https://pixabay.com/service/license-summary/): free for commercial use, no attribution required, the tracks may not be
+resold on their own.
 
-| Local file | Use | Original sound / creator / license |
+| Local file | Use | Pixabay track / creator |
 | --- | --- | --- |
-| bgm/menu.mp3 | Menu, clear day and night music | Awaiting original Freesound sound link |
-| bgm/raining.mp3 | Rain music | Awaiting original Freesound sound link |
-| bgm/night.mp3 | Kept in assets; currently unused | Awaiting original Freesound sound link |
+| bgm/menu.mp3 | Menu, clear day and night music | (add the track title, creator and page link when convenient) |
+| bgm/raining.mp3 | Rain music | (add the track title, creator and page link when convenient) |
+| bgm/night.mp3 | Kept in assets; currently unused | (add the track title, creator and page link when convenient) |
 
-Replace the pending entries with each track title, creator, direct sound URL, license and any modifications when the source links are available. The in-game Credits page currently acknowledges Freesound generally; individual track attribution is not yet verified.
+Attribution is not required by the licence, but naming the creators here and on the in-game Credits page is good manners:
+Pixabay keeps your download history under your account, which shows each track's page.
 
-The building completion pop and chime are original Web Audio synthesis in src/audio.js, made with Codex. They do not use a downloaded recording.
+The building completion pop and chime are original Web Audio synthesis in src/audio.js. They do not use a recording.

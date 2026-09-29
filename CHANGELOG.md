@@ -21,6 +21,8 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Music credits corrected (2026-09-29): the loops are from Pixabay under the Pixabay Content Licence (commercial use allowed, no
+  attribution required), not Freesound; the credits page and assets/audio/CREDITS.md say so.
 - Licence changed (2026-09-29): the code is no longer MIT; LICENSE is now all rights reserved (viewing only, no copying or
   redistribution), package.json says UNLICENSED, the credits foot reads "© 2026 Saiss · all rights reserved". Copies made under
   the earlier MIT licence keep its terms.
