@@ -277,7 +277,9 @@ git push && git push --tags
 
 The builds are unsigned until certificates are added as repository secrets (see the workflow file), so Windows and macOS warn
 on first run. The macOS app gets an ad-hoc signature from scripts/after-pack.cjs (Apple Silicon refuses to open an app with no
-signature at all, reporting it as "damaged"); the macOS build is Apple Silicon only (Komachi-<version>-mac-apple-silicon.dmg); Intel Macs are not supported. If macOS
+signature at all, reporting it as "damaged"); the macOS build is Apple Silicon only (Komachi-<version>-mac-apple-silicon.dmg); Intel Macs are not supported. macOS shows
+"Apple could not verify Komachi is free of malware" the first time: on macOS 15 and newer click Done, open System Settings → Privacy
+& Security, scroll to "Komachi was blocked" and press Open Anyway; on macOS 14 and older right-click the app and choose Open. If it
 still says the app is damaged, the download was quarantined: run `xattr -cr /Applications/Komachi.app` once, then open it.
 
 ## Testing
