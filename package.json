@@ -75,11 +75,18 @@
     },
     "mac": {
       "target": [
-        "dmg"
+        {
+          "target": "dmg",
+          "arch": [
+            "arm64"
+          ]
+        }
       ],
       "icon": "public/icons/icon-512.png",
       "category": "public.app-category.games",
-      "artifactName": "Komachi-${version}-mac.${ext}"
+      "artifactName": "Komachi-${version}-mac-apple-silicon.${ext}",
+      "hardenedRuntime": false,
+      "gatekeeperAssess": false
     },
     "linux": {
       "target": [
@@ -97,7 +104,8 @@
       "owner": "shafiq1rwan",
       "repo": "komachi",
       "releaseType": "draft"
-    }
+    },
+    "afterPack": "scripts/after-pack.cjs"
   },
   "license": "UNLICENSED",
   "author": "Saiss"

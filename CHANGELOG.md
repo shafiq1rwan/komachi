@@ -21,6 +21,9 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- macOS "damaged" fix (2026-09-30): the release had no signature at all, which Apple Silicon refuses to launch; scripts/after-pack.cjs
+  now ad-hoc signs the app after packaging when no certificate is configured, and the mac build is Apple Silicon only
+  (Komachi-<version>-mac-apple-silicon.dmg; Intel dropped, decided 2026-09-30). Install notes tell users to right-click → Open, or `xattr -cr` a quarantined app.
 - Trailer recorder (2026-09-30, scripts/make-trailer.mjs): records the thirty-second trailer from the built game in a real Chrome
   window (tab capture answered by Chrome's auto-select flag, the menu loop mixed in and faded out, MediaRecorder, no ffmpeg):
   island orbit, station rush, a shop frame going up, the ferry coming in, rain, night, snow, a pull-back and the menu as the

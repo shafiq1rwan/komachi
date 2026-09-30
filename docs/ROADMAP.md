@@ -299,7 +299,8 @@ effect through the town instead.
   remembered, F11, downloads through the system dialog, Exit in the menu; saves and the album in the app's user data
   folder (Electron's own storage); `npm run app:build` makes the Windows installer and portable exe with electron-builder
 - ✅ Releases from CI: a version tag builds Windows, macOS and Linux installers into a draft GitHub Release (release.yml)
-- Left for later: code signing and notarisation (certificates as secrets)
+- ✅ macOS opens without a certificate (ad-hoc signature in the afterPack hook, Apple Silicon only, 2026-09-30)
+- Left for later: real code signing and notarisation (certificates as secrets)
 
 ---
 

@@ -286,6 +286,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `build` config there (appId town.komachi.app, icons public/favicon.ico and icon-512.png, `publish` github draft). Run `npm run build`
   before app/app:check. Releases: .github/workflows/release.yml on tags v* (matrix win/mac/linux, `electron-builder --publish always`
   with GITHUB_TOKEN, CSC_IDENTITY_AUTO_DISCOVERY false) makes a draft GitHub Release; `npm version x.y.z && git push --tags`.
+  macOS (2026-09-30): `build.afterPack` = scripts/after-pack.cjs ad-hoc signs the .app (`codesign --sign -`) when no CSC_LINK/CSC_NAME,
+  because an unsigned arm64 app reports "damaged"; `build.mac.target` dmg for arm64 only (Apple Silicon; Intel dropped 2026-09-30, artifactName …-mac-apple-silicon.dmg),
+  hardenedRuntime false. Users still right-click → Open; a quarantined app needs `xattr -cr`.
 - PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
   writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in
   PROD only; network-first page, cache-first files, fonts in `komachi-fonts`. Settings shows #opt-install on beforeinstallprompt.
