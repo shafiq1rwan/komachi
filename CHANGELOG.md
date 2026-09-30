@@ -21,6 +21,12 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Trailer recorder (2026-09-30, scripts/make-trailer.mjs): records the thirty-second trailer from the built game in a real Chrome
+  window (tab capture answered by Chrome's auto-select flag, the menu loop mixed in and faded out, MediaRecorder, no ffmpeg):
+  island orbit, station rush, a shop frame going up, the ferry coming in, rain, night, snow, a pull-back and the menu as the
+  title card, to output/trailer/komachi-trailer.mp4 as raw footage (or .webm where MP4 recording is unsupported); the finished
+  promo (30 s) and teaser (15 s) with captions and an end card are cut from it by scripts/edit-promo-trailer.py into
+  output/trailer/promo/. scripts/build-itch-theme.mjs makes the itch cover, banner and background.
 - Music credits corrected (2026-09-29): the loops are from Pixabay under the Pixabay Content Licence (commercial use allowed, no
   attribution required), not Freesound; the credits page and assets/audio/CREDITS.md say so.
 - Licence changed (2026-09-29): the code is no longer MIT; LICENSE is now all rights reserved (viewing only, no copying or

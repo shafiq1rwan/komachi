@@ -202,6 +202,8 @@ src/
   vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
   sea.js              waves, jumping fish, a school near the shore, the fishing boat
   trailer.js          hidden trailer camera (MT.trailer): HUD away, slow turn, for recording
+scripts/make-trailer.mjs   records raw trailer footage from the built game (a Chrome window, MediaRecorder, no ffmpeg)
+scripts/edit-promo-trailer.py  cuts that footage into the 30 s promo and 15 s teaser in output/trailer/promo/ (Pillow + imageio-ffmpeg)
 electron/             the desktop app: main.cjs (window, downloads, F11, self-screenshot), preload.cjs (window.komachiApp)
   photo.js            photo mode: the HUD away, the caption line, the capture after the frame's render
   album.js            the photos of each town in IndexedDB (list, caption, delete)

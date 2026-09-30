@@ -54,7 +54,11 @@ one in rain and one in snow with `MT.setWeather('rain', 4)` / a winter day.
 
 ## Trailer (thirty seconds, no voice, the menu loop as music)
 
-Record with a screen recorder over the trailer camera, `MT.trailer({ view, rate, speed })` in the browser console,
+`node scripts/make-trailer.mjs` (after `npm run build`) records raw footage of the storyboard below into
+output/trailer/komachi-trailer.mp4 (a Chrome window opens for about forty seconds). The finished cuts are made from that footage
+by scripts/edit-promo-trailer.py (Pillow + imageio-ffmpeg): output/trailer/promo/komachi-promo-30s.mp4 and
+komachi-teaser-15s.mp4 with captions, an end card and the menu loop; their poster JPEGs sit beside them. Upload the promo to
+YouTube and link it on the itch page (itch embeds YouTube or Vimeo, not files); the teaser suits Reddit and social posts. To record by hand instead, use a screen recorder over the trailer camera, `MT.trailer({ view, rate, speed })` in the browser console,
 which hides the HUD and turns the camera slowly (Esc or `MT.trailer.stop()` ends it). Keep every shot to three or four
 seconds; cut on the beat.
 

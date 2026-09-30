@@ -16,6 +16,9 @@ node scripts/build-icons.mjs      # rebuilds public/favicon.ico and public/icons
 npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
 npm run app:check  # after a build: the Electron app launches, photographs its own window (scripts/out/electron.png) and quits
 npm run app:build  # Windows installer + portable exe in release/
+node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
+                                  # the user's scripts/edit-promo-trailer.py (Python, Pillow + imageio-ffmpeg) cuts it into output/trailer/promo/ (the deliverables)
+node scripts/build-itch-theme.mjs # itch cover, banner and background at itch's sizes into output/itch/theme/
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -235,7 +238,12 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   focuses OK when there is no input); input.js ignores Esc while body.opening (the opening's skip handles it). Focus rings:
   `:focus-visible` rules in styles.css for menu buttons, tools, switches. `#menu .mm-card[hidden]{display:none}` (the flex rule
   beat the attribute). src/trailer.js: `MT.trailer({ view, rate, speed, hours, at, pitch })` / `MT.trailer.stop()` / `.state`,
-  body.trailer hides the HUD, `updateTrailer(dt)` before clampTarget in the frame loop. Icons: scripts/build-icons.mjs (headless
+  body.trailer hides the HUD, `updateTrailer(dt)` before clampTarget in the frame loop. scripts/make-trailer.mjs (2026-09-30) drives the
+  storyboard in a headed Chrome (`--auto-select-tab-capture-source-by-title=Komachi` answers getDisplayMedia, so the DOM title card is
+  captured; canvas.captureStream fallback), mixes the bundled menu mp3 through an AudioContext into the stream, records with MediaRecorder
+  (MP4 H.264/AAC when `isTypeSupported`, else WebM VP9; `KOMACHI_TRAILER=webm` forces WebM) and writes output/trailer/. A MediaRecorder
+  WebM reports Infinity duration until seeked to the end. Verified by seeking a <video> in headless Chromium over a small HTTP server
+  (file:// stalled) and screenshotting frames. Icons: scripts/build-icons.mjs (headless
   canvas, PNG-in-ICO), index.html links favicon.ico + icons/favicon-32/16.png. docs/STORE.md holds the store text and the
   trailer storyboard; capture-readme.mjs takes docs/screenshot-harbour.png (ferry berthed on the 17:00 call).
 - Photo mode and album (2026-09-29, Phase 9, src/photo.js, src/album.js): #btn-photo in the top bar or P calls `enterPhoto()`
