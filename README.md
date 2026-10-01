@@ -202,6 +202,7 @@ src/
   vehicles.js         Kenney Car Kit models: loading, per-car repaint, box-car fallback
   sea.js              waves, jumping fish, a school near the shore, the fishing boat
   trailer.js          hidden trailer camera (MT.trailer): HUD away, slow turn, for recording
+  poki.js             the Poki build's SDK calls (loading, gameplay start/stop, commercial breaks); a no-op elsewhere
 scripts/make-trailer.mjs   records raw trailer footage from the built game (a Chrome window, MediaRecorder, no ffmpeg)
 scripts/edit-promo-trailer.py  cuts that footage into the 30 s promo and 15 s teaser in output/trailer/promo/ (Pillow + imageio-ffmpeg)
 electron/             the desktop app: main.cjs (window, downloads, F11, self-screenshot), preload.cjs (window.komachiApp)
@@ -252,6 +253,13 @@ Komachi is an installable web app (PWA). Open the deployed build in Chrome, Edge
 visit the whole game is cached, so the installed app plays offline; saves stay in the browser's storage as before.
 The build writes the service worker (`dist/sw.js`) from `scripts/sw-template.js`, listing every file of the build; the
 manifest and icons live in `public/`. The service worker only runs in production builds, never under `npm run dev`.
+
+## Poki build
+
+Poki wants an HTML5 game with its SDK and without links out, third-party requests or a service worker. `npm run build:poki` makes
+that build in dist-poki/ (src/poki.js loads the SDK, reports loading, play and pauses, and runs a commercial break before play
+resumes from a menu), `npm run check:poki` verifies the rules headless, and `npm run pack:poki` zips it to output/poki/ for the
+upload form. The web, PWA and desktop builds carry none of this.
 
 ## Desktop app
 

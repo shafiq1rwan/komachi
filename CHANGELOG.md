@@ -21,6 +21,12 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Poki build (2026-10-01, src/poki.js): `npm run build:poki` (vite --mode poki → dist-poki/, no service worker), `npm run check:poki`
+  (headless: no request leaves the game but the SDK's, no service worker, no Exit row, no install button, no outbound links, the SDK
+  calls in Poki's order) and `npm run pack:poki` (output/poki/komachi-poki.zip, index.html at the root). The SDK is fetched at start
+  and told gameLoadingFinished when the loading screen goes, gameplayStart/Stop as the menus close and open, and commercialBreak
+  (music muted) before Resume, Continue and Start; nothing is sent before init resolves. The fonts are now self-hosted for every build
+  (public/fonts, latin woff2 of Nunito variable and Caveat, OFL), so no build calls Google Fonts.
 - macOS "damaged" fix (2026-09-30): the release had no signature at all, which Apple Silicon refuses to launch; scripts/after-pack.cjs
   now ad-hoc signs the app after packaging when no certificate is configured, and the mac build is Apple Silicon only
   (Komachi-<version>-mac-apple-silicon.dmg; Intel dropped, decided 2026-09-30). Install notes tell users to right-click → Open, or `xattr -cr` a quarantined app.

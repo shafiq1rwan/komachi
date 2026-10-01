@@ -76,6 +76,13 @@ seconds; cut on the beat.
 
 Title card at the end: the wordmark on the menu picture and the one line above.
 
+## Poki
+
+A separate build for Poki's portal: `npm run build:poki && npm run check:poki && npm run pack:poki`, then upload
+output/poki/komachi-poki.zip in the Poki developer dashboard. Poki reviews for: loads inside their iframe, their SDK events
+(loading finished, gameplay start/stop, commercial breaks at menu pauses), no outbound links, no third-party requests, mobile
+support. The music loops stream on demand (6.6 MB of the 16.8 MB build), so the first load is small.
+
 ## Tags
 
 city builder, cosy, sandbox, relaxing, simulation, Japan, isometric, low poly, no failure, browser, PWA

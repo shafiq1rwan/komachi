@@ -13,6 +13,7 @@ import wordmarkUrl from '../assets/brand/komachi-wordmark.png';   // the user's 
 import bgUrl from '../assets/backgrounds/komachi-menu-game.jpg';
 import pkg from '../package.json';
 import { listPhotos, countPhotos, updatePhoto, deletePhoto, deleteTownPhotos } from './album.js';
+import { POKI, pokiPlay, pokiPause, pokiBreak } from './poki.js';
 
 const root = document.getElementById('menu');
 const PLACE = ['Hinata', 'Minato', 'Kogane', 'Sakurazaka', 'Umibe', 'Aozora', 'Tsukimi', 'Hoshino', 'Kawabe', 'Midori', 'Nagisa', 'Asahi'];
@@ -21,7 +22,7 @@ const ago = t => { const m = Math.round((Date.now() - t) / 60000); return m < 2 
 const clock = h => `${Math.floor(h)}:${String(Math.floor((h % 1) * 60)).padStart(2, '0')}`;
 const biomeName = id => (BIOMES[id] || BIOMES.suburban).name;
 const swatch = id => (BIOMES[id] || BIOMES.suburban).treeColors.map(c => `<i style="background:${c}"></i>`).join('');
-const standalone = !!window.komachiApp || (() => { try { return matchMedia('(display-mode: standalone)').matches; } catch { return false; } })();   // the desktop app (electron/preload.cjs) or an installed PWA: the menu shows Exit
+const standalone = !POKI && (!!window.komachiApp || (() => { try { return matchMedia('(display-mode: standalone)').matches; } catch { return false; } })());   // the desktop app (electron/preload.cjs) or an installed PWA: the menu shows Exit (never on Poki)
 const row = (act, icon, label, sub = '', cls = '') => `<button class="mm-btn ${cls}" data-act="${act}"><i class="fa-solid ${icon}"></i><span class="mm-l"><b>${label}</b>${sub ? `<small>${sub}</small>` : ''}</span><i class="fa-solid fa-chevron-right mm-go"></i></button>`;
 const back = () => '<button class="icon-btn" data-act="back" aria-label="Back"><i class="fa-solid fa-arrow-left"></i></button>';
 const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'town';
@@ -96,7 +97,7 @@ function show(screen) {
     page.innerHTML = `<div class="mm-head">${back()}<b>Settings</b></div>`; page.appendChild(options); options.classList.add('in-menu');
     options.dispatchEvent(new Event('menu-show'));
   } else if (screen === 'credits') {
-    const cr = (label, body) => `<div class="cr-row"><small>${label}</small><span>${body}</span></div>`;
+    const cr = (label, body) => `<div class="cr-row"><small>${label}</small><span>${POKI ? body.replace(/<a [^>]*>(.*?)<\/a>/g, '$1') : body}</span></div>`;   // Poki: no links out of the game
     page.innerHTML = `<div class="mm-head">${back()}<b>Credits</b></div><div class="mm-credits">
       <div class="cr-head"><span class="cr-town">Komachi</span><b>made by Saiss</b><em>A little town made with care. Thank you for spending time here.</em></div>
       ${cr('Design &amp; development', 'Saiss')}
@@ -121,9 +122,9 @@ function show(screen) {
 function open(kind) {
   if (!mode) { wasSpeed = S.speed || 1; S.speed = 0; if (kind === 'pause') { requestThumb(); if (activeId()) save(); } }   // pausing saves, so the card's "Saved" line is true
   options.classList.remove('show'); document.getElementById('btn-options').classList.remove('on');   // the in-game Settings card gives way to the menu
-  mode = kind; root.classList.add('show'); setLayout(); show('main');
+  mode = kind; root.classList.add('show'); setLayout(); show('main'); pokiPause();
 }
-function close() { park(); mode = null; root.classList.remove('show', 'pause'); document.body.classList.remove('menu-full', 'menu-pause'); S.speed = wasSpeed; }
+function close() { park(); mode = null; root.classList.remove('show', 'pause'); document.body.classList.remove('menu-full', 'menu-pause'); S.speed = wasSpeed; pokiPlay(); }
 /** the menu's own dialog in place of prompt/confirm: a title, an optional line and text field, Cancel and the action; resolves
  *  with the text (or true) on OK and null on Cancel, Esc or a click outside */
 let dlg = null;
@@ -164,8 +165,8 @@ root.addEventListener('click', e => {
   const b = e.target.closest('[data-act], [data-biome]'); if (!b || options.contains(b)) return;
   if (b.dataset.biome) { root.querySelectorAll('.mm-biome').forEach(x => x.classList.toggle('on', x === b)); return; }
   const act = b.dataset.act, rowEl = b.closest('.mm-town'), id = rowEl && rowEl.dataset.id;
-  if (act === 'continue' || act === 'resume') close();
-  else if (act === 'start') { newSlot(PLACE[S.seed % PLACE.length] + ' Town', S.seed, S.biome); close(); hooks.onStart(); save(); }
+  if (act === 'continue' || act === 'resume') pokiBreak().then(close);   // Poki: an ad at this natural pause (instant elsewhere)
+  else if (act === 'start') pokiBreak().then(() => { newSlot(PLACE[S.seed % PLACE.length] + ' Town', S.seed, S.biome); close(); hooks.onStart(); save(); });
   else if (act === 'save') { toast(save() ? 'Saved' : 'Could not save: the browser storage is full'); saveCard(); }
   else if (act === 'new' || act === 'towns' || act === 'settings' || act === 'help' || act === 'album' || act === 'credits') show(act);
   else if (act === 'shot') { const p = photos.find(x => x.id === b.dataset.id); if (p) viewPhoto(p); }

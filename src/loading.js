@@ -8,6 +8,7 @@ import { vehiclesReady } from './vehicles.js';
 import { serviceLoaded } from './service-vehicles.js';
 import { foxLoaded } from './kitsune.js';
 import { scratch } from './slots.js';
+import { pokiLoaded } from './poki.js';
 
 const TIMEOUT = 25;
 const el = document.getElementById('loading'), bar = el.querySelector('.ld-bar i'), line = el.querySelector('.ld-line');
@@ -35,7 +36,7 @@ function frame() {
 }
 function finish() {
   finished = true; bar.style.width = '100%';
-  setTimeout(() => { el.classList.add('gone'); if (onDone) onDone(); }, scratch ? 0 : 250);
+  setTimeout(() => { el.classList.add('gone'); pokiLoaded(); if (onDone) onDone(); }, scratch ? 0 : 250);
 }
 /** main.js: the island is built and the first frame is on its way */
 export function islandReady(then) { steps[0].done = true; onDone = then || null; }

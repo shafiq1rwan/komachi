@@ -22,12 +22,25 @@ function offline() {
   };
 }
 
+// The Poki build puts Poki's SDK in the page head and calls init() at once, before the game bundle, which is how Poki's QA tool
+// detects it (src/poki.js then waits on window.__pokiInit). The other builds get no SDK.
+function pokiHtml() {
+  return {
+    name: 'komachi-poki-html',
+    transformIndexHtml: () => [
+      { tag: 'script', attrs: { src: 'https://game-cdn.poki.com/scripts/v2/poki-sdk.js' }, injectTo: 'head-prepend' },
+      { tag: 'script', children: 'window.__pokiInit = (window.PokiSDK ? PokiSDK.init() : Promise.reject(new Error("no SDK"))).then(function () { return true; }, function () { return false; });', injectTo: 'head' },
+    ],
+  };
+}
+
 // `base: './'` makes the build work from any sub-path (GitHub Pages project sites, file hosting).
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   base: './',
   assetsInclude: ['**/*.glb'],
-  plugins: [offline()],
+  plugins: mode === 'poki' ? [pokiHtml()] : [offline()],   // Poki forbids a service worker; the poki build has none
   build: {
+    outDir: mode === 'poki' ? 'dist-poki' : 'dist',
     target: 'es2022',
     sourcemap: false,
     rollupOptions: {
@@ -38,4 +51,4 @@ export default defineConfig({
     },
   },
   server: { open: true },
-});
+}));

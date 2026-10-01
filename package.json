@@ -16,7 +16,10 @@
     "app:check": "node scripts/check-electron.mjs",
     "app:build": "vite build && electron-builder --win",
     "app:build:mac": "vite build && electron-builder --mac",
-    "app:build:linux": "vite build && electron-builder --linux"
+    "app:build:linux": "vite build && electron-builder --linux",
+    "build:poki": "vite build --mode poki",
+    "pack:poki": "node scripts/pack-poki.mjs",
+    "check:poki": "node scripts/check-poki.mjs"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

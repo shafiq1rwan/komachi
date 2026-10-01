@@ -19,6 +19,7 @@ npm run app:build  # Windows installer + portable exe in release/
 node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
                                   # the user's scripts/edit-promo-trailer.py (Python, Pillow + imageio-ffmpeg) cuts it into output/trailer/promo/ (the deliverables)
 node scripts/build-itch-theme.mjs # itch cover, banner and background at itch's sizes into output/itch/theme/
+npm run build:poki && npm run check:poki && npm run pack:poki   # the Poki build: dist-poki/, headless rule checks, output/poki/komachi-poki.zip
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -289,6 +290,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   macOS (2026-09-30): `build.afterPack` = scripts/after-pack.cjs ad-hoc signs the .app (`codesign --sign -`) when no CSC_LINK/CSC_NAME,
   because an unsigned arm64 app reports "damaged"; `build.mac.target` dmg for arm64 only (Apple Silicon; Intel dropped 2026-09-30, artifactName …-mac-apple-silicon.dmg),
   hardenedRuntime false. Users still right-click → Open; a quarantined app needs `xattr -cr`.
+- Poki build (2026-10-01, src/poki.js): `POKI` = import.meta.env.MODE === 'poki' (vite.config.js: mode poki → outDir dist-poki, no
+  offline() plugin). `pokiInit()` from main.js appends the SDK script (game-cdn.poki.com) and init()s; `pokiLoaded()` from loading.js
+  finish, `pokiPlay()`/`pokiPause()` from title.js close()/open(), `pokiBreak()` before continue/resume/start (mutes via audio.js
+  `setMuted`); calls are queued until init resolves and sent loading-first (Poki's order). On Poki: no Exit row (`standalone` false), credits
+  links stripped to text, #opt-install removed, no service worker registration. scripts/check-poki.mjs (vite preview --outDir dist-poki;
+  requests made by the SDK itself are ignored via request.initiator(); preview answers missing paths with index.html, so sw.js is checked by
+  content-type), scripts/pack-poki.mjs (PowerShell Compress-Archive). Fonts are self-hosted in public/fonts (fonts.css, latin woff2) for all builds.
+  Dev hook `MT.pokiState()`.
 - PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
   writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in
   PROD only; network-first page, cache-first files, fonts in `komachi-fonts`. Settings shows #opt-install on beforeinstallprompt.

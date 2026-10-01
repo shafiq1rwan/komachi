@@ -49,6 +49,8 @@ addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydo
 const pickTrack = ({ menu, rain }) => menu ? 'menu' : rain ? 'rain' : 'menu';
 
 /** every frame from main.js: fade the wanted loop in (about two seconds) and the others out (about one), pause what is silent */
+let muted = false;   // a commercial break (poki.js) silences everything without touching the saved volume
+function setMuted(on) { muted = !!on; for (const p of Object.values(players)) p.a.volume = muted ? 0 : Math.max(0, Math.min(1, p.gain * A.volume)); }
 function updateAudio(dt, state) {
   want = A.on ? pickTrack(state) : null;
   if (!unlocked) return;
@@ -58,7 +60,7 @@ function updateAudio(dt, state) {
     const p = player(name);
     p.gain = Math.max(0, Math.min(1, p.gain + (target ? dt / 2.5 : -dt / 1.5)));   // in over 2.5 s, out over 1.5 s, whatever the frame rate
     if (target && p.a.paused) p.a.play().catch(() => { /* not allowed yet: the next gesture will */ });
-    p.a.volume = Math.max(0, Math.min(1, p.gain * A.volume));
+    p.a.volume = muted ? 0 : Math.max(0, Math.min(1, p.gain * A.volume));
     if (!target && p.gain < 0.01 && !p.a.paused) { p.a.pause(); p.gain = 0; }
   }
 }
@@ -80,4 +82,4 @@ const audioState = () => ({ on: A.on, effects: A.effects, volume: A.volume, want
   sync();
 }
 
-export { updateAudio, audioState, playCompletionSound };
+export { updateAudio, audioState, playCompletionSound, setMuted };
