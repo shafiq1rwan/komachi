@@ -21,6 +21,8 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Privacy notice (2026-10-02): public/privacy.html, served with the web build at /privacy.html for store and portal forms; the
+  game collects nothing and the page says so. docs/STORE.md gains a Poki dashboard section (categories, tags, the URL).
 - Roadmap (2026-10-02): Phase 11 the guided first town (the five-dollar update), Phase 12 Little Nest inside Komachi (the user's
   room-decorating game, merged once its feature set is final, as a shared package; sold standalone afterwards), Phase 13 themes
   with New York first inside the one project; written into docs/ROADMAP.md and CLAUDE.md.

@@ -83,6 +83,14 @@ output/poki/komachi-poki.zip in the Poki developer dashboard. Poki reviews for: 
 (loading finished, gameplay start/stop, commercial breaks at menu pauses), no outbound links, no third-party requests, mobile
 support. The music loops stream on demand (6.6 MB of the 16.8 MB build), so the first load is small.
 
+## Poki dashboard
+
+- Privacy notice URL: https://shafiq1rwan.github.io/komachi/privacy.html (public/privacy.html, deployed with the web build; the
+  game collects nothing, the page says so and points at Poki's own policy for the page around the game)
+- Categories: Simulation, City Building, Casual, Relaxing (first two matter most)
+- Tags: city builder, building, town, simulation, cozy, relaxing, sandbox, isometric, low poly, japan
+- Description: the short description above; Poki prefers one plain paragraph, present tense, no feature lists
+
 ## Tags
 
 city builder, cosy, sandbox, relaxing, simulation, Japan, isometric, low poly, no failure, browser, PWA
