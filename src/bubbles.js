@@ -15,7 +15,21 @@ const ICONS = {
   train: '<svg viewBox="0 0 24 24"><rect x="5" y="4" width="14" height="13" rx="3" fill="#8fae78"/><rect x="8" y="7" width="8" height="4" fill="#fbf6ee"/><circle cx="9" cy="14" r="1.3" fill="#fbf6ee"/><circle cx="15" cy="14" r="1.3" fill="#fbf6ee"/><path d="M8 17l-2 3M16 17l2 3" stroke="#8fae78" stroke-width="1.6"/></svg>',
   heart: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.5 12 20 12 20z" fill="#e9a8b3"/></svg>',
 };
-export const TOPICS = Object.keys(ICONS).filter(k => k !== 'dots');
+// feelings: one person's bubble (the player's angler in the fishing game), the icon shown the whole time
+const FEELINGS = {
+  bite: '<svg viewBox="0 0 24 24"><path d="M12 3v12" stroke="#c9564b" stroke-width="3.2" stroke-linecap="round"/><circle cx="12" cy="20" r="1.9" fill="#c9564b"/></svg>',
+  strain: '<svg viewBox="0 0 24 24"><path d="M8 4c0 3-3 5-3 8a3 3 0 0 0 6 0c0-3-3-5-3-8z" fill="#8fb0c9"/><path d="M16 9c0 2.4-2.4 4-2.4 6.4a2.4 2.4 0 0 0 4.8 0C18.4 13 16 11.4 16 9z" fill="#8fb0c9"/></svg>',
+  lost: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9" fill="#e8dfcf"/><circle cx="9" cy="10" r="1.2" fill="#7a706a"/><circle cx="15" cy="10" r="1.2" fill="#7a706a"/><path d="M8.5 16.5c2-2.2 5-2.2 7 0" stroke="#7a706a" stroke-width="1.6" fill="none" stroke-linecap="round"/></svg>',
+  caught: '<svg viewBox="0 0 24 24"><path d="M3 12c3-4.5 7-6 11-6 2.5 0 4.5 1 6 2.5L23 6v12l-3-2.5C18.5 17 16.5 18 14 18c-4 0-8-1.5-11-6z" fill="#5f9c98"/><circle cx="8" cy="11" r="1.2" fill="#fbf6ee"/></svg>',
+  joy: '<svg viewBox="0 0 24 24"><path d="M12 20s-7-4.5-7-9.5A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.5C19 15.5 12 20 12 20z" fill="#e9a8b3"/></svg>',
+};
+Object.assign(ICONS, FEELINGS);
+export const TOPICS = Object.keys(ICONS).filter(k => k !== 'dots' && !FEELINGS[k]);
+/** a feeling over r for a few real seconds (replacing any earlier one); endTalk(r) clears it early */
+export function showFeeling(r, key, seconds = 2.5) {
+  if (!r || !FEELINGS[key]) return null; endTalk(r);
+  const t = { a: r, b: r, topic: key, until: Infinity, t0: S.T, solo: true, realUntil: performance.now() / 1000 + seconds }; talks.push(t); r.talk = t; return t;
+}
 /** start a talk between a and b (residents); topic from TOPICS or null for dots; until in game hours */
 export function startTalk(a, b, topic, until) {
   endTalk(a); endTalk(b);
@@ -26,7 +40,8 @@ const v = new THREE.Vector3();
 let el = null;
 export function updateBubbles(realT) {
   if (!el) el = document.getElementById('bubbles'); if (!el) return;
-  for (let i = talks.length - 1; i >= 0; i--) { const t = talks[i]; if (S.T >= t.until || t.a.state === 'away' || t.b.state === 'away' || !t.a.mesh.visible || !t.b.mesh.visible || t.a.mesh.position.distanceTo(t.b.mesh.position) > 1.2) { talks.splice(i, 1); t.a.talk = null; t.b.talk = null; } }
+  const nowS = performance.now() / 1000;
+  for (let i = talks.length - 1; i >= 0; i--) { const t = talks[i]; if ((t.realUntil && nowS >= t.realUntil) || S.T >= t.until || t.a.state === 'away' || t.b.state === 'away' || !t.a.mesh.visible || !t.b.mesh.visible || t.a.mesh.position.distanceTo(t.b.mesh.position) > 1.2) { talks.splice(i, 1); t.a.talk = null; t.b.talk = null; } }
   // one element per talk, kept between frames so the pop-in plays once; only its place and content change
   const live = new Set(talks);
   for (const child of [...el.children]) if (!live.has(child.__talk)) child.remove();
@@ -38,7 +53,7 @@ export function updateBubbles(realT) {
     const off = v.z > 1 || Math.abs(v.x) > 1.2 || Math.abs(v.y) > 1.2; node.style.display = off ? 'none' : '';
     if (off) continue;
     node.style.left = ((v.x + 1) / 2 * innerWidth).toFixed(1) + 'px'; node.style.top = ((1 - v.y) / 2 * innerHeight).toFixed(1) + 'px';
-    const showIcon = t.topic && Math.floor((realT + t.t0 * 37) / 2.2) % 2 === 0, key = showIcon ? t.topic : 'dots';   // the topic shows half the time, dots between
+    const showIcon = t.topic && (t.solo || Math.floor((realT + t.t0 * 37) / 2.2) % 2 === 0), key = showIcon ? t.topic : 'dots';   // the topic shows half the time, dots between (a feeling: all the time)
     if (node.__key !== key) { node.__key = key; node.innerHTML = ICONS[key]; node.classList.toggle('icon', !!showIcon); }
   }
 }

@@ -7,11 +7,14 @@
 // input goes through the card's one button (hold with the pointer or Space), so the town's own pointer handling is untouched.
 import * as THREE from 'three';
 import { scene, camera, cam } from './scene.js';
+import { S } from './state.js';
 import { pierFrame } from './island.js';
 import { setFishStall, anglersAtQuay } from './landmarks.js';
 import { record } from './chronicle.js';
 import { toast } from './toast.js';
 import { pick } from './utils.js';
+import { showFeeling, endTalk } from './bubbles.js';
+import { residents } from './sim.js';
 
 // on since 2026-10-02; the invitation only shows while a resident is fishing there (join them, never an empty quay)
 const ENABLED = true;
@@ -23,7 +26,7 @@ const FISH = [
   { name: 'a rockfish', pull: 0.55, work: 4.2 }, { name: 'a sea bream', pull: 0.65, work: 5 }, { name: 'an old boot', pull: 0.1, work: 2, boot: true },
 ];
 const BAND = [0.35, 0.72];   // the green band of the tension bar
-const game = { active: false, phase: 'idle', t: 0, biteAt: 0, caught: 0, spot: null, fish: null, tension: 0, progress: 0, holding: false, runT: 0 };
+const game = { active: false, phase: 'idle', t: 0, biteAt: 0, caught: 0, spot: null, fish: null, tension: 0, progress: 0, holding: false, runT: 0, angler: null, reel: 0, strained: false };
 let float = null, rings = [], el = null, btn = null, line = null, near = null, sub = null, meter = null, needle = null, fill = null;
 const v = new THREE.Vector3();
 
@@ -37,8 +40,20 @@ function build() {
     r.rotation.x = -Math.PI / 2; r.visible = false; scene.add(r); rings.push(r);
   }
 }
-/** the water a little out from the jetty head, where the float lands */
-function fishingSpot() { const P = pierFrame(); if (!P) return null; return { deck: P.at(P.len - 0.1, 0), water: P.at(P.len + 0.55, 0.15).setY(WATER_Y) }; }
+/** the water a little out from the jetty head, where the float lands; with an angler, the line starts at their hands */
+function fishingSpot(angler) {
+  const P = pierFrame(); if (!P) return null;
+  if (angler) { const p = angler.mesh.position, f = angler.mesh.rotation.y; return { deck: new THREE.Vector3(p.x, p.y + 0.1, p.z), water: new THREE.Vector3(p.x + Math.sin(f) * 0.6, WATER_Y, p.z + Math.cos(f) * 0.6) }; }
+  return { deck: P.at(P.len - 0.1, 0), water: P.at(P.len + 0.55, 0.15).setY(WATER_Y) };
+}
+/** the resident the player fishes as: whoever is fishing nearest the jetty head (none when the game is started by hand) */
+function pickAngler() {
+  const P = pierFrame(); if (!P) return null; const head = P.at(P.len - 0.1, 0);
+  const out = residents.filter(r => r.trip && r.trip.landmark && r.trip.landmark.kind === 'pier' && r.trip.held && r.mesh.visible);
+  out.sort((a, b) => a.mesh.position.distanceTo(head) - b.mesh.position.distanceTo(head)); return out[0] || null;
+}
+const anglerChar = () => game.angler && game.angler.mesh.userData.char;
+function feel(key, seconds) { if (game.angler) showFeeling(game.angler, key, seconds); }
 
 function say(head, small) { if (sub) sub.textContent = small || ''; if (btn) btn.textContent = head; }
 function showMeter(on) { if (meter) meter.hidden = !on; if (on) drawMeter(); }
@@ -48,31 +63,34 @@ function drawMeter() {
   meter.classList.toggle('tight', game.tension > BAND[1]); meter.classList.toggle('slack', game.tension < BAND[0]);
 }
 function start() {
-  if (game.active) return; game.spot = fishingSpot(); if (!game.spot) return;
+  if (game.active) return; game.angler = pickAngler(); game.spot = fishingSpot(game.angler); if (!game.spot) return;
   if (!float) build();
-  game.active = true; game.phase = 'idle'; game.t = 0; game.holding = false; el.hidden = false; near.hidden = true; document.body.classList.add('fishing'); showMeter(false);
+  game.active = true; game.phase = 'idle'; game.t = 0; game.holding = false; game.reel = 0; el.hidden = false; near.hidden = true; document.body.classList.add('fishing'); showMeter(false);
+  const ch = anglerChar(); if (ch) ch.fishing = { reel: 0, strain: 0 };
   cam.target.set(game.spot.deck.x, 0, game.spot.deck.z); cam.tView = 4.5;
   say('Cast', 'Tap when the float dips');
 }
 function stop() {
   if (!game.active) return; game.active = false; game.holding = false; el.hidden = true; document.body.classList.remove('fishing'); showMeter(false);
+  const ch = anglerChar(); if (ch) ch.fishing = null; if (game.angler) endTalk(game.angler); game.angler = null;
   float.visible = false; for (const r of rings) r.visible = false;
   if (game.caught) toast(game.caught === 1 ? 'One fish for the market' : `${game.caught} fish for the market`); game.caught = 0;
 }
 /** the float drifts back to rest: a missed bite, a lost fish, or a strike too soon */
-function settle(why) { game.phase = 'settle'; game.t = 0; game.holding = false; showMeter(false); say('…', why); }
+function settle(why, feeling = null) { game.phase = 'settle'; game.t = 0; game.holding = false; showMeter(false); say('…', why); if (feeling) feel(feeling, 2.5); }
 function tap() {
   if (game.phase === 'idle') { game.phase = 'cast'; game.t = 0; float.visible = true; say('…', 'Waiting'); }
   else if (game.phase === 'wait') settle('Too soon. The float settles');
   else if (game.phase === 'bite') {   // the strike: the fight is on
-    game.phase = 'fight'; game.t = 0; game.fish = pick(FISH); game.tension = 0.45; game.progress = 0; game.runT = 0; showMeter(true);
+    game.phase = 'fight'; game.t = 0; game.fish = pick(FISH); game.tension = 0.45; game.progress = 0; game.runT = 0; game.strained = false; showMeter(true); endTalk(game.angler);
     say('Hold to reel', 'Keep the line in the green');
   }
 }
 function land() {
   const f = game.fish, real = !f.boot;
   game.phase = 'catch'; game.t = 0; game.holding = false; showMeter(false);
-  if (real) { game.caught++; setFishStall(true); if (game.caught === 1) record(`Someone caught ${f.name} off the jetty`); }
+  if (real) { game.caught++; setFishStall(true); if (game.caught === 1) record(`${game.angler ? game.angler.name : 'Someone'} caught ${f.name} off the jetty`); }
+  feel(real ? 'caught' : 'lost', 3);
   say(real ? 'Caught!' : 'Hmm', real ? `${f.name[0].toUpperCase()}${f.name.slice(1)} for the fish market` : 'An old boot. Back it goes');
 }
 /** the fight, every frame: reeling tightens the line and winds the fish in while the tension sits in the band; giving line
@@ -89,7 +107,8 @@ function fight(dt) {
     if (game.tension < BAND[0]) game.progress = Math.max(0, game.progress - dt * pull * 0.25);   // slack line: the fish runs
   }
   game.tension = Math.max(0, game.tension);
-  if (game.tension >= 1) { settle(`${f.name[0].toUpperCase()}${f.name.slice(1)} got away. The float settles`); return; }
+  if (game.tension > 0.82 && !game.strained) { game.strained = true; feel('strain', 1.6); } else if (game.tension < 0.6) game.strained = false;   // sweat when the line sings
+  if (game.tension >= 1) { settle(`${f.name[0].toUpperCase()}${f.name.slice(1)} got away. The float settles`, 'lost'); return; }
   if (game.progress >= 1) { land(); return; }
   drawMeter();
   const { water } = game.spot, k = game.tension;   // the float strains toward the fish and jitters with the pull
@@ -113,7 +132,7 @@ function updateFishingGame(dt) {
   } else if (game.phase === 'wait' || game.phase === 'settle') {
     float.position.set(water.x, WATER_Y + 0.01 + Math.sin(game.t * 2.2) * 0.006, water.z);
     if (game.phase === 'settle' && game.t > 1.2) { game.phase = 'wait'; game.t = 0; game.biteAt = 2 + Math.random() * 5; say('…', 'Waiting'); }
-    else if (game.phase === 'wait' && game.t >= game.biteAt) { game.phase = 'bite'; game.t = 0; ripple(); say('Now!', 'It bit'); }
+    else if (game.phase === 'wait' && game.t >= game.biteAt) { game.phase = 'bite'; game.t = 0; ripple(); say('Now!', 'It bit'); feel('bite', 1.4); }
   } else if (game.phase === 'bite') {
     float.position.y = WATER_Y - 0.03 + Math.sin(game.t * 18) * 0.012;   // the float dips and jitters for a moment
     if (game.t > 1.1) settle('Missed it. The float settles');
@@ -122,6 +141,12 @@ function updateFishingGame(dt) {
   } else if (game.phase === 'catch') {   // the float leaps back toward the deck
     const k = Math.min(1, game.t / 0.8); float.position.set(water.x + (deck.x - water.x) * k, WATER_Y + Math.sin(k * Math.PI) * 0.5 + k * (deck.y + 0.2 - WATER_Y), water.z + (deck.z - water.z) * k);
     if (k >= 1) { game.phase = 'idle'; game.t = 0; float.visible = false; say('Cast again', 'Tap when the float dips'); }
+  }
+  // the angler: reel and strain for the pose, and they stay put while the player is fishing as them
+  if (game.angler) {
+    const ch = anglerChar(); game.reel += (((game.phase === 'fight' && game.holding) ? 1 : 0) - game.reel) * Math.min(1, dt * 10);
+    if (ch) ch.fishing = { reel: game.reel, strain: game.phase === 'fight' ? Math.max(0, (game.tension - 0.3) / 0.7) : 0 };
+    const tr = game.angler.trip; if (tr && tr.held && tr.landmark && tr.landmark.kind === 'pier') tr.holdUntil = Math.max(tr.holdUntil, S.T + 0.08); else stop();   // they left (or were cleared): the game ends with them
   }
   for (const r of rings) if (r.visible) { r.userData.t += dt; const s = 1 + r.userData.t * 2.2; r.scale.set(s, s, s); r.material.opacity = Math.max(0, 0.6 - r.userData.t * 0.5); if (r.material.opacity <= 0) r.visible = false; }
 }

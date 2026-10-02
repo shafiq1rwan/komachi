@@ -227,7 +227,7 @@ export function updateCharacters(simDt0) {
     // bones the clips may not drive (head, arms) go back to rest before the mixer runs, so the per-frame turns below never accumulate
     if (c.head) c.head.quaternion.copy(c.headRest); if (c.armR) c.armR.quaternion.copy(c.armRRest); if (c.armL) c.armL.quaternion.copy(c.armLRest);
     c.mixer.update(simDt);
-    c.root.rotation.x = riding ? 0.22 : 0;   // a lean over the bars
+    c.root.rotation.x = riding ? 0.22 : c.fishing ? -0.28 * c.fishing.strain : 0;   // a lean over the bars; an angler leans back against the pull
     if (riding) { poseBikeRider(c.root, owner.bike); if (!c.helmet && c.head && c.headTop) { c.helmet = makeHelmet(c.headTop - 0.343, c.helmetColor); c.head.add(c.helmet); } }
     if (c.helmet) c.helmet.visible = riding;
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));
@@ -260,6 +260,7 @@ export function updateCharacters(simDt0) {
       if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.042, -0.01, -0.005)), true);
       if (up && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.08));
     }
+    if (c.fishing && c.head) { c.reelT = (c.reelT || 0) + simDt * (4 + 8 * c.fishing.reel); c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.12 + 0.1 * c.fishing.strain)); }   // eyes on the float
     updateCharacterProp(c);
   }
 }

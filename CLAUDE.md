@@ -224,7 +224,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   (progress −pull × 0.25 /s); tension ≥ 1 → settle("… got away"), progress ≥ 1 → land(). #fish-meter (.fm-bar with .fm-band and
   #fish-needle, .fm-catch with #fish-fill) shown only during the fight; #fish-tap takes pointerdown/up with pointer capture and
   Space/Enter keydown/keyup (hold), a tap elsewhere in the flow. The headless frame rate is a small fraction of real time, so a
-  probe cannot land a fish in a minute: test the branches by setting `fishingGame.progress`/`tension`. and runs phases idle → cast (0.9 s arc
+  probe cannot land a fish in a minute: test the branches by setting `fishingGame.progress`/`tension`. The angler (2026-10-02):
+  `pickAngler()` = the resident with `trip.landmark.kind === 'pier' && trip.held` nearest the head (null when started by hand);
+  `fishingSpot(angler)` puts the deck point at their hands and the water 0.6 ahead; each frame `char.fishing = { reel, strain }`
+  (reel eased toward holding, strain = (tension − 0.3) / 0.7) and `tr.holdUntil` is pushed out so they stay; characters.js leans
+  `c.root.rotation.x` by −0.28 × strain and nods the head, character-props.js tilts the rod direction and rotation by reel/strain
+  (`char.reelT` cranks). Feelings: bubbles.js `showFeeling(r, key, seconds)` (keys bite | strain | lost | caught | joy in FEELINGS,
+  merged into ICONS but kept out of TOPICS; `solo` entries show the icon the whole time and expire on `realUntil` in real seconds
+  since the sim may be paused); endTalk clears. Frame latency: a feeling's node appears on the frame after it is set. and runs phases idle → cast (0.9 s arc
   to `P.at(len + 0.55, 0.15)` at WATER_Y) → wait (bite after 2–7 s) → bite (1.1 s window) → catch (0.8 s) → idle, or settle on a miss;
   #fishing card with #fish-tap / #fish-sub / #fish-end; body.fishing hides the dock; a catch calls landmarks.js `setFishStall(true)`
   and records the first. Dev hooks `MT.startFishing`, `MT.stopFishing`, `MT.fishingGame` (set `biteAt = 0` to force a bite).

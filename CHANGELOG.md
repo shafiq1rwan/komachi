@@ -21,6 +21,12 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Fishing as a resident (2026-10-02): "Join the anglers" hands the player the resident fishing nearest the jetty head; the line
+  starts at their hands, they lean back against the pull and crank the rod while the button is held, and a bubble over their head
+  shows the moment: an exclamation at the bite, sweat when the line sings, a glum face for a lost fish or the boot, a fish for a
+  catch (src/bubbles.js `showFeeling`, single-person bubbles timed in real seconds). They stay at their place while the player
+  fishes as them and the chronicle names them for the first catch. Started by hand (`MT.startFishing()`) with nobody there, the
+  game runs from the jetty head as before.
 - The fight (2026-10-02, src/minigame-fishing.js): after the strike, hold the button (or Space) to reel and let go to give line; a
   tension bar with a green band and a catch bar sit above the button; the catch fills while the line stays in the band, slackens
   when the fish runs, and a line pulled past the top means the fish is off and the float settles. Six things bite (sardine to sea
