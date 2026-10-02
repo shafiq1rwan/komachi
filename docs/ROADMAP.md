@@ -285,7 +285,7 @@ effect through the town instead.
   only skips, the favicon set (favicon.ico, 16/32/48/256) for the browser and Electron
 - ✅ Trailer material: `MT.trailer` orbit camera without the HUD; docs/STORE.md storyboard
 - ✅ Store page basics: six screenshots, the one-line and short/long descriptions in docs/STORE.md
-- ✅ Music licence settled (Pixabay Content Licence) and a credits page; still to do: a guided first town; the box-people LOD past ~100 residents
+- ✅ Music licence settled (Pixabay Content Licence) and a credits page; still to do: a guided first town (Phase 11.1); the box-people LOD past ~100 residents
 
 ## Mini-games (agreed 2026-09-25, gentle, nothing scored)
 
@@ -304,6 +304,46 @@ effect through the town instead.
 - macOS dropped (2026-10-01): without an Apple Developer certificate the app cannot be notarised and buyers could not open it;
   comes back only with a certificate and notarisation secrets
 - Left for later: Windows code signing (certificate as secrets)
+
+## ⬜ Phase 11 — Guided first town and interiors (agreed 2026-10-02)
+
+The two halves belong together: the guided town gets a new player to a lived-in street in ten minutes, and furnishing
+is what gives them a reason to zoom in once it is there. 11.1 ships on its own as the first paid update (the price
+goes from two dollars to five with it); interiors take their time behind it.
+
+- **11.1 Guided first town.** Milestone-card prompts in the chronicle's voice, each cleared by doing the thing, never by
+  a button: draw a street from the station ring (the ring pulses, the Streets tool lit) → zone two homes beside it (eligible
+  cells shimmer) → add a shop and a workplace → "builders are on the train" (the camera glides to the station as the first crew
+  arrives) → "your first family" (the first move-in). The control each step needs is shown at that moment, so the eight-line
+  hint card can go. Runs once per town (a flag in the save), never on a loaded save, the demo or a scratch tab. One smoke
+  check walks the whole sequence headless. About a day.
+- **11.2 Interiors.** The user is testing the look in a separate project first (2026-10-02): one room per home, generated
+  from the household (table, futons or beds for the family, a kitchen corner, the laundry rail), in Komachi's palette and
+  post chain. Questions that project settles before anything lands here: how you get inside (zoom past a threshold on a
+  finished home and the roof lifts off, which keeps the one-world diorama; a separate room view is simpler but breaks it);
+  what the player does (place, move and turn a small furniture kit in the same drag-and-R language as blocks; nothing required);
+  saves (furniture per unit, a version bump, old saves get a default room). Residents' "inside" state shows them in the room
+  instead of hiding them.
+- **11.3 Life in the rooms.** The Komachi half: residents use what was placed (supper at the table, sleep in the futons, a
+  lamp that comes on at dusk, laundry on the rail on fine days), so furniture shows through the people, not a number.
+
+## ⬜ Phase 12 — Themes: New York first (agreed 2026-10-02)
+
+Komachi stays one project: a `theme` on the town (saved with it, chosen on the New town page beside the island theme),
+Japan the first value and the default. A fork was considered and rejected (2026-10-02): every fix to the simulation, menus,
+saves, builds and releases would be made twice, and players choose a theme per town in one game.
+
+- **12.1 The theme layer.** The refactor that pulls the Japanese set behind the key with no visible change: palette and roof
+  styles, the building generators per kind, signage and street furniture kits, the name pools, the traffic side, the landmark
+  set, the station entrance, the fox. The shared core stays untouched (island, harbour, ferry, residents, households, economy,
+  weather, seasons, menus, saves, builds). Dull, and what makes a theme a content job and a third theme a small one.
+- **12.2 New York.** Narrower than Manhattan, which does not fit a small island: a Brooklyn-style neighbourhood of brownstones
+  with stoops and fire escapes, brick walk-ups, water towers on flat roofs, a corner deli and a diner, a fire station with the
+  red doors; cars keep right (the lane and junction rules flip); hydrants, steam vents, yellow cabs, a hot-dog cart, the
+  subway entrance with the green globe lamp in place of the pavilion; a park with a bandstand instead of the shrine, the
+  lighthouse and ferry stay, a raccoon for the fox; new fictional name pools. First step: one brownstone block in the game's
+  palette and post chain as a screenshot test, the same way interiors are being tested.
+- **12.3 More themes** only once two exist and the layer has proved itself.
 
 ---
 

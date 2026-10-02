@@ -498,3 +498,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
 10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe, Linux AppImage from CI; macOS dropped 2026-10-01
+11. Guided first town and interiors (agreed 2026-10-02): 11.1 milestone-card prompts for the first street, homes, shop, crew and
+    family, once per town (the five-dollar update); 11.2 one furnished room per home, the look being tested in the user's separate
+    project first; 11.3 residents using the furniture
+12. Themes, New York first (agreed 2026-10-02): a `theme` key on the town inside this one project (no fork), 12.1 the refactor that
+    puts the Japanese set behind it, 12.2 a Brooklyn-style neighbourhood with right-hand traffic, 12.3 more themes later
