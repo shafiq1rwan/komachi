@@ -289,7 +289,9 @@ effect through the town instead.
 
 ## Mini-games (agreed 2026-09-25, gentle, nothing scored)
 
-- Fishing at the jetty (built 2026-09-25, hidden behind a flag until its bugs are fixed): cast, wait for the bite, strike; catches open the fish stall
+- Fishing at the jetty (built 2026-09-25; on since 2026-10-02 after the crowding fix: four anglers at most, rods carried from home,
+  the invitation only beside a fishing resident): cast, wait for the bite, strike, then the fight (hold to reel, let go to give line, keep the tension in the green until
+  the catch bar fills; chosen 2026-10-02 over a rhythm tap, follow-the-fish and a pure patience read); catches open the fish stall
 - Festival stalls (goldfish scooping, ring toss), a spotting album with photo mode, the postman's round, garden tending,
   lighting the shrine lanterns, piloting the ferry through the harbour entrance
 
@@ -298,9 +300,10 @@ effect through the town instead.
 - ✅ **Desktop app with Electron**: the same Vite build in a native window (electron/main.cjs, preload.cjs), window state
   remembered, F11, downloads through the system dialog, Exit in the menu; saves and the album in the app's user data
   folder (Electron's own storage); `npm run app:build` makes the Windows installer and portable exe with electron-builder
-- ✅ Releases from CI: a version tag builds Windows, macOS and Linux installers into a draft GitHub Release (release.yml)
-- ✅ macOS opens without a certificate (ad-hoc signature in the afterPack hook, Apple Silicon only, 2026-09-30)
-- Left for later: real code signing and notarisation (certificates as secrets)
+- ✅ Releases from CI: a version tag builds the Windows and Linux installers into a draft GitHub Release (release.yml)
+- macOS dropped (2026-10-01): without an Apple Developer certificate the app cannot be notarised and buyers could not open it;
+  comes back only with a certificate and notarisation secrets
+- Left for later: Windows code signing (certificate as secrets)
 
 ---
 

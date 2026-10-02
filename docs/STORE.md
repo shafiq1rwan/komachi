@@ -38,7 +38,7 @@ chronicle of its own firsts, and you keep an album of the photos you take.
 - Landmarks: lighthouse, bridge, pavilion, shrine on the hill, fish market, stone jetty
 - Photo mode with a per-town album
 - Named saves, an opening scene, background music
-- Runs in the browser, installs as an app on a phone, desktop app planned
+- Desktop app for Windows and Linux, and a browser version that installs as an app on a phone
 
 ## Screenshots (docs/, retaken by `node scripts/capture-readme.mjs`)
 

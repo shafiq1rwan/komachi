@@ -146,8 +146,10 @@ Some things worth knowing:
   the fish market by the quay and driven round the shops. In many families one adult keeps the house and walks down for fish.
 - **A ryokan on the hill.** Once visitors come, an inn goes up on a high terrace; weekend and festival visitors stay the night
   and head off after breakfast.
-- **Fishing off the quay.** The pier is a stone quay; early and late in the day residents cycle down and fish from its edges,
-  their bikes in the rack, with a car park kept beside it.
+- **Fishing off the quay.** The pier is a stone quay; early and late in the day residents fetch a rod from home and fish from its
+  edges, four at most, their bikes in the rack, with a car park kept beside it. Zoom in beside them and "Join the anglers" lets you
+  cast a line yourself: strike when the float dips, then hold to reel and let go to give line, keeping the tension in the green until
+  the catch bar fills. A lost fish just means another cast; a landed one goes to the fish market.
 - **Market mornings and the summer festival.** Drag three cells with the Civic tool and the town gets a square. On Sundays
   stalls go up for a market morning; on the first Saturday of summer the square fills with yatai, lanterns, a taiko and the
   mikoshi, residents and visitors crowd in after work, and fireworks burst over the sea at eight.
@@ -273,7 +275,8 @@ npm run app:build              # Windows installer + portable exe in release/
 
 The window remembers its size, F11 toggles full screen, links open in your browser, exported towns and photos go through
 the system save dialog, and the menu gains an Exit row. Saves and the album live in the app's own profile folder.
-macOS and Linux builds (`app:build:mac`, `app:build:linux`) have to be made on those platforms or in CI.
+The Linux build (`app:build:linux`) has to be made on Linux or in CI. There is no macOS build: without an Apple Developer
+certificate the app cannot be notarised and macOS makes it too hard to open, so support was dropped on 2026-10-01.
 
 **Releases.** Pushing a version tag builds all three platforms on GitHub Actions (`.github/workflows/release.yml`) and
 attaches the installers to a draft GitHub Release for that tag, which you then publish:
@@ -283,12 +286,8 @@ npm version 0.2.1          # bumps package.json and makes the tag v0.2.1
 git push && git push --tags
 ```
 
-The builds are unsigned until certificates are added as repository secrets (see the workflow file), so Windows and macOS warn
-on first run. The macOS app gets an ad-hoc signature from scripts/after-pack.cjs (Apple Silicon refuses to open an app with no
-signature at all, reporting it as "damaged"); the macOS build is Apple Silicon only (Komachi-<version>-mac-apple-silicon.dmg); Intel Macs are not supported. macOS shows
-"Apple could not verify Komachi is free of malware" the first time: on macOS 15 and newer click Done, open System Settings → Privacy
-& Security, scroll to "Komachi was blocked" and press Open Anyway; on macOS 14 and older right-click the app and choose Open. If it
-still says the app is damaged, the download was quarantined: run `xattr -cr /Applications/Komachi.app` once, then open it.
+The builds are unsigned until a certificate is added as repository secrets (see the workflow file), so Windows SmartScreen
+warns on first run: More info, then Run anyway.
 
 ## Testing
 

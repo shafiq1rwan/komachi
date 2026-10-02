@@ -21,6 +21,19 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- The fight (2026-10-02, src/minigame-fishing.js): after the strike, hold the button (or Space) to reel and let go to give line; a
+  tension bar with a green band and a catch bar sit above the button; the catch fills while the line stays in the band, slackens
+  when the fish runs, and a line pulled past the top means the fish is off and the float settles. Six things bite (sardine to sea
+  bream, and an old boot that does not fight), each with its own pull and time to land; the float strains and ripples through the
+  fight. Nothing is lost on a miss.
+- Fishing at the quay, tidied (2026-10-02): at most four residents fish at once (`MAX_ANGLERS`), a place on the edge is claimed when
+  the walk out begins and freed by the walk home, so anglers no longer arrive on top of each other; someone who finds their place
+  taken turns for home; the rod now comes from home (equipped at the door, carried out and back, put away indoors) instead of
+  appearing at the water; the fishing mini-game is on again and its "Join the anglers" button shows only while a resident is
+  fishing there.
+- macOS support dropped (2026-10-01): no mac build target, release job or afterPack hook; the release makes the Windows setup and
+  portable exe and the Linux AppImage. An unsigned app was too hard for buyers to open on macOS, and notarisation needs an Apple
+  Developer certificate.
 - Poki build (2026-10-01, src/poki.js): `npm run build:poki` (vite --mode poki → dist-poki/, no service worker), `npm run check:poki`
   (headless: no request leaves the game but the SDK's, no service worker, no Exit row, no install button, no outbound links, the SDK
   calls in Poki's order) and `npm run pack:poki` (output/poki/komachi-poki.zip, index.html at the root). The SDK is fetched at start

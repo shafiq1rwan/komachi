@@ -287,6 +287,14 @@
   #fishing[hidden]{display:none}#fishing small{font-weight:700;color:var(--ink2);min-height:1.3em;text-align:center}
   #fish-near,#fishing #fish-tap{border:0;background:var(--teal);color:#fff;font:inherit;font-weight:800;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
   #fish-near:hover,#fishing #fish-tap:hover{filter:brightness(1.06)}#fishing #fish-tap{width:100%;font-size:17px;padding:13px;border-radius:12px}
+  #fishing #fish-meter{width:100%;display:flex;flex-direction:column;gap:5px}#fishing #fish-meter[hidden]{display:none}
+  #fishing .fm-bar{position:relative;height:14px;border-radius:7px;background:linear-gradient(90deg,#d9d2c4,#e8dfcf 35%,#e8dfcf 72%,#dcb3a7)}
+  #fishing .fm-band{position:absolute;left:35%;width:37%;top:0;bottom:0;border-radius:7px;background:#9fc48a}
+  #fishing #fish-needle{position:absolute;top:-4px;width:6px;height:22px;margin-left:-3px;border-radius:3px;background:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.25);transition:left .06s linear}
+  #fishing #fish-meter.tight #fish-needle{background:#b85148}#fishing #fish-meter.slack #fish-needle{background:#8a817a}
+  #fishing .fm-catch{height:8px;border-radius:4px;background:#e8dfcf;overflow:hidden}#fishing #fish-fill{display:block;height:100%;width:0;background:var(--teal);transition:width .06s linear}
+  #fishing .fm-labels{display:flex;justify-content:space-between;font-size:9.5px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#8a817a}
+  #fishing #fish-tap{touch-action:none;user-select:none;-webkit-user-select:none}
   #fishing #fish-end{border:0;background:none;font:inherit;font-weight:800;font-size:12.5px;color:#4c5a53;cursor:pointer;padding:4px 8px}
   #skip-opening{border:0;font:inherit;font-weight:800;font-size:13px;color:var(--ink);cursor:pointer;display:flex;align-items:center;gap:8px}
   body.fishing #tools,body.fishing #picker,body.fishing #tier,body.fishing #inspect{display:none!important}

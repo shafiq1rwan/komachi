@@ -162,6 +162,19 @@ function placeBridgeAndPavilion() {
 // ── the stone quay (built in island.js): people fish from its edges; a reserved car park by its land end opens once a street
 //    reaches it, and a bike rack on the quay fills with the anglers' bicycles ──
 let pierLot = null, rackBikes = [], pierSpots = null, lotCheck = 0;
+// the quay's fishing places: a spot is held by the resident whose current trip is to it (set when the walk out begins, gone
+// when the walk home replaces that trip, so an abandoned trip frees it by itself); at most MAX_ANGLERS hold one at a time,
+// which keeps the edge from crowding (2026-10-02: a dozen residents used to arrive on top of each other)
+const MAX_ANGLERS = 4;
+let pierEntry = null;
+const spotHeld = s => !!(s.by && s.by.trip && s.by.trip.landmark && s.by.trip.landmark.spot === s);
+const anglersAtQuay = () => pierSpots ? pierSpots.filter(spotHeld).length : 0;
+const freePierSpots = () => (!pierSpots || anglersAtQuay() >= MAX_ANGLERS) ? [] : pierSpots.filter(s => !spotHeld(s));
+/** sim.js, as an angler sets off: a free place becomes theirs for the trip, or null when the quay is full */
+function claimPierSpot(r) {
+  const free = freePierSpots(); if (!free.length || !pierEntry) return null;
+  const s = free[Math.floor(Math.random() * free.length)]; s.by = r; return pierEntry.spotEntry(s);
+}
 function placePier() {
   const P = pierFrame(); if (!P) return;
   pierSpots = P.spots;
@@ -180,11 +193,12 @@ function placePier() {
   const cols = ['#6f9a96', '#d98b7a', '#e6d7a8'];
   rackBikes = rack.userData.bays.map((b, k) => { const bike = createBike(cols[k]); bike.position.copy(local(rack, b)); bike.rotation.y = rack.rotation.y; bike.visible = false; scene.add(bike); return bike; });
   const entry = { kind: 'pier', name: 'the quay', label: 'going fishing off the quay', activity: 'fishing off the quay', hold: [0.7, 1.6], anchor: land, fish: true, target: P.at(P.len * 0.6, 0),
-    visit() {   // a free place along the edge, and the way out to it: off the kerb, over the grass, onto the quay and along its middle
-      const free = pierSpots.filter(s => s.taken < 1); if (!free.length) return null;
-      const s = free[Math.floor(Math.random() * free.length)];
-      return { ...entry, spot: s, face: s.face, walk: road => [kerbToward(road, land), land.clone(), P.at(0.12, 0), P.at(Math.min(s.a, P.len - 0.35), 0), s.pos.clone()] };
+    visit() {   // a free place along the edge (unclaimed: the angler claims one with claimPierSpot when the walk begins)
+      const free = freePierSpots(); if (!free.length) return null;
+      return spotEntry(free[Math.floor(Math.random() * free.length)]);
     } };
+  const spotEntry = s => ({ ...entry, spot: s, face: s.face, walk: road => [kerbToward(road, land), land.clone(), P.at(0.12, 0), P.at(Math.min(s.a, P.len - 0.35), 0), s.pos.clone()] });
+  pierEntry = { spotEntry, entry };
   landmarks.push(entry);
   // the fish market on its own lot by the quay's land end (next to the car park, a street-side cell first): a paved pad, a stall
   // facing the street under a sloping roof with a striped valance, a long table of ice, crates and a bucket; the fish are laid
@@ -246,7 +260,7 @@ function landmarkRoads() {
 let sweep = 0;
 /** each frame: the lens glows as the light goes, the beams sweep round (night: 0 by day, 1 at night) */
 function updateLandmarks(dt, night) {
-  if (pierSpots) { const n = pierSpots.reduce((a, s) => a + s.taken, 0); rackBikes.forEach((b, k) => { b.visible = k < Math.min(3, Math.ceil(n * 0.7)); }); }
+  if (pierSpots) { const n = anglersAtQuay(); rackBikes.forEach((b, k) => { b.visible = k < Math.min(3, Math.ceil(n * 0.7)); }); }
   if (pierLot && pierLot.park !== 'public' && (lotCheck += dt) > 2) {   // the reserved lot opens as a car park once a street reaches it
     lotCheck = 0;
     if (DIR4.some(([a, b]) => { const n = cell(pierLot.i + a, pierLot.j + b); return n && n.type === 'road'; })) { pierLot.landmark = null; placeCarPark([pierLot]); pierLot.landmark = 'pier-park'; }
@@ -258,4 +272,4 @@ function updateLandmarks(dt, night) {
     beam.material.opacity = Math.max(0, night - 0.15) * 0.5 * (0.1 + 0.9 * f * f * (3 - 2 * f)); beam.visible = beam.material.opacity > 0.01;
   }
 }
-export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads, setFishStall };
+export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads, setFishStall, claimPierSpot, anglersAtQuay, MAX_ANGLERS };

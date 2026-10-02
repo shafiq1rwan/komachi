@@ -13,7 +13,7 @@ import { createPhone, createNewspaper } from './hand-items.js';
 import { record, chronicle } from './chronicle.js';
 import { W } from './weather.js';
 import { startTalk, endTalk } from './bubbles.js';
-import { landmarkRoads } from './landmarks.js';
+import { landmarkRoads, claimPierSpot } from './landmarks.js';
 import { eventOn, eventVisit } from './events.js';
 import { onCatch, catchToday } from './fishing.js';
 import { seasonOf } from './seasons.js';
@@ -688,19 +688,23 @@ function go(r, dest, label, purpose = null) {
 function visitLandmark(r, from, given = null) {
   const opts = given ? [given] : landmarkRoads().filter(o => o.l.kind !== 'fishmarket'); if (!opts.length) return false;
   const quay = !given && opts.find(o => o.l.kind === 'pier');   // fishing off the quay is a favourite
-  const { l, road } = quay && Math.random() < 0.4 ? quay : pick(opts), path = routeCells(frontRoad(from), [road]); if (!path || path.length < 1) return false;
+  const choice = quay && Math.random() < 0.4 ? quay : pick(opts), road = choice.road, path = routeCells(frontRoad(from), [road]); if (!path || path.length < 1) return false;
+  let l = choice.l;
+  if (l.kind === 'pier') { l = claimPierSpot(r); if (!l) return false; }   // a place of their own, or no fishing today: the quay is full
   from.inside.delete(r); r.at = null; r.strollHome = true; r.actKind = 'stroll'; r.until = 0; r.purpose = null;
   const walk = l.walk(road);
   startTrip(r, path, exitPts(from), walk, null, l.label);
   if (r.trip) Object.assign(r.trip, { landmark: l, lmRoad: road, lmWalk: walk });
+  if (l.fish && r.trip) { const ch = r.mesh.userData.char; if (ch) equipCharacterProp(ch, 'fishing-rod', pick([PAL.indigo, PAL.roofTeal, '#b24a3c'])); r.rodOut = true; }   // the rod comes from home
   return true;
 }
+/** the rod carried home from the quay goes back indoors */
+function putRodAway(r) { if (!r.rodOut) return; r.rodOut = false; const ch = r.mesh.userData.char; if (ch) clearCharacterProp(ch); }
 function atLandmark(r, tr) {
   const l = tr.landmark;
   if (!tr.held) {   // there: stand and look, or take a free bench in the pavilion
     tr.held = true; tr.holdUntil = S.T + rand(l.hold[0], l.hold[1]); r.activity = l.kind === 'event' && hourOf() >= 19.9 && l.activity.includes('festival') ? 'watching the fireworks' : l.activity; r.paused = true; r.heldAct = null;
-    if (l.spot) l.spot.taken++;
-    if (l.fish) { const ch = r.mesh.userData.char; if (ch) equipCharacterProp(ch, 'fishing-rod', pick([PAL.indigo, PAL.roofTeal, '#b24a3c'])); }
+    if (l.spot && l.spot.by !== r) { tr.holdUntil = S.T + 0.05; r.activity = 'finding the quay full'; }   // someone else has the place: a look at the water, then home
     const seat = l.seats && l.seats.find(s => !s.taken || !s.taken.trip || s.taken.trip.seat !== s);
     if (seat) { seat.taken = r; tr.seat = seat; r.mesh.position.copy(seat.pos); r.mesh.rotation.y = seat.rot; setPose(r, true); }
     else if (l.face !== undefined) r.mesh.rotation.y = l.face;
@@ -708,11 +712,10 @@ function atLandmark(r, tr) {
   }
   r.paused = false;
   if (tr.seat) { tr.seat.taken = null; setPose(r, false); }
-  if (l.spot) l.spot.taken = Math.max(0, l.spot.taken - 1);
-  if (l.fish) { const ch = r.mesh.userData.char; if (ch) clearCharacterProp(ch); }
+  if (l.spot && l.spot.by === r) l.spot.by = null;
   if (l.bag) { const ch = r.mesh.userData.char; if (ch) equipCharacterProp(ch, 'shopping-bag', '#c9a36a'); }   // something from the market
   const back = tr.lmWalk.slice().reverse().map(p => p.clone());
-  if (!r.home) { r.trip = null; returnToStation(r, back[back.length - 1]); return; }
+  if (!r.home) { r.trip = null; putRodAway(r); returnToStation(r, back[back.length - 1]); return; }
   const path = routeCells([tr.lmRoad], frontRoad(r.home));
   if (path) startTrip(r, path, back, entryPts(r.home), r.home, 'heading home');
   else { r.trip = null; r.mesh.visible = false; r.at = r.home; r.home.inside.add(r); r.state = 'inside'; r.next = S.T; }
@@ -756,6 +759,7 @@ function arrive(r) {
   if (tr.dest === STATION.anchor) { r.mesh.position.copy(endPos); arriveAtStation(r); return; }
   if ((tr.dest.cell.h || 0) > 0) hillVisits++;   // someone made it up the hill
   if (tr.dest.removed) { returnToStation(r, endPos); return; }
+  if (r.rodOut) putRodAway(r);
   enterUnit(r, tr.dest);
   if (tr.dest.block.type === 'shop' && tr.dest !== r.job) { tr.dest.block.visitScore += 1; tr.dest.block.visitsToday = (tr.dest.block.visitsToday || 0) + 1; }
 }

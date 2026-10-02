@@ -15,7 +15,6 @@
     "app": "electron .",
     "app:check": "node scripts/check-electron.mjs",
     "app:build": "vite build && electron-builder --win",
-    "app:build:mac": "vite build && electron-builder --mac",
     "app:build:linux": "vite build && electron-builder --linux",
     "build:poki": "vite build --mode poki",
     "pack:poki": "node scripts/pack-poki.mjs",
@@ -76,21 +75,6 @@
       "shortcutName": "Komachi",
       "artifactName": "Komachi-${version}-setup.exe"
     },
-    "mac": {
-      "target": [
-        {
-          "target": "dmg",
-          "arch": [
-            "arm64"
-          ]
-        }
-      ],
-      "icon": "public/icons/icon-512.png",
-      "category": "public.app-category.games",
-      "artifactName": "Komachi-${version}-mac-apple-silicon.${ext}",
-      "hardenedRuntime": false,
-      "gatekeeperAssess": false
-    },
     "linux": {
       "target": [
         "AppImage"
@@ -107,8 +91,7 @@
       "owner": "shafiq1rwan",
       "repo": "komachi",
       "releaseType": "draft"
-    },
-    "afterPack": "scripts/after-pack.cjs"
+    }
   },
   "license": "UNLICENSED",
   "author": "Saiss"

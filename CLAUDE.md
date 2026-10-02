@@ -216,9 +216,15 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   legs drop straight to outerZ and the outer breakwater stops at the entrance edges; `MT.harbor` = { arms, entrance }. ferry.js berths on +Z in the basin. sea.js keeps ambient craft
   outside the arms (`harborBypass`). landmarks.js piles boulders round the lighthouse. Checks: `node scripts/check-harbor.mjs`
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
-- Mini-games (2026-09-25): src/minigame-fishing.js, the jetty fishing game, HIDDEN (`ENABLED` false: no invitation button; the user
-  reported bugs, not yet described; `MT.startFishing()` still works for testing). `updateFishingGame(dt)` from the main loop shows #fish-near
-  (projected over `pierFrame().at(len - 0.1, 0)` when cam.view < 9 and the target is within 5) and runs phases idle → cast (0.9 s arc
+- Mini-games (2026-09-25, on again 2026-10-02): src/minigame-fishing.js, the jetty fishing game (`ENABLED` true). `updateFishingGame(dt)`
+  from the main loop shows #fish-near "Join the anglers" (projected over `pierFrame().at(len - 0.1, 0)` when cam.view < 9, the target
+  within 5 and landmarks.js `anglersAtQuay() > 0`: never on an empty quay). The fight (2026-10-02): phase 'fight' after the strike,
+  `FISH` entries { name, pull, work, boot }, `BAND` [0.35, 0.72]; `fight(dt)`: holding raises tension by 0.55 + pull × 0.9 × surge
+  and fills progress by dt / work while in the band (×0.35 above it), releasing lowers it and lets the fish run when under the band
+  (progress −pull × 0.25 /s); tension ≥ 1 → settle("… got away"), progress ≥ 1 → land(). #fish-meter (.fm-bar with .fm-band and
+  #fish-needle, .fm-catch with #fish-fill) shown only during the fight; #fish-tap takes pointerdown/up with pointer capture and
+  Space/Enter keydown/keyup (hold), a tap elsewhere in the flow. The headless frame rate is a small fraction of real time, so a
+  probe cannot land a fish in a minute: test the branches by setting `fishingGame.progress`/`tension`. and runs phases idle → cast (0.9 s arc
   to `P.at(len + 0.55, 0.15)` at WATER_Y) → wait (bite after 2–7 s) → bite (1.1 s window) → catch (0.8 s) → idle, or settle on a miss;
   #fishing card with #fish-tap / #fish-sub / #fish-end; body.fishing hides the dock; a catch calls landmarks.js `setFishStall(true)`
   and records the first. Dev hooks `MT.startFishing`, `MT.stopFishing`, `MT.fishingGame` (set `biteAt = 0` to force a bite).
@@ -285,11 +291,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   binary with ELECTRON_RUN_AS_NODE deleted, which VS Code sets in its terminals and would make Electron run as plain Node, then
   checks scripts/out/electron.png is drawn) / app:build (electron-builder --win: nsis + portable into release/, gitignored);
   `build` config there (appId town.komachi.app, icons public/favicon.ico and icon-512.png, `publish` github draft). Run `npm run build`
-  before app/app:check. Releases: .github/workflows/release.yml on tags v* (matrix win/mac/linux, `electron-builder --publish always`
+  before app/app:check. Releases: .github/workflows/release.yml on tags v* (matrix win/linux, `electron-builder --publish always`
   with GITHUB_TOKEN, CSC_IDENTITY_AUTO_DISCOVERY false) makes a draft GitHub Release; `npm version x.y.z && git push --tags`.
-  macOS (2026-09-30): `build.afterPack` = scripts/after-pack.cjs ad-hoc signs the .app (`codesign --sign -`) when no CSC_LINK/CSC_NAME,
-  because an unsigned arm64 app reports "damaged"; `build.mac.target` dmg for arm64 only (Apple Silicon; Intel dropped 2026-09-30, artifactName …-mac-apple-silicon.dmg),
-  hardenedRuntime false. Users still right-click → Open; a quarantined app needs `xattr -cr`.
+  macOS dropped (2026-10-01, the user's decision): no mac target, no afterPack hook, no mac job; an unsigned/un-notarised app was too
+  hard for buyers to open (the ad-hoc signing of 2026-09-30 only turned "damaged" into "Apple could not verify"). Bringing it back
+  needs an Apple Developer certificate (CSC_LINK + notarisation secrets), `build.mac` and a macos-latest matrix entry.
 - Poki build (2026-10-01, src/poki.js): `POKI` = import.meta.env.MODE === 'poki' (vite.config.js: mode poki → outDir dist-poki, no
   offline() plugin). `pokiInit()` from main.js appends the SDK script (game-cdn.poki.com) and init()s; `pokiLoaded()` from loading.js
   finish, `pokiPlay()`/`pokiPause()` from title.js close()/open(), `pokiBreak()` before continue/resume/start (mutes via audio.js
@@ -333,6 +339,11 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `onCatch` listeners (sim.js: fish van, a truck wanderer with `fishVan` + `onStop` setting `b.fishDay` on FISH_SHOPS; buildings.js draws the crate
   while `b.fishDay` is today; reckonShops clears it), `catchToday()` until 18.5. landmarks.js: the fish market on its own reserved lot (`c.landmark = 'fish-market'`, street-side cell nearest the quay's land end), landmark kind
   'fishmarket' with `available()`, `setFishStall(on)`; strolls and tourists skip it; decide() adds a fish-buying option 10.5–18.2.
+  Quay places (2026-10-02): a pier spot is held by `s.by` while that resident's trip is to it (`spotHeld`; the walk home replaces the trip,
+  so abandoned trips free it); `MAX_ANGLERS` 4; `claimPierSpot(r)` (exported) is taken in sim.js visitLandmark when the landmark is the
+  pier (null → no fishing today), `anglersAtQuay()` feeds the rack bikes and the mini-game's invitation; on arrival a place held by
+  someone else means a 0.05 h look and home. The rod is equipped in visitLandmark (`r.rodOut`) and cleared by `putRodAway` when the
+  resident enters a unit or returns to the station, so it is carried both ways. `spot.taken` is gone.
   Homemakers: `r.homemaker` (saved), chosen once per couple/family in findJob (hash(hh.id, 7) < 0.55); daytime errands, KEEP_ACTS, market and stall first.
 - Ryokan (2026-09-23): shop kind 'ryokan' (`genRyokan`, SHOP_NAMES.ryokan), placed by `hillMarket` when a tea house exists and the chronicle
   has 'first visitors'; never changes trade; lit 6–23.5 in daynight.js. tourists.js: visitors spawned after 11 on weekends/festival days
@@ -479,4 +490,4 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 7. ✅ Farming and fishing (complete 2026-09-23)
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
-10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe; macOS/Linux builds and signing left for CI
+10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe, Linux AppImage from CI; macOS dropped 2026-10-01
