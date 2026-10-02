@@ -498,8 +498,11 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
 10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe, Linux AppImage from CI; macOS dropped 2026-10-01
-11. Guided first town and interiors (agreed 2026-10-02): 11.1 milestone-card prompts for the first street, homes, shop, crew and
-    family, once per town (the five-dollar update); 11.2 one furnished room per home, the look being tested in the user's separate
-    project first; 11.3 residents using the furniture
-12. Themes, New York first (agreed 2026-10-02): a `theme` key on the town inside this one project (no fork), 12.1 the refactor that
-    puts the Japanese set behind it, 12.2 a Brooklyn-style neighbourhood with right-hand traffic, 12.3 more themes later
+11. Guided first town (agreed 2026-10-02): milestone-card prompts for the first street, homes, shop, crew and family, once per
+    town; the five-dollar update
+12. Little Nest inside Komachi (agreed 2026-10-02): the user's room-decorating game (C:/Users/shafiq.irwan/Documents/home-deco-sim,
+    Three.js 0.170, 48 GLB props, pure tested core) becomes the interiors once its own feature set is final; shared package, not a
+    copy; the room stands in the main scene like the opening carriage; decorating box reskinned as a Komachi card; then residents
+    use the furniture. Little Nest is sold standalone afterwards under its own name.
+13. Themes, New York first (agreed 2026-10-02): a `theme` key on the town inside this one project (no fork), the refactor that puts
+    the Japanese set behind it, a Brooklyn-style neighbourhood with right-hand traffic, more themes later

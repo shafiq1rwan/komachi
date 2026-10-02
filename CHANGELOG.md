@@ -21,8 +21,9 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
-- Roadmap (2026-10-02): Phase 11, the guided first town and interiors, and Phase 12, themes with New York first inside the one
-  project, written into docs/ROADMAP.md and CLAUDE.md.
+- Roadmap (2026-10-02): Phase 11 the guided first town (the five-dollar update), Phase 12 Little Nest inside Komachi (the user's
+  room-decorating game, merged once its feature set is final, as a shared package; sold standalone afterwards), Phase 13 themes
+  with New York first inside the one project; written into docs/ROADMAP.md and CLAUDE.md.
 - Fishing as a resident (2026-10-02): "Join the anglers" hands the player the resident fishing nearest the jetty head; the line
   starts at their hands, they lean back against the pull and crank the rod while the button is held, and a bubble over their head
   shows the moment: an exclamation at the bite, sweat when the line sings, a glum face for a lost fish or the boot, a fish for a

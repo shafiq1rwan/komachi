@@ -305,45 +305,63 @@ effect through the town instead.
   comes back only with a certificate and notarisation secrets
 - Left for later: Windows code signing (certificate as secrets)
 
-## ⬜ Phase 11 — Guided first town and interiors (agreed 2026-10-02)
+## ⬜ Phase 11 — Guided first town (agreed 2026-10-02)
 
-The two halves belong together: the guided town gets a new player to a lived-in street in ten minutes, and furnishing
-is what gives them a reason to zoom in once it is there. 11.1 ships on its own as the first paid update (the price
-goes from two dollars to five with it); interiors take their time behind it.
+The first paid update: the price goes from two dollars to five with it, and "interiors coming" is the headline of what is
+next. Only the guided town; interiors moved to Phase 12 the same day, because Little Nest is still growing.
 
-- **11.1 Guided first town.** Milestone-card prompts in the chronicle's voice, each cleared by doing the thing, never by
-  a button: draw a street from the station ring (the ring pulses, the Streets tool lit) → zone two homes beside it (eligible
-  cells shimmer) → add a shop and a workplace → "builders are on the train" (the camera glides to the station as the first crew
-  arrives) → "your first family" (the first move-in). The control each step needs is shown at that moment, so the eight-line
-  hint card can go. Runs once per town (a flag in the save), never on a loaded save, the demo or a scratch tab. One smoke
-  check walks the whole sequence headless. About a day.
-- **11.2 Interiors.** The user is testing the look in a separate project first (2026-10-02): one room per home, generated
-  from the household (table, futons or beds for the family, a kitchen corner, the laundry rail), in Komachi's palette and
-  post chain. Questions that project settles before anything lands here: how you get inside (zoom past a threshold on a
-  finished home and the roof lifts off, which keeps the one-world diorama; a separate room view is simpler but breaks it);
-  what the player does (place, move and turn a small furniture kit in the same drag-and-R language as blocks; nothing required);
-  saves (furniture per unit, a version bump, old saves get a default room). Residents' "inside" state shows them in the room
-  instead of hiding them.
-- **11.3 Life in the rooms.** The Komachi half: residents use what was placed (supper at the table, sleep in the futons, a
-  lamp that comes on at dusk, laundry on the rail on fine days), so furniture shows through the people, not a number.
+- Milestone-card prompts in the chronicle's voice, each cleared by doing the thing, never by a button: draw a street from the
+  station ring (the ring pulses, the Streets tool lit) → zone two homes beside it (eligible cells shimmer) → add a shop and a
+  workplace → "builders are on the train" (the camera glides to the station as the first crew arrives) → "your first family"
+  (the first move-in). The control each step needs is shown at that moment, so the eight-line hint card can go. Runs once per
+  town (a flag in the save), never on a loaded save, the demo or a scratch tab. One smoke check walks the whole sequence
+  headless. About a day.
 
-## ⬜ Phase 12 — Themes: New York first (agreed 2026-10-02)
+## ⬜ Phase 12 — Little Nest inside Komachi (agreed 2026-10-02)
+
+Little Nest (C:/Users/shafiq.irwan/Documents/home-deco-sim, "little-nest", Saiss's isometric room-decorating game: 48
+modelled props, undoable grid placement, surfaces and wall spots, finishes, versioned saves, a pure tested core) becomes
+Komachi's interiors. It stays its own repository and keeps growing until the user calls its feature set done; the merge
+waits for that, so it is merged once. Everything added there lands in Komachi later for free as long as it goes into the
+pure core rather than the standalone's HUD. This is the eight-to-ten-dollar step.
+
+- **Share the code, do not copy it.** At the merge, the pure core (placement, state, commands, schema) and the catalogue
+  (models, materials, recolour rules, thumbnails) become a shared package both games import, so a fix lands in both. Copying
+  would let the standalone diverge.
+- **One world, one renderer.** The room stands in Komachi's scene the way the opening carriage does, far off at a fixed spot,
+  so the shared camera, post chain, tilt-shift and bubbles apply; "step inside" is a camera glide, not a page switch. Little
+  Nest's own scene setup, orbit controls, on-demand rendering, menu, gallery, music and branding are not carried over.
+- **The look.** Finishes and item colours from Komachi's palette; the terracotta backdrop goes; the warmer close-up detail is
+  fine for an interior. The decorating box becomes a Komachi card (cream, Nunito, the picker's tool-strip language).
+- **Three.js** moves Komachi from 0.160 to Little Nest's 0.170 first; the post passes get a check.
+- **Saves.** A room per home inside the town save with Little Nest's schema nested and its migrations kept; save version bump.
+  One room per home at first, the detached houses getting the 8×8 preset and smaller homes a smaller one.
+- **Tests.** Its Node unit tests transfer; its Playwright browser specs do not; the room view gets its own smoke checks.
+- **Life in the rooms** (the Komachi half, last): residents sit on the sofa you placed, sleep in the bed, the lamp you chose
+  comes on at dusk, laundry on the rail on fine days; furniture shows through the people, not a number.
+- **Little Nest standalone afterwards:** sold as itself (its own name, wordmark and audience, three to five dollars), not as
+  "Komachi's rooms", so nobody pays twice; released a few weeks after the merge so bugs the larger audience finds are fixed
+  first.
+
+## ⬜ Phase 13 — Themes: New York first (agreed 2026-10-02)
 
 Komachi stays one project: a `theme` on the town (saved with it, chosen on the New town page beside the island theme),
 Japan the first value and the default. A fork was considered and rejected (2026-10-02): every fix to the simulation, menus,
-saves, builds and releases would be made twice, and players choose a theme per town in one game.
+saves, builds and releases would be made twice, and players choose a theme per town in one game. After interiors, because
+the theme layer should cover furniture too.
 
-- **12.1 The theme layer.** The refactor that pulls the Japanese set behind the key with no visible change: palette and roof
+- **13.1 The theme layer.** The refactor that pulls the Japanese set behind the key with no visible change: palette and roof
   styles, the building generators per kind, signage and street furniture kits, the name pools, the traffic side, the landmark
-  set, the station entrance, the fox. The shared core stays untouched (island, harbour, ferry, residents, households, economy,
-  weather, seasons, menus, saves, builds). Dull, and what makes a theme a content job and a third theme a small one.
-- **12.2 New York.** Narrower than Manhattan, which does not fit a small island: a Brooklyn-style neighbourhood of brownstones
+  set, the station entrance, the fox, the furniture catalogue. The shared core stays untouched (island, harbour, ferry,
+  residents, households, economy, weather, seasons, menus, saves, builds). Dull, and what makes a theme a content job and a
+  third theme a small one.
+- **13.2 New York.** Narrower than Manhattan, which does not fit a small island: a Brooklyn-style neighbourhood of brownstones
   with stoops and fire escapes, brick walk-ups, water towers on flat roofs, a corner deli and a diner, a fire station with the
   red doors; cars keep right (the lane and junction rules flip); hydrants, steam vents, yellow cabs, a hot-dog cart, the
   subway entrance with the green globe lamp in place of the pavilion; a park with a bandstand instead of the shrine, the
-  lighthouse and ferry stay, a raccoon for the fox; new fictional name pools. First step: one brownstone block in the game's
-  palette and post chain as a screenshot test, the same way interiors are being tested.
-- **12.3 More themes** only once two exist and the layer has proved itself.
+  lighthouse and ferry stay, a raccoon for the fox; new fictional name pools. Concept mockups repainted from the real island
+  are in docs/mockups/brownstone-*.png (ComfyUI, 2026-10-02).
+- **13.3 More themes** only once two exist and the layer has proved itself.
 
 ---
 
