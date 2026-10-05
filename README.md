@@ -285,7 +285,7 @@ certificate the app cannot be notarised and macOS makes it too hard to open, so 
 attaches the installers to a draft GitHub Release for that tag, which you then publish:
 
 ```bash
-npm version 0.2.1          # bumps package.json and makes the tag v0.2.1
+npm version 0.3.0          # bumps package.json and makes the tag v0.3.0
 git push && git push --tags
 ```
 

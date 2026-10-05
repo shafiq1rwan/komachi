@@ -4,9 +4,14 @@ All notable changes to Komachi are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 
-## [Unreleased] - 2026-09-17
+## [Unreleased]
 
-Phases 4 and 4.5 plus the polish that went with them.
+### Added
+
+## [0.3.0] - 2026-10-05
+
+The first paid update: the guided first town, fishing as a resident with the fight and the catch, the smooth opening, the
+desktop app, the Poki web build and everything else since 0.2.0 (the 0.2.x tags were cut from this section as it grew).
 
 ### Added
 
