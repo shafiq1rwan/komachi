@@ -2,6 +2,14 @@
 import { pick, irand } from './utils.js';
 
 export const PAL = {
+  fish: {
+    sardine: { color: '#a7bbc6', back: '#526b7b', belly: '#edf1e8', fin: '#7f9fa9' },
+    mackerel: { color: '#739fa8', back: '#365e72', belly: '#e5eee4', fin: '#5c8387' },
+    flounder: { color: '#ac8a60', back: '#776345', belly: '#e5d5b8', fin: '#967952' },
+    rockfish: { color: '#b96c50', back: '#824937', belly: '#efc3a2', fin: '#99553d' },
+    bream: { color: '#d79b96', back: '#ae6665', belly: '#f3ddd0', fin: '#bf7c73' },
+    eye: '#202c2e', eyeRim: '#f5ecd6', mouth: '#755e56',
+  },
   waterfront: {
     paving: ['#b7b7ae', '#c4c3b9', '#aeb0aa'],
     stone: ['#9fa7a8', '#adb3b0', '#8e999c', '#bac0b9', '#a2a9a6'],

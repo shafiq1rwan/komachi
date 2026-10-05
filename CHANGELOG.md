@@ -8,6 +8,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Fish props (2026-10-05): five reusable, texture-free fish models with sculpted species silhouettes, cream bellies, eyes,
+  gills, solid fins and articulated forked tails. Catch leaps and held-fish wriggles use the props, and the quay market
+  displays the same fish on its ice. Animated GLBs live in `assets/props/fish/`; collection and individual previews in
+  `docs/props/fish/`. Build and validate with `scripts/build-fish-props.mjs` and `scripts/preview-fish-props.mjs`.
 ## [0.3.0] - 2026-10-05
 
 The first paid update: the guided first town, fishing as a resident with the fight and the catch, the smooth opening, the

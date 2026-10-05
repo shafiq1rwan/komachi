@@ -17,6 +17,7 @@ import { createFestivalLandmark } from './festival-landmark-kit.js';
 import { snowKit } from './geometry.js';
 import { PAL } from './palette.js';
 import { biome } from './biome.js';
+import { createFishProp, FISH_PROP_KINDS } from './fish-prop.js';
 
 const landmarks = [];   // { kind, name, label, activity, hold: [h0, h1], anchor (Vector3), walk(road) -> points, seats? }
 const angDiff = (a, b) => Math.abs(Math.atan2(Math.sin(a - b), Math.cos(a - b)));
@@ -230,8 +231,12 @@ function placePier() {
     for (const p of part) { p.scale(S2, S2, S2); p.translate(0, 0.02, -0.12); g.push(p); }
     for (let k = 0; k < 3; k++) g.push(box(0.16, 0.08, 0.12, PAL.roofBlue, 0.3, 0.06 + k * 0.085, -0.34));   // a stack of empty crates at the back
     const sm = mergeMesh(g, true); if (sm) frame.add(sm);
-    const f = []; for (let k = 0; k < 12; k++) { const fx = -0.24 + (k % 6) * 0.095, fz = k < 6 ? -0.1 : -0.02; const fish = new THREE.DodecahedronGeometry(0.03); fish.scale(1.9, 0.45, 0.8); fish.translate(fx, 0.33, fz); f.push(colorize(fish, k % 3 ? '#b9c6cc' : '#d9a08a')); }
-    fishMesh = mergeMesh(f, true); if (fishMesh) { fishMesh.visible = false; frame.add(fishMesh); }
+    const f = []; for (let k = 0; k < 12; k++) {
+      const fish = createFishProp(FISH_PROP_KINDS[k % FISH_PROP_KINDS.length]); fish.scale.setScalar(0.43); fish.rotation.set(0, Math.PI / 2 + (k % 2 ? 0.12 : -0.12), fish.userData.species === 'flounder' ? 0 : Math.PI / 2); fish.position.set(-0.24 + (k % 6) * 0.095, fish.userData.species === 'flounder' ? 0.325 : 0.335, k < 6 ? -0.1 : -0.02); fish.updateMatrixWorld(true);
+      fish.traverse(o => { if (o.isMesh) { const geometry = o.geometry.clone().applyMatrix4(o.matrixWorld); f.push(geometry); o.geometry.dispose(); } });
+      fish.children.find(o => o.isMesh)?.material.dispose();
+    }
+    fishMesh = mergeMesh(f, true); if (fishMesh) { fishMesh.visible = false; fishMesh.name = 'Market_Fish'; frame.add(fishMesh); }
     frame.traverse(o => { if (o.isMesh) o.castShadow = true; });
     const front = frame.localToWorld(new THREE.Vector3(0, 0, 0.28)).setY(0.1), buy = [];
     for (const x of [-0.22, 0, 0.22]) buy.push(frame.localToWorld(new THREE.Vector3(x, 0, 0.26)).setY(0.1));

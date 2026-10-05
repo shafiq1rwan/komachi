@@ -1,0 +1,5 @@
+Complete video/audio decode: PASS
+Duration: 00:00:20.00, start: 0.000000, bitrate: 1193 kb/s
+Stream #0:0[0x1](und): Video: h264 (High) (avc1 / 0x31637661), yuv420p(progressive), 1280x720, 990 kb/s, 30 fps, 30 tbr, 15360 tbn (default)
+Stream #0:1[0x2](und): Audio: aac (LC) (mp4a / 0x6134706D), 48000 Hz, stereo, fltp, 193 kb/s (default)
+Audio peak: -1.5 dB

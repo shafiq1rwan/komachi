@@ -1,0 +1,26 @@
+{
+  "width": 1280,
+  "height": 720,
+  "fps": 30,
+  "frames": 600,
+  "duration": 20,
+  "events": [
+    {
+      "kind": "cast",
+      "time": 1.2
+    },
+    {
+      "kind": "bite",
+      "time": 4.166666666666667
+    },
+    {
+      "kind": "hook",
+      "time": 4.7
+    },
+    {
+      "kind": "catch",
+      "time": 15.4
+    }
+  ],
+  "source": "Actual Komachi gameplay and HUD, staged in a temporary browser session."
+}

@@ -110,6 +110,11 @@ try {
   assert.equal(await page.evaluate(() => MT.fishingGame.phase), 'show');
   assert.equal(await page.evaluate(() => MT.fishingGame.caught), 1);
   assert.match(await page.$eval('#fish-destination', e => e.textContent), /fish market/);
+  assert.equal(await page.evaluate(() => {
+    const fish = MT.fishingGame.angler.mesh.userData.char.fishing.fish;
+    return !!fish?.getObjectByName('Fish_Body') && !!fish.getObjectByName('Fish_Tail');
+  }), true, 'The catch uses the reusable fish prop in the angler’s hands');
+  await page.screenshot({ path: 'scripts/out/fishing/catch-prop.png' });
   await page.evaluate(() => { for (let i = 0; i < 160; i++) window.tickFishing(0.05); });
   assert.equal(await page.evaluate(() => MT.fishingGame.phase), 'show', 'Catch card remains until the next cast');
   assert.equal(await page.evaluate(() => MT.fishingGame.caught), 1, 'Showing the catch cannot count it twice');

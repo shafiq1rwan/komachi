@@ -19,6 +19,7 @@ import { pick } from './utils.js';
 import { showFeeling, endTalk } from './bubbles.js';
 import { residents } from './sim.js';
 import { playFishingSound } from './audio.js';
+import { createFishProp, animateFishProp } from './fish-prop.js';
 
 // on since 2026-10-02; the invitation only shows while a resident is fishing there (join them, never an empty quay)
 const ENABLED = true;
@@ -68,6 +69,7 @@ function build() {
 }
 /** the fish (or boot) the angler holds up: a few primitives in the species' colours, nose along +z */
 function makeFishMesh(f) {
+  if (!f.boot) return createFishProp(f);
   const g = new THREE.Group(); const L = f.len;
   if (f.boot) {
     const leather = new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.9 });
@@ -76,12 +78,6 @@ function makeFishMesh(f) {
     const sole = new THREE.Mesh(new THREE.BoxGeometry(L * 0.47, L * 0.06, L * 0.98), new THREE.MeshStandardMaterial({ color: '#2e2620', roughness: 1 })); sole.position.set(0, -L * 0.36, L * 0.2); g.add(sole);
     return g;
   }
-  const skin = new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.45, metalness: 0.15 }), belly = new THREE.MeshStandardMaterial({ color: f.belly, roughness: 0.5 });
-  const body = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), skin); body.scale.set(L * (f.flat ? 0.34 : 0.2), L * (f.flat ? 0.08 : 0.24), L * 0.5); g.add(body);
-  const under = new THREE.Mesh(new THREE.SphereGeometry(1, 12, 8), belly); under.scale.copy(body.scale).multiplyScalar(0.92); under.position.y = -L * 0.03; g.add(under);
-  const tail = new THREE.Mesh(new THREE.ConeGeometry(L * 0.16, L * 0.26, 3), skin); tail.rotation.x = Math.PI / 2; tail.position.z = -L * 0.56; tail.scale.x = 0.35; g.add(tail);
-  const fin = new THREE.Mesh(new THREE.BoxGeometry(L * 0.03, L * 0.12, L * 0.3), skin); fin.position.y = L * (f.flat ? 0.08 : 0.24); fin.position.z = -L * 0.05; g.add(fin);
-  const eye = new THREE.Mesh(new THREE.SphereGeometry(L * 0.03, 6, 5), new THREE.MeshBasicMaterial({ color: '#1c2224' })); eye.position.set(L * 0.17, L * 0.06, L * 0.3); g.add(eye);
   return g;
 }
 /** the water a little out from the jetty head, where the float lands; with an angler, the line starts at their hands */
@@ -161,7 +157,7 @@ function start() {
   cam.target.copy(game.spot.deck).lerp(game.spot.water, 0.4); cam.target.y = -0.25; cam.tView = VIEW;
   say('Cast your line', 'Tap or press Space to cast'); btn.focus({ preventScroll: true });
 }
-function dropFish() { if (fishMesh) { fishMesh.removeFromParent(); fishMesh.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); fishMesh = null; } const ch = anglerChar(); if (ch && ch.fishing) ch.fishing.fish = null; }
+function dropFish() { if (fishMesh) { fishMesh.removeFromParent(); const materials = new Set(); fishMesh.traverse(o => { if (o.isMesh) { o.geometry.dispose(); materials.add(o.material); } }); materials.forEach(m => m.dispose()); fishMesh = null; } const ch = anglerChar(); if (ch && ch.fishing) ch.fishing.fish = null; }
 function stop() {
   if (!game.active) return; game.active = false; game.holding = false; el.hidden = true; document.body.classList.remove('fishing'); showMeter(false);
   pointerHeld = false; keyHeld = false; el.classList.remove('holding'); session.hidden = true; cue.hidden = true;
@@ -266,10 +262,10 @@ function updateFishingGame(dt) {
     fight(dt);
   } else if (game.phase === 'catch') {   // the float and the fish leap back toward the deck
     const k = Math.min(1, game.t / 0.8); float.position.set(water.x + (deck.x - water.x) * k, WATER_Y + Math.sin(k * Math.PI) * 0.5 + k * (deck.y + 0.2 - WATER_Y), water.z + (deck.z - water.z) * k);
-    if (fishMesh) { fishMesh.position.copy(float.position).y += 0.03; fishMesh.rotation.set(-0.8 + k * 1.2, Math.atan2(deck.x - water.x, deck.z - water.z), Math.sin(k * 14) * 0.4); }
+    if (fishMesh) { fishMesh.position.copy(float.position).y += 0.03; fishMesh.rotation.set(-0.8 + k * 1.2, Math.atan2(deck.x - water.x, deck.z - water.z), Math.sin(k * 14) * 0.4); animateFishProp(fishMesh, game.t); }
     if (k >= 1) { float.visible = false; showOff(); }
   } else if (game.phase === 'show') {   // held up for a moment, with a little wriggle, then back to fishing
-    if (fishMesh && !game.fish.boot) fishMesh.rotation.z = 0.35 + Math.sin(game.t * 9) * 0.12 * Math.max(0, 1 - game.t / 1.5);
+    if (fishMesh && !game.fish.boot) { const wriggle = Math.max(0, 1 - game.t / 1.5); fishMesh.rotation.z = 0.35 + Math.sin(game.t * 9) * 0.1 * wriggle; animateFishProp(fishMesh, game.t, wriggle); }
     if (game.t >= (game.fish.boot ? SHOW_BOOT_T : SHOW_T)) { dropFish(); game.show = 0; cam.tView = VIEW; }
   }
   cue.hidden = game.phase !== 'bite';
