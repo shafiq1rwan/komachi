@@ -12,12 +12,13 @@ import * as THREE from 'three';
 import { scene, camera, cam } from './scene.js';
 import { S } from './state.js';
 import { pierFrame } from './island.js';
-import { setFishStall, anglersAtQuay } from './landmarks.js';
+import { setFishStall, fishingNow } from './landmarks.js';
 import { record } from './chronicle.js';
 import { toast } from './toast.js';
 import { pick } from './utils.js';
 import { showFeeling, endTalk } from './bubbles.js';
 import { residents } from './sim.js';
+import { playFishingSound } from './audio.js';
 
 // on since 2026-10-02; the invitation only shows while a resident is fishing there (join them, never an empty quay)
 const ENABLED = true;
@@ -34,9 +35,15 @@ const FISH = [
 ];
 const BAND = [0.35, 0.72];   // the green band of the tension bar
 const SHOW_T = 2.6, SHOW_BOOT_T = 1.8;   // seconds the catch is held up
+const BITE_T = 1.65;
 const game = { active: false, phase: 'idle', t: 0, biteAt: 0, caught: 0, spot: null, fish: null, tension: 0, progress: 0, holding: false, runT: 0, angler: null, reel: 0, strained: false, jolt: 0, sad: 0, show: 0 };
 let float = null, rings = [], shadow = null, splashes = [], fishMesh = null;
 let el = null, btn = null, line = null, near = null, sub = null, meter = null, needle = null, fill = null;
+let session, cue, action, message, stage, status, result, tensionState, percent, savedCamera;
+let pointerHeld = false, keyHeld = false;
+let fishingLine = null, rodLine = null;
+let framingDirty = true, framing = null;
+const cameraAim = new THREE.Vector3(), cameraRight = new THREE.Vector3(), cameraUp = new THREE.Vector3();
 const v = new THREE.Vector3(), tmp = new THREE.Vector3();
 
 function build() {
@@ -44,6 +51,8 @@ function build() {
   g.add(new THREE.Mesh(new THREE.SphereGeometry(0.036, 10, 8), new THREE.MeshStandardMaterial({ color: '#d94f3d', roughness: 0.6 })));
   const cap = new THREE.Mesh(new THREE.SphereGeometry(0.03, 10, 8), new THREE.MeshStandardMaterial({ color: '#fff6e4', roughness: 0.6 })); cap.position.y = 0.034; g.add(cap);
   g.visible = false; scene.add(g); float = g;
+  const geometry = new THREE.BufferGeometry(); geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(27), 3));
+  fishingLine = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: '#fff5df', transparent: true, opacity: 0.8 })); fishingLine.frustumCulled = false; fishingLine.visible = false; scene.add(fishingLine);
   for (let k = 0; k < 4; k++) {
     const r = new THREE.Mesh(new THREE.RingGeometry(0.05, 0.062, 24), new THREE.MeshBasicMaterial({ color: '#eaf4f2', transparent: true, opacity: 0, depthWrite: false }));
     r.rotation.x = -Math.PI / 2; r.visible = false; scene.add(r); rings.push(r);
@@ -90,37 +99,88 @@ function pickAngler() {
 const anglerChar = () => game.angler && game.angler.mesh.userData.char;
 function feel(key, seconds) { if (game.angler) showFeeling(game.angler, key, seconds); }
 
-function say(head, small) { if (sub) sub.textContent = small || ''; if (btn) btn.textContent = head; }
+function say(head, small) {
+  if (!el) return;
+  el.dataset.phase = game.phase;
+  action.textContent = head; sub.textContent = small || '';
+  btn.disabled = ['cast', 'wait', 'settle', 'catch'].includes(game.phase);
+  const states = {
+    idle: ['BY THE WATER', 'Ready', 'Take a moment by the water'],
+    cast: ['CASTING', 'On its way', 'A little further out…'],
+    wait: ['WATCH THE FLOAT', 'Waiting', 'A quiet moment. Watch for a dip.'],
+    bite: ['SOMETHING BIT!', 'Bite!', 'The float dipped — strike now!'],
+    fight: ['ON THE LINE', 'Hooked', 'Keep the line steady'],
+    settle: ['ANOTHER CHANCE', 'No hurry', small],
+    catch: ['YOUR CATCH', 'Landed', ''],
+    show: ['YOUR CATCH', game.fish?.boot ? 'A surprise' : 'Landed', ''],
+  };
+  const s = states[game.phase]; stage.textContent = s[0]; status.textContent = s[1]; message.textContent = s[2];
+  result.hidden = !['catch', 'show'].includes(game.phase);
+  document.getElementById('fish-count').textContent = `${game.caught} caught`;
+  framingDirty = true;
+}
+/** Frame the angler and float in the space above the card, or beside it on a short screen. */
+function frameFishing(dt) {
+  if (framingDirty) {
+    const panel = el.getBoundingClientRect(), header = session.getBoundingClientRect();
+    framing = innerHeight <= 520 ? { x: panel.left / 2, y: (header.bottom + innerHeight) / 2 } : { x: innerWidth / 2, y: (header.bottom + panel.top) / 2 };
+    framingDirty = false;
+  }
+  cameraAim.copy(game.spot.deck).lerp(game.spot.water, 0.4); cameraAim.y = -0.25;
+  cameraRight.set(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw));
+  cameraUp.set(-Math.sin(cam.yaw) * Math.sin(cam.pitch), Math.cos(cam.pitch), -Math.cos(cam.yaw) * Math.sin(cam.pitch));
+  cameraAim.addScaledVector(cameraRight, (0.5 - framing.x / innerWidth) * cam.view * innerWidth / innerHeight);
+  cameraAim.addScaledVector(cameraUp, (framing.y / innerHeight - 0.5) * cam.view);
+  cam.target.lerp(cameraAim, 1 - Math.exp(-dt * 8));
+}
 function showMeter(on) { if (meter) meter.hidden = !on; if (on) drawMeter(); }
 function drawMeter() {
   if (!needle) return;
   needle.style.left = (game.tension * 100).toFixed(1) + '%'; fill.style.width = (game.progress * 100).toFixed(1) + '%';
   meter.classList.toggle('tight', game.tension > BAND[1]); meter.classList.toggle('slack', game.tension < BAND[0]);
+  meter.classList.toggle('danger', game.tension > 0.86);
+  const advice = game.tension > 0.86 ? 'Release now!' : game.tension > BAND[1] ? 'Ease off' : game.tension < BAND[0] ? 'Reel a little' : 'Steady';
+  tensionState.textContent = advice;
+  sub.textContent = game.tension > BAND[1] ? 'Release to ease the tension' : game.tension < BAND[0] ? 'Hold to take up the slack' : 'Hold to reel · release to ease tension';
+  const p = Math.min(100, Math.round(game.progress * 100)), t = Math.min(100, Math.round(game.tension * 100));
+  percent.textContent = `${p}%`;
+  document.getElementById('fish-tension').setAttribute('aria-valuenow', t);
+  document.getElementById('fish-tension').setAttribute('aria-valuetext', `${t} percent. ${advice}`);
+  document.getElementById('fish-progress').setAttribute('aria-valuenow', p);
 }
 function start() {
   if (game.active) return; game.angler = pickAngler(); game.spot = fishingSpot(game.angler); if (!game.spot) return;
   if (!float) build();
+  savedCamera = { target: cam.target.clone(), view: cam.tView, yaw: cam.tYaw };
+  pointerHeld = false; keyHeld = false;
   game.active = true; game.phase = 'idle'; game.t = 0; game.holding = false; game.reel = 0; game.jolt = 0; game.sad = 0; game.show = 0; el.hidden = false; near.hidden = true; document.body.classList.add('fishing'); showMeter(false);
   const ch = anglerChar(); if (ch) ch.fishing = { reel: 0, strain: 0, jolt: 0, sad: 0, show: 0, fish: null };
-  cam.target.set(game.spot.deck.x, 0, game.spot.deck.z); cam.tView = VIEW;
-  say('Cast', 'Tap when the float dips');
+  rodLine = ch?.accessory?.getObjectByName('Fishing_Line'); if (rodLine) rodLine.visible = false;
+  session.hidden = false; result.hidden = true;
+  document.getElementById('fish-angler').textContent = game.angler ? `A moment with ${game.angler.name.split(' ')[0]}` : 'A little time by the water';
+  cam.target.copy(game.spot.deck).lerp(game.spot.water, 0.4); cam.target.y = -0.25; cam.tView = VIEW;
+  say('Cast your line', 'Tap or press Space to cast'); btn.focus({ preventScroll: true });
 }
 function dropFish() { if (fishMesh) { fishMesh.removeFromParent(); fishMesh.traverse(o => { if (o.isMesh) { o.geometry.dispose(); o.material.dispose(); } }); fishMesh = null; } const ch = anglerChar(); if (ch && ch.fishing) ch.fishing.fish = null; }
 function stop() {
   if (!game.active) return; game.active = false; game.holding = false; el.hidden = true; document.body.classList.remove('fishing'); showMeter(false);
+  pointerHeld = false; keyHeld = false; el.classList.remove('holding'); session.hidden = true; cue.hidden = true;
+  fishingLine.visible = false; if (rodLine) rodLine.visible = true; rodLine = null;
+  if (savedCamera) { cam.target.copy(savedCamera.target); cam.tView = savedCamera.view; cam.tYaw = savedCamera.yaw; savedCamera = null; }
   float.visible = false; shadow.visible = false; for (const r of rings) r.visible = false; for (const s of splashes) s.m.visible = false; dropFish();
   const ch = anglerChar(); if (ch) ch.fishing = null; if (game.angler) endTalk(game.angler); game.angler = null; game.show = 0;
   if (game.caught) toast(game.caught === 1 ? 'One fish for the market' : `${game.caught} fish for the market`); game.caught = 0;
 }
 /** the float drifts back to rest: a missed bite, a lost fish, or a strike too soon */
-function settle(why, feeling = null) { game.phase = 'settle'; game.t = 0; game.holding = false; shadow.visible = false; showMeter(false); say('…', why); if (feeling) { feel(feeling, 2.5); game.sad = 1; } }
+function settle(why, feeling = null) { game.phase = 'settle'; game.t = 0; game.holding = false; shadow.visible = false; showMeter(false); say('Try again', why); if (feeling) { feel(feeling, 2.5); game.sad = 1; } }
 function tap() {
-  if (game.phase === 'idle') { game.phase = 'cast'; game.t = 0; float.visible = true; say('…', 'Waiting'); }
-  else if (game.phase === 'wait') settle('Too soon. The float settles');
+  if (game.phase === 'show') { if (game.t < 0.5) return; dropFish(); game.show = 0; game.phase = 'idle'; cam.tView = VIEW; }
+  if (game.phase === 'idle') { game.phase = 'cast'; game.t = 0; float.visible = true; say('Casting…', 'Watch where your float lands'); playFishingSound('cast'); }
   else if (game.phase === 'bite') {   // the strike: hooked, the fight is on; the angler braces
     game.phase = 'fight'; game.t = 0; game.fish = pick(FISH); game.tension = 0.45; game.progress = 0; game.runT = 0; game.strained = false; game.jolt = 1; showMeter(true); endTalk(game.angler);
     shadow.visible = true; shadow.position.copy(game.spot.water).setY(WATER_Y - 0.015); splash(game.spot.water, 5, 0.7);
     say('Hold to reel', 'Keep the line in the green');
+    playFishingSound('hook');
   }
 }
 function land() {
@@ -129,6 +189,13 @@ function land() {
   if (real) { game.caught++; setFishStall(true); if (game.caught === 1) record(`${game.angler ? game.angler.name : 'Someone'} caught ${f.name} off the jetty`); }
   dropFish(); fishMesh = makeFishMesh(f); fishMesh.position.copy(float.position); scene.add(fishMesh);   // the fish leaps with the float
   splash(float.position, 8, 1);
+  const species = f.name.replace(/^(a|an) /, '');
+  document.getElementById('fish-species').textContent = species[0].toUpperCase() + species.slice(1);
+  document.getElementById('fish-result-kicker').textContent = real ? 'A lovely catch' : 'Well, that was unexpected';
+  document.getElementById('fish-destination').textContent = real ? 'Sent to the fish market' : 'An old boot. Back it goes.';
+  const portrait = document.getElementById('fish-portrait'); portrait.style.color = f.color;
+  portrait.firstElementChild.className = `fa-solid ${real ? 'fa-fish' : 'fa-shoe-prints'}`;
+  playFishingSound(real ? 'catch' : 'boot');
   say(real ? 'Caught!' : 'Hmm', real ? `${f.name[0].toUpperCase()}${f.name.slice(1)} for the fish market` : 'An old boot. Back it goes');
 }
 /** the catch is held up for a moment: the fish moves into the angler's hands, the camera leans in */
@@ -138,6 +205,7 @@ function showOff() {
   if (ch && fishMesh) { ch.grp.add(fishMesh); fishMesh.position.set(0, 0.345, 0.07); fishMesh.rotation.set(0, Math.PI / 2, f.boot ? 0 : 0.35); ch.fishing.fish = fishMesh; }
   else if (fishMesh) { fishMesh.position.copy(game.spot.deck).setY(game.spot.deck.y + 0.3); }
   feel(f.boot ? 'lost' : 'caught', f.boot ? SHOW_BOOT_T : SHOW_T); cam.tView = VIEW_SHOW;
+  say('Cast again', 'Take your time · tap or press Space when ready');
 }
 /** a handful of droplets from a point on the water */
 function splash(at, n, power) {
@@ -150,11 +218,11 @@ function fight(dt) {
   const f = game.fish, pull = f.pull;
   game.runT += dt; const surge = 0.6 + 0.4 * Math.sin(game.runT * (1.6 + pull * 2));   // the fish does not pull evenly
   if (game.holding) {
-    game.tension += dt * (0.55 + pull * 0.9 * surge);
+    game.tension += dt * (0.3 + pull * 0.48 * surge);
     if (game.tension >= BAND[0] && game.tension <= BAND[1]) game.progress += dt / f.work;
     else if (game.tension > BAND[1]) game.progress += dt / f.work * 0.35;   // too tight still gains a little, at a risk
   } else {
-    game.tension -= dt * (0.5 + 0.3 * surge);
+    game.tension -= dt * (0.32 + 0.16 * surge);
     if (game.tension < BAND[0]) game.progress = Math.max(0, game.progress - dt * pull * 0.25);   // slack line: the fish runs
   }
   game.tension = Math.max(0, game.tension);
@@ -175,24 +243,25 @@ function fight(dt) {
 function updateFishingGame(dt) {
   const P = pierFrame(); if (!P) return;
   if (!game.active) {   // the invitation: close to the jetty, zoomed in, and a resident fishing there
-    const head = P.at(P.len - 0.1, 0); const close = ENABLED && anglersAtQuay() > 0 && cam.view < 9 && Math.hypot(cam.target.x - head.x, cam.target.z - head.z) < 5 && !document.body.classList.contains('menu-full') && !document.body.classList.contains('menu-pause');
+    const head = P.at(P.len - 0.1, 0); const close = ENABLED && fishingNow() > 0 && cam.view < 9 && Math.hypot(cam.target.x - head.x, cam.target.z - head.z) < 5 && !document.body.classList.contains('menu-full') && !document.body.classList.contains('menu-pause');
     near.hidden = !close;
     if (close) { v.set(head.x, 0.35, head.z).project(camera); near.style.left = ((v.x + 1) / 2 * innerWidth).toFixed(0) + 'px'; near.style.top = ((1 - v.y) / 2 * innerHeight).toFixed(0) + 'px'; }
     return;
   }
+  if (document.hidden || document.body.classList.contains('menu-pause') || document.body.classList.contains('menu-full')) { pointerHeld = false; keyHeld = false; game.holding = false; el.classList.remove('holding'); return; }
   game.t += dt; const { deck, water } = game.spot;
   game.jolt = Math.max(0, game.jolt - dt * 2.6); game.sad = Math.max(0, game.sad - dt * 0.45);
   if (game.phase === 'cast') {   // an arc from the deck out to the water
     const k = Math.min(1, game.t / 0.9), y = deck.y + 0.25 + Math.sin(k * Math.PI) * 0.35 - k * (deck.y + 0.25 - WATER_Y);
     float.position.set(deck.x + (water.x - deck.x) * k, y, deck.z + (water.z - deck.z) * k);
-    if (k >= 1) { game.phase = 'wait'; game.t = 0; game.biteAt = 2 + Math.random() * 5; ripple(water, 0.8); splash(water, 3, 0.4); }
+    if (k >= 1) { game.phase = 'wait'; game.t = 0; game.biteAt = 2 + Math.random() * 3.5; say('Waiting for a bite', 'Strike when the float dips'); ripple(water, 0.8); splash(water, 3, 0.4); }
   } else if (game.phase === 'wait' || game.phase === 'settle') {
     float.position.set(water.x, WATER_Y + 0.01 + Math.sin(game.t * 2.2) * 0.006, water.z);
-    if (game.phase === 'settle' && game.t > 1.2) { game.phase = 'wait'; game.t = 0; game.biteAt = 2 + Math.random() * 5; say('…', 'Waiting'); }
-    else if (game.phase === 'wait' && game.t >= game.biteAt) { game.phase = 'bite'; game.t = 0; game.jolt = 1; ripple(water, 1.4); splash(water, 6, 0.8); say('Now!', 'It bit'); feel('bite', 1.4); }
+    if (game.phase === 'settle' && game.t > 1.7) { game.phase = 'wait'; game.t = 0; game.biteAt = 2 + Math.random() * 3.5; say('Waiting for a bite', 'Strike when the float dips'); }
+    else if (game.phase === 'wait' && game.t >= game.biteAt) { game.phase = 'bite'; game.t = 0; game.jolt = 1; ripple(water, 1.4); splash(water, 6, 0.8); say('Strike!', 'Tap or press Space now'); feel('bite', BITE_T); playFishingSound('bite'); }
   } else if (game.phase === 'bite') {
     float.position.y = WATER_Y - 0.03 + Math.sin(game.t * 18) * 0.012;   // the float dips and jitters for a moment
-    if (game.t > 1.1) settle('Missed it. The float settles');
+    if (game.t > BITE_T) settle('It slipped away. Another bite will come.');
   } else if (game.phase === 'fight') {
     fight(dt);
   } else if (game.phase === 'catch') {   // the float and the fish leap back toward the deck
@@ -201,7 +270,20 @@ function updateFishingGame(dt) {
     if (k >= 1) { float.visible = false; showOff(); }
   } else if (game.phase === 'show') {   // held up for a moment, with a little wriggle, then back to fishing
     if (fishMesh && !game.fish.boot) fishMesh.rotation.z = 0.35 + Math.sin(game.t * 9) * 0.12 * Math.max(0, 1 - game.t / 1.5);
-    if (game.t >= (game.fish.boot ? SHOW_BOOT_T : SHOW_T)) { dropFish(); game.show = 0; game.phase = 'idle'; game.t = 0; cam.tView = VIEW; say('Cast again', 'Tap when the float dips'); }
+    if (game.t >= (game.fish.boot ? SHOW_BOOT_T : SHOW_T)) { dropFish(); game.show = 0; cam.tView = VIEW; }
+  }
+  cue.hidden = game.phase !== 'bite';
+  frameFishing(dt);
+  if (!cue.hidden) { v.copy(float.position).project(camera); cue.hidden = v.z < -1 || v.z > 1; cue.style.left = `${Math.max(55, Math.min(innerWidth - 55, (v.x + 1) / 2 * innerWidth))}px`; cue.style.top = `${Math.max(100, (1 - v.y) / 2 * innerHeight - 15)}px`; }
+  if (game.phase !== 'fight') { game.holding = false; el.classList.remove('holding'); }
+  fishingLine.visible = float.visible && game.phase !== 'show';
+  if (fishingLine.visible) {
+    const rod = anglerChar()?.accessory;
+    if (rod) { rod.updateWorldMatrix(true, false); tmp.set(0, 0.415, 0.094); rod.localToWorld(tmp); }
+    else tmp.copy(deck).add(new THREE.Vector3(0, 0.35, 0));
+    const positions = fishingLine.geometry.attributes.position, slack = game.phase === 'fight' ? Math.max(0, 0.08 * (1 - game.tension)) : 0.08;
+    for (let i = 0; i < positions.count; i++) { const k = i / (positions.count - 1); positions.setXYZ(i, tmp.x + (float.position.x - tmp.x) * k, tmp.y + (float.position.y - tmp.y) * k - Math.sin(k * Math.PI) * slack, tmp.z + (float.position.z - tmp.z) * k); }
+    positions.needsUpdate = true;
   }
   for (const r of rings) if (r.visible) { r.userData.t += dt; const s = r.userData.k * (1 + r.userData.t * 2.2); r.scale.set(s, s, s); r.material.opacity = Math.max(0, 0.6 - r.userData.t * 0.5); if (r.material.opacity <= 0) r.visible = false; }
   for (const s of splashes) if (s.life > 0) { s.life -= dt; s.vel.y -= dt * 3.2; s.m.position.addScaledVector(s.vel, dt); s.m.material.opacity = Math.min(0.9, s.life * 2); if (s.life <= 0 || s.m.position.y < WATER_Y) { s.life = 0; s.m.visible = false; } }
@@ -214,19 +296,34 @@ function updateFishingGame(dt) {
 }
 function ripple(at, k = 1) { rings.forEach((r, i) => { r.position.set(at.x, WATER_Y + 0.005, at.z); r.userData.k = k; r.scale.setScalar(k); r.userData.t = -i * 0.22; r.material.opacity = 0; r.visible = true; }); }
 
-// the card and the invitation button: a tap (or Space) strikes and casts; holding the button (or Space) reels during the fight
+// Pointer and keyboard holds are tracked independently, and focus loss always releases the line.
 {
   el = document.getElementById('fishing'); near = document.getElementById('fish-near');
   if (el && near) {
-    btn = el.querySelector('#fish-tap'); sub = el.querySelector('#fish-sub'); line = el.querySelector('#fish-end');
+    btn = el.querySelector('#fish-tap'); sub = el.querySelector('#fish-sub');
+    line = document.getElementById('fish-end');
     meter = el.querySelector('#fish-meter'); needle = el.querySelector('#fish-needle'); fill = el.querySelector('#fish-fill');
-    const hold = on => { if (game.phase === 'fight') game.holding = on; };
-    btn.addEventListener('pointerdown', e => { e.preventDefault(); btn.setPointerCapture(e.pointerId); if (game.phase === 'fight') hold(true); else tap(); });
-    btn.addEventListener('pointerup', () => hold(false)); btn.addEventListener('pointercancel', () => hold(false)); btn.addEventListener('lostpointercapture', () => hold(false));
-    btn.addEventListener('keydown', e => { if (e.code === 'Space' || e.code === 'Enter') { e.preventDefault(); e.stopPropagation(); if (game.phase === 'fight') hold(true); else if (!e.repeat) tap(); } });
-    btn.addEventListener('keyup', e => { if (e.code === 'Space' || e.code === 'Enter') { e.stopPropagation(); hold(false); } });
+    session = document.getElementById('fish-session'); cue = document.getElementById('fish-cue');
+    action = document.getElementById('fish-action'); message = document.getElementById('fish-message'); stage = document.getElementById('fish-stage'); status = document.getElementById('fish-status');
+    result = document.getElementById('fish-result'); tensionState = document.getElementById('fish-tension-state'); percent = document.getElementById('fish-percent');
+    const syncHold = () => { game.holding = game.active && game.phase === 'fight' && (pointerHeld || keyHeld); el.classList.toggle('holding', game.holding); };
+    const available = () => game.active && !document.hidden && !document.body.classList.contains('menu-pause') && !document.body.classList.contains('menu-full');
+    btn.addEventListener('pointerdown', e => { if (e.button !== 0 || !available()) return; e.preventDefault(); btn.focus({ preventScroll: true }); btn.setPointerCapture(e.pointerId); pointerHeld = true; if (game.phase !== 'fight') tap(); syncHold(); });
+    const releasePointer = () => { pointerHeld = false; syncHold(); };
+    btn.addEventListener('pointerup', releasePointer); btn.addEventListener('pointercancel', releasePointer); btn.addEventListener('lostpointercapture', releasePointer);
+    btn.addEventListener('click', e => { if (e.detail === 0 && available()) tap(); });
+    addEventListener('keydown', e => {
+      if (!available()) return;
+      if (e.code === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); stop(); return; }
+      if (!['Space', 'Enter'].includes(e.code) || e.target.closest?.('#fish-end')) return;
+      e.preventDefault(); e.stopImmediatePropagation();
+      if (!e.repeat && !keyHeld) { keyHeld = true; if (game.phase !== 'fight') tap(); syncHold(); }
+    }, true);
+    addEventListener('keyup', e => { if (!game.active || !['Space', 'Enter'].includes(e.code) || (!keyHeld && e.target.closest?.('#fish-end'))) return; e.preventDefault(); e.stopImmediatePropagation(); keyHeld = false; syncHold(); }, true);
+    const releaseAll = () => { pointerHeld = false; keyHeld = false; syncHold(); };
+    addEventListener('blur', releaseAll); document.addEventListener('visibilitychange', releaseAll);
+    addEventListener('resize', () => { framingDirty = true; });
     line.addEventListener('click', stop); near.addEventListener('click', start);
-    addEventListener('keydown', e => { if (game.active && e.code === 'Escape') { e.stopPropagation(); stop(); } }, true);
   }
 }
 export { updateFishingGame, start as startFishing, stop as stopFishing, game as fishingGame };

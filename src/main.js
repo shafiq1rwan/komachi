@@ -108,7 +108,8 @@ function frame(now) {
   const mv = dt * cam.view * 0.9;
   const right = new THREE.Vector3(Math.cos(cam.yaw), 0, -Math.sin(cam.yaw)), up = new THREE.Vector3(-Math.sin(cam.yaw), 0, -Math.cos(cam.yaw));
   if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(c => keys.has(c))) setFollow(null);
-  const f = followTarget();
+  if (fishingGame.active) keys.clear();
+  const f = fishingGame.active ? null : followTarget();
   if (f) { if (f.state === 'away') setFollow(null); else { const p = f.state === 'driving' && f.car ? f.car.position : f.mesh.position; followV.set(p.x, 0, p.z); cam.target.lerp(followV, 1 - Math.exp(-dt * 5)); } }
   if (keys.has('KeyW') || keys.has('ArrowUp')) cam.target.addScaledVector(up, mv);
   if (keys.has('KeyS') || keys.has('ArrowDown')) cam.target.addScaledVector(up, -mv);

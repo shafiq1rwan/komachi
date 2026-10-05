@@ -70,6 +70,7 @@ function selectable(c, sel) {
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);
 }
 canvas.addEventListener('pointerdown', e => {
+  if (document.body.classList.contains('fishing')) return;
   touches.set(e.pointerId, { x: e.clientX, y: e.clientY });
   if (touches.size === 2) {   // second finger: cancel pan/selection, start a pinch gesture
     const [a, b] = [...touches.values()]; gesture = { dist: Math.hypot(b.x - a.x, b.y - a.y), ang: Math.atan2(b.y - a.y, b.x - a.x), view: cam.tView, yaw: cam.tYaw }; follow = null;
@@ -133,8 +134,9 @@ function endPointer(e) {
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
-canvas.addEventListener('wheel', e => { e.preventDefault(); cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 3, 42); }, { passive: false });
+canvas.addEventListener('wheel', e => { e.preventDefault(); if (document.body.classList.contains('fishing')) return; cam.tView = clamp(cam.tView * (e.deltaY > 0 ? 1.12 : 1 / 1.12), 3, 42); }, { passive: false });
 addEventListener('keydown', e => {
+  if (document.body.classList.contains('fishing')) { keys.clear(); return; }
   if (e.target.tagName === 'INPUT') return; keys.add(e.code);
   if (e.code === 'Digit1') setTool('explore'); if (e.code === 'Digit2') setTool('res'); if (e.code === 'Digit3') setTool('shop'); if (e.code === 'Digit4') setTool('work'); if (e.code === 'Digit5') setTool('road'); if (e.code === 'Digit6') setTool('remove'); if (e.code === 'Digit7') setTool('park'); if (e.code === 'Digit8') setTool('civic'); if (e.code === 'Digit9') setTool('farm');
   if (e.code === 'KeyQ') cam.tYaw += Math.PI / 4; if (e.code === 'KeyE') cam.tYaw -= Math.PI / 4;

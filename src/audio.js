@@ -45,6 +45,20 @@ function playCompletionSound() {
 }
 addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
 
+/** Small original fishing cues use the same effects, volume and commercial-break settings. */
+function playFishingSound(kind) {
+  if (!unlocked || muted || !A.effects || !A.volume || !context || context.state !== 'running') return;
+  const notes = { cast: [380, 260], bite: [740, 980], hook: [520, 660], catch: [523, 659, 784, 1047], boot: [330, 220] }[kind];
+  if (!notes) return;
+  notes.forEach((hz, i) => {
+    const note = context.createOscillator(), gain = context.createGain(), start = context.currentTime + i * 0.085;
+    note.type = 'sine'; note.frequency.value = hz;
+    gain.gain.setValueAtTime(0, start); gain.gain.linearRampToValueAtTime(A.volume * 0.085, start + 0.012); gain.gain.exponentialRampToValueAtTime(0.001, start + 0.22);
+    note.connect(gain); gain.connect(context.destination); note.start(start); note.stop(start + 0.24);
+    note.onended = () => { note.disconnect(); gain.disconnect(); };
+  });
+}
+
 /** which loop the moment calls for: the menu first, then rain, then night; null keeps quiet */
 const pickTrack = ({ menu, rain }) => menu ? 'menu' : rain ? 'rain' : 'menu';
 
@@ -82,4 +96,4 @@ const audioState = () => ({ on: A.on, effects: A.effects, volume: A.volume, want
   sync();
 }
 
-export { updateAudio, audioState, playCompletionSound, setMuted };
+export { updateAudio, audioState, playCompletionSound, playFishingSound, setMuted };

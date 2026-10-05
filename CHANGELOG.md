@@ -10,6 +10,12 @@ Phases 4 and 4.5 plus the polish that went with them.
 
 ### Added
 
+- Fishing HUD and flow (2026-10-05): a focused cream-and-teal view with labelled tension zones, live reel/release advice,
+  separate catch progress, a bite callout beside the float, and a catch card that waits for the next cast. A visible line
+  follows the rod tip, softer tension changes and a longer bite window make the fight easier to read, and original sound
+  cues follow the effects settings. Keyboard and touch holds release on focus loss; Escape returns to the previous view.
+  Phone and landscape layouts frame the angler and float around the controls. `node scripts/check-fishing.mjs` checks the
+  complete sequence against a Vite development server and saves responsive screenshots.
 - Release polish (2026-09-29): the pause card says when the town was last saved (pausing saves, so it reads "Saved just now",
   or warns when the browser storage refused); Load town has Export as a file on every town and "Import a town from a file"
   (a JSON of the snapshot, photos stay in the browser's album; an import becomes a new kept town); Save and quit and Exit ask
@@ -27,6 +33,8 @@ Phases 4 and 4.5 plus the polish that went with them.
   prompts stay up until their step is done (milestone.js `holdMilestone`), never show on a loaded town with buildings, the demo or
   a scratch tab, and run once per town (`guide: 'done'` in the save). The welcome card no longer toasts the old hint when the
   guide is about to take over. The smoke suite walks the first two steps. Dev hooks `MT.startGuide()`, `MT.guideState()`.
+- The jetty's "Join the anglers" button waits until someone is actually standing on the jetty with a rod out (landmarks.js
+  `fishingNow`); it used to appear as soon as a resident set off from home for a pier spot (2026-10-05).
 - Fishing comes alive (2026-10-05, src/minigame-fishing.js): the angler jolts forward and the rod tip dips at the bite, with a
   splash and a burst of rings; on the strike a fish shadow appears under the water and circles on the line, drawn toward the
   quay as the catch bar fills and running out when line is given, the float dragged after it and rings spreading from it; a

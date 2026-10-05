@@ -112,7 +112,25 @@
 <div id="tags"></div>
 <div id="bubbles"></div>
 <button id="fish-near" class="cta" hidden><i class="fa-solid fa-fish"></i> Join the anglers</button>
-<div id="fishing" hidden><div id="fish-meter" hidden><div class="fm-bar"><i class="fm-band"></i><i id="fish-needle"></i></div><div class="fm-catch"><i id="fish-fill"></i></div><div class="fm-labels"><span>line</span><span>catch</span></div></div><button id="fish-tap" class="cta">Cast</button><small id="fish-sub"></small><button id="fish-end" class="mm-link">Enough for today</button></div>
+<div id="fish-session" hidden>
+  <div class="fish-place"><i class="fa-solid fa-fish" aria-hidden="true"></i><div><b>Fishing at the quay</b><small id="fish-angler">A little time by the water</small></div></div>
+  <div class="fish-session-actions"><span id="fish-count">0 caught</span><button id="fish-end">Leave <kbd>Esc</kbd></button></div>
+</div>
+<div id="fish-cue" hidden aria-hidden="true">Bite!</div>
+<section id="fishing" aria-label="Fishing controls" hidden>
+  <div class="fish-heading"><span id="fish-stage">BY THE WATER</span><span id="fish-status">Ready</span></div>
+  <div id="fish-result" hidden><div id="fish-portrait"><i class="fa-solid fa-fish" aria-hidden="true"></i></div><div><small id="fish-result-kicker">A lovely catch</small><h2 id="fish-species">Sea bream</h2><p id="fish-destination">Sent to the fish market</p></div></div>
+  <div id="fish-meter" hidden>
+    <div class="fm-title"><label for="fish-tension">Line tension</label><b id="fish-tension-state">Steady</b></div>
+    <div id="fish-tension" class="fm-bar" role="meter" aria-label="Line tension" aria-valuemin="0" aria-valuemax="100" aria-valuenow="45"><i class="fm-band"></i><i id="fish-needle"></i></div>
+    <div class="fm-zones"><span>Slack</span><span>Keep here</span><span>Too tight</span></div>
+    <div class="fm-title fm-progress-title"><label for="fish-progress">Reeling in</label><b id="fish-percent">0%</b></div>
+    <div id="fish-progress" class="fm-catch" role="progressbar" aria-label="Reeling in" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><i id="fish-fill"></i></div>
+  </div>
+  <p id="fish-message" role="status" aria-live="polite">Take a moment by the water</p>
+  <button id="fish-tap" class="cta"><kbd>Space</kbd><span id="fish-action">Cast your line</span><i class="fa-solid fa-arrow-right" aria-hidden="true"></i></button>
+  <small id="fish-sub">Tap or press Space to cast</small>
+</section>
 <div id="photo" hidden><div id="photo-last"></div><div class="ph-cap"><b>Komachi</b><small>Drag to frame · scroll to zoom · Q / E turn · Space pauses</small></div><button id="photo-take" class="cta"><i class="fa-solid fa-camera"></i> Take photo</button><button id="photo-done" class="mm-link">Done</button></div>
 <div id="photo-flash"></div>
 <div id="iris" hidden></div>

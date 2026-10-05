@@ -218,7 +218,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   against `npx vite --port 4412` (six seeds + a legacy save); docs/harbor-island/README.md.
 - Mini-games (2026-09-25, on again 2026-10-02): src/minigame-fishing.js, the jetty fishing game (`ENABLED` true). `updateFishingGame(dt)`
   from the main loop shows #fish-near "Join the anglers" (projected over `pierFrame().at(len - 0.1, 0)` when cam.view < 9, the target
-  within 5 and landmarks.js `anglersAtQuay() > 0`: never on an empty quay). The fight (2026-10-02): phase 'fight' after the strike,
+  within 5 and landmarks.js `fishingNow() > 0`, a held pier trip with the mesh visible: never on an empty quay, nor while an angler is
+  still walking there; `anglersAtQuay` counts held spots from the walk's start and feeds the rack bikes and the spot cap). The fight (2026-10-02): phase 'fight' after the strike,
   `FISH` entries { name, pull, work, boot }, `BAND` [0.35, 0.72]; `fight(dt)`: holding raises tension by 0.55 + pull × 0.9 × surge
   and fills progress by dt / work while in the band (×0.35 above it), releasing lowers it and lets the fish run when under the band
   (progress −pull × 0.25 /s); tension ≥ 1 → settle("… got away"), progress ≥ 1 → land(). #fish-meter (.fm-bar with .fm-band and

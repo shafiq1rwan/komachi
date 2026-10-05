@@ -169,6 +169,7 @@ const MAX_ANGLERS = 4;
 let pierEntry = null;
 const spotHeld = s => !!(s.by && s.by.trip && s.by.trip.landmark && s.by.trip.landmark.spot === s);
 const anglersAtQuay = () => pierSpots ? pierSpots.filter(spotHeld).length : 0;
+const fishingNow = () => pierSpots ? pierSpots.filter(s => spotHeld(s) && s.by.trip.held && s.by.mesh.visible).length : 0;   // on the jetty, rod out: the mini-game's invitation (a spot is held from the moment the walk starts)
 const freePierSpots = () => (!pierSpots || anglersAtQuay() >= MAX_ANGLERS) ? [] : pierSpots.filter(s => !spotHeld(s));
 /** sim.js, as an angler sets off: a free place becomes theirs for the trip, or null when the quay is full */
 function claimPierSpot(r) {
@@ -272,4 +273,4 @@ function updateLandmarks(dt, night) {
     beam.material.opacity = Math.max(0, night - 0.15) * 0.5 * (0.1 + 0.9 * f * f * (3 - 2 * f)); beam.visible = beam.material.opacity > 0.01;
   }
 }
-export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads, setFishStall, claimPierSpot, anglersAtQuay, MAX_ANGLERS };
+export { landmarks, placeLandmarks, updateLandmarks, landmarkRoads, setFishStall, claimPierSpot, anglersAtQuay, fishingNow, MAX_ANGLERS };
