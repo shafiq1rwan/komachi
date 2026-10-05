@@ -27,11 +27,13 @@ const WATER_Y = -0.78, VIEW = 4.5, VIEW_SHOW = 3.1;
 // what bites: pull is how hard it drags the tension up while you reel and how fast it runs when you let go, work is how long it
 // takes to land, len and color draw the fish held up afterwards; the boot is heavy and does not fight
 const FISH = [
-  { name: 'a sardine', pull: 0.25, work: 2.4, len: 0.085, color: '#b6c2cc', belly: '#e8eef0' },
-  { name: 'a horse mackerel', pull: 0.4, work: 3.2, len: 0.105, color: '#5f8fa3', belly: '#d9e4e6' },
-  { name: 'a small flounder', pull: 0.45, work: 3.6, len: 0.12, color: '#9c805c', belly: '#e2d6c0', flat: true },
-  { name: 'a rockfish', pull: 0.55, work: 4.2, len: 0.12, color: '#b25a47', belly: '#e3b9a6' },
-  { name: 'a sea bream', pull: 0.65, work: 5, len: 0.14, color: '#d9a0a6', belly: '#f2e3e1' },
+  // the bigger the fish, the harder the fight: a sardine barely tugs and is in within a few seconds, a sea bream surges, snaps the
+  // line if held through a surge and takes three times as long to bring in
+  { name: 'a sardine', pull: 0.2, work: 2.2, len: 0.085, color: '#b6c2cc', belly: '#e8eef0' },
+  { name: 'a horse mackerel', pull: 0.36, work: 3.4, len: 0.105, color: '#5f8fa3', belly: '#d9e4e6' },
+  { name: 'a small flounder', pull: 0.46, work: 4.4, len: 0.12, color: '#9c805c', belly: '#e2d6c0', flat: true },
+  { name: 'a rockfish', pull: 0.6, work: 5.6, len: 0.12, color: '#b25a47', belly: '#e3b9a6' },
+  { name: 'a sea bream', pull: 0.78, work: 7, len: 0.14, color: '#d9a0a6', belly: '#f2e3e1' },
   { name: 'an old boot', pull: 0.1, work: 2, len: 0.1, color: '#5a4634', boot: true },
 ];
 const BAND = [0.35, 0.72];   // the green band of the tension bar
@@ -212,14 +214,14 @@ function splash(at, n, power) {
  *  lets the tension fall and the fish run a little; past the top of the bar the line goes slack and the fish is off */
 function fight(dt) {
   const f = game.fish, pull = f.pull;
-  game.runT += dt; const surge = 0.6 + 0.4 * Math.sin(game.runT * (1.6 + pull * 2));   // the fish does not pull evenly
+  game.runT += dt; const surge = 1 - pull * 0.6 + pull * 0.6 * Math.sin(game.runT * (1.6 + pull * 2));   // the fish does not pull evenly: a big one surges between near-slack and a hard run
   if (game.holding) {
-    game.tension += dt * (0.3 + pull * 0.48 * surge);
+    game.tension += dt * (0.2 + pull * 0.9 * surge);   // a sardine lets you hold for a second or more, a bream for half of one
     if (game.tension >= BAND[0] && game.tension <= BAND[1]) game.progress += dt / f.work;
     else if (game.tension > BAND[1]) game.progress += dt / f.work * 0.35;   // too tight still gains a little, at a risk
   } else {
     game.tension -= dt * (0.32 + 0.16 * surge);
-    if (game.tension < BAND[0]) game.progress = Math.max(0, game.progress - dt * pull * 0.25);   // slack line: the fish runs
+    if (game.tension < BAND[0]) game.progress = Math.max(0, game.progress - dt * pull * 0.45);   // slack line: the fish runs, a big one takes back a lot
   }
   game.tension = Math.max(0, game.tension);
   if (game.tension > 0.82 && !game.strained) { game.strained = true; feel('strain', 1.6); } else if (game.tension < 0.6) game.strained = false;   // sweat when the line sings

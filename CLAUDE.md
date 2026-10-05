@@ -220,9 +220,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   from the main loop shows #fish-near "Join the anglers" (projected over `pierFrame().at(len - 0.1, 0)` when cam.view < 9, the target
   within 5 and landmarks.js `fishingNow() > 0`, a held pier trip with the mesh visible: never on an empty quay, nor while an angler is
   still walking there; `anglersAtQuay` counts held spots from the walk's start and feeds the rack bikes and the spot cap). The fight (2026-10-02): phase 'fight' after the strike,
-  `FISH` entries { name, pull, work, boot }, `BAND` [0.35, 0.72]; `fight(dt)`: holding raises tension by 0.55 + pull × 0.9 × surge
-  and fills progress by dt / work while in the band (×0.35 above it), releasing lowers it and lets the fish run when under the band
-  (progress −pull × 0.25 /s); tension ≥ 1 → settle("… got away"), progress ≥ 1 → land(). #fish-meter (.fm-bar with .fm-band and
+  `FISH` entries { name, pull, work, boot }, `BAND` [0.35, 0.72]; `fight(dt)`: holding raises tension by 0.2 + pull × 0.9 × surge (surge = 1 − 0.6 pull + 0.6 pull × sin, so big fish
+  swing between slack and a hard run; pull 0.2 sardine → 0.78 bream, work 2.2 → 7 s, 2026-10-05) and fills progress by dt / work
+  while in the band (×0.35 above it), releasing lowers it by 0.32 + 0.16 surge and lets the fish run when under the band
+  (progress −pull × 0.45 /s); tension ≥ 1 → settle("… got away"), progress ≥ 1 → land(). #fish-meter (.fm-bar with .fm-band and
   #fish-needle, .fm-catch with #fish-fill) shown only during the fight; #fish-tap takes pointerdown/up with pointer capture and
   Space/Enter keydown/keyup (hold), a tap elsewhere in the flow. The headless frame rate is a small fraction of real time, so a
   probe cannot land a fish in a minute: test the branches by setting `fishingGame.progress`/`tension`. The angler (2026-10-02):

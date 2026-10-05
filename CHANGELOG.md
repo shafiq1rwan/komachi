@@ -8,6 +8,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- The fight scales with the fish (2026-10-05): a sardine barely tugs and comes in within a couple of seconds of reeling, a sea
+  bream surges between near-slack and a hard run, snaps the line if the button is held through a surge, takes back a lot on a
+  slack line and needs three times as long in the band. `pull` 0.2–0.78 and `work` 2.2–7 s in `FISH`; tension rises by
+  0.2 + pull × 0.9 × surge a second while holding, surge = 1 − 0.6 pull + 0.6 pull × sin.
 - Fish props redrawn in the Kenney toy style (2026-10-05, src/fish-prop.js): chubby smooth-shaded lathe bodies in two tones,
   fat squashed-sphere fins, big dark eyes with a highlight, a row of spines on the rockfish, the flounder a flat oval with a
   frill; the stall's fish are a little larger. A Hunyuan3D route (text to shape, simplified and painted by script) was tried
