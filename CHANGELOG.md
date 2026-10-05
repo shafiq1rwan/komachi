@@ -8,6 +8,12 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+## [0.3.1] - 2026-10-05
+
+The fish: hand-made toy props, a fight that scales with the catch, Codex fishing HUD polish.
+
+### Added
+
 - The fight scales with the fish (2026-10-05): a sardine barely tugs and comes in within a couple of seconds of reeling, a sea
   bream surges between near-slack and a hard run, snaps the line if the button is held through a surge, takes back a lot on a
   slack line and needs three times as long in the band. `pull` 0.2–0.78 and `work` 2.2–7 s in `FISH`; tension rises by

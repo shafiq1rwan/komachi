@@ -445,7 +445,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Where things stand (handoff for a fresh session)
 
-Version 0.3.0 shipped 2026-10-05 (tag v0.3.0: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
+Version 0.3.1 shipped 2026-10-05 (tags v0.3.0 and v0.3.1: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
 complete and verified (lint, build, `npm test`, screenshots). Between phases the user asked for and got:
 zoning over streets, visible avenue lines, hip-height benches, a clear station entrance, plaza detours,
 taller vending machines, a nine-cell station highlight, and a wooded hill with a shrine (the mountain
