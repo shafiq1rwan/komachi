@@ -322,7 +322,10 @@
   #mm-photo img{max-width:100%;max-height:calc(100vh - 130px);border-radius:12px;box-shadow:0 12px 40px rgba(0,0,0,.4);object-fit:contain;display:block;margin:0 auto}
   #mm-photo .mm-ph-t{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;color:#fff}#mm-photo .mm-ph-t b{font-size:14px}
   #mm-photo .mm-ph-b{display:flex;gap:6px;flex-wrap:wrap}#mm-photo .mm-ph-b button{border:0;border-radius:10px;padding:8px 12px;font:inherit;font-weight:800;font-size:12.5px;cursor:pointer;background:rgba(255,255,255,.16);color:#fff;display:flex;align-items:center;gap:6px}#mm-photo .mm-ph-b button:hover{background:rgba(255,255,255,.28)}#mm-photo .mm-ph-b button.warn{color:#f3b3ab}
-  #iris{position:fixed;inset:0;z-index:50;pointer-events:none;background:transparent}
+  .tool.guide{box-shadow:0 0 0 0 rgba(95,156,152,.55);animation:guidePulse 1.6s ease-out infinite}
+  @keyframes guidePulse{0%{box-shadow:0 0 0 0 rgba(95,156,152,.55)}70%{box-shadow:0 0 0 12px rgba(95,156,152,0)}100%{box-shadow:0 0 0 0 rgba(95,156,152,0)}}
+  #iris{position:fixed;inset:0;z-index:50;pointer-events:none;background:transparent;overflow:hidden}
+  #iris .iris-hole{position:absolute;left:50%;top:50%;width:100px;height:100px;border-radius:50%;box-shadow:0 0 0 300vmax #12171f;transform:translate(-50%,-50%) scale(1);will-change:transform;display:none}
   #skip-opening{position:fixed;right:18px;bottom:18px;z-index:55;padding:10px 16px;border-radius:12px;background:rgba(251,246,238,.9);box-shadow:var(--shadow)}
   body.opening #hud,body.opening #tools,body.opening #hint,body.opening #inspect,body.opening #minimap,body.opening #picker,body.opening #toast,body.opening #intro,body.opening #bars,body.opening #tags,body.opening #tier,body.opening #milestone{display:none!important}
   .bubble{position:fixed;transform:translate(-50%,-100%) translateY(-6px);background:var(--cream);border-radius:11px;padding:5px 8px;pointer-events:none;box-shadow:0 1px 4px rgba(0,0,0,.12);display:flex;gap:3px;align-items:center;min-width:30px;min-height:22px;justify-content:center;animation:pop .18s ease}

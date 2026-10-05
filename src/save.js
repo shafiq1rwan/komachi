@@ -19,7 +19,7 @@ export function snapshot() {
   const town = blocks.filter(b => b.type !== 'station');
   const ref = u => { if (!u) return null; const bi = town.indexOf(u.block); return bi < 0 ? null : [bi, u.block.units.indexOf(u)]; };
   return {
-    v: 3, terrainVersion: S.terrainVersion, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, chronicle: chronicle.slice(), weather: weatherSnapshot(),
+    v: 3, terrainVersion: S.terrainVersion, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, guide: S.guide === 'done' ? 'done' : null, chronicle: chronicle.slice(), weather: weatherSnapshot(),
     roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     parks: cells.filter(c => c.park === 'public').map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),
@@ -54,6 +54,7 @@ export function holdSaves() { resetting = true; }
 export function restore(d) {
   S.T = d.T; S.nextId = Math.max(S.nextId, d.nextId || 0); if (STATION.block) STATION.block.trains = d.trains || 0;
   if (d.hillOpen) openHill(true);
+  if (d.guide === 'done' || (d.blocks && d.blocks.some(b => b.type !== 'station'))) S.guide = 'done';   // a town with buildings never gets the guide
   restoreChronicle(d.chronicle); restoreWeather(d.weather);
   for (const [i, j] of d.roads || []) { const c = cell(i, j); if (c && (c.type === 'empty' || c.type === 'road' || (c.type === 'canal' && !c.keep)) && !c.ramp) { if (c.type === 'canal') c.bridge = true; c.type = 'road'; c.tree = null; c.drawn = true; } }
   if ((d.roads || []).length) rebuildNetwork();

@@ -161,6 +161,9 @@ Some things worth knowing:
 - **Photo mode and the album.** The camera button in the top bar (or P) puts the HUD away; frame the town with the ordinary
   camera, pause with Space for the moment you want, and take the photo. It goes into the town's album in the menu, with a
   caption of the day, time, season and weather that you can change, and can be saved to your device.
+- **A guided start.** A new island walks you through its first street, two homes, a shop and a workplace with prompts that clear
+  as you do each thing, then shows you the first crew stepping off the train and the first family moving in. After that the
+  prompts stop for good; they never appear on a town that already has buildings.
 - **The town saves itself** in your browser every half game hour and when you leave, and is back on
   your next visit. The rotate-left button behind the sliders starts a new island; `?new` in the URL
   ignores the save for one session.

@@ -7,15 +7,16 @@ import { makePerson } from './sim.js';
 import { characterAvailable } from './characters.js';
 import { STATION } from './world.js';
 import { buildOpeningTrain } from './opening-train.js';
+import { dressOpeningStation } from './opening-station.js';
 import { startTalk, endTalk } from './bubbles.js';
 const opening = { active:false, root:null, train:null, doors:[], people:[], passers:[], t:0 };
-const target = new THREE.Vector3(420,0.4,0.5), FLOOR=0.18;
+const target = new THREE.Vector3(420,0.6,0.5), FLOOR=0.18;
 let skyWas, fogWas;
 const smooth=(t,a,b)=>{const k=THREE.MathUtils.clamp((t-a)/(b-a),0,1);return k*k*(3-2*k);};
 function parts(parent,g){const mesh=mergeMesh(g,true);if(mesh)parent.add(mesh);}
 function buildStation(){
   const root=new THREE.Group();root.position.x=420;
-  const g=[box(18,0.08,8,'#242d35',0,-0.12,0),box(18,3,0.1,'#37434a',0,1.3,-0.9),box(8,FLOOR,1.5,'#bbb8a9',0,FLOOR/2,1.43),box(8,0.015,0.1,'#e7c768',0,FLOOR+0.008,0.79),box(8,0.018,0.04,'#f2ebd9',0,FLOOR+0.008,0.7)];
+  const g=[box(18,0.08,8,'#242d35',0,-0.12,0),box(18,3,0.1,'#d6d4c7',0,1.3,-0.9),box(8,FLOOR,1.5,'#bbb8a9',0,FLOOR/2,1.43),box(8,0.015,0.1,'#e7c768',0,FLOOR+0.008,0.79),box(8,0.018,0.04,'#f2ebd9',0,FLOOR+0.008,0.7)];
   g.push(box(18,0.035,1.48,'#c5ae84',0,-0.052,-0.08));
   for(const z of [-0.27,0.27])g.push(box(18,0.025,0.025,'#909b9e',0,0,z));
   for(let x=-8;x<=8;x+=0.3)g.push(box(0.08,0.02,0.75,'#454746',x,-0.023,0));
@@ -27,6 +28,7 @@ function buildStation(){
   const ctx=canvas.getContext('2d');ctx.fillStyle='#f0ecdd';ctx.fillRect(0,0,512,64);ctx.fillStyle='#344c48';ctx.font='bold 34px sans-serif';ctx.textAlign='center';ctx.fillText('Your Town \u2192 Komachi',256,44);
   const sign=new THREE.Mesh(new THREE.PlaneGeometry(1.35,0.15),new THREE.MeshBasicMaterial({map:new THREE.CanvasTexture(canvas)}));sign.position.set(0,1.25,-0.778);root.add(sign);
   opening.train=buildOpeningTrain(FLOOR,opening.doors);root.add(opening.train);
+  dressOpeningStation(root,FLOOR);
   const light=new THREE.PointLight('#ffedcd',4,8,1.5);light.position.set(0,2,1.5);root.add(light);scene.add(root);return root;
 }
 function createPassengers(){
@@ -68,16 +70,16 @@ function updateOpening(dt){
     mesh.position.set(x+opening.train.position.x*(t>=start+2.45?1:0),FLOOR+0.12*(1-stand)+Math.sin(hop*Math.PI)*0.075,z);
     const heading=Math.atan2(x1-x0,-0.49);
     mesh.rotation.y=Math.PI+(heading-Math.PI)*smooth(t,start,start+0.3)*(1-smooth(t,start+1.3,start+1.6));
-    who.paused=!(t>=start && t<start+2.45);who.state=who.paused?'inside':'walking';
+    who.paused=!(t>=start && t<start+2.45);who.state=who.paused?'inside':'walking';who.trip=who.paused?null:{speed:0.42};
     if(c){c.sitting=t<6.5;c.fidget=t<5.7?'nod':null;c.gaze=t<5.7?(i?0.6:-0.6):0;}
   });
   opening.passers.forEach((who,i)=>{
     const direction=i===1?-1:1,delay=i===2?0.8:0;
     const x=(i===2?-4:-2.6)+Math.max(0,t-delay)*1.05;
     who.mesh.position.set(direction*x,FLOOR,i===1?1.23:1.02);
-    who.mesh.rotation.y=direction*Math.PI/2;who.mesh.visible=t>=delay&&x<4.2;
+    who.mesh.rotation.y=direction*Math.PI/2;who.mesh.visible=t>=delay&&x<4.2;who.trip={speed:1.05};
   });
-  const aspect=innerWidth/innerHeight,v=Math.max(1.85,4.4/aspect);camera.left=-v*aspect/2;camera.right=v*aspect/2;camera.top=v/2;camera.bottom=-v/2;camera.updateProjectionMatrix();
+  const aspect=innerWidth/innerHeight,v=Math.max(2.3,4.8/aspect);camera.left=-v*aspect/2;camera.right=v*aspect/2;camera.top=v/2;camera.bottom=-v/2;camera.updateProjectionMatrix();
   const dir=new THREE.Vector3(Math.sin(0.16)*Math.cos(0.42),Math.sin(0.42),Math.cos(0.16)*Math.cos(0.42));camera.position.copy(target).addScaledVector(dir,120);camera.lookAt(target);
 }
 
@@ -91,7 +93,9 @@ function playOpening(onDone) {
   const wasSpeed = S.speed; S.speed = 0;
   let landedAt = 0; let phase = 'ride', done = false;
   const full = () => Math.hypot(innerWidth, innerHeight) / 2 + 8;
-  const setHole = r => { iris.style.background = r >= full() ? 'transparent' : `radial-gradient(circle at 50% 50%, transparent ${Math.max(0, r).toFixed(1)}px, #12171f ${(Math.max(0, r) + 2).toFixed(1)}px)`; };
+  let hole = iris.querySelector('.iris-hole'); if (!hole) { hole = document.createElement('div'); hole.className = 'iris-hole'; iris.appendChild(hole); }
+  const HOLE = 50;   // the hole element's radius in px; the shade is its box-shadow, so only a transform changes per frame
+  const setHole = r => { const open = r >= full(); hole.style.display = open ? 'none' : ''; if (!open) hole.style.transform = `translate(-50%, -50%) scale(${(Math.max(0.001, r) / HOLE).toFixed(4)})`; };
   const land = () => {   // out of the tunnel: the camera high over the station, ready to glide in
     stopOpening(); document.body.classList.remove('opening'); skip.hidden = true; S.speed = wasSpeed; landedAt = performance.now();
     const E = STATION.entrance; cam.target.set(E.x, 0, E.z - 0.9); cam.tYaw = cam.yaw; cam.view = cam.tView = 46;

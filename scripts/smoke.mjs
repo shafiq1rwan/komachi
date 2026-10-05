@@ -397,6 +397,23 @@ try {
   const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && !!document.querySelector('#menu [data-act="credits"]') && document.querySelectorAll('#menu .mm-btn').length <= 5);   // Resume, Album, Settings, Credits, quit
   await menuTab.close();
   check('title screen on a plain visit; Start makes a town; the menu button pauses', ttl && ttl.open && ttl.screen === 'main' && ttl.logo && ttl.bg && started.closed && started.slots >= 1 && started.active && paused, JSON.stringify({ ttl, started, paused }));
+  // the guided first town (guide.js): on a fresh kept town the first prompt follows the welcome card, and drawing a street clears it
+  const guideTab = await browser.newPage(); await guideTab.setViewport({ width: 1280, height: 800 });
+  await guideTab.goto(`http://localhost:${PORT}/?look=classic`, { waitUntil: 'networkidle0', timeout: 60000 });
+  await guideTab.evaluate(async () => { for (let k = 0; k < 160 && !document.getElementById('loading').classList.contains('gone'); k++) await new Promise(r => setTimeout(r, 250)); });
+  const guided = await guideTab.evaluate(async () => {
+    const wait = async (f, n = 120) => { for (let k = 0; k < n; k++) { if (f()) return true; await new Promise(r => setTimeout(r, 100)); } return false; };
+    document.querySelector('#menu [data-act="start"], #menu [data-act="continue"]').click(); await wait(() => MT.opening.active || !document.getElementById('menu').classList.contains('show'), 40);
+    if (MT.opening.active) { dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })); await wait(() => !MT.opening.active, 40); }   // Continue (a town already exists in this browser) plays no opening
+    const intro = document.getElementById('intro-go'); if (intro) intro.click();
+    const started = await wait(() => MT.guideState().active, 300);   // the town's first frames are slow under software GL
+    const first = MT.guideState().key, pulsing = [...document.querySelectorAll('.tool.guide')].map(b => b.dataset.tool), card = document.getElementById('milestone').classList.contains('show');
+    let drew = false; for (const r of MT.cells.filter(x => x.type === 'road' && x.keep)) { for (const [di, dj] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { const mid = MT.cell(r.i + di, r.j + dj), far = MT.cell(r.i + di * 4, r.j + dj * 4); if (mid && far && mid.type === 'empty' && far.type === 'empty' && MT.drawRoad(mid, far)) { drew = true; break; } } if (drew) break; }
+    const advanced = await wait(() => MT.guideState().key === 'homes', 40);
+    return { started, first, pulsing, card, drew, advanced, second: MT.guideState().key, nextPulse: [...document.querySelectorAll('.tool.guide')].map(b => b.dataset.tool) };
+  });
+  await guideTab.close();
+  check('guided first town: the first prompt follows the welcome card with the Streets tool pulsing; a street clears it', guided.started && guided.first === 'street' && guided.card && guided.pulsing.includes('road') && guided.drew && guided.advanced && guided.nextPulse.includes('res'), JSON.stringify(guided));
   let fx2 = null;   // the kitsune: once the hill is open, a fox comes down from the shrine at dusk; the first sighting is recorded and stone foxes appear
   for (let k = 0; k < 30 && !(fx2 && fx2.ready); k++) { await sleep(200); fx2 = await page.evaluate(() => { MT.setSpeed(0); MT.openHill(true); MT.callKitsune(); MT.fastForward(0.05, 0.00167); const k = MT.kitsune(); return { ready: !!k.fox }; }); }
   fx2 = await page.evaluate(() => { let sat = false; for (let k = 0; k < 120 && !sat; k++) { MT.fastForward(0.02, 0.00167); const v = MT.kitsune().visit; sat = !!v && v.leg === 'sit'; } const k = MT.kitsune(); return { fox: !!k.fox, sat, statues: !!k.statues, chron: MT.chronicle.some(e => /fox was seen/.test(e.text)) }; });

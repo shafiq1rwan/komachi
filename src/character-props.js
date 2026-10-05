@@ -126,7 +126,7 @@ export function updateCharacterProp(char) {
     else if (kind === 'broom') direction.set(-.16, .19, .045);
     else if (kind === 'fishing-rod') {
       const f = char.fishing; direction.set(-.15, .16, .08);
-      if (f) { const crank = f.reel * Math.sin((char.reelT || 0) * 2.2) * 0.03; direction.set(-.15 - .04 * f.strain, .16 + .09 * f.strain + .05 * f.reel + crank, .08 - .05 * f.strain + crank * .6); }
+      if (f) { const crank = f.reel * Math.sin((char.reelT || 0) * 2.2) * 0.03, jolt = f.jolt || 0; direction.set(-.15 - .04 * f.strain, .16 + .09 * f.strain + .05 * f.reel + crank - .07 * jolt, .08 - .05 * f.strain + crank * .6 + .04 * jolt); }
     }
     else if (kind === 'watering-can') direction.set(-.17, .13, .04);
     else direction.set(-.07, .17, .085);
@@ -136,5 +136,5 @@ export function updateCharacterProp(char) {
   grip.copy(palm); arm.localToWorld(grip); char.grp.worldToLocal(grip); prop.position.copy(grip);
   // Thin case and folder lie alongside the leg, clear of the torso.
   prop.rotation.y = kind === 'umbrella' ? 0 : kind === 'folder' ? -.18 : Math.PI / 2;
-  if (OUTDOOR_PROP_KINDS.includes(kind)) prop.rotation.set(kind === 'fishing-rod' ? .45 + (char.fishing ? .35 * char.fishing.strain + .1 * char.fishing.reel : 0) : 0, kind === 'broom' ? 0 : -.35, 0);
+  if (OUTDOOR_PROP_KINDS.includes(kind)) prop.rotation.set(kind === 'fishing-rod' ? .45 + (char.fishing ? .35 * char.fishing.strain + .1 * char.fishing.reel - .3 * (char.fishing.jolt || 0) : 0) : 0, kind === 'broom' ? 0 : -.35, 0);
 }

@@ -56,7 +56,7 @@ if (innerWidth < 720) { document.getElementById('stats').classList.add('collapse
   hintTimer = setTimeout(fold, 5000);
   document.getElementById('hint-toggle').addEventListener('click', () => { if (hint.classList.contains('collapsed')) unfold(8000); else { clearTimeout(hintTimer); fold(); } });
 }
-document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('explore'); toast('Pick Homes (2) and drag beside the station ring; draw more streets with the Streets tool (5)'); });
+document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('explore'); if (S.guide !== 'pending') toast('Pick Homes (2) and drag beside the station ring; draw more streets with the Streets tool (5)'); });   // the guide (guide.js) takes it from here on a fresh town
 
 function groundCell() {
   raycaster.setFromCamera(ptr.ndc, camera);

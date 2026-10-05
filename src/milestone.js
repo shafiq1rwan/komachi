@@ -12,12 +12,15 @@ const ICONS = {   // inline pictograms in the notice palette; never text
   festival: '<svg viewBox="0 0 32 32"><path d="M4 9 Q16 15 28 9" stroke="#6b6f7a" stroke-width="1.4" fill="none"/><ellipse cx="9" cy="16" rx="3.4" ry="4.4" fill="#d98b7a"/><ellipse cx="16" cy="18" rx="3.4" ry="4.4" fill="#f0c27a"/><ellipse cx="23" cy="16" rx="3.4" ry="4.4" fill="#d98b7a"/><path d="M9 11v1M16 13v1M23 11v1" stroke="#6b6f7a" stroke-width="1.4"/><circle cx="25" cy="26" r="1.3" fill="#9ad0e8"/><circle cx="7" cy="27" r="1" fill="#c8f0b0"/></svg>',
   people: '<svg viewBox="0 0 32 32"><circle cx="11" cy="11" r="4" fill="#d98b7a"/><circle cx="21" cy="11" r="4" fill="#8fae8b"/><path d="M4 26c0-5 3-8 7-8s7 3 7 8zM14 26c0-5 3-8 7-8s7 3 7 8z" fill="#6f9fa0"/></svg>',
 };
-let hideAt = 0, onLook = null, look = null, glide = null;
+let hideAt = 0, onLook = null, look = null, glide = null, held = false;   // held: the guide keeps its prompt up until the step is done
 const now = () => performance.now() / 1000;
 
 el.innerHTML = '<span class="ms-icon"></span><div class="ms-text"><b></b><span></span></div><button class="ms-look" type="button">Go and look</button><button class="ms-close" type="button" aria-label="Dismiss">&times;</button>';
 const [iconEl, titleEl, lineEl, lookBtn, closeBtn] = [el.querySelector('.ms-icon'), el.querySelector('b'), el.querySelector('.ms-text span'), el.querySelector('.ms-look'), el.querySelector('.ms-close')];
 function hide() { el.classList.remove('show'); hideAt = 0; }
+/** guide.js: keep the card up (no ten-second fade); dismissMilestone takes it down */
+export function holdMilestone(on) { held = !!on; }
+export function dismissMilestone() { hide(); }
 closeBtn.addEventListener('click', hide);
 lookBtn.addEventListener('click', () => { if (look) startGlide(look.at, look.view); if (onLook) onLook(); hide(); });
 
@@ -25,7 +28,7 @@ lookBtn.addEventListener('click', () => { if (look) startGlide(look.at, look.vie
 export function announce({ title, line, icon = 'hill', at = null, view = 6, onLook: lookFn = null }) {
   iconEl.innerHTML = ICONS[icon] || ICONS.hill; titleEl.textContent = title; lineEl.textContent = line;
   look = at ? { at: at.clone(), view } : null; onLook = lookFn; lookBtn.hidden = !look;
-  el.classList.add('show'); hideAt = now() + 10;
+  el.classList.add('show'); hideAt = held ? Infinity : now() + 10;
 }
 export const milestoneShown = () => el.classList.contains('show');
 

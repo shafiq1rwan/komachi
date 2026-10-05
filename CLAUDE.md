@@ -13,7 +13,7 @@ npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
 node scripts/capture-readme.mjs   # after a build: retakes the six docs/screenshot-*.png used by the README
 node scripts/build-icons.mjs      # rebuilds public/favicon.ico and public/icons/favicon-*.png, icon-256.png from assets/brand/komachi-icon.png
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 60 checks + screenshots in scripts/out/
+npm test           # scripts/smoke.mjs: headless Chromium over dist/, 61 checks + screenshots in scripts/out/
 npm run app:check  # after a build: the Electron app launches, photographs its own window (scripts/out/electron.png) and quits
 npm run app:build  # Windows installer + portable exe in release/
 node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
@@ -231,7 +231,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `c.root.rotation.x` by −0.28 × strain and nods the head, character-props.js tilts the rod direction and rotation by reel/strain
   (`char.reelT` cranks). Feelings: bubbles.js `showFeeling(r, key, seconds)` (keys bite | strain | lost | caught | joy in FEELINGS,
   merged into ICONS but kept out of TOPICS; `solo` entries show the icon the whole time and expire on `realUntil` in real seconds
-  since the sim may be paused); endTalk clears. Frame latency: a feeling's node appears on the frame after it is set. and runs phases idle → cast (0.9 s arc
+  since the sim may be paused); endTalk clears. Frame latency: a feeling's node appears on the frame after it is set.
+  Life (2026-10-05): `char.fishing` also carries jolt (1 at the bite and the strike, −2.6/s), sad (1 on a loss, −0.45/s), show (1 while
+  the catch is held up) and fish (the held mesh); characters.js leans forward by jolt, slumps by sad, straightens for show, nods the
+  head accordingly, hides the rod accessory while show > 0 and aims both arms at the fish (a child of `c.grp` at (0, .345, .07));
+  character-props.js dips the rod by jolt. The module keeps a fish `shadow` (dark circle under the water, circling the line on
+  `out = 0.1 + 0.26 × (1 − progress)`, pulled toward the deck by progress, further out when running; the float follows it at 55 %),
+  a `splashes` pool of ten droplets (`splash(at, n, power)`), `makeFishMesh(f)` from FISH's len/color/belly/flat/boot, phases catch
+  (0.8 s leap with the fish) → show (SHOW_T 2.6 s, boot 1.8; cam.tView VIEW_SHOW 3.1, back to VIEW 4.5) → idle; `ripple(at, k)` scales. and runs phases idle → cast (0.9 s arc
   to `P.at(len + 0.55, 0.15)` at WATER_Y) → wait (bite after 2–7 s) → bite (1.1 s window) → catch (0.8 s) → idle, or settle on a miss;
   #fishing card with #fish-tap / #fish-sub / #fish-end; body.fishing hides the dock; a catch calls landmarks.js `setFishStall(true)`
   and records the first. Dev hooks `MT.startFishing`, `MT.stopFishing`, `MT.fishingGame` (set `biteAt = 0` to force a bite).
@@ -269,6 +276,13 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   title.js: 'album' row (title when a town exists, pause always) and page (.mm-album grid of .mm-shot), `viewPhoto(p)` (#mm-photo
   viewer: Save to device via a download link, Caption via `ask`, Delete); deleteSlot also calls `deleteTownPhotos`. The smoke
   pause-menu check allows four rows. Dev hooks `MT.enterPhoto/exitPhoto/takePhoto/photo`.
+- Guided first town (2026-10-05, src/guide.js): `S.guide` null | 'pending' | 'running' | 'done' ('done' saved by save.js; restore sets
+  'done' for any save with buildings); main.js `initGuide({ drawnCount, pulse })`, sets 'pending' when `guideWanted()` (not scratch, no
+  blocks, not done) and calls `updateGuide()` each frame; the guide starts 0.6 real seconds after the opening, the menu and #intro are
+  all gone. STEPS { key, tool, title, line, icon, look, done() }: street (drawn road or any block) → homes (2 res) → shops (shop + work)
+  → crew (a crew member 'working') → family (`residents.some(r => r.home)`; residents also holds hopefuls at the station) → finish
+  (save()). milestone.js `holdMilestone(on)` keeps a card up (hideAt Infinity) and `dismissMilestone()` drops it; `.tool.guide` pulses
+  (styles.css guidePulse). input.js's welcome button skips its toast while 'pending'. The welcome card is removed by its button but only hidden on the title's Continue path (`introUp()` treats hidden as gone). Smoke: a plain-visit tab of its own (classic look: rich's first frames take too long under software GL for a real-time timer; a background tab gets no animation frames at all) walks street → homes.
 - Opening scene (2026-09-25, src/opening.js, Phase 9 slice 1): the carriage stands at X0 420 (past the sea plane's 600-unit edge) in the
   main scene, so the shared ortho camera, post chain and bubbles.js apply; `startOpening()` builds it once (`buildCarriage`,
   `seatPassengers` via makePerson with `userData.rider` owners, `char.sitting`, fidgets phone | paper, `char.gaze`, startTalk), sets
@@ -278,7 +292,10 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   OPEN 2.6 s (hole grows, view eases to 12), then onDone; skip via #skip-opening or Esc/Space/Enter (`finish`); body.opening hides
   the HUD. main.js passes it as the menu's `onStart` (then shows #intro) and `onReplay` (the help page's button, pause mode only);
   `?opening` plays it in a scratch tab after characterReady. Headless screenshots stall the page, so time the sequence by polling
-  state, not by stills.
+  state, not by stills. Smoothness (2026-10-05): main.js passes `opening.active` to `frameDue(now, uncapped)` because the opening
+  sets S.speed 0 and the gate would otherwise cap it at 30 fps (uneven against 60 Hz rAF); `updateCharacters(dt, only)` filters
+  to `userData.rider.passenger` during it; the #iris wipe is `.iris-hole` (100 px circle, 300vmax box-shadow) scaled by transform
+  from `setHole(r)` (r / 50), never a per-frame gradient; opening people carry `who.trip = { speed }` so the walk clip matches pace.
 - Sea (2026-09-23, src/water.js): `makeSeaMaterial(harm, R0, SX, SZ)` patches a MeshStandardMaterial (roughness 0.9) on island.js's sea plane;
   `waterUniforms` (uTime from updateWater, uSky/uDay from daynight.js, uDeep #487c8b, uShallow #7aa7ad, coastline harmonics). Waves only bend normals.
 - Picker (2026-09-24, src/picker.js): KINDS per zone tool, `sizesOf(type, kind)` from TIERS, SINGLE (townhall/firestation/community greyed
@@ -498,8 +515,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 8. ✅ Mobile quality levels, PWA, touch dock (complete 2026-09-24)
 9. ✅ Menus, saves UI, photo album, opening cinematic (menus and saves 2026-09-24, opening cinematic 2026-09-25, photo mode and album 2026-09-29)
 10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe, Linux AppImage from CI; macOS dropped 2026-10-01
-11. Guided first town (agreed 2026-10-02): milestone-card prompts for the first street, homes, shop, crew and family, once per
-    town; the five-dollar update
+11. ✅ Guided first town (2026-10-05): milestone-card prompts for the first street, homes, shop, crew and family, once per town;
+    the five-dollar update
 12. Little Nest inside Komachi (agreed 2026-10-02): the user's room-decorating game (C:/Users/shafiq.irwan/Documents/home-deco-sim,
     Three.js 0.170, 48 GLB props, pure tested core) becomes the interiors once its own feature set is final; shared package, not a
     copy; the room stands in the main scene like the opening carriage; decorating box reskinned as a Komachi card; then residents

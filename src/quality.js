@@ -49,8 +49,8 @@ function set(key, value) { Q[key] = value; if (key !== 'showFps') Q.preset = 'cu
 // ── each frame: the frame-rate cap, the meter, auto's resolution steps, the slow shadow redraw ──
 let lastDraw = 0, frames = 0, meterT = 0, fps = 0, slowFor = 0;
 /** true if this animation frame should run (the cap); call once per requestAnimationFrame */
-function frameDue(now) {
-  const cap = S.speed === 0 ? Math.min(Q.fps, 30) : Q.fps;   // paused: no need for more than 30
+function frameDue(now, uncapped = false) {
+  const cap = S.speed === 0 && !uncapped ? Math.min(Q.fps, 30) : Q.fps;   // paused: no need for more than 30 (the opening cinematic asks for the full rate)
   if (lastDraw && now - lastDraw < 1000 / cap - 2) return false;
   lastDraw = now; frames++;
   if (now - meterT >= 1000) {

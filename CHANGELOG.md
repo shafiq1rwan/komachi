@@ -21,6 +21,23 @@ Phases 4 and 4.5 plus the polish that went with them.
   slowly for recording (src/trailer.js, Esc or `MT.trailer.stop()`); a sixth README screenshot of the harbour with the ferry
   berthed; docs/STORE.md with the store text, screenshot list and a thirty-second trailer storyboard. Fixed: the empty save card
   showed as a blank strip on the menu's subpages.
+- Guided first town (2026-10-05, Phase 11.1, src/guide.js): a fresh kept town gets five prompts in the milestone card, each cleared
+  by doing the thing: draw a street from the station ring (the Streets tool pulses), two homes beside it, a shop and a workplace,
+  "Builders are on the train" (Go and look takes the camera to the station), "Your first family", then "The town is yours". The
+  prompts stay up until their step is done (milestone.js `holdMilestone`), never show on a loaded town with buildings, the demo or
+  a scratch tab, and run once per town (`guide: 'done'` in the save). The welcome card no longer toasts the old hint when the
+  guide is about to take over. The smoke suite walks the first two steps. Dev hooks `MT.startGuide()`, `MT.guideState()`.
+- Fishing comes alive (2026-10-05, src/minigame-fishing.js): the angler jolts forward and the rod tip dips at the bite, with a
+  splash and a burst of rings; on the strike a fish shadow appears under the water and circles on the line, drawn toward the
+  quay as the catch bar fills and running out when line is given, the float dragged after it and rings spreading from it; a
+  landed fish (or the boot) leaps out with the float and is held up over the angler's head in both hands for a couple of
+  seconds with the catch bubble and the camera leaning in, then they go back to fishing; a lost fish makes them slump, head
+  down. Each species has its own little model and colours for the hold-up.
+- Opening cinematic, smooth again (2026-10-05): the frame gate treated the opening's stopped clock as a pause and capped it at
+  30 fps, which against a 60 Hz display alternated two- and three-frame gaps (the "laggy, jittery" feel); the opening now runs
+  at the full rate. The iris wipe is a round hole scaled with a GPU transform instead of a full-screen gradient repainted every
+  frame; only the scene's own five people animate during it (a replay from a grown town no longer runs every resident's mixer);
+  the walkers' stride follows their pace.
 - Privacy notice (2026-10-02): public/privacy.html, served with the web build at /privacy.html for store and portal forms; the
   game collects nothing and the page says so. docs/STORE.md gains a Poki dashboard section (categories, tags, the URL).
 - Roadmap (2026-10-02): Phase 11 the guided first town (the five-dollar update), Phase 12 Little Nest inside Komachi (the user's

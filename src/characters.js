@@ -98,7 +98,7 @@ async function loadVariant(url, builder = false) {
   const geoms = new Map();
   gltf.scene.traverse(o => { if (o.isSkinnedMesh) { geoms.set(o.name, bakeGeometry(o, px, jointNames)); o.material = charMat; o.castShadow = true; o.frustumCulled = false; } });
   let headTop = 0.67; gltf.scene.traverse(o => { if (o.isSkinnedMesh && o.name === 'head-mesh') { o.geometry.computeBoundingBox(); headTop = o.geometry.boundingBox.max.y; } });
-  return { scene: gltf.scene, clips: gltf.animations, geoms, headTop };
+  return { scene: gltf.scene, clips: gltf.animations, geoms, headTop, name: String(url).split(/[/]/).pop().replace(/-[A-Za-z0-9_-]{8}.glb$|.glb$/, '') };   // name: the file (hash dropped), kept on the mesh for probes
 }
 // The rigged people are the default; ?boxes keeps the original box people (and any load failure falls back to them).
 let charDone = 0; const charTotal = Object.keys(urls).length + 1;
@@ -139,7 +139,7 @@ export function attachCharacter(grp, look) {
   // only construction crews use the builder model; a resident's cap (a box-people detail) does not change their character
   const pool = look.builder ? (variants.filter(v => v.headTop <= 0.7).length ? variants.filter(v => v.headTop <= 0.7) : variants) : variants;   // the fallback helmet needs short hair
   const v = look.builder && builderVariant ? builderVariant : pool[hashStr(look.name || look.shirt + look.hair) % pool.length];
-  const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE);
+  const inst = SkeletonUtils.clone(v.scene); inst.scale.setScalar(SCALE); grp.userData.variant = v.name;
   inst.traverse(o => {
     if (v.builder && o.isMesh) { o.geometry = o.geometry.clone(); o.material = o.material.clone(); }
     else if (o.isSkinnedMesh) { const e = v.geoms.get(o.name); if (e) o.geometry = recolor(e, look); o.material = charMat; }
@@ -191,9 +191,10 @@ function makeHelmet(top, color) {
   g.traverse(o => { if (o.isMesh) o.castShadow = true; }); return g;
 }
 /** advance every visible character's animation; blend idle ↔ walk ↔ sit from its owner's state */
-export function updateCharacters(simDt0) {
+export function updateCharacters(simDt0, only = null) {
   const light = S.quality && S.quality.busy === false;
   for (const c of chars) {
+    if (only && !only(c)) continue;
     // Slimmer silhouettes and smaller heads suit the rich town's architectural scale.
     // Cache the original head scale so toggling looks also restores every rig correctly.
     const rich = S.look === 'rich';
@@ -227,7 +228,8 @@ export function updateCharacters(simDt0) {
     // bones the clips may not drive (head, arms) go back to rest before the mixer runs, so the per-frame turns below never accumulate
     if (c.head) c.head.quaternion.copy(c.headRest); if (c.armR) c.armR.quaternion.copy(c.armRRest); if (c.armL) c.armL.quaternion.copy(c.armLRest);
     c.mixer.update(simDt);
-    c.root.rotation.x = riding ? 0.22 : c.fishing ? -0.28 * c.fishing.strain : 0;   // a lean over the bars; an angler leans back against the pull
+    const fz = c.fishing;   // the angler: leans back against the pull, jolts forward at the bite, slumps for a lost fish, straightens to hold the catch up
+    c.root.rotation.x = riding ? 0.22 : fz ? -0.28 * fz.strain + 0.22 * (fz.jolt || 0) + 0.1 * (fz.sad || 0) - 0.08 * (fz.show || 0) : 0;
     if (riding) { poseBikeRider(c.root, owner.bike); if (!c.helmet && c.head && c.headTop) { c.helmet = makeHelmet(c.headTop - 0.343, c.helmetColor); c.head.add(c.helmet); } }
     if (c.helmet) c.helmet.visible = riding;
     if (c.hammer && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, c.hammer * 0.25));
@@ -260,7 +262,13 @@ export function updateCharacters(simDt0) {
       if (c.armL) aimArm(c, c.armL, it.position.clone().add(new THREE.Vector3(0.042, -0.01, -0.005)), true);
       if (up && c.head) c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.08));
     }
-    if (c.fishing && c.head) { c.reelT = (c.reelT || 0) + simDt * (4 + 8 * c.fishing.reel); c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.12 + 0.1 * c.fishing.strain)); }   // eyes on the float
+    if (fz && c.head) { c.reelT = (c.reelT || 0) + simDt * (4 + 8 * fz.reel); c.head.quaternion.multiply(qNod.setFromAxisAngle(X, 0.12 + 0.1 * fz.strain + 0.18 * (fz.jolt || 0) + 0.35 * (fz.sad || 0) - 0.5 * (fz.show || 0))); }   // eyes on the float; down for a loss, up at the catch
+    if (c.accessory && c.accessory.userData.propKind === 'fishing-rod') c.accessory.visible = !(fz && fz.show > 0);   // the rod is put down while the catch is held up
     updateCharacterProp(c);
+    if (fz && fz.show > 0 && fz.fish && fz.fish.parent === c.grp) {   // both hands up to the fish over the head
+      c.grp.updateWorldMatrix(true, true);
+      if (c.armR) aimArm(c, c.armR, fz.fish.position.clone().add(new THREE.Vector3(-0.03, -0.01, 0)));
+      if (c.armL) aimArm(c, c.armL, fz.fish.position.clone().add(new THREE.Vector3(0.03, -0.01, 0)), true);
+    }
   }
 }

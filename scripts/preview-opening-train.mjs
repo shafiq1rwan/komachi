@@ -1,5 +1,5 @@
 /* global MT */
-// Run against the development server: node scripts/preview-harbor.mjs [url] [seed]
+// Run: node scripts/preview-opening-train.mjs [url] [label] [--isolated]
 import puppeteer from 'puppeteer-core';
 import { existsSync, readdirSync, mkdirSync, writeFileSync } from 'node:fs';
 const root = process.env.LOCALAPPDATA;
@@ -14,8 +14,12 @@ try {
  await page.waitForFunction(()=>window.MT&&MT.characterAvailable(),{timeout:120000});
  await page.addStyleTag({content:'body > :not(#c):not(#bubbles) {visibility:hidden!important}'});
  await page.evaluate(async()=>{const loaded=p=>import(performance.getEntriesByType('resource').find(e=>new URL(e.name).pathname===p)?.name||p);window.testOpening=await loaded('/src/opening.js');window.testChars=await loaded('/src/characters.js');window.testScene=await loaded('/src/scene.js');window.testItems=await loaded('/src/hand-items.js');MT.setSpeed(0);MT.startOpening();});
+ if(process.argv.includes('--isolated'))await page.evaluate(()=>{
+   for(const child of MT.opening.root.children)if(child!==MT.opening.train&&!child.isLight)child.visible=false;
+   testScene.scene.background.set('#87989b');
+ });
  for(const [name,yaw] of [['front',0.65],['cab',1.3],['rear',-0.7]]){
- const png=await page.evaluate(yaw=>{MT.opening.t=6.6;testOpening.updateOpening(0);testChars.updateCharacters(0);const {camera,renderer,scene}=testScene;const v=2.5,a=innerWidth/innerHeight;camera.left=-v*a/2;camera.right=v*a/2;camera.top=v/2;camera.bottom=-v/2;camera.updateProjectionMatrix();camera.position.set(420+Math.sin(yaw)*6,2.8,Math.cos(yaw)*6);camera.lookAt(420,0.4,0);renderer.render(scene,camera);return renderer.domElement.toDataURL('image/png');},yaw);
+ const png=await page.evaluate(({yaw,isolated})=>{MT.opening.t=isolated?11.8:6.6;testOpening.updateOpening(0);testChars.updateCharacters(0);if(isolated)for(const p of [...MT.opening.people,...MT.opening.passers])p.mesh.visible=false;const {camera,renderer,scene}=testScene;const v=isolated?2.9:2.5,a=innerWidth/innerHeight;camera.left=-v*a/2;camera.right=v*a/2;camera.top=v/2;camera.bottom=-v/2;camera.updateProjectionMatrix();camera.position.set(420+Math.sin(yaw)*6,2.8,Math.cos(yaw)*6);camera.lookAt(420,0.4,0);renderer.render(scene,camera);return renderer.domElement.toDataURL('image/png');},{yaw,isolated:process.argv.includes('--isolated')});
  writeFileSync(`docs/opening/train-${process.argv[3]||'review'}-${name}.png`,Buffer.from(png.split(',')[1],'base64'));
  }
  console.log(JSON.stringify({errors}));

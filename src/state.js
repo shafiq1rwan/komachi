@@ -5,6 +5,7 @@ const island = activeIsland(), saved = island ? { seed: island.seed, biome: isla
 const fresh = params.has('new') || params.has('demo');   // ?new ignores the save (and overwrites it); ?demo is always a fresh sample town
 export const S = {
   fresh,
+  guide: null,   // the guided first town: null (never), 'pending' (waiting for the welcome card), 'running', 'done' (saved)
   // Saves without a terrain version retain their original land and plot coordinates.
   terrainVersion: !fresh && island?.save ? (island.save.terrainVersion || 1) : params.get('terrain') === '1' ? 1 : 2,
   look: (() => { try { return params.get('look') || localStorage.getItem('komachi.lookStyle') || 'rich'; } catch { return 'rich'; } })() === 'classic' ? 'classic' : 'rich',   // rich is the standard since 2026-09-23

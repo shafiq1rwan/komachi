@@ -305,7 +305,7 @@ effect through the town instead.
   comes back only with a certificate and notarisation secrets
 - Left for later: Windows code signing (certificate as secrets)
 
-## ⬜ Phase 11 — Guided first town (agreed 2026-10-02)
+## ✅ Phase 11 — Guided first town (agreed 2026-10-02, shipped 2026-10-05)
 
 The first paid update: the price goes from two dollars to five with it, and "interiors coming" is the headline of what is
 next. Only the guided town; interiors moved to Phase 12 the same day, because Little Nest is still growing.
@@ -315,7 +315,9 @@ next. Only the guided town; interiors moved to Phase 12 the same day, because Li
   workplace → "builders are on the train" (the camera glides to the station as the first crew arrives) → "your first family"
   (the first move-in). The control each step needs is shown at that moment, so the eight-line hint card can go. Runs once per
   town (a flag in the save), never on a loaded save, the demo or a scratch tab. One smoke check walks the whole sequence
-  headless. About a day.
+  headless. About a day. Shipped 2026-10-05 as src/guide.js: five prompts held in the milestone card, the needed tool pulsing in
+  the dock, "Go and look" to the station for the crew and the family, `guide: 'done'` saved; the ring and cell shimmer were
+  left out (the pulsing tool and the camera did the job in testing).
 
 ## ⬜ Phase 12 — Little Nest inside Komachi (agreed 2026-10-02)
 
