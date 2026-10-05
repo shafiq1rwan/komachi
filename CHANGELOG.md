@@ -8,6 +8,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Fish props redrawn in the Kenney toy style (2026-10-05, src/fish-prop.js): chubby smooth-shaded lathe bodies in two tones,
+  fat squashed-sphere fins, big dark eyes with a highlight, a row of spines on the rockfish, the flounder a flat oval with a
+  frill; the stall's fish are a little larger. A Hunyuan3D route (text to shape, simplified and painted by script) was tried
+  the same day and dropped: the realistic silhouettes sat badly beside the Kenney people.
 - Fish props (2026-10-05): five reusable, texture-free fish models with sculpted species silhouettes, cream bellies, eyes,
   gills, solid fins and articulated forked tails. Catch leaps and held-fish wriggles use the props, and the quay market
   displays the same fish on its ice. Animated GLBs live in `assets/props/fish/`; collection and individual previews in

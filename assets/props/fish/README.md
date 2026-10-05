@@ -1,7 +1,8 @@
 # Komachi fish props
 
-Original texture-free low-poly fish for the fishing catch and quay market. Each GLB includes its own vertex colours,
-two meshes, a named `Fish_Tail` pivot, and a looping `wriggle` animation.
+Original texture-free toy fish in the style of the Kenney people (chubby smooth bodies, fat fins, big eyes) for the fishing
+catch and the quay market. The game builds them in code (src/fish-prop.js); these GLBs are the same models exported for the
+preview page, each with vertex colours, two meshes, a named `Fish_Tail` pivot and a looping `wriggle` animation.
 
 | Asset | Shape | Triangles |
 | --- | --- | --- |

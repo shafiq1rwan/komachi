@@ -16,7 +16,7 @@ for (const kind of FISH_PROP_KINDS) {
     const p = o.geometry.attributes.position; triangles += p.count / 3;
     for (const attr of Object.values(o.geometry.attributes)) assert.ok(attr.array.every(Number.isFinite), `${kind}: invalid geometry`);
   });
-  assert.equal(meshes, 2); assert.ok(triangles < 1400);
+  assert.equal(meshes, 2); assert.ok(triangles < 2000);
   const size = new THREE.Box3().setFromObject(fish).getSize(new THREE.Vector3());
   assert.ok(size.z > 0.1 && size.z < 0.25, `${kind}: hand-held scale`);
   for (let i = 0; i < 30; i++) { animateFishProp(fish, i / 30); assert.ok(new THREE.Box3().setFromObject(fish).min.toArray().every(Number.isFinite)); }

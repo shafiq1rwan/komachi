@@ -244,6 +244,14 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   #fishing card with #fish-tap / #fish-sub / #fish-end; body.fishing hides the dock; a catch calls landmarks.js `setFishStall(true)`
   and records the first. Dev hooks `MT.startFishing`, `MT.stopFishing`, `MT.fishingGame` (set `biteAt = 0` to force a bite).
   Other ideas agreed as candidates: festival stalls, a spotting album with photo mode, a postal round, garden tending, lantern lighting, ferry piloting.
+- Fish props (2026-10-05, src/fish-prop.js): `createFishProp(kind | FISH entry)` builds a toy fish of merged primitives in the Kenney
+  style (LatheGeometry body along z, `blob` squashed spheres for fins and eyes, smooth shading, two-tone vertex colours from PAL.fish),
+  Fish_Body plus Fish_Tail_Fin on the `Fish_Tail` pivot (`animateFishProp`); FISH_PROFILES { palette, length, sx, sy, fork | width,
+  height, flat, spiny }. The catch (minigame-fishing.js makeFishMesh) and the market stall's ice (landmarks.js, scale 0.6, 12 fish merged
+  into Market_Fish) use it. scripts/build-fish-props.mjs exports the GLBs in assets/props/fish for docs/fish-props-preview.html and
+  scripts/preview-fish-props.mjs (the game builds the fish in code, it does not load the GLBs). Decided 2026-10-05: no generated
+  (Hunyuan3D) meshes for props; the Pinokio app (C:/pinokio/api/Hunyuan3d-2-lowvram.git, Gradio API /shape_generation and
+  /on_export_click with target_face_num) works, about 90 s a shape, but realistic silhouettes clash with the Kenney look.
 - Music (2026-09-25, src/audio.js): TRACKS menu | night | rain from assets/audio/bgm (imported with `?url`, streamed by HTMLAudio,
   `preload none`; vite.config.js keeps mp3/ogg out of the service worker's precache); `updateAudio(dt, { menu, rain, night })` every
   frame from main.js (menu-full path passes { menu: true }, the opening too; the town path menuOpen() / W.rain > 0.25 / daylight() < 0.35),
