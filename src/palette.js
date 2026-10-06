@@ -10,6 +10,7 @@ export const PAL = {
     bream: { color: '#d79b96', back: '#ae6665', belly: '#f3ddd0', fin: '#bf7c73' },
     eye: '#202c2e', eyeRim: '#f5ecd6', mouth: '#755e56',
   },
+  junk: { boot: '#6b5241', bootDark: '#3a2f27', lace: '#d8c9a8', weed: '#5f7d4a', tin: '#b9bcb6', rust: '#9a5a38', label: '#d9b8a0' },   // what the line brings up instead of a fish
   waterfront: {
     paving: ['#b7b7ae', '#c4c3b9', '#aeb0aa'],
     stone: ['#9fa7a8', '#adb3b0', '#8e999c', '#bac0b9', '#a2a9a6'],

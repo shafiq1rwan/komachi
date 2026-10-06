@@ -250,7 +250,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   Fish_Body plus Fish_Tail_Fin on the `Fish_Tail` pivot (`animateFishProp`); FISH_PROFILES { palette, length, sx, sy, fork | width,
   height, flat, spiny }. The catch (minigame-fishing.js makeFishMesh) and the market stall's ice (landmarks.js, scale 0.6, 12 fish merged
   into Market_Fish) use it. scripts/build-fish-props.mjs exports the GLBs in assets/props/fish for docs/fish-props-preview.html and
-  scripts/preview-fish-props.mjs (the game builds the fish in code, it does not load the GLBs). Decided 2026-10-05: no generated
+  scripts/preview-fish-props.mjs (the game builds the fish in code, it does not load the GLBs). Junk (2026-10-06): `createJunkProp(kind,
+  length)`, JUNK_KINDS boot | can, colours `PAL.junk`; FISH entries keep `boot: true` as the junk flag the module reads and add
+  `junk` (which prop) and `back` (the card's line); makeFishMesh picks the junk prop when `f.boot`. Decided 2026-10-05: no generated
   (Hunyuan3D) meshes for props; the Pinokio app (C:/pinokio/api/Hunyuan3d-2-lowvram.git, Gradio API /shape_generation and
   /on_export_click with target_face_num) works, about 90 s a shape, but realistic silhouettes clash with the Kenney look.
 - Music (2026-09-25, src/audio.js): TRACKS menu | night | rain from assets/audio/bgm (imported with `?url`, streamed by HTMLAudio,

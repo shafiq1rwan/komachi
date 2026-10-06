@@ -94,6 +94,83 @@ export function createFishProp(options = 'sea-bream') {
   return root;
 }
 
+/** The junk the line brings up now and then, in the same toy style: a soggy boot or a dented tin can. Up is +y, the
+ *  "nose" (toe, or the can's open end) along +z, grip at the centre like the fish, so the hold-up code treats them alike. */
+export const JUNK_KINDS = ['boot', 'can'];
+export function createJunkProp(kind = 'boot', length = 0.1) {
+  const L = length, parts = [], root = new THREE.Group(); root.name = `Junk_${kind}`;
+  root.userData = { propKind: 'junk', species: kind, grip: [0, 0, 0] };
+  const add = (g, color) => { parts.push(tinted(g, color)); };
+  const box = (sx, sy, sz, color, x, y, z, rz = 0) => {
+    const g = new THREE.BoxGeometry(sx * L, sy * L, sz * L);
+    g.rotateZ(rz); g.translate(x * L, y * L, z * L); add(g, color);
+  };
+  const lathe = (profile, color, z = 0, alongZ = false, segments = 8) => {
+    const g = new THREE.LatheGeometry(profile.map(([r,y]) => new THREE.Vector2(r * L, y * L)), segments);
+    if (alongZ) g.rotateX(Math.PI / 2);
+    g.translate(0, 0, z * L); add(g, color); return g;
+  };
+  if (kind === 'boot') {
+    // Short, broad ankle and bevelled toe echo the Mini Characters' oversized shoes.
+    const leather = PAL.junk.boot, dark = PAL.junk.bootDark;
+    lathe([[.18,-.15],[.18,.06],[.22,.34],[.22,.39],[.17,.39],[.15,.12]], leather, -.19);
+    lathe([[.225,.335],[.225,.405],[.17,.405],[.17,.335]], dark, -.19);
+    const opening = new THREE.CircleGeometry(L * .153, 8);
+    opening.rotateX(-Math.PI / 2); opening.translate(0, L * .12, -L * .19); add(opening, dark);
+    // An eight-corner footprint, extruded with one broad bevel instead of sphere lobes.
+    const footprint = new THREE.Shape();
+    const outline = [[-.17,-.34],[-.235,-.19],[-.235,.34],[-.15,.49],[.15,.49],[.235,.34],[.235,-.19],[.17,-.34]];
+    footprint.moveTo(...outline[0]); outline.slice(1).forEach(p => footprint.lineTo(...p)); footprint.closePath();
+    const foot = new THREE.ExtrudeGeometry(footprint, { depth: .16, bevelEnabled: true, bevelSegments: 1, steps: 1, bevelSize: .055, bevelThickness: .065, curveSegments: 1 });
+    foot.rotateX(Math.PI / 2); foot.scale(L, L, L); foot.translate(0, -L * .06, 0); add(foot, leather);
+    const sole = new THREE.ExtrudeGeometry(footprint, { depth: .075, bevelEnabled: false, steps: 1, curveSegments: 1 });
+    sole.rotateX(Math.PI / 2); sole.scale(L * 1.13, L, L * 1.09); sole.translate(0, -L * .245, 0); add(sole, dark);
+    box(.16,.27,.035,dark,0,.17,.028);   // one broad tongue panel
+    for (const y of [.1,.24]) {
+      // Oversized flat lace bars remain legible beside Kenney hands.
+      for (const side of [-1,1]) box(.23,.032,.035,PAL.junk.lace,0,y,.058,side * .36);
+    }
+  } else {
+    // Ten broad facets, two rolled rims, and a single pushed-in side.
+    const tin = PAL.junk.tin, rust = PAL.junk.rust;
+    const dent = g => {
+      const p = g.attributes.position;
+      for (let i = 0; i < p.count; i++) {
+        const x = p.getX(i) / L, y = p.getY(i) / L, z = p.getZ(i) / L;
+        const amount = Math.max(0, 1 - Math.abs(z - .02) / .29) * Math.max(0, x / .24) * .3;
+        p.setXYZ(i, (x - amount * .14) * L, y * L, z * L);
+      }
+      return g;
+    };
+    const body = lathe([[.235,-.36],[.235,-.31],[.22,-.29],[.22,0],[.22,.29],[.235,.31],[.235,.36],[.195,.36],[.19,.29],[.19,0],[.19,-.3]], tin, 0, true, 10);
+    dent(body);
+    // Crisp rust islands on whole facets, with no mottled shading or surface bumps.
+    parts.pop(); const facets = body.toNonIndexed(); body.dispose(); tinted(facets, tin);
+    const p = facets.attributes.position, colors = facets.attributes.color, oxide = new THREE.Color(rust);
+    for (let i = 0; i < p.count; i += 3) {
+      const x = (p.getX(i) + p.getX(i+1) + p.getX(i+2)) / (3 * L);
+      const y = (p.getY(i) + p.getY(i+1) + p.getY(i+2)) / (3 * L);
+      const z = (p.getZ(i) + p.getZ(i+1) + p.getZ(i+2)) / (3 * L);
+      if ((z < -.28 && y > .04) || (z > .17 && x > .1) || (z > -.27 && z < -.1 && x < -.15)) {
+        for (let k = 0; k < 3; k++) colors.setXYZ(i+k,oxide.r,oxide.g,oxide.b);
+      }
+    }
+    parts.push(facets);
+    const label = new THREE.CylinderGeometry(L * .222, L * .222, L * .23, 10, 1, true, .3, Math.PI * 1.4);
+    label.rotateX(Math.PI / 2); label.translate(0,0,-L * .015); add(dent(label), PAL.junk.label);
+    const base = new THREE.CircleGeometry(L * .194, 10); base.translate(0,0,-L * .32); add(base, tin);
+    const inside = new THREE.CircleGeometry(L * .19, 10); inside.translate(0,0,-L * .318); add(inside, PAL.junk.bootDark);
+    const lid = new THREE.CircleGeometry(L * .205, 10);
+    lid.translate(0,-L * .205,0); lid.rotateX(-2.05); lid.translate(0,L * .215,L * .35); add(lid, tin);
+  }
+  const material = new THREE.MeshStandardMaterial({ vertexColors: true, roughness: .85, metalness: 0, flatShading: true, side: THREE.DoubleSide });
+  const geometries = parts.map(g => g.index ? g.toNonIndexed() : g);
+  const merged = mergeGeometries(geometries, false); merged.computeVertexNormals();
+  const mesh = new THREE.Mesh(merged, material); mesh.name = 'Junk_Body'; mesh.castShadow = true; mesh.frustumCulled = false; root.add(mesh);
+  new Set([...parts, ...geometries]).forEach(g => g.dispose());
+  return root;
+}
+
 export function animateFishProp(root, time, strength = 1) {
   const tail = root?.getObjectByName('Fish_Tail'); if (!tail) return;
   const flat = root.userData.species === 'flounder';

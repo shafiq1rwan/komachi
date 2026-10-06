@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Komachi fishing finds</title>
+<style>body{margin:0;background:#f7f2e9;color:#394c45;font-family:system-ui,sans-serif}header{position:absolute;top:24px;left:32px;pointer-events:none}small{letter-spacing:2px;color:#73847b}h1{margin:8px 0;font-size:28px}p{font-size:14px}canvas{display:block}footer{position:absolute;bottom:28px;width:100%;display:flex;justify-content:space-around;pointer-events:none}footer span{text-align:center}footer b{display:block}footer small{display:block;margin-top:6px;font-size:11px;letter-spacing:0}</style></head>
+<body><header><small>KOMACHI / FISHING FINDS</small><h1>A curious catch.</h1><p>Drag to turn the models and inspect their worn surfaces.</p></header>
+<footer><span><b>Old boot</b><small>Chunky bevelled toe · open cuff · flat laces</small></span><span><b>Rusty tin can</b><small>Faceted dent · flat rust patches · bent lid</small></span></footer>
+<script type="module">
+import * as THREE from 'three';
+import { createJunkProp } from '/src/fish-prop.js';
+const renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+renderer.setPixelRatio(devicePixelRatio); renderer.setSize(innerWidth, innerHeight);
+renderer.setClearColor('#f7f2e9'); renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping; renderer.shadowMap.enabled = true;
+document.body.append(renderer.domElement);
+const scene = new THREE.Scene(), camera = new THREE.OrthographicCamera(-.2,.2,.2*innerHeight/innerWidth,-.2*innerHeight/innerWidth,.01,5);
+camera.position.set(0,.23,.48); camera.lookAt(0,.005,0);
+scene.add(new THREE.HemisphereLight('#fff9ec','#c2d6cf',2.1));
+const light = new THREE.DirectionalLight('#fff1db',3); light.position.set(-.3,.8,.5); light.castShadow = true;
+light.shadow.mapSize.set(2048,2048); light.shadow.camera.left = -.4; light.shadow.camera.right = .4; light.shadow.camera.top = .4; light.shadow.camera.bottom = -.4; light.shadow.bias = -.0001; scene.add(light);
+const props = ['boot','can'].map((kind,i) => {
+  const root = createJunkProp(kind, kind === 'boot' ? .1 : .085);
+  root.position.set((i-.5)*.2,kind === 'boot' ? .005 : -.004,0); root.rotation.y = -.65; scene.add(root);
+  const stage = new THREE.Mesh(new THREE.CylinderGeometry(.075,.079,.008,48),new THREE.MeshStandardMaterial({color:'#e9e0d0',roughness:1}));
+  stage.position.set(root.position.x,-.032,0); stage.receiveShadow = true; scene.add(stage); return root;
+});
+const render = () => renderer.render(scene,camera); render();
+let drag = false, previous = 0;
+renderer.domElement.addEventListener('pointerdown', e => { drag = true; previous = e.clientX; renderer.domElement.setPointerCapture(e.pointerId); });
+renderer.domElement.addEventListener('pointermove', e => { if (!drag) return; props.forEach(root => { root.rotation.y += (e.clientX-previous)*.01; }); previous = e.clientX; render(); });
+renderer.domElement.addEventListener('pointerup', () => { drag = false; });
+addEventListener('resize', () => { camera.top = .2*innerHeight/innerWidth; camera.bottom = -camera.top; camera.updateProjectionMatrix(); renderer.setSize(innerWidth,innerHeight); render(); });
+window.junkPropsPreview = { scene, camera, renderer, props, render };
+</script></body></html>

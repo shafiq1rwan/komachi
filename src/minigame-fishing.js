@@ -19,7 +19,7 @@ import { pick } from './utils.js';
 import { showFeeling, endTalk } from './bubbles.js';
 import { residents } from './sim.js';
 import { playFishingSound } from './audio.js';
-import { createFishProp, animateFishProp } from './fish-prop.js';
+import { createFishProp, animateFishProp, createJunkProp } from './fish-prop.js';
 
 // on since 2026-10-02; the invitation only shows while a resident is fishing there (join them, never an empty quay)
 const ENABLED = true;
@@ -34,7 +34,9 @@ const FISH = [
   { name: 'a small flounder', pull: 0.46, work: 4.4, len: 0.12, color: '#9c805c', belly: '#e2d6c0', flat: true },
   { name: 'a rockfish', pull: 0.6, work: 5.6, len: 0.12, color: '#b25a47', belly: '#e3b9a6' },
   { name: 'a sea bream', pull: 0.78, work: 7, len: 0.14, color: '#d9a0a6', belly: '#f2e3e1' },
-  { name: 'an old boot', pull: 0.1, work: 2, len: 0.1, color: '#5a4634', boot: true },
+  // junk (`boot` is the flag the rest of the module reads, `junk` says which): heavy, does not fight, goes back in the water
+  { name: 'an old boot', pull: 0.1, work: 2, len: 0.1, color: '#5a4634', boot: true, junk: 'boot', back: 'An old boot. Back it goes.' },
+  { name: 'a rusty tin can', pull: 0.08, work: 1.6, len: 0.085, color: '#9a8f82', boot: true, junk: 'can', back: 'A tin can. Into the bin.' },
 ];
 const BAND = [0.35, 0.72];   // the green band of the tension bar
 const SHOW_T = 2.6, SHOW_BOOT_T = 1.8;   // seconds the catch is held up
@@ -69,19 +71,8 @@ function build() {
     d.visible = false; scene.add(d); splashes.push({ m: d, vel: new THREE.Vector3(), life: 0 });
   }
 }
-/** the fish (or boot) the angler holds up: a few primitives in the species' colours, nose along +z */
-function makeFishMesh(f) {
-  if (!f.boot) return createFishProp(f);
-  const g = new THREE.Group(); const L = f.len;
-  if (f.boot) {
-    const leather = new THREE.MeshStandardMaterial({ color: f.color, roughness: 0.9 });
-    const shaft = new THREE.Mesh(new THREE.BoxGeometry(L * 0.45, L * 0.7, L * 0.5), leather); shaft.position.y = L * 0.25; g.add(shaft);
-    const toe = new THREE.Mesh(new THREE.BoxGeometry(L * 0.45, L * 0.28, L * 0.95), leather); toe.position.set(0, -L * 0.2, L * 0.2); g.add(toe);
-    const sole = new THREE.Mesh(new THREE.BoxGeometry(L * 0.47, L * 0.06, L * 0.98), new THREE.MeshStandardMaterial({ color: '#2e2620', roughness: 1 })); sole.position.set(0, -L * 0.36, L * 0.2); g.add(sole);
-    return g;
-  }
-  return g;
-}
+/** the fish (or the junk) the angler holds up, from fish-prop.js, nose along +z */
+function makeFishMesh(f) { return f.boot ? createJunkProp(f.junk || 'boot', f.len) : createFishProp(f); }
 /** the water a little out from the jetty head, where the float lands; with an angler, the line starts at their hands */
 function fishingSpot(angler) {
   const P = pierFrame(); if (!P) return null;
@@ -190,11 +181,11 @@ function land() {
   const species = f.name.replace(/^(a|an) /, '');
   document.getElementById('fish-species').textContent = species[0].toUpperCase() + species.slice(1);
   document.getElementById('fish-result-kicker').textContent = real ? 'A lovely catch' : 'Well, that was unexpected';
-  document.getElementById('fish-destination').textContent = real ? 'Sent to the fish market' : 'An old boot. Back it goes.';
+  document.getElementById('fish-destination').textContent = real ? 'Sent to the fish market' : f.back || 'Back it goes.';
   const portrait = document.getElementById('fish-portrait'); portrait.style.color = f.color;
-  portrait.firstElementChild.className = `fa-solid ${real ? 'fa-fish' : 'fa-shoe-prints'}`;
+  portrait.firstElementChild.className = `fa-solid ${real ? 'fa-fish' : f.junk === 'can' ? 'fa-jar' : 'fa-shoe-prints'}`;
   playFishingSound(real ? 'catch' : 'boot');
-  say(real ? 'Caught!' : 'Hmm', real ? `${f.name[0].toUpperCase()}${f.name.slice(1)} for the fish market` : 'An old boot. Back it goes');
+  say(real ? 'Caught!' : 'Hmm', real ? `${f.name[0].toUpperCase()}${f.name.slice(1)} for the fish market` : (f.back || 'Back it goes.').replace(/\.$/, ''));
 }
 /** the catch is held up for a moment: the fish moves into the angler's hands, the camera leans in */
 function showOff() {

@@ -8,6 +8,13 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Revised fishing junk models (2026-10-06) to match the Kenney Mini Characters: chunky bevelled boot, hollow cuff and
+  oversized flat laces; faceted tin can with a dent, rolled rims, open lid and flat rust patches. Drag-to-rotate review in
+  docs/junk-props-preview.html; both-side screenshots via scripts/preview-junk-props.mjs.
+- Junk on the line (2026-10-06): the old boot is a proper toy prop now (rounded shaft with a cuff, straps, a round toe, weed over
+  the top) and a rusty tin can joins it (lid bent open, torn label, a dent, weed on the rim), both from `createJunkProp` in
+  src/fish-prop.js with colours in `PAL.junk`. The catch card says what came up and where it goes ("Into the bin" for the can).
+
 ## [0.3.1] - 2026-10-05
 
 The fish: hand-made toy props, a fight that scales with the catch, Codex fishing HUD polish.
