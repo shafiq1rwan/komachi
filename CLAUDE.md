@@ -530,6 +530,6 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 12. Little Nest inside Komachi (agreed 2026-10-02): the user's room-decorating game (C:/Users/shafiq.irwan/Documents/home-deco-sim,
     Three.js 0.170, 48 GLB props, pure tested core) becomes the interiors once its own feature set is final; shared package, not a
     copy; the room stands in the main scene like the opening carriage; decorating box reskinned as a Komachi card; then residents
-    use the furniture. Little Nest is sold standalone afterwards under its own name.
+    use the furniture. Little Nest is sold standalone afterwards under its own name. Decided 2026-10-06: the furnishing feature is shown to the public inside Komachi first (teasers, clips, the next price step); the standalone launch comes after, and no teaser goes out until the merge is under way with a date in sight.
 13. Themes, New York first (agreed 2026-10-02): a `theme` key on the town inside this one project (no fork), the refactor that puts
     the Japanese set behind it, a Brooklyn-style neighbourhood with right-hand traffic, more themes later
