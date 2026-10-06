@@ -8,6 +8,10 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Residents ride cargo tricycles (2026-10-06, Codex): the bicycle gives way to a small cargo tricycle built from the police bike model
+  (front and rear cargo boxes, three wheels each rolling at its own radius, pedals driven off the front wheel); saved towns
+  restore their riders on it, checked by scripts/check-bike.mjs. The pedal swing is geared down to about two strokes a second
+  (bikes.js PEDAL_GEAR), since legs following the small front wheel one-to-one strobed.
 - Calmer picking (2026-10-06): the info card opens on a click (or while following someone), no longer on every hover, and the
   bright cream frames round each cell are gone. Whatever is under the pointer gets one thin box outline, soft cream on hover
   and sage once clicked, sized to the building or the person the way the furnishing game marks a piece; the Clear tool keeps
