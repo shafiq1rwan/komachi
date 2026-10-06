@@ -50,5 +50,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  server: { open: true },
+  // no `server.open` here: every script that starts Vite programmatically (previews, checks, scratch renders) inherited it and popped
+  // a browser window; `npm run dev` passes --open itself (2026-10-06)
 }));

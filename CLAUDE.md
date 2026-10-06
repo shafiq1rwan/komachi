@@ -438,6 +438,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   `npm run lint` now runs scripts/check-comments.mjs after ESLint, which fails on comment text that contains `; <statement>`.
 - Never pass text containing backticks to `node -e "..."` in Bash: the shell runs them as commands (on 2026-09-24 that started
   `npm run dev` and tried to run a .js file as a script). Put patch text in a file written with the Write tool.
+- Never set server.open in vite.config.js: it made every programmatic createServer (previews, checks, scratch renders) open the
+  user's browser (fixed 2026-10-06; npm run dev passes --open). New scripts still pass { server: { open: false } } for safety.
 - Scratch render scripts on Windows: `server.kill()` on a `shell: true` spawn leaves vite running; end it with
   `taskkill /pid <pid> /T /F` (smoke.mjs does), and poll the port instead of sleeping.
 - Multi-line code edits: write a small Node patch script with the Write tool and run it. Bash
