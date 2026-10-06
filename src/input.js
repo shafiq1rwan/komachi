@@ -151,14 +151,24 @@ function clampTarget() { cam.target.x = clamp(cam.target.x, -HALF - 2, HALF + 2)
 // placement preview meshes
 const prevMat = { keep: new THREE.MeshBasicMaterial({ color: PAL.concrete2, transparent: true, opacity: 0.5, depthWrite: false }), ok: new THREE.MeshBasicMaterial({ color: PAL.mint, transparent: true, opacity: 0.55, depthWrite: false }), bad: new THREE.MeshBasicMaterial({ color: PAL.roofRose, transparent: true, opacity: 0.5, depthWrite: false }), road: new THREE.MeshBasicMaterial({ color: PAL.cream2, transparent: true, opacity: 0.45, depthWrite: false }) };
 const prevPool = []; for (let k = 0; k < 20; k++) { const m = new THREE.Mesh(new THREE.BoxGeometry(0.92, 0.04, 0.92), prevMat.ok); m.visible = false; m.position.y = 0.16; scene.add(m); prevPool.push(m); }
-const ringMat = new THREE.MeshBasicMaterial({ color: '#fff6e4', transparent: true, opacity: 0.7, depthWrite: false });
-// one frame per cell, a thin cream outline round the plot's edge (a solid mint slab until 2026-09-25): blocks hold up to 3, the station 9
-const frameGeo = (() => {
-  const sq = (r, p) => { p.moveTo(-r, -r); p.lineTo(r, -r); p.lineTo(r, r); p.lineTo(-r, r); p.closePath(); return p; };
-  const s = sq(0.535, new THREE.Shape()); s.holes.push(sq(0.465, new THREE.Path()));
-  const g = new THREE.ShapeGeometry(s); g.rotateX(-Math.PI / 2); return g;
-})();
-const hoverRings = []; for (let k = 0; k < 9; k++) { const m = new THREE.Mesh(frameGeo, ringMat); m.visible = false; m.position.y = 0.135; scene.add(m); hoverRings.push(m); }
+// a thin box outline round whatever is under the pointer (soft) or clicked (firmer), the way the furnishing game marks a
+// piece: one Box3Helper sized to the block's unit meshes or the person, instead of the bright per-cell frames of before
+const outline = new THREE.Box3Helper(new THREE.Box3(), '#fff6e4'); outline.material.transparent = true; outline.material.depthWrite = false; outline.visible = false; scene.add(outline);
+const outlineBox = new THREE.Box3(), outlinePart = new THREE.Box3(), outlineSize = new THREE.Vector3();
+function outlineFor(t) {
+  outlineBox.makeEmpty();
+  if (t.unit) {
+    if (t.unit.block.stage < 0) return null;
+    for (const u of t.unit.block.units) if (u.mesh) u.mesh.traverse(o => {   // solid, visible meshes only: flat planes are skipped below
+      if (!o.isMesh || !o.visible || !o.geometry) return; o.geometry.computeBoundingBox(); outlinePart.copy(o.geometry.boundingBox).applyMatrix4(o.matrixWorld);
+      const sz = outlinePart.getSize(outlineSize); if (Math.min(sz.x, sz.y, sz.z) < 0.02) return;   // flat planes (shadow disc, billboards) are not the building
+      outlineBox.union(outlinePart);
+    });
+    if (outlineBox.isEmpty()) return null; return outlineBox.expandByScalar(0.03);
+  }
+  const m = (t.res || t.worker || t.tourist || {}).mesh; if (!m || !m.visible) return null;
+  return outlineBox.setFromObject(m).expandByScalar(0.012);
+}
 const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
@@ -212,10 +222,11 @@ function updateHover() {
 }
 function finishHover() {
   const target = pinned || hovered;
-  const hu = target && target.unit ? target.unit : null;
-  hoverRings.forEach((m, k) => { const u = hu ? hu.block.units[k] : null; m.visible = !!u && hu.block.stage >= 0; if (u) m.position.set(cx(u.cell.i), 0.135 + (u.cell.h || 0), cz(u.cell.j)); });
-  if (tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station') ringMat.color.set(PAL.roofRose); else ringMat.color.set('#fff6e4');
-  ringMat.opacity = 0.25 + 0.45 * daylight();   // the highlight is unlit, so it would glow at night; fade it with the light
+  const box = target ? outlineFor(target) : null;
+  outline.visible = !!box; if (box) { outline.box.copy(box); outline.updateMatrixWorld(true); }
+  const removing = tool === 'remove' && hovered && hovered.unit && hovered.unit.block.type !== 'station';
+  outline.material.color.set(removing ? PAL.roofRose : pinned && target === pinned ? '#9fbf92' : '#fff6e4');   // sage once clicked, cream under the pointer
+  outline.material.opacity = (pinned && target === pinned ? 0.85 : 0.4) * (0.55 + 0.45 * daylight());   // unlit lines would glow at night
   canvas.style.cursor = tool !== 'explore' ? 'crosshair' : (hovered ? 'pointer' : (ptr.panning ? 'grabbing' : 'grab'));
 }
 const tagV = new THREE.Vector3();
@@ -248,7 +259,7 @@ function updateBars() {
   }
   ui.bars.innerHTML = html;
 }
-const inspectTarget = () => pinned || hovered || (follow ? { res: follow } : null);
+const inspectTarget = () => pinned || (follow ? { res: follow } : null);   // the card opens on a click, not on hover (2026-10-06)
 const followTarget = () => follow;
 function setFollow(r) { if (!r && follow && pinned && pinned.res === follow) pinned = null; follow = r; if (r) pinned = { res: r }; }
 export { keys, setTool, updatePreview, updateHover, updateTags, updateBars, inspectTarget, clampTarget, followTarget, setFollow };

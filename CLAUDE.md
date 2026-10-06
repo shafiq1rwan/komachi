@@ -473,7 +473,9 @@ Decisions already made (do not reopen without asking):
   between poles that share a row/column of road.
 - Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
 - HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
-  icon after 5 s; instant tooltips; progress pills float over sites under construction; notices slide in as a cream
+  icon after 5 s; instant tooltips; the inspect card opens on a click, never on hover, and the hover mark is one thin Box3Helper
+  outline (input.js `outline`, `outlineFor`; cream 0.4 on hover, sage 0.85 when pinned, rose for Clear; decided 2026-10-06, the
+  per-cell cream frames flashed too much); progress pills float over sites under construction; notices slide in as a cream
   card under the brand card (top left), never over the town centre.
 - Pixel look is off by default (user request 2026-09-17); `S.pixelLook` reads `komachi.pixelLook === '1'` and the
   toggle is remembered once used. `index.html` ships without the `pixel` body class.

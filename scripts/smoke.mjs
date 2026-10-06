@@ -115,14 +115,14 @@ try {
   s = await page.evaluate(() => { const seen = new Set(); for (let k = 0; k < 96; k++) { MT.fastForward(0.25); for (const r of MT.residents) seen.add(r.actKind); } return { kinds: [...seen], hh: MT.households.filter(h => h.members.length).length, moods: MT.residents.map(r => Object.values(r.needs).every(v => v >= 0 && v <= 1)).every(Boolean) }; });
   check('residents live by their needs (sleep, meals, errands) in households', s.kinds.includes('sleep') && s.kinds.includes('eat') && (s.kinds.includes('shop') || s.kinds.includes('stroll') || s.kinds.includes('visit')) && s.hh >= 1 && s.moods, JSON.stringify(s));
 
-  // hover: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
-  // accumulator, so slow software-rendered CI runners need a few seconds)
+  // click: pause the town so a passer-by cannot steal the pick, then poll (the card refreshes on a frame
+  // accumulator, so slow software-rendered CI runners need a few seconds); since 2026-10-06 hovering only outlines, a click opens the card
   await page.keyboard.press('Digit1'); await page.evaluate(() => MT.setSpeed(0));
-  const hp = await page.evaluate(() => MT.project(17, 19, 0.5)); await page.mouse.move(hp.x - 2, hp.y - 2); await page.mouse.move(hp.x, hp.y);
+  const hp = await page.evaluate(() => MT.project(17, 19, 0.5)); await page.mouse.move(hp.x - 2, hp.y - 2); await page.mouse.move(hp.x, hp.y); await page.mouse.click(hp.x, hp.y);
   let inspectText = '';
   const cardOk = t => /Residents/.test(t) && /\d+ \/ \d+/.test(t);
   for (let k = 0; k < 40 && !cardOk(inspectText); k++) { await sleep(250); inspectText = await page.evaluate(() => document.getElementById('inspect').innerText); }
-  check('hover opens inspect card', cardOk(inspectText), inspectText.slice(0, 140).replace(/\n+/g, ' | '));
+  check('a click opens the inspect card', cardOk(inspectText), inspectText.slice(0, 140).replace(/\n+/g, ' | '));
   await page.evaluate(() => MT.setSpeed(1));
 
   const shopStreet = await page.evaluate(() => MT.blocks[2].street.map(c => [c.i, c.j]));

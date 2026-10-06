@@ -27,7 +27,7 @@ import { attachVehicle } from './vehicles.js';
 import { cells, cell, DIR4, blocks, units, DONE, stageHours, unitCap, refreshWorld, onWorldChange, STATION, stationStairs, terrainY, hill, openHill, HILL_UNLOCK, signalRed, signalState, signalCells, updateSignals, rebuildNetwork, KIND_LABEL, hillPlots, placeBlock, drawRoad, chooseKind, clearCarPark, carParks, parkBay, refreshCivicFlags, maxLevel, hoursOf, isOpen } from './world.js';
 import { hillCentre } from './island.js';
 import { createBike, rollBike, BIKE_SEAT } from './bikes.js';
-import { createService, serviceReady } from './service-vehicles.js';
+import { createService, createResidentTricycle, serviceReady } from './service-vehicles.js';
 import { unitLocal } from './buildings.js';
 import { rebuildUnitMesh, unitDoorPoints } from './buildings.js';
 import { toast } from './toast.js';
@@ -468,8 +468,9 @@ function parkVehicle(mesh, u, kind) {
 }
 function makeBike(r) {
   const sc = r.bikeKind === 'scooter' && serviceReady() ? createService('scooter') : null;   // the commuter gentsuki is modelled at street scale already
-  const grp = sc || createBike(r.carColor); if (!sc) { grp.scale.setScalar(PEOPLE); grp.userData.lights = null; }
-  grp.visible = false; peopleGroup.add(grp); return grp;   // a bicycle at the rider's scale and without a lamp; the scooter keeps its own lamps (daynight.js)
+  const grp = r.bikeKind === 'scooter' ? sc || createBike(r.carColor) : createResidentTricycle(r.carColor);
+  if (r.bikeKind === 'scooter' && !sc) { grp.scale.setScalar(PEOPLE); grp.userData.lights = null; }
+  grp.visible = false; peopleGroup.add(grp); return grp;   // Resident bicycles use the small cargo tricycle at its authored street scale.
 }
 function enterUnit(r, u) {
   r.trip = null; r.mesh.visible = false;
@@ -941,7 +942,7 @@ function moveAlong(obj, tr, dist) {
     if (dist < remain) { tr.t += dist; dist = 0; } else { dist -= remain; tr.i++; tr.t = 0; }
   }
   if (obj.bikeParts) rollBike(obj, requested - dist);
-  if (obj.userData.wheels) { const a = (requested - dist) / (obj.userData.wheelRadius || 0.05); for (const w of obj.userData.wheels) w.rotation.x += a; }   // work trucks roll their wheels
+  if (obj.userData.wheels) { for (const w of obj.userData.wheels) w.rotation.x += (requested - dist) / (w.userData.wheelRadius || obj.userData.wheelRadius || 0.05); }   // Each wheel rolls at its own radius, including the tricycle's smaller rear wheels.
   // trip points carry a height above the ground (kerb, doorstep); the ground itself comes from the terrain
   if (tr.i >= pts.length - 1) { const e = pts[pts.length - 1]; obj.position.set(e.x, e.y + terrainY(e.x, e.z), e.z); return true; }
   const a = pts[tr.i], b = pts[tr.i + 1], k = tr.t / (a.distanceTo(b) || 1);

@@ -8,6 +8,11 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- Calmer picking (2026-10-06): the info card opens on a click (or while following someone), no longer on every hover, and the
+  bright cream frames round each cell are gone. Whatever is under the pointer gets one thin box outline, soft cream on hover
+  and sage once clicked, sized to the building or the person the way the furnishing game marks a piece; the Clear tool keeps
+  its rose tint. Click empty ground to put the card away.
+
 - Revised fishing junk models (2026-10-06) to match the Kenney Mini Characters: chunky bevelled boot, hollow cuff and
   oversized flat laces; faceted tin can with a dent, rolled rims, open lid and flat rust patches. Drag-to-rotate review in
   docs/junk-props-preview.html; both-side screenshots via scripts/preview-junk-props.mjs.

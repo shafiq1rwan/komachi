@@ -132,7 +132,7 @@ function renderInspect(target, follow = null) {
     if (r.home) html += `<div class="row"><span>Works at</span><b>${r.job ? esc(r.job.block.name) : r.commuter ? 'in the city, by train' : r.homemaker ? 'keeps the house' : 'looking for work'}</b></div>`;
     html += `<div class="row"><span>Feeling</span><b>${esc(moodWords(r))}</b></div>`;
     if (r.trip && r.trip.dest) html += `<div class="row"><span>Heading to</span><b>${esc(r.trip.dest.block.name)}</b></div>`;
-    html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : r.hasBike ? 'by bicycle' : 'on foot'}</div>`;
+    html += `<div class="small">Wakes around ${fmtHour(r.wake)} · gets around ${r.hasCar ? 'by car' : r.hasBike ? r.bikeKind === 'scooter' ? 'by scooter' : 'by tricycle' : 'on foot'}</div>`;
     if (r.state !== 'away') html += follow === r ? `<button class="cta off" data-follow="stop"><i class="fa-solid fa-video-slash"></i> Stop following</button>` : `<button class="cta" data-follow="start"><i class="fa-solid fa-video"></i> Follow</button>`;
   }
   ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker || target.tourist));
