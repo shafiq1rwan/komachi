@@ -12,7 +12,8 @@ All notable changes to Komachi are recorded here. The format follows
   One town, kept for the browser session; photos for the session; no export or import; the title shows a "Get the full game"
   row instead of New town and Load town, and the brand card carries a small Demo link. After three game days a cream card says
   the island is yours to keep, with a link to the store and a Keep playing button, while the town carries on behind it.
-  Nothing is locked mid-play. `npm run check:demo` verifies the shape headless and `npm run pack:demo` zips it.
+  Nothing is locked mid-play. `npm run check:demo` verifies the shape headless and `npm run pack:demo` zips it. The demo
+  has its own Full screen button in the top bar and a row on the title, since itch's embed is a small frame.
 
 - Residents ride cargo tricycles (2026-10-06, Codex): the bicycle gives way to a small cargo tricycle built from the police bike model
   (front and rear cargo boxes, three wheels each rolling at its own radius, pedals driven off the front wheel); saved towns

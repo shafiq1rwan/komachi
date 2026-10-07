@@ -346,7 +346,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   town (title.js hides New town / Load town, so export and import too, and shows a "Get the full game" link row), the town kept
   in sessionStorage (slots.js `store()`), the album in memory (album.js), and after DEMO_DAYS `updateDemo()` shows #demo-card
   once a session ("This island is yours to keep", Get Komachi link, Keep playing) while the town carries on; `initDemo()` adds
-  body.demo and the #demo-tag link in the brand card. Poki stays the full game with ads (links out are forbidden there).
+  body.demo and the #demo-tag link in the brand card, plus #btn-full in the top bar and a 'fullscreen' title row (`toggleFullscreen`,
+  only when `document.fullscreenEnabled`) because itch embeds the game in a small frame. Poki stays the full game with ads (links out are forbidden there).
   scripts/check-demo.mjs; scripts/pack-poki.mjs takes [dist] [out] so pack:demo reuses it. Dev hook `MT.demoState()`.
 - PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
   writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in

@@ -10,12 +10,19 @@ export const DEMO = import.meta.env.MODE === 'demo';
 export const DEMO_DAYS = 3;   // about twelve minutes of play: long enough for the first family to move in
 export const STORE_URL = 'https://saiss.itch.io/komachi';   // the itch page; the full game's price is on the page, not here
 let shown = false, card = null;
+/** the page (or the iframe itch puts it in) to full screen and back; a no-op where the browser refuses */
+export function toggleFullscreen() {
+  try { if (document.fullscreenElement) document.exitFullscreen(); else document.documentElement.requestFullscreen({ navigationUI: 'hide' }); } catch { /* not allowed here */ }
+}
+export const fullscreenAllowed = () => !!document.fullscreenEnabled;
 
 /** main.js, once: the "Demo" link in the brand card and the offer card's markup */
 export function initDemo() {
   if (!DEMO) return;
   document.body.classList.add('demo');
   const brand = document.getElementById('brand');
+  const photo = document.getElementById('btn-photo');
+  if (photo && fullscreenAllowed()) { const b = document.createElement('button'); b.className = 'icon-btn'; b.id = 'btn-full'; b.dataset.tip = 'Full screen'; b.innerHTML = '<i class="fa-solid fa-expand"></i>'; b.addEventListener('click', toggleFullscreen); photo.before(b); }
   if (brand) { const a = document.createElement('a'); a.id = 'demo-tag'; a.href = STORE_URL; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Demo · get the full game'; brand.appendChild(a); }
   card = document.createElement('div'); card.id = 'demo-card'; card.setAttribute('role', 'status');
   card.innerHTML = `<div class="dc-text"><b>This island is yours to keep</b><span>You have played ${DEMO_DAYS} days of the demo. The full game keeps every town between visits, holds as many towns as you like, saves your photos and runs offline on the desktop. This town carries on meanwhile.</span></div>
