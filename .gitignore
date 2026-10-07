@@ -18,3 +18,7 @@ assets/characters/fox/*
 !assets/characters/fox/*.glb
 dist-demo/
 scripts/__pycache__/
+# build artefacts and raw footage: regenerable, large
+output/demo/
+output/trailer-archive/
+output/trailer/**/_source/
