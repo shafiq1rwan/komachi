@@ -1,8 +1,8 @@
 /* global MT */
 // Checks the web demo build (npm run build:demo first): serves dist-demo/, loads it headless and verifies the demo's shape: the
 // "Demo" link in the brand card, no New town / Load town rows on the title once a town exists, the town kept in sessionStorage
-// (not localStorage), the offer card after DEMO_DAYS with a link to the store and a Keep playing button that puts it away while
-// the town carries on. Run: npm run check:demo
+// (not localStorage), and the wall after DEMO_DAYS: the clock held at zero, the HUD gone, a store link and nothing else to do.
+// Run: npm run check:demo
 import { spawn, spawnSync } from 'node:child_process';
 import net from 'node:net';
 import puppeteer from 'puppeteer-core';
@@ -41,14 +41,14 @@ try {
   check('the title has no New town, Load town, export or import', !rows.includes('new') && !rows.includes('towns') && !rows.includes('import'), rows.join(' '));
   check('the title offers the full game instead', rows.some(r => /full game/i.test(r)), rows.join(' '));
   await page.evaluate(() => document.querySelector('#menu [data-act="continue"], #menu [data-act="start"]')?.click()); await sleep(600);
-  // day 8: the offer card, with a store link; Keep playing puts it away and the clock keeps running
-  await page.evaluate(() => { MT.setDay(8, 9); MT.setSpeed(1); });
+  // day 4: the wall, with a store link and nothing else; the clock stops and stays stopped, the HUD is gone, keys do nothing
+  await page.evaluate(() => { MT.setDay(4, 9); MT.setSpeed(1); });
   let demo = null; for (let k = 0; k < 60 && !(demo && demo.open); k++) { await sleep(250); demo = await page.evaluate(() => MT.demoState()); }
-  const cardInfo = await page.evaluate(() => { const c = document.getElementById('demo-card'); const a = c && c.querySelector('a.dc-get'); return { open: c && c.classList.contains('show'), href: a && a.href, target: a && a.target }; });
-  check('after the demo days a card offers the full game with a store link', cardInfo.open && /itch\.io/.test(cardInfo.href) && cardInfo.target === '_blank', JSON.stringify(cardInfo));
-  const t0 = await page.evaluate(() => MT.T); await page.evaluate(() => document.querySelector('#demo-card .dc-keep').click()); await sleep(1500);
-  const after = await page.evaluate(() => ({ open: document.getElementById('demo-card').classList.contains('show'), T: MT.T, speed: MT.demoState().speed }));
-  check('Keep playing puts the card away and the town carries on', !after.open && after.T > t0 && after.speed > 0, JSON.stringify({ before: t0, after }));
+  const wallInfo = await page.evaluate(() => { const w = document.getElementById('demo-wall'); const a = w && w.querySelector('a.dc-get'); return { open: w && w.classList.contains('show'), href: a && a.href, target: a && a.target, buttons: w ? w.querySelectorAll('button').length : -1, hud: getComputedStyle(document.getElementById('hud')).display, tools: getComputedStyle(document.getElementById('tools')).display }; });
+  check('after the demo days a wall offers the full game and nothing else', wallInfo.open && /itch\.io/.test(wallInfo.href) && wallInfo.target === '_blank' && wallInfo.buttons === 0 && wallInfo.hud === 'none' && wallInfo.tools === 'none', JSON.stringify(wallInfo));
+  const t0 = await page.evaluate(() => MT.T); await page.keyboard.press('Escape'); await page.keyboard.press('Digit2'); await page.keyboard.press('Space'); await sleep(1500);
+  const after = await page.evaluate(() => ({ T: MT.T, speed: MT.demoState().speed, menu: document.getElementById('menu').classList.contains('show'), walled: MT.demoState().walled }));
+  check('the clock stays stopped behind the wall and keys do nothing', after.walled && after.speed === 0 && after.T === t0 && !after.menu, JSON.stringify({ before: t0, after }));
   check('no page errors', errors.length === 0, errors.slice(0, 3).join(' | '));
 } finally { await browser.close(); stop(); }
 if (failed) { console.log(`${failed} check(s) failed`); process.exit(1); } else console.log('all demo checks passed');

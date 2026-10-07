@@ -344,8 +344,9 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Web demo (2026-10-07, src/demo.js, decided with the user: a stranger must be able to play before paying): `DEMO` = mode 'demo'
   (vite.config.js: outDir dist-demo, no service worker), `STORE_URL` the itch page, `DEMO_DAYS` 3 (about twelve minutes). Limits that feel natural: one
   town (title.js hides New town / Load town, so export and import too, and shows a "Get the full game" link row), the town kept
-  in sessionStorage (slots.js `store()`), the album in memory (album.js), and after DEMO_DAYS `updateDemo()` shows #demo-card
-  once a session ("This island is yours to keep", Get Komachi link, Keep playing) while the town carries on; `initDemo()` adds
+  in sessionStorage (slots.js `store()`), the album in memory (album.js), and past DEMO_DAYS `updateDemo()` raises the wall:
+  #demo-wall (z 70, body.demo-wall hides the HUD, input.js ignores keys, S.speed held at 0 every frame) with #demo-card and only
+  the store link, a hard stop the user chose over a dismissable card (2026-10-07); `initDemo()` adds
   body.demo and the #demo-tag link in the brand card, plus #btn-full in the top bar and a 'fullscreen' title row (`toggleFullscreen`,
   only when `document.fullscreenEnabled`) because itch embeds the game in a small frame. Poki stays the full game with ads (links out are forbidden there).
   scripts/check-demo.mjs; scripts/pack-poki.mjs takes [dist] [out] so pack:demo reuses it. Dev hook `MT.demoState()`.
