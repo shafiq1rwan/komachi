@@ -10,6 +10,7 @@ const mem = [];   // the fallback album
 function openDb() {
   if (dbP) return dbP;
   dbP = new Promise(res => {
+    if (import.meta.env.MODE === 'demo') { res(null); return; }   // the web demo keeps its photos in memory for the session
     let req; try { req = indexedDB.open(DB, 1); } catch { res(null); return; }
     req.onupgradeneeded = () => { const s = req.result.createObjectStore(STORE, { keyPath: 'id' }); s.createIndex('town', 'town'); };
     req.onsuccess = () => { const db = req.result; db.onversionchange = () => db.close(); res(db); };

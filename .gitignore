@@ -16,3 +16,5 @@ assets/service-vehicles/*
 # the fox sources stay local: only its GLB is tracked
 assets/characters/fox/*
 !assets/characters/fox/*.glb
+dist-demo/
+scripts/__pycache__/

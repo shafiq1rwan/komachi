@@ -3,15 +3,16 @@
 // The zip is written here, not by PowerShell's Compress-Archive: that tool stores folder paths with backslashes, which Poki's
 // Linux servers read as part of the file name, so everything under assets/ came back 404 (2026-10-01). Entries use forward
 // slashes and deflate, and the script re-reads the archive's directory afterwards to prove it.
+// Also packs the web demo: node scripts/pack-poki.mjs dist-demo output/demo/komachi-demo.zip (npm run pack:demo).
 import { existsSync, mkdirSync, readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import { join } from 'node:path';
-if (!existsSync('dist-poki/index.html')) { console.error('dist-poki/ missing: run npm run build:poki first'); process.exit(1); }
-if (existsSync('dist-poki/sw.js')) { console.error('dist-poki/sw.js must not exist: the Poki build has no service worker'); process.exit(1); }
-mkdirSync('output/poki', { recursive: true });
-const out = 'output/poki/komachi-poki.zip';
+const dist = process.argv[2] || 'dist-poki', out = process.argv[3] || 'output/poki/komachi-poki.zip';
+if (!existsSync(dist + '/index.html')) { console.error(dist + '/ missing: run the matching build first'); process.exit(1); }
+if (existsSync(dist + '/sw.js')) { console.error(dist + '/sw.js must not exist: this build has no service worker'); process.exit(1); }
+mkdirSync(out.replace(/\/[^/]+$/, ''), { recursive: true });
 const walk = d => readdirSync(d).flatMap(n => { const p = join(d, n); return statSync(p).isDirectory() ? walk(p) : [p]; });
-const files = walk('dist-poki').sort();
+const files = walk(dist).sort();
 
 // a plain zip writer: local header + deflated data per file, then the central directory
 const CRC = new Int32Array(256); for (let n = 0; n < 256; n++) { let c = n; for (let k = 0; k < 8; k++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC[n] = c; }
@@ -19,7 +20,7 @@ const crc32 = buf => { let c = -1; for (let i = 0; i < buf.length; i++) c = CRC[
 const d = new Date(), dosTime = ((d.getHours() << 11) | (d.getMinutes() << 5) | (d.getSeconds() >> 1)) & 0xFFFF, dosDate = (((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate()) & 0xFFFF;
 const parts = [], central = []; let offset = 0, total = 0;
 for (const f of files) {
-  const name = Buffer.from(f.replace(/\\/g, '/').replace(/^dist-poki\//, ''), 'utf8');   // forward slashes, relative to the root
+  const name = Buffer.from(f.replace(/\\/g, '/').replace(new RegExp('^' + dist + '/'), ''), 'utf8');   // forward slashes, relative to the root
   const data = readFileSync(f), packed = deflateRawSync(data, { level: 9 }), crc = crc32(data); total += data.length;
   const local = Buffer.alloc(30); local.writeUInt32LE(0x04034b50, 0); local.writeUInt16LE(20, 4); local.writeUInt16LE(0x0800, 6); local.writeUInt16LE(8, 8);
   local.writeUInt16LE(dosTime, 10); local.writeUInt16LE(dosDate, 12); local.writeUInt32LE(crc, 14); local.writeUInt32LE(packed.length, 18); local.writeUInt32LE(data.length, 22); local.writeUInt16LE(name.length, 26); local.writeUInt16LE(0, 28);
@@ -39,4 +40,4 @@ const bad = names.filter(n => n.includes('\\') || n.startsWith('/'));
 if (bad.length || !names.includes('index.html') || !names.some(n => n.startsWith('assets/'))) { console.error('zip entries look wrong:', bad.length ? bad.slice(0, 3) : names.slice(0, 5)); process.exit(1); }
 console.log(`${out}: ${(zip.length / 1048576).toFixed(1)} MB zipped from ${files.length} files, ${(total / 1048576).toFixed(1)} MB unpacked; entries ok (index.html at the root, ${names.filter(n => n.startsWith('assets/')).length} under assets/)`);
 const big = files.map(f => [f, statSync(f).size]).sort((a, b) => b[1] - a[1]).slice(0, 4);
-console.log('largest:', big.map(([f, s]) => `${f.replace(/\\/g, '/').replace('dist-poki/', '')} ${(s / 1048576).toFixed(1)} MB`).join(', '));
+console.log('largest:', big.map(([f, s]) => `${f.replace(/\\/g, '/').replace(dist + '/', '')} ${(s / 1048576).toFixed(1)} MB`).join(', '));

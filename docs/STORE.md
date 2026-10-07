@@ -76,6 +76,13 @@ seconds; cut on the beat.
 
 Title card at the end: the wordmark on the menu picture and the one line above.
 
+## Web demo on the itch page
+
+Upload output/demo/komachi-demo.zip as an HTML5 "play in browser" file next to the paid downloads; set the viewport to 1280 × 800
+with fullscreen allowed. It is the full game limited to one town kept for the session, with an offer card after seven game days.
+The paid version is the desktop app and the full web build: unlimited towns kept between visits, export and import, photos saved,
+offline, no card. The store link inside the demo is `STORE_URL` in src/demo.js.
+
 ## Poki
 
 A separate build for Poki's portal: `npm run build:poki && npm run check:poki && npm run pack:poki`, then upload

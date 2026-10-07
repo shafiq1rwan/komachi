@@ -20,6 +20,7 @@ node scripts/make-trailer.mjs     # after a build: records raw footage to output
                                   # the user's scripts/edit-promo-trailer.py (Python, Pillow + imageio-ffmpeg) cuts it into output/trailer/promo/ (the deliverables)
 node scripts/build-itch-theme.mjs # itch cover, banner and background at itch's sizes into output/itch/theme/
 npm run build:poki && npm run check:poki && npm run pack:poki   # the Poki build: dist-poki/, headless rule checks, output/poki/komachi-poki.zip
+npm run build:demo && npm run check:demo && npm run pack:demo   # the free web demo for the itch page: dist-demo/, checks, output/demo/komachi-demo.zip
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -340,6 +341,13 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   requests made by the SDK itself are ignored via request.initiator(); preview answers missing paths with index.html, so sw.js is checked by
   content-type), scripts/pack-poki.mjs (PowerShell Compress-Archive). Fonts are self-hosted in public/fonts (fonts.css, latin woff2) for all builds.
   Dev hook `MT.pokiState()`.
+- Web demo (2026-10-07, src/demo.js, decided with the user: a stranger must be able to play before paying): `DEMO` = mode 'demo'
+  (vite.config.js: outDir dist-demo, no service worker), `STORE_URL` the itch page, `DEMO_DAYS` 7. Limits that feel natural: one
+  town (title.js hides New town / Load town, so export and import too, and shows a "Get the full game" link row), the town kept
+  in sessionStorage (slots.js `store()`), the album in memory (album.js), and after DEMO_DAYS `updateDemo()` shows #demo-card
+  once a session ("This island is yours to keep", Get Komachi link, Keep playing) while the town carries on; `initDemo()` adds
+  body.demo and the #demo-tag link in the brand card. Poki stays the full game with ads (links out are forbidden there).
+  scripts/check-demo.mjs; scripts/pack-poki.mjs takes [dist] [out] so pack:demo reuses it. Dev hook `MT.demoState()`.
 - PWA (2026-09-24): public/manifest.webmanifest + public/icons (made from assets/brand/komachi-icon.png); vite.config.js `offline()`
   writes dist/sw.js from scripts/sw-template.js (every bundle + public file, version = hash of the names); main.js registers it in
   PROD only; network-first page, cache-first files, fonts in `komachi-fonts`. Settings shows #opt-install on beforeinstallprompt.

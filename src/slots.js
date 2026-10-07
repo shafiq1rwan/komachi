@@ -3,9 +3,11 @@
 // scratch slot of its own (remembered for that tab), so trying things out never touches your towns. Imports nothing: state.js
 // reads the active town's seed and biome from here before the island is built.
 const INDEX = 'komachi.slots', ACTIVE = 'komachi.active', OLD = 'komachi.save', SCRATCH = 'scratch';
-const get = k => { try { return localStorage.getItem(k); } catch { return null; } };
-const set = (k, v) => { try { localStorage.setItem(k, v); return true; } catch { return false; } };
-const del = k => { try { localStorage.removeItem(k); } catch { /* storage unavailable */ } };
+// the web demo (vite --mode demo, src/demo.js) keeps its one town for the browser session only
+const store = () => import.meta.env.MODE === 'demo' ? sessionStorage : localStorage;
+const get = k => { try { return store().getItem(k); } catch { return null; } };
+const set = (k, v) => { try { store().setItem(k, v); return true; } catch { return false; } };
+const del = k => { try { store().removeItem(k); } catch { /* storage unavailable */ } };
 const params = new URLSearchParams(location.search);
 const SEASONS = ['spring', 'summer', 'autumn', 'winter'], SEASON_DAYS = 6;   // as in seasons.js (a 24-day year)
 

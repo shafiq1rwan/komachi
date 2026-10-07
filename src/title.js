@@ -14,6 +14,7 @@ import bgUrl from '../assets/backgrounds/komachi-menu-game.jpg';
 import pkg from '../package.json';
 import { listPhotos, countPhotos, updatePhoto, deletePhoto, deleteTownPhotos } from './album.js';
 import { POKI, pokiPlay, pokiPause, pokiBreak } from './poki.js';
+import { DEMO, STORE_URL } from './demo.js';
 
 const root = document.getElementById('menu');
 const PLACE = ['Hinata', 'Minato', 'Kogane', 'Sakurazaka', 'Umibe', 'Aozora', 'Tsukimi', 'Hoshino', 'Kawabe', 'Midori', 'Nagisa', 'Asahi'];
@@ -67,8 +68,8 @@ function show(screen) {
     const help = `<button class="mm-link" data-act="help"><i class="fa-solid fa-book-open"></i> How to play</button>`;
     page.innerHTML = playing
       ? `<div class="mm-pause-head"><i class="fa-solid fa-pause"></i><b>Paused</b>${savedLine()}</div><div class="mm-list">${row('resume', 'fa-play', 'Resume', '', 'main')}${row('album', 'fa-images', 'Album')}${row('settings', 'fa-gear', 'Settings')}${row('credits', 'fa-heart', 'Credits')}${row('title', 'fa-house-chimney', 'Save and quit to title')}</div>`
-      : `<div class="mm-list">${first}${row('new', 'fa-city', 'New town', 'a fresh town on another island')}${row('towns', 'fa-folder-open', 'Load town', listSlots().length ? `${listSlots().length} kept` : '')}
-        ${here && !here.fresh ? row('album', 'fa-images', 'Album', 'photos of this town') : ''}${row('settings', 'fa-gear', 'Settings')}${row('credits', 'fa-heart', 'Credits')}${row('help', 'fa-book-open', 'How to play', '', 'desk-only')}${standalone ? row('exit', 'fa-arrow-right-from-bracket', 'Exit') : ''}</div>${help.replace('mm-link', 'mm-link phone-only')}`;
+      : `<div class="mm-list">${first}${DEMO ? '' : row('new', 'fa-city', 'New town', 'a fresh town on another island') + row('towns', 'fa-folder-open', 'Load town', listSlots().length ? `${listSlots().length} kept` : '')}
+        ${here && !here.fresh ? row('album', 'fa-images', 'Album', 'photos of this town') : ''}${row('settings', 'fa-gear', 'Settings')}${row('credits', 'fa-heart', 'Credits')}${row('help', 'fa-book-open', 'How to play', '', 'desk-only')}${standalone ? row('exit', 'fa-arrow-right-from-bracket', 'Exit') : ''}</div>${DEMO ? `<a class="mm-link mm-full" href="${STORE_URL}" target="_blank" rel="noopener"><i class="fa-solid fa-bag-shopping"></i> Get the full game: every town kept, photos saved, desktop app</a>` : ''}${help.replace('mm-link', 'mm-link phone-only')}`;
     countPhotos(activeId()).then(n => { const s = page.querySelector('[data-act="album"] small'); if (s && root.dataset.screen === 'main') s.textContent = n ? `${n} photo${n === 1 ? '' : 's'}` : 'photos of this town'; });
   } else if (screen === 'towns') {
     const list = listSlots().sort((a, b) => b.savedAt - a.savedAt);

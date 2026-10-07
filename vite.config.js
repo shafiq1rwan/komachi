@@ -38,9 +38,9 @@ function pokiHtml() {
 export default defineConfig(({ mode }) => ({
   base: './',
   assetsInclude: ['**/*.glb'],
-  plugins: mode === 'poki' ? [pokiHtml()] : [offline()],   // Poki forbids a service worker; the poki build has none
+  plugins: mode === 'poki' ? [pokiHtml()] : mode === 'demo' ? [] : [offline()],   // Poki forbids a service worker; the poki and demo builds have none
   build: {
-    outDir: mode === 'poki' ? 'dist-poki' : 'dist',
+    outDir: mode === 'poki' ? 'dist-poki' : mode === 'demo' ? 'dist-demo' : 'dist',
     target: 'es2022',
     sourcemap: false,
     rollupOptions: {
