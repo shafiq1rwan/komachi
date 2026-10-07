@@ -10,7 +10,7 @@ All notable changes to Komachi are recorded here. The format follows
 
 - A free web demo for the itch page (2026-10-07, src/demo.js, `npm run build:demo`): the whole game, playable before paying.
   One town, kept for the browser session; photos for the session; no export or import; the title shows a "Get the full game"
-  row instead of New town and Load town, and the brand card carries a small Demo link. After seven game days a cream card says
+  row instead of New town and Load town, and the brand card carries a small Demo link. After three game days a cream card says
   the island is yours to keep, with a link to the store and a Keep playing button, while the town carries on behind it.
   Nothing is locked mid-play. `npm run check:demo` verifies the shape headless and `npm run pack:demo` zips it.
 

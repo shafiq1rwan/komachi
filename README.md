@@ -262,7 +262,7 @@ manifest and icons live in `public/`. The service worker only runs in production
 ## Poki build
 
 A free web demo for the itch page is the same game limited to one town kept for the browser session, photos for the session
-and no export or import; after seven game days a card offers the full game while the town carries on. `npm run build:demo`
+and no export or import; after three game days a card offers the full game while the town carries on. `npm run build:demo`
 makes it in dist-demo/ (src/demo.js), `npm run check:demo` verifies the shape headless and `npm run pack:demo` zips it to
 output/demo/ for itch's "play in browser" upload.
 

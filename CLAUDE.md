@@ -342,7 +342,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   content-type), scripts/pack-poki.mjs (PowerShell Compress-Archive). Fonts are self-hosted in public/fonts (fonts.css, latin woff2) for all builds.
   Dev hook `MT.pokiState()`.
 - Web demo (2026-10-07, src/demo.js, decided with the user: a stranger must be able to play before paying): `DEMO` = mode 'demo'
-  (vite.config.js: outDir dist-demo, no service worker), `STORE_URL` the itch page, `DEMO_DAYS` 7. Limits that feel natural: one
+  (vite.config.js: outDir dist-demo, no service worker), `STORE_URL` the itch page, `DEMO_DAYS` 3 (about twelve minutes). Limits that feel natural: one
   town (title.js hides New town / Load town, so export and import too, and shows a "Get the full game" link row), the town kept
   in sessionStorage (slots.js `store()`), the album in memory (album.js), and after DEMO_DAYS `updateDemo()` shows #demo-card
   once a session ("This island is yours to keep", Get Komachi link, Keep playing) while the town carries on; `initDemo()` adds

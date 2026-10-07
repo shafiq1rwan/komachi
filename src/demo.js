@@ -7,7 +7,7 @@ import { S } from './state.js';
 import { dayOf } from './sim.js';
 
 export const DEMO = import.meta.env.MODE === 'demo';
-export const DEMO_DAYS = 7;
+export const DEMO_DAYS = 3;   // about twelve minutes of play: long enough for the first family to move in
 export const STORE_URL = 'https://saiss.itch.io/komachi';   // the itch page; the full game's price is on the page, not here
 let shown = false, card = null;
 
