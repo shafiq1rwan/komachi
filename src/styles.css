@@ -12,6 +12,8 @@
   .card{position:fixed;background:var(--cream);border-radius:18px;box-shadow:var(--shadow);padding:12px 16px;pointer-events:auto}
   #hud{position:fixed;z-index:12;left:18px;right:18px;top:18px;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;pointer-events:none}
   #hud .card{position:static;pointer-events:auto;height:56px;box-sizing:border-box;display:flex;align-items:center}
+  /* narrow frames (phones, the itch embed): tighter bar, the clock without its day line and sun, the demo tag down to one word */
+  @media (max-width:720px){#hud{left:8px;right:8px;top:8px;gap:6px}#hud .card{height:46px}#brand,#clock{padding:0 6px}#clock{gap:4px}#clock #sun,#clock #day{display:none}#clock #time{font-size:14px}#speed-dd .speed-btn{height:28px;padding:0 7px}#hud .icon-btn{width:30px;height:30px}#demo-tag .long{display:none}#demo-tag{margin-left:2px;padding:3px 6px}}
   #brand{padding:0 12px}
   /* spacing between HUD items is a margin, not a flex gap, so a folded panel leaves no stray space on the right */
   #brand > * + *, #clock > * + *{margin-left:10px}

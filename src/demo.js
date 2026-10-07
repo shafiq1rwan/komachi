@@ -23,7 +23,7 @@ export function initDemo() {
   const brand = document.getElementById('brand');
   const photo = document.getElementById('btn-photo');
   if (photo && fullscreenAllowed()) { const b = document.createElement('button'); b.className = 'icon-btn'; b.id = 'btn-full'; b.dataset.tip = 'Full screen'; b.innerHTML = '<i class="fa-solid fa-expand"></i>'; b.addEventListener('click', toggleFullscreen); photo.before(b); }
-  if (brand) { const a = document.createElement('a'); a.id = 'demo-tag'; a.href = STORE_URL; a.target = '_blank'; a.rel = 'noopener'; a.textContent = 'Demo · get the full game'; brand.appendChild(a); }
+  if (brand) { const a = document.createElement('a'); a.id = 'demo-tag'; a.href = STORE_URL; a.target = '_blank'; a.rel = 'noopener'; a.innerHTML = 'Demo<span class="long"> · get the full game</span>'; brand.appendChild(a); }
   card = document.createElement('div'); card.id = 'demo-card'; card.setAttribute('role', 'status');
   card.innerHTML = `<div class="dc-text"><b>This island is yours to keep</b><span>You have played ${DEMO_DAYS} days of the demo. The full game keeps every town between visits, holds as many towns as you like, saves your photos and runs offline on the desktop. This town carries on meanwhile.</span></div>
     <div class="dc-actions"><a class="dc-get" href="${STORE_URL}" target="_blank" rel="noopener">Get Komachi</a><button class="dc-keep" type="button">Keep playing</button></div>`;
