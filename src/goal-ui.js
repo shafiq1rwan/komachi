@@ -150,7 +150,7 @@ function onEvents(events) {
   const quiet = events.some(e => e.quiet);
   const levels = events.filter(e => e.type === 'level').map(e => e.level);
   for (const e of events) if (e.type === 'goal' && !quiet && !levels.length) tick(e.id);
-  if (levels.length && !quiet) queue.push({ levels });
+  if (levels.length && !quiet && !document.body.classList.contains('poki-onboarding')) queue.push({ levels });
   if (events.some(e => e.type === 'mode')) { queue.length = 0; dismissCelebration(); render(true); if (root) { root.hidden = true; pill.hidden = true; } setPulse(null); setCueCells([]); }
   cueKey = ''; pump(); render(true);
 }

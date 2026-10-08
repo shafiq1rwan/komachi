@@ -671,3 +671,19 @@ body.menu-full #level-up,body.menu-pause #level-up,body.opening #level-up,body.p
 #menu.pause[data-screen=settings] #options .opt-row>.seg,#menu.pause[data-screen=settings] #options .opt-range{flex:none}
 #menu.pause[data-screen=settings] #options .opt-seg button{min-width:0;padding:0 5px}
 @media(max-width:360px){#menu.pause[data-screen=settings] #options .opt-range input{width:90px}#menu.pause[data-screen=settings] #options .cta{max-width:125px;padding:7px 8px}}
+
+/* A single home placement is spotlighted; later resident requests leave the town interactive. */
+#poki-spotlight{position:fixed;z-index:42;border:3px solid #ffe5a6;border-radius:18px;box-shadow:0 0 0 200vmax rgba(19,34,36,.58),0 0 28px #ffe5a6;pointer-events:none}
+#poki-opening-card{position:fixed;z-index:43;right:16px;bottom:calc(var(--notice-bottom, 100px) + 12px);width:min(330px,calc(100vw - 32px));padding:16px 18px;border-radius:18px;background:#fff8e9;color:#314c48;box-shadow:0 8px 28px #192e3433;border:1px solid #d7d5bd}
+#poki-opening-card[hidden],#poki-spotlight[hidden]{display:none}
+#poki-opening-card small{font-size:10px;letter-spacing:1.4px;font-weight:800;color:#62877d}
+#poki-opening-card h2{font-size:19px;line-height:1.2;margin:7px 0}
+#poki-opening-card p{font-size:13px;line-height:1.45;margin:8px 0 12px}
+#poki-opening-card button{font:inherit;font-size:12px;cursor:pointer;border:0;border-radius:10px;padding:10px 12px;background:#397a6c;color:white;min-height:40px}
+#poki-opening-card .po-actions{display:flex;flex-wrap:wrap;gap:6px}
+#poki-opening-card .po-skip{padding:5px 0;background:transparent;color:#63766d;font-size:11px;margin-top:5px;min-height:32px;text-decoration:underline}
+#poki-opening-card button:focus-visible{outline:3px solid #edaa50;outline-offset:3px}
+body.poki-spotlight #goals,body.poki-spotlight #level-up,body.poki-spotlight #hint{visibility:hidden}
+body.poki-onboarding #goals,body.poki-onboarding #goals-pill{visibility:hidden}
+@media(max-width:720px){#poki-opening-card{right:12px;width:min(310px,calc(100vw - 24px));padding:12px;bottom:calc(var(--notice-bottom, 90px) + 6px)}#poki-opening-card h2{font-size:17px}#poki-opening-card p{font-size:12px}}
+@media(max-height:540px){#poki-opening-card{right:12px;top:80px;bottom:auto;width:260px;max-height:calc(100vh - 170px);overflow:auto}}

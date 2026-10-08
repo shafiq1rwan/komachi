@@ -22,6 +22,8 @@ import { initGuide, updateGuide, startGuide, guideWanted, guideState } from './g
 import { initDemo, updateDemo, demoState } from './demo.js';
 import { initProgress, updateProgress, progressState, facts as progressFacts, isGuided, switchToFreeBuild, sessionLog, placementProblem, canBuild, fishingAllowed, activeCue } from './progress.js';
 import { initGoalUi, updateGoalUi, goalUiState } from './goal-ui.js';
+import { initPokiOnboarding, updatePokiOnboarding, pokiOnboardingState } from './poki-onboarding.js';
+import { setPlacementGate } from './input.js';
 import { takeNewMode, scratch } from './slots.js';
 import { equipCharacterProp, clearCharacterProp } from './character-props.js';
 import { hillCentre, pierFrame, canalCells, coastDist, beachExtra, canalMouths, pierAngle, islandEllipse, seaRocks, shoreKind } from './island.js';
@@ -106,6 +108,7 @@ function frame(now) {
   }
   const dt = Math.min(0.05, (now - last) / 1000); last = now; realT += dt;
   updateDemo();   // the demo's wall holds the clock at zero before this frame's step
+  updatePokiOnboarding(dt);
   const simDt = dt * S.speed;
   if (S.speed > 0) { S.T += simDt * HPS; updateBlocks(simDt * HPS); updateResidents(simDt, realT); updateWanderers(simDt); updateConstruction(simDt * HPS, simDt, realT); updateFerry(simDt * HPS, simDt); updateTourists(simDt, realT); }
   // camera easing + keyboard panning
@@ -183,6 +186,8 @@ function demoTown() {
   document.getElementById('intro')?.remove(); setTool('explore');
 }
 window.MT = {
+  pokiOnboardingState,
+  advanceOpening: seconds => { const dt = 1 / 60; for (let t = 0; t < seconds; t += dt) { updatePokiOnboarding(dt); if (S.speed > 0) fastForward(dt * HPS * S.speed, dt * HPS); updateProgress(dt); } },
   opening, startOpening, stopOpening, playOpening, audioState, startFishing, stopFishing, fishingGame, enterPhoto, exitPhoto, takePhoto, photo, trailer: Object.assign(o => startTrailer(o), { stop: stopTrailer, state: trailer }), harbor, pokiState, equipCharacterProp, clearCharacterProp, startGuide, guideState, demoState, progress: () => ({ ...progressState() }), progressCue: activeCue, progressFacts, isGuided, switchToFreeBuild, sessionLog, goalUiState, canBuild, fishingAllowed,
   tryPlace: (type, sel, pick = null) => { const problem = placementProblem(type, sel, pick); return problem ? { problem } : { block: placeBlock(type, sel, pick ? (type === 'res' ? { variant: pick.kind, picked: true } : { kind: pick.kind, picked: true }) : null) }; }, callKitsune, kitsune, serviceReady, stageService, hoursOf, isOpen, signalState, routeVaried, placeBlock, removeBlock, rebuildUnitMesh, unitCap, blocks, residents, flocks, workers, trucks, DONE, characterAvailable, cell, cells, cam, fastForward, demoTown, setTool, STATION,
   setHour: h => { S.T = Math.floor(S.T / 24) * 24 + h; }, setDay: (d, h = 12) => { S.T = (d - 1) * 24 + h; }, festivalDay, routeCells, setSpeed: s => { S.speed = s; }, get T() { return S.T; }, households, save, clearSave, setFollow, terrainY, makeCar, moveAlong, carMeshes, scene, openHill, hill, signalCells, canalCells,
@@ -200,7 +205,7 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
   else if (new URLSearchParams(location.search).has('demo')) demoTown();
   placeLandmarks();   // after the town is back, so the lighthouse, bridge and pavilion keep clear of anything already built
   // the title screen on a plain visit (src/title.js); straight in after choosing a town or an island, and in test tabs
-  const entered = initMenus({ townIsFresh: () => blocks.filter(b => b.type !== 'station').length === 0, onStart: () => playOpening(() => { const i = document.getElementById('intro'); if (i) i.hidden = false; }), onReplay: () => playOpening() });
+  const entered = initMenus({ townIsFresh: () => blocks.filter(b => b.type !== 'station').length === 0, onStart: () => { if (POKI && isGuided()) document.getElementById('intro')?.remove(); else playOpening(() => { const i = document.getElementById('intro'); if (i) i.hidden = false; }); }, onReplay: () => playOpening() });
   if (entered !== 'title') pokiPlayOnInteraction();   // Poki: no menu to close on this path, so the start is reported on the first input
   // Guided Town (src/progress.js): a saved town keeps its mode; a new town is guided unless the New town page chose Free Build;
   // scratch/test tabs are Free Build unless ?guided asks for the guide
@@ -209,6 +214,7 @@ placeStation(); initFerry();   // the slipway and yard beside the pier; cars and
     if (isGuided()) S.guide = 'done'; }   // the five-step guide of 2026-10-05 stands down for the goal card
   initDemo();
   initGoalUi({ setTool, jetty: () => { const P = pierFrame(); return P ? P.at(P.len - 0.1, 0) : null; } });
+  initPokiOnboarding({ setTool, follow: setFollow, gate: setPlacementGate, save: () => { if (!scratch) save(); } });
   initGuide({ drawnCount: () => cells.filter(c => c.type === 'road' && c.drawn).length, pulse: tool => document.querySelectorAll('.tool').forEach(b => b.classList.toggle('guide', !!tool && b.dataset.tool === tool)) });
   if (guideWanted()) S.guide = 'pending';   // a fresh, kept town: the guide starts once the welcome card is gone
   if (entered === 'title') { const i = document.getElementById('intro'); if (i) i.hidden = true; }

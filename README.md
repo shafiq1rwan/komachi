@@ -328,3 +328,7 @@ Kenney's Car Kit (CC0), both recoloured per owner;
 Komachi is made by Saiss. © 2026 Saiss, all rights reserved: see [LICENSE](LICENSE). The code is published for viewing, not
 for reuse or redistribution. Kenney's models are CC0; the fonts and icons keep their own licences; the music is credited in
 `assets/audio/CREDITS.md`. Until 2026-09-29 the repository was MIT; copies taken under that licence keep its terms.
+
+### First minute on Poki
+
+New Guided Towns on Poki start with a connected street and one highlighted home placement. The introduction can be skipped. Builders and households still arrive by train; the first home, shop and workplace build faster during the opening. A named neighbour invites you to choose a bakery, ramen shop or konbini. Your shop?s first real customer earns terrace homes, then normal town goals continue. This opening aims to make the first three minutes rewarding; retention still needs live playtesting.

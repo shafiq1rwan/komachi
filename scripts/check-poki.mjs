@@ -51,6 +51,7 @@ try {
   await page.keyboard.press('Escape'); await sleep(600);
   const after = await page.evaluate(() => ({ menu: document.getElementById('menu').classList.contains('show'), calls: MT.pokiState().calls, ready: MT.pokiState().ready, playing: MT.pokiState().playing }));
   check('play began after Start', !after.menu, JSON.stringify(after));
+  check('Escape skips the focused home spotlight and restores control', await page.evaluate(() => !MT.pokiOnboardingState().locked && MT.pokiOnboardingState().stage === 'skipped'));
   check('gameplayStart sent (when the SDK is live)', !after.ready || after.calls.includes('gameplayStart'), after.calls.join(' ') || 'no SDK');
   await page.keyboard.press('Escape'); await sleep(300);
   const paused = await page.evaluate(() => ({ menu: document.getElementById('menu').classList.contains('show'), calls: MT.pokiState().calls, ready: MT.pokiState().ready }));

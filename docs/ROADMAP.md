@@ -402,3 +402,7 @@ the phases above, roughly in order of payoff:
 2. Build, then verify with headless Edge screenshots and `npm run lint && npm run build && npm test`.
 3. Update CHANGELOG.md (Unreleased), README.md, docs/ARCHITECTURE.md and this file.
 4. Tick the phase here and refresh the handoff section in CLAUDE.md.
+
+### Poki first neighbourhood (2026-10-08)
+
+Implemented a short, skippable home spotlight and a connected starter street for new Guided Towns on Poki. Optional resident requests follow, with quicker first construction and terrace homes earned by a shop customer. Measure real retention against the previous opening before extending mandatory steps.

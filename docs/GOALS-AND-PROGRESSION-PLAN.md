@@ -393,3 +393,9 @@ the home was placed; the household moved in 9.3 h later (93 s). Within the targe
 **Limitations and remaining work.** Level-up thumbnails are names with icons, not pictures. The street-exit and plot cues cap at
 40 cells. "Show me where" moves the camera at once rather than gliding. Levels 5–10 (Phase 5) are not built. The old guide.js still
 serves a fresh Free Build town.
+
+## Poki first-neighbourhood experiment (2026-10-08)
+
+Poki players reportedly leave around one minute and ignore the goal sequence. New guided Poki towns now bypass the carriage cinematic, start with three connected road cells and spotlight one valid home plot. Skip immediately restores free control; after home placement all requests are optional. The first site of each of res/shop/work receives 4?/5?/3? construction progress (only when its actual crew is working) during up to 180 active seconds. Train waits are capped at 0.3 game hours during that period. Household arrival prompts a choice of bakery, ramen or konbini; existing shops are recognised. A normal routed visit is encouraged and real customer counts earn early terrace access. The reward is saved independently of town level; it never opens unrelated buildings. Normal chapters continue afterward. These are pacing assists, not a guarantee of retention or wall-clock deadlines.
+
+Opening QA uses 1/60-second simulation steps at 1? without rendering each step. On seed 2026, the first family moved in after about 40?45 active seconds and the bakery?s first real customer arrived at about 81 seconds. The requesting neighbour waits at home for the corner shop during the short introduction, so commuting cannot consume the first visit opportunity. An employee returning for an explicit shopping errand counts as a customer; arriving for work still does not. These are simulation pacing measurements, not measured Poki retention.

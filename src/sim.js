@@ -548,9 +548,21 @@ function restoreHousehold(d, home) { const hh = { id: d.id, kind: d.kind, size: 
 const trainListeners = [];
 function onTrain(fn) { trainListeners.push(fn); }
 let nextTrain = 7.4;
+let introductoryPace = () => false;
+export function setIntroductoryPace(fn) { introductoryPace = fn; }
+export function awaitCornerShop() {
+  const r = residents.find(r => r.home && !r.movingIn && r.state === 'inside' && r.at === r.home);
+  if (r) { r.next = Math.max(r.next, S.T + 0.4); r.activity = 'looking forward to the new corner shop'; }
+}
+export function inviteNeighbour(shop) {
+  if (!shop || shop.stage !== DONE || !isOpen(shop, hourOf())) return false;
+  const r = residents.find(r => r.home && !r.movingIn && r.state === 'inside' && r.at === r.home);
+  return !!r && go(r, shop.units[0], 'visiting the new corner shop', 'shop');
+}
 const arrivals = [];             // pending arrivals: { t, r } (r = a resident returning from the city, else a newcomer)
 const nextTrainAt = () => nextTrain;
 function updateStation() {
+  if (introductoryPace()) nextTrain = Math.min(nextTrain, S.T + 0.3);
   if (S.T >= nextTrain) {
     const h = hourOf();
     if (h < 5.9) nextTrain = Math.floor(S.T / 24) * 24 + 6;
@@ -761,8 +773,9 @@ function arrive(r) {
   if ((tr.dest.cell.h || 0) > 0) hillVisits++;   // someone made it up the hill
   if (tr.dest.removed) { returnToStation(r, endPos); return; }
   if (r.rodOut) putRodAway(r);
+  const shopping = r.purpose === 'shop';
   enterUnit(r, tr.dest);
-  if (tr.dest.block.type === 'shop' && tr.dest !== r.job) { tr.dest.block.visitScore += 1; tr.dest.block.visitsToday = (tr.dest.block.visitsToday || 0) + 1; }
+  if (tr.dest.block.type === 'shop' && (tr.dest !== r.job || shopping)) { tr.dest.block.visitScore += 1; tr.dest.block.visitsToday = (tr.dest.block.visitsToday || 0) + 1; }
 }
 function cellAt(p) { return cell(Math.floor(p.x + HALF), Math.floor(p.z + HALF)); }
 
@@ -1358,7 +1371,7 @@ function updateBlocks(dh) {
   for (const b of blocks) {
     if (b.type === 'station') continue;
     if (b.stage < DONE) {
-      b.stageT += dh * progressRate(b);
+      b.stageT += dh * progressRate(b) * (introductoryPace(b) ? (b.type === 'shop' ? 5 : b.type === 'res' ? 4 : 3) : 1);
       if (b.type === 'res' && b.stage === DONE - 1 && !b.summoned) { b.summoned = true; for (const u of b.units) for (const size of splitHouseholds(unitCap(u))) bookings.push({ hh: makeHousehold(size, u) }); }
       if (b.stageT >= stageHours(b)[b.stage]) {
         b.stage++; b.stageT = 0; for (const u of b.units) rebuildUnitMesh(u, true); if (b.stage === DONE) { celebrateBuilding(b); toast(`${b.name} is finished`); if (b.type === 'civic') { refreshCivicFlags(); record(`${b.name} opened`); } else if (!blocks.some(x => x !== b && x.type === b.type && x.stage === DONE)) record(b.type === 'res' ? `The first home, ${b.name}, was finished` : b.type === 'shop' ? `The first shop, ${b.name}, opened` : `The first workplace, ${b.name}, opened`); }

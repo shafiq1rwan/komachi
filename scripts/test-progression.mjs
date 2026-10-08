@@ -92,4 +92,11 @@ ok('HUD progress follows the next level, includes population progress, and keeps
   evaluate(s, facts({ housed: 10 })); p = nextLevelProgress(s, facts());
   assert.equal(p.next, null); assert.equal(p.fraction, 1);
 });
+ok('first-customer terrace reward persists without opening other locked buildings', () => {
+  const s = fresh(); s.entitlements.push('poki-first-customer-terrace');
+  const restored = normalise(JSON.parse(JSON.stringify(s)));
+  assert.ok(available(restored, 'res', 'terrace'));
+  assert.equal(available(restored, 'res', 'apartment'), false);
+  assert.equal(levelOf(restored), 1);
+});
 console.log(`progression core: ${n} checks passed`);

@@ -105,6 +105,7 @@ export function unlockLevel(type, kind) {
 }
 /** may the player build this kind now? */
 export function available(s, type, kind) {
+  if (type === 'res' && kind === 'terrace' && s.entitlements.includes('poki-first-customer-terrace')) return true;
   if (s.mode !== 'guided' || s.entitlements.includes(RELEASE_BRIDGE)) return true;
   const lv = unlockLevel(type, kind); return lv !== null && lv <= levelOf(s);
 }

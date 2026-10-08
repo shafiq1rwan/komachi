@@ -320,3 +320,9 @@ to stand on the front half of each cell. sim.js adds a strong option to `decide(
 landmark walk (`visitLandmark(r, from, eventVisit())`, with a bag home from the market); tourists.js gives festival visitors an
 'event' step. Lantern emissive, one warm PointLight over the square and the fireworks are driven by `updateEvents(dt, realT, night)`
 from the main loop and fastForward; `onEventStart` lets main.js show the milestone card for the first festival.
+
+## Poki opening
+
+`poki-onboarding.js` is coordinated by main.js after progress and menus initialise. It uses an input placement gate for one exact plot, projects a noninteractive spotlight onto the world, and offers optional requests after placement. sim.js accepts a pacing callback for the first residential, shop and work sites, and shorter train waits during the introduction. It also exposes a normal routed shop visit for a housed neighbour; the reward requires actual visit counts. Saved progression entitlements hold start, skip, welcome, completion and the early terrace reward without changing the snapshot format. Existing saves without the opening marker are excluded. The normal web and desktop openings are unchanged.
+
+Validation: `node scripts/check-poki-opening.mjs` exercises actual mouse placement, normal-speed family arrival and shop visits, earned reward availability, mobile layout and Skip against dist-poki.

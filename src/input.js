@@ -16,6 +16,8 @@ import { openMenu, menuOpen, menuEscape } from './title.js';
 import { initPhoto, enterPhoto, exitPhoto, photoActive } from './photo.js';
 
 let tool = 'explore', pinned = null, hovered = null, follow = null;
+let placementGate = () => true;
+export function setPlacementGate(fn) { placementGate = fn; }
 const ptr = { x: 0, y: 0, ndc: new THREE.Vector2(), down: false, button: 0, panning: false, moved: 0, sel: null, last: { x: 0, y: 0 } };
 const raycaster = new THREE.Raycaster(); const groundPlane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0); const hitP = new THREE.Vector3();
 const keys = new Set();
@@ -66,6 +68,7 @@ function groundCell() {
 }
 function setNdc(e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); }
 function selectable(c, sel) {
+  if (!placementGate(tool, c, sel)) return false;
   const pk = currentPick(), max = tool === 'park' ? 2 : pk ? Math.max(...pk.sizes) : isGuided() ? autoMax(tool) : 3;   // a picked kind caps the drag at its largest size; Auto at the largest open size
   if (!placeable(c, sel) || sel.includes(c) || sel.length >= max) return false;
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);

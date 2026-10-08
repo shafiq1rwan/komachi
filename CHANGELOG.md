@@ -8,6 +8,11 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+## [0.4.3] - 2026-10-08
+
+Poki first neighbourhood: a ready street, a spotlit first home, faster first builds and trains, a neighbour who asks for a corner shop, terrace homes earned by a real first customer.
+- Poki first neighbourhood: a ready connected street, one skippable home-placement spotlight, quicker initial construction and trains, a named neighbour?s choice of corner shop, and terrace homes earned by a real first customer. Returning towns keep their progress; the desktop and ordinary web opening stay unchanged.
+
 ## [0.4.2] - 2026-10-08
 
 Poki: hidden tabs stop the playtime count.
