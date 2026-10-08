@@ -19,8 +19,8 @@ npm run app:build  # Windows installer + portable exe in release/
 node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
                                   # the user's scripts/edit-promo-trailer.py (Python, Pillow + imageio-ffmpeg) cuts it into output/trailer/promo/ (the deliverables)
 node scripts/build-itch-theme.mjs # itch cover, banner and background at itch's sizes into output/itch/theme/
-npm run build:poki && npm run check:poki && npm run pack:poki   # the Poki build: dist-poki/, headless rule checks, output/poki/komachi-poki.zip
-npm run build:demo && npm run check:demo && npm run pack:demo   # the free web demo for the itch page: dist-demo/, checks, output/demo/komachi-demo.zip
+npm run build:poki && npm run check:poki && npm run pack:poki   # the Poki build: dist-poki/, headless rule checks, output/poki/komachi-poki-<version>.zip
+npm run build:demo && npm run check:demo && npm run pack:demo   # the free web demo for the itch page: dist-demo/, checks, output/demo/komachi-demo-<version>.zip
 ```
 
 Always run lint → build → test after changes, then eyeball `scripts/out/day.png` and `night.png`.
@@ -492,7 +492,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Where things stand (handoff for a fresh session)
 
-Version 0.3.1 shipped 2026-10-05 (tags v0.3.0 and v0.3.1: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
+Version 0.4.0 shipped 2026-10-08 (tags v0.3.0, v0.3.1 and v0.4.0: Guided Town, HUD, Poki title, demo: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
 complete and verified (lint, build, `npm test`, screenshots). Between phases the user asked for and got:
 zoning over streets, visible avenue lines, hip-height benches, a clear station entrance, plaza detours,
 taller vending machines, a nine-cell station highlight, and a wooded hill with a shrine (the mountain

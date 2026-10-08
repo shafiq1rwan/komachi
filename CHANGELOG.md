@@ -8,6 +8,13 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+## [0.4.0] - 2026-10-08
+
+Guided Town: goals, levels and building unlocks, the rearranged HUD, the Poki title, the browser demo, the toy fish and the fight.
+
+### Added
+
+- The Poki and demo zips carry the version in their names (komachi-poki-0.4.0.zip, komachi-demo-0.4.0.zip).
 - HUD rearranged for the goals (2026-10-08): the top-left card is the town's figures alone, icon pills behind the fold toggle, with
   no icon or wordmark; a level card sits at the top centre (Town Level, its title, the chapter's progress bar) in guided towns;
   the goal card hangs under the top-left card; notices now slide in under the clock at the top right, above the inspect card.

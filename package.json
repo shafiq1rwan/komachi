@@ -21,7 +21,7 @@
     "check:poki": "node scripts/check-poki.mjs",
     "build:demo": "vite build --mode demo",
     "check:demo": "node scripts/check-demo.mjs",
-    "pack:demo": "node scripts/pack-poki.mjs dist-demo output/demo/komachi-demo.zip"
+    "pack:demo": "node scripts/pack-poki.mjs dist-demo"
   },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.7.2",

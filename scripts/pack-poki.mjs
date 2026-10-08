@@ -7,7 +7,8 @@
 import { existsSync, mkdirSync, readdirSync, statSync, readFileSync, writeFileSync } from 'node:fs';
 import { deflateRawSync } from 'node:zlib';
 import { join } from 'node:path';
-const dist = process.argv[2] || 'dist-poki', out = process.argv[3] || 'output/poki/komachi-poki.zip';
+const version = JSON.parse(readFileSync('package.json', 'utf8')).version;   // the zip carries the version so uploads are never confused
+const dist = process.argv[2] || 'dist-poki', out = (process.argv[3] || (dist === 'dist-demo' ? 'output/demo/komachi-demo' : 'output/poki/komachi-poki')).replace(/.zip$/, '') + '-' + version + '.zip';
 if (!existsSync(dist + '/index.html')) { console.error(dist + '/ missing: run the matching build first'); process.exit(1); }
 if (existsSync(dist + '/sw.js')) { console.error(dist + '/sw.js must not exist: this build has no service worker'); process.exit(1); }
 mkdirSync(out.replace(/\/[^/]+$/, ''), { recursive: true });
