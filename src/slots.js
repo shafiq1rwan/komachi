@@ -45,6 +45,9 @@ export function writeSlot(id, d, thumb = null) {
   return true;
 }
 /** a new town: its slot is made now (empty until the first save) and it becomes the one to play */
+/** the New town page's choice (guided | free) for the town the page reloads into; main.js reads and clears it */
+export function setNewMode(mode) { try { sessionStorage.setItem('komachi.newmode', mode); } catch { /* no session storage */ } }
+export function takeNewMode() { try { const m = sessionStorage.getItem('komachi.newmode'); sessionStorage.removeItem('komachi.newmode'); return m; } catch { return null; } }
 export function newSlot(name, seed, biome) {
   const id = 'town-' + Date.now().toString(36), list = listSlots();
   list.push({ id, name: name || 'New town', seed, biome, savedAt: Date.now(), day: 1, pop: 0, fresh: true }); writeIndex(list); set(ACTIVE, id);

@@ -23,7 +23,7 @@ const unlock = () => {
 };
 /** Original short noise pop and warm rising chime; clustered completions share one sound. */
 function playCompletionSound() {
-  if (!unlocked || !A.effects || !A.volume || !context || context.state !== 'running') return;
+  if (!unlocked || muted || !A.effects || !A.volume || !context || context.state !== 'running') return;
   const t = context.currentTime;
   if (t - lastPop < 0.12) return;
   lastPop = t;
@@ -44,6 +44,19 @@ function playCompletionSound() {
   }
 }
 addEventListener('pointerdown', unlock, { once: true }); addEventListener('keydown', unlock, { once: true });
+
+/** A distinct original fanfare for earned town levels, respecting effects and commercial-break mute. */
+export function playLevelUpSound() {
+  if (!unlocked || muted || !A.effects || !A.volume || !context || context.state !== 'running') return;
+  [523.25, 659.25, 783.99, 1046.5, 1318.5].forEach((hz, i) => {
+    const note = context.createOscillator(), gain = context.createGain(), start = context.currentTime + i * 0.115;
+    note.type = 'sine'; note.frequency.value = hz;
+    gain.gain.setValueAtTime(0, start); gain.gain.linearRampToValueAtTime(A.volume * 0.09, start + 0.018);
+    gain.gain.exponentialRampToValueAtTime(0.001, start + 0.5);
+    note.connect(gain); gain.connect(context.destination); note.start(start); note.stop(start + 0.52);
+    note.onended = () => { note.disconnect(); gain.disconnect(); };
+  });
+}
 
 /** Small original fishing cues use the same effects, volume and commercial-break settings. */
 function playFishingSound(kind) {

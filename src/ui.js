@@ -137,12 +137,20 @@ function renderInspect(target, follow = null) {
   }
   ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker || target.tourist));
 }
+function setStat(el, value) {
+  const before = Number(el.textContent); if (before === value) return;
+  el.textContent = value;
+  if (value > before && el.closest('.stat') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    el.getAnimations().forEach(a => a.cancel());
+    el.animate([{ transform: 'scale(1)', color: '#2e514b' }, { transform: 'scale(1.2)', color: '#b4924f', offset: 0.35 }, { transform: 'scale(1)', color: '#2e514b' }], { duration: 650, easing: 'ease-out' });
+  }
+}
 function updateStats() {
-  ui.pop.textContent = residents.length;
-  ui.homes.textContent = blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
+  setStat(ui.pop, residents.filter(r => r.home && !r.movingIn && !r.home.removed).length);
+  setStat(ui.homes, blocks.filter(b => b.type === 'res' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0));
   ui.jobs.textContent = jobUnits().reduce((s, u) => s + Math.max(0, unitCap(u) - u.staff.length), 0);   // open positions, not total
   ui.seek.textContent = residents.filter(r => r.home && !r.job && !r.commuter).length;
-  ui.shops.textContent = blocks.filter(b => b.type === 'shop' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0);
+  setStat(ui.shops, blocks.filter(b => b.type === 'shop' && b.stage === DONE).reduce((s, b) => s + b.units.length, 0));
   ui.wait.textContent = residents.filter(r => !r.home).length;
 }
 

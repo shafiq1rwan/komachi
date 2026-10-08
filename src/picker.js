@@ -10,6 +10,9 @@ import { glowMat } from './geometry.js';
 import { rebuildUnitMesh } from './buildings.js';
 import { townGroup, disposeGroup } from './scene.js';
 import { PAL, ROOFS, WALLS, SHOP_WALLS, WORK_WALLS, AWNINGS } from './palette.js';
+import { canBuild, lockText, isGuided, autoMax, onProgress } from './progress.js';
+import { toast } from './toast.js';
+import { levelRewards } from './progression.js';
 
 const KINDS = {
   res: ['detached', 'narrow', 'terrace', 'apartment', 'manshon'],
@@ -19,6 +22,7 @@ const KINDS = {
   farm: ['field', 'greenhouse', 'paddy'],
 };
 const SINGLE = new Set(['townhall', 'firestation', 'community']);
+const newKinds = new Set();
 const SHORT = { detached: 'House', narrow: 'Narrow house', terrace: 'Terrace', apartment: 'Apartments', manshon: 'Manshon', konbini: 'Konbini', arcade: 'Arcade', recycling: 'Recycling', community: 'Community', waterworks: 'Water works', field: 'Field', paddy: 'Paddies', bathhouse: 'Bath house', square: 'Square' };
 /** the block sizes a kind comes in, from the tiers (a konbini 1, a restaurant 2, a factory 3, a public bath 2 or 3) */
 const sizesOf = (type, kind) => [1, 2, 3].filter(n => (TIERS[type][n] || []).includes(kind));
@@ -64,18 +68,22 @@ addEventListener('resize', layout);
 const label = (type, kind) => SHORT[kind] || KIND_LABEL[kind] || kind;
 function render(type) {
   if (pick && taken(pick.kind)) pick = null;   // a one-of-a-kind building that now stands: back to Auto
-  const chips = [`<button class="chip auto${!pick ? ' on' : ''}" data-kind=""><span class="thumb auto-thumb"><i class="fa-solid fa-wand-magic-sparkles"></i></span><b>Auto</b><small>any size</small></button>`];
+  const am = isGuided() ? autoMax(type) : 3;
+  const chips = [`<button class="chip auto${!pick ? ' on' : ''}" data-kind=""><span class="thumb auto-thumb"><i class="fa-solid fa-wand-magic-sparkles"></i></span><b>Auto</b><small>${am >= 3 ? 'any size' : am === 2 ? 'up to 2 cells' : 'one cell'}</small></button>`];
   for (const k of KINDS[type]) {
-    const sz = sizesOf(type, k), off = taken(k), on = pick && pick.kind === k;
-    chips.push(`<button class="chip${on ? ' on' : ''}${off ? ' off' : ''}" data-kind="${k}"${off ? ' disabled' : ''}><span class="thumb"><img data-thumb="${type}:${k}" alt="" src="${thumbs.get(type + ':' + k) || ''}"></span><b>${label(type, k)}</b><small>${off ? 'built' : sz.length > 1 ? `${sz[0]}–${sz[sz.length - 1]} cells` : `${sz[0]} cell${sz[0] > 1 ? 's' : ''}`}</small></button>`);
+    const sz = sizesOf(type, k), off = taken(k), on = pick && pick.kind === k, locked = !canBuild(type, k);
+    if (locked) { chips.push(`<button class="chip locked" data-kind="${k}" data-lock="${lockText(type, k)}" aria-disabled="true" data-tip="${lockText(type, k)}"><span class="thumb"><img data-thumb="${type}:${k}" alt="" src="${thumbs.get(type + ':' + k) || ''}"><i class="fa-solid fa-lock"></i></span><b>${label(type, k)}</b><small>${lockText(type, k).replace(/^Unlocks /, '')}</small></button>`); continue; }
+    chips.push(`<button class="chip${on ? ' on' : ''}${off ? ' off' : ''}${newKinds.has(type + ':' + k) ? ' fresh-unlock' : ''}" data-kind="${k}"${off ? ' disabled' : ''}><span class="thumb"><img data-thumb="${type}:${k}" alt="" src="${thumbs.get(type + ':' + k) || ''}">${newKinds.has(type + ':' + k) ? '<span class="pk-new">NEW</span>' : ''}</span><b>${label(type, k)}</b><small>${off ? 'built' : sz.length > 1 ? `${sz[0]}–${sz[sz.length - 1]} cells` : `${sz[0]} cell${sz[0] > 1 ? 's' : ''}`}</small></button>`);
   }
   strip.innerHTML = wrap(chips.join(''));
   afterRender(); queueThumbs(type);
 }
 strip.addEventListener('click', e => {
   const b = e.target.closest('.chip'); if (!b || b.disabled) return;
+  if (b.dataset.lock) { toast(`${b.querySelector('b').textContent}: ${b.dataset.lock.toLowerCase()}`); return; }   // a locked chip explains itself and stays unpicked
   if (b.dataset.mode) { if (modeCb) modeCb(b.dataset.mode); return; }
   const k = b.dataset.kind; pick = k ? { type: openType, kind: k, sizes: sizesOf(openType, k) } : null;
+  newKinds.delete(openType + ':' + k); b.classList.remove('fresh-unlock'); b.querySelector('.pk-new')?.remove();
   for (const c of strip.querySelectorAll('.chip')) c.classList.toggle('on', c === b);
 });
 /** input.js: the tool changed; the strip opens for the zone tools and closes for the rest (the pick resets with the tool) */
@@ -85,10 +93,34 @@ function pickerForTool(t) {
   else { openType = null; pick = null; strip.classList.remove('show'); document.body.classList.remove('picking'); }
 }
 const currentPick = () => pick;
+/** progress.js: availability changed (a level, Free Build): a stale pick goes, an open strip redraws */
+onProgress(events => {
+  for (const e of events) if (e.type === 'level' && !e.quiet) for (const r of levelRewards(e.level)) if (r.type !== 'fishing') newKinds.add(r.type + ':' + r.kind);
+  if (pick && !canBuild(pick.type, pick.kind)) pick = null;
+  if (openType && KINDS[openType] && strip.classList.contains('show')) render(openType);
+});
 const pickLabel = () => pick ? label(pick.type, pick.kind) : null;
+/** Reward action: select the actual earned building instead of leaving the catalogue on Auto. */
+export function selectBuilding(type, kind) {
+  if (!KINDS[type]?.includes(kind) || !canBuild(type, kind) || taken(kind)) return false;
+  pickerForTool(type); pick = { type, kind, sizes: sizesOf(type, kind) };
+  newKinds.delete(type + ':' + kind); render(type); return true;
+}
 
 // ── thumbnails: each kind built once off-grid, rendered by a small renderer of its own, kept as an image ──
 const thumbs = new Map(), queue = [];
+const thumbWaiters = new Map();
+/** Share real model previews between the picker and unlock reveal, one render per animation frame. */
+export function buildingThumbnail(type, kind) {
+  if (!KINDS[type]?.includes(kind)) return Promise.resolve('');
+  const key = type + ':' + kind;
+  if (thumbs.has(key)) return Promise.resolve(thumbs.get(key));
+  return new Promise(resolve => {
+    const waiters = thumbWaiters.get(key) || []; waiters.push(resolve); thumbWaiters.set(key, waiters);
+    if (!queue.includes(key)) queue.unshift(key);
+    if (!busy) pump();
+  });
+}
 let tr = null, tscene = null, tcam = null, busy = false;
 function queueThumbs(type) { for (const k of KINDS[type]) if (!thumbs.has(type + ':' + k) && !queue.includes(type + ':' + k)) queue.push(type + ':' + k); if (!busy) pump(); }
 function pump() {
@@ -96,11 +128,12 @@ function pump() {
   busy = true; const key = queue.shift();
   try { thumbs.set(key, drawThumb(...key.split(':'))); } catch (err) { console.warn('Komachi: thumbnail skipped', key, err); thumbs.set(key, ''); }
   const img = strip.querySelector(`img[data-thumb="${key}"]`); if (img) img.src = thumbs.get(key);
+  for (const resolve of thumbWaiters.get(key) || []) resolve(thumbs.get(key)); thumbWaiters.delete(key);
   requestAnimationFrame(pump);   // one a frame, so opening the strip never stalls
 }
 function drawThumb(type, kind) {
   if (!tr) {
-    tr = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); tr.setSize(144, 112, false); tr.setPixelRatio(1);
+    tr = new THREE.WebGLRenderer({ antialias: true, alpha: true, preserveDrawingBuffer: true }); tr.setSize(432, 336, false); tr.setPixelRatio(1);
     tr.outputColorSpace = THREE.SRGBColorSpace; tr.toneMapping = THREE.ACESFilmicToneMapping; tr.toneMappingExposure = 1.05;
     tscene = new THREE.Scene(); tscene.add(new THREE.HemisphereLight('#eef4f0', '#d9c8ad', 1.1)); const sun = new THREE.DirectionalLight('#fff2dc', 1.9); sun.position.set(-3, 6, 4); tscene.add(sun);
     tcam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0.1, 50);

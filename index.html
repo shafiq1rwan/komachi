@@ -27,18 +27,20 @@
 
 <header id="hud">
   <div id="brand" class="card">
-    <h1 aria-label="Komachi"><img class="brand-icon" src="./assets/brand/komachi-icon.png" alt="" width="44" height="44"><span>Komachi</span></h1>
     <button class="icon-btn" id="btn-options" data-tip="Settings"><i class="fa-solid fa-gear"></i></button>
-    <button class="icon-btn on" id="btn-stats" data-tip="Town figures" aria-expanded="true"><i class="fa-solid fa-chart-simple"></i></button>
-    <div id="stats" class="fold">
-      <span class="stat" data-tip="People living here"><i class="fa-solid fa-user"></i><b id="s-pop">0</b></span>
-      <span class="stat" data-tip="Finished homes"><i class="fa-solid fa-house"></i><b id="s-homes">0</b></span>
-      <span class="stat" data-tip="Open jobs at shops and workspaces"><i class="fa-solid fa-briefcase"></i><b id="s-jobs">0</b></span>
-      <span class="stat" data-tip="Residents looking for work"><i class="fa-solid fa-magnifying-glass"></i><b id="s-seek">0</b></span>
-      <span class="stat" data-tip="Shops open"><i class="fa-solid fa-store"></i><b id="s-shops">0</b></span>
-      <span class="stat" data-tip="Waiting at the station"><i class="fa-solid fa-train-subway"></i><b id="s-wait">0</b></span>
+    <div id="stats">
+      <span class="stat" data-tip="People living here"><small>Population</small><b id="s-pop">0</b></span>
+      <span class="stat" data-tip="Finished homes"><small>Homes</small><b id="s-homes">0</b></span>
+      <span class="stat" data-tip="Shops open"><small>Shops</small><b id="s-shops">0</b></span>
+    </div>
+    <button id="btn-stats" type="button" aria-label="More town statistics" aria-controls="stats-details" aria-expanded="false">More <i class="fa-solid fa-chevron-down"></i></button>
+    <div id="stats-details" class="collapsed">
+      <span><small>Open jobs</small><b id="s-jobs">0</b></span>
+      <span><small>Seeking work</small><b id="s-seek">0</b></span>
+      <span><small>Waiting at station</small><b id="s-wait">0</b></span>
     </div>
   </div>
+  <button id="level-hud" type="button" hidden aria-label="View town progress"><b id="lh-level">Level 1</b><span class="lh-bar"><i id="lh-fill"></i></span><span id="lh-chapter">0/2</span></button>
   <div id="clock" class="card">
     <div id="sun"></div>
     <div id="clock-text"><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
@@ -102,6 +104,8 @@
   <div class="opt-row"><span>Smooth edges</span><button class="switch" data-toggle="msaa" role="switch"></button></div>
   <div class="opt-row"><span>Pixel look<small>half resolution, chunky</small></span><button class="switch" data-toggle="pixel" role="switch"></button></div>
   <div class="opt-row"><span>Show frame rate</span><button class="switch" data-toggle="showFps" role="switch"></button></div>
+  <div class="opt-sec" id="opt-town-sec">Town</div>
+  <div class="opt-row" id="opt-mode"><span>Guided Town<small>goals, levels and buildings that open as the town grows</small></span><button class="cta ghost small" id="opt-free">Switch to Free Build</button></div>
   <div class="opt-btns"><button class="cta ghost" id="opt-install" hidden><i class="fa-solid fa-mobile-screen-button"></i> Install as an app</button></div>
 </div>
 <div id="menu" role="dialog" aria-label="Main menu"></div>

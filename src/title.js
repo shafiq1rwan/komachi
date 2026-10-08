@@ -6,7 +6,8 @@
 // seed when the page loads.
 import { S } from './state.js';
 import { save, holdSaves, requestThumb, saveStatus } from './save.js';
-import { listSlots, activeId, setActive, newSlot, renameSlot, deleteSlot, scratch, readSlot, writeSlot } from './slots.js';
+import { listSlots, activeId, setActive, newSlot, renameSlot, deleteSlot, scratch, readSlot, writeSlot, setNewMode } from './slots.js';
+import { switchToFreeBuild, isGuided } from './progress.js';
 import { BIOMES } from './biome.js';
 import { toast } from './toast.js';
 import wordmarkUrl from '../assets/brand/komachi-wordmark.png';   // the user's wordmark with its tagline (trimmed from komachi-wordmark-reference.png)
@@ -15,6 +16,7 @@ import pkg from '../package.json';
 import { listPhotos, countPhotos, updatePhoto, deletePhoto, deleteTownPhotos } from './album.js';
 import { POKI, pokiPlay, pokiPause, pokiBreak } from './poki.js';
 import { DEMO, STORE_URL, toggleFullscreen, fullscreenAllowed } from './demo.js';
+import { audioState } from './audio.js';
 
 const root = document.getElementById('menu');
 const PLACE = ['Hinata', 'Minato', 'Kogane', 'Sakurazaka', 'Umibe', 'Aozora', 'Tsukimi', 'Hoshino', 'Kawabe', 'Midori', 'Nagisa', 'Asahi'];
@@ -36,14 +38,16 @@ function savedLine() {
 root.innerHTML = `<div class="mm-bg" style="background-image:url('${bgUrl}')"></div>
   <div class="mm-side">
     <h1 class="mm-logo"><img src="${wordmarkUrl}" alt="Komachi: small cities, brighter tomorrows" width="820" height="318"></h1>
-    <p class="mm-blurb">Draw a few streets, zone homes and shops, and watch a little town find its rhythm.</p>
+    <p class="mm-blurb">${POKI ? 'Build a little town. Watch it come to life.' : 'Draw a few streets, zone homes and shops, and watch a little town find its rhythm.'}</p>
     <div class="mm-page"></div>
     <div class="mm-card"></div>
-    <div class="mm-foot"><span>v${esc(pkg.version)} · a cosy town on an island</span><span class="mm-foot-motto">People. Places. Small moments.</span></div>
+    <div class="mm-foot">${POKI ? '<span>Progress saves automatically.</span>' : `<span>v${esc(pkg.version)} · a cosy town on an island</span><span class="mm-foot-motto">People. Places. Small moments.</span>`}</div>
   </div>
+  ${POKI ? '<button class="mm-sound" data-act="sound" aria-label="Sound"><i class="fa-solid fa-volume-high"></i></button>' : ''}
   <div class="mm-slogan">A kinder town<br>grows here.</div>
   <div class="mm-motto">People. Places. Small moments.</div>`;
 const page = root.querySelector('.mm-page'), cardEl = root.querySelector('.mm-card'), options = document.getElementById('options');
+function syncSound() { const b = root.querySelector('.mm-sound'); if (!b) return; const on = audioState().on; b.classList.toggle('off', !on); b.firstElementChild.className = `fa-solid ${on ? 'fa-volume-high' : 'fa-volume-xmark'}`; }
 let mode = null, wasSpeed = 1, hooks = { townIsFresh: () => false, onStart: () => {} }, optionsHome = null, photos = [];
 const isOpen = () => !!mode;
 
@@ -57,16 +61,25 @@ function saveCard() {
 }
 function park() { if (optionsHome && options.parentNode !== optionsHome.parent) { optionsHome.parent.insertBefore(options, optionsHome.next); options.classList.remove('in-menu'); } }
 function show(screen) {
-  park(); root.dataset.screen = screen; page.scrollTop = 0; const focusFirst = () => { const b = page.querySelector('.mm-btn, .mm-cta, .mm-shot, .mm-link, button:not([data-act="back"])') || page.querySelector('button'); if (b && !matchMedia('(pointer: coarse)').matches) b.focus({ preventScroll: true }); };
+  park(); root.dataset.screen = screen; page.scrollTop = 0; syncSound(); const focusFirst = () => { const b = page.querySelector('.mm-btn, .mm-cta, .mm-shot, .mm-link, button:not([data-act="back"])') || page.querySelector('button'); if (b && !matchMedia('(pointer: coarse)').matches) b.focus({ preventScroll: true }); };
   const here = listSlots().find(s => s.id === activeId()), playing = mode === 'pause';
   cardEl.hidden = screen !== 'main'; if (screen === 'main') saveCard();
   if (screen === 'main') {
     const season = s => s && s.season ? ' · ' + s.season[0].toUpperCase() + s.season.slice(1) : '';
     const first = playing ? row('resume', 'fa-play', 'Resume', here ? `${esc(here.name)} · day ${Math.floor(S.T / 24) + 1}` : '', 'main')
-      : here && !here.fresh ? row('continue', 'fa-play', 'Continue', `${esc(here.name)} · day ${here.day}${season(here)}`, 'main')
+      : here && !here.fresh ? row('continue', 'fa-play', POKI ? 'Continue' : 'Continue', `${esc(here.name)} · day ${here.day}${season(here)}`, 'main')
+      : POKI ? row('start', 'fa-play', 'Play', 'build a little town', 'main')
       : row('start', 'fa-seedling', 'Start on this island', `${esc(biomeName(S.biome))} · seed ${S.seed}`, 'main');
     const help = `<button class="mm-link" data-act="help"><i class="fa-solid fa-book-open"></i> How to play</button>`;
-    page.innerHTML = playing
+    // Poki (2026-10-08): one big Play, then Settings and How to play side by side; nothing else on the way into the town
+    if (POKI) page.innerHTML = playing
+      ? `<div class="mm-pause-head"><i class="fa-solid fa-pause"></i><b>Paused</b></div><div class="mm-list mm-simple">${row('resume', 'fa-play', 'Resume', '', 'main')}<div class="mm-row">${row('settings', 'fa-gear', 'Settings')}${row('title', 'fa-house-chimney', 'Quit')}</div></div>`
+      : `<div class="mm-list mm-simple">
+          <button class="mm-play" data-act="${here && !here.fresh ? 'continue' : 'start'}"><i class="fa-solid fa-play"></i><span>${here && !here.fresh ? 'Continue' : 'Play'}</span>${here && !here.fresh ? `<small>${esc(here.name)} · day ${here.day}</small>` : ''}</button>
+          <div class="mm-row">${row('towns', 'fa-house', 'My towns')}${row('help', 'fa-book-open', 'How to play')}</div>
+          <div class="mm-links"><button class="mm-link" data-act="settings"><i class="fa-solid fa-gear"></i> Settings</button><i class="mm-sep"></i><button class="mm-link" data-act="credits"><i class="fa-solid fa-heart"></i> Credits</button></div>
+        </div>`;
+    else page.innerHTML = playing
       ? `<div class="mm-pause-head"><i class="fa-solid fa-pause"></i><b>Paused</b>${savedLine()}</div><div class="mm-list">${row('resume', 'fa-play', 'Resume', '', 'main')}${row('album', 'fa-images', 'Album')}${row('settings', 'fa-gear', 'Settings')}${row('credits', 'fa-heart', 'Credits')}${row('title', 'fa-house-chimney', 'Save and quit to title')}</div>`
       : `<div class="mm-list">${first}${DEMO ? '' : row('new', 'fa-city', 'New town', 'a fresh town on another island') + row('towns', 'fa-folder-open', 'Load town', listSlots().length ? `${listSlots().length} kept` : '')}
         ${here && !here.fresh ? row('album', 'fa-images', 'Album', 'photos of this town') : ''}${row('settings', 'fa-gear', 'Settings')}${row('credits', 'fa-heart', 'Credits')}${row('help', 'fa-book-open', 'How to play', '', 'desk-only')}${standalone ? row('exit', 'fa-arrow-right-from-bracket', 'Exit') : ''}</div>${DEMO && fullscreenAllowed() ? `<button class="mm-link" data-act="fullscreen"><i class="fa-solid fa-expand"></i> Full screen</button>` : ''}${DEMO ? `<a class="mm-link mm-full" href="${STORE_URL}" target="_blank" rel="noopener"><i class="fa-solid fa-bag-shopping"></i> Get the full game: every town kept, photos saved, desktop app</a>` : ''}${help.replace('mm-link', 'mm-link phone-only')}`;
@@ -77,12 +90,13 @@ function show(screen) {
         <div class="mm-thumb sm"${s.thumb ? ` style="background-image:url('${s.thumb}')"` : ''}>${s.thumb ? '' : `<span class="sw">${swatch(s.biome)}</span>`}</div>
         <span class="mm-town-t"><b>${esc(s.name)}</b><small>${esc(biomeName(s.biome))} · day ${s.day} · ${s.pop} living here · ${ago(s.savedAt)}</small></span>
         <span class="mm-town-b">${s.id === activeId() ? '<em>playing</em>' : `<button class="mm-cta" data-act="play">Play</button>`}<button class="icon-btn" data-act="rename" aria-label="Rename" data-tip="Rename"><i class="fa-solid fa-pen"></i></button><button class="icon-btn" data-act="export" aria-label="Export as a file" data-tip="Export as a file"><i class="fa-solid fa-file-export"></i></button><button class="icon-btn warn" data-act="delete" aria-label="Delete" data-tip="Delete"><i class="fa-solid fa-trash-can"></i></button></span></div>`).join('') || '<p class="mm-empty">No towns yet: start one from New town.</p>'}</div>
-      <div class="mm-import"><button class="mm-link" data-act="import"><i class="fa-solid fa-file-import"></i> Import a town from a file</button><small>Exports keep the town, not its photos</small><input type="file" id="m-import" accept=".json,application/json" hidden></div>`;
+      ${POKI ? row('new', 'fa-city', 'New town', 'a fresh town on another island') : ''}<div class="mm-import"><button class="mm-link" data-act="import"><i class="fa-solid fa-file-import"></i> Import a town from a file</button><small>Exports keep the town, not its photos</small><input type="file" id="m-import" accept=".json,application/json" hidden></div>`;
   } else if (screen === 'new') {
     page.innerHTML = `<div class="mm-head">${back()}<b>New town</b></div>
       <label class="mm-field"><span>Town name</span><input id="m-name" maxlength="40" value="${esc(PLACE[Math.floor(Math.random() * PLACE.length)] + ' Town')}"></label>
       <label class="mm-field"><span>Island seed<small>the same seed always raises the same island</small></span><span class="mm-seed"><input id="m-seed" inputmode="numeric" value="${Math.floor(Math.random() * 1e9) + 1}"><button class="icon-btn" data-act="dice" aria-label="Another seed" data-tip="Another seed"><i class="fa-solid fa-dice"></i></button></span></label>
       <div class="mm-field"><span>Island theme</span><div class="mm-biomes">${Object.values(BIOMES).map((b, k) => `<button class="mm-biome${k === 0 ? ' on' : ''}" data-biome="${b.id}"><span class="sw">${swatch(b.id)}</span><b>${esc(b.name)}</b></button>`).join('')}</div></div>
+      <div class="mm-field"><span>How to play it</span><div class="mm-modes"><button class="mm-mode on" data-mode="guided"><b>Guided Town</b><small>goals, levels and buildings that open as the town grows</small></button><button class="mm-mode" data-mode="free"><b>Free Build</b><small>every building from the start</small></button></div></div>
       <button class="mm-cta big" data-act="create"><i class="fa-solid fa-seedling"></i> Raise the island</button>`;
   } else if (screen === 'album') {   // the photos of the town being played (src/album.js), newest first; a tap opens the viewer
     const head = `<div class="mm-head">${back()}<b>Album</b></div>`;
@@ -163,10 +177,12 @@ function setLayout() { const p = mode === 'pause'; root.classList.toggle('pause'
 function reloadInto(enter) { holdSaves(); try { sessionStorage.setItem('komachi.enter', enter); } catch { /* no session storage */ } location.href = location.pathname; }
 
 root.addEventListener('click', e => {
-  const b = e.target.closest('[data-act], [data-biome]'); if (!b || options.contains(b)) return;
+  const b = e.target.closest('[data-act], [data-biome], [data-mode]'); if (!b || options.contains(b)) return;
+  if (b.dataset.mode) { root.querySelectorAll('.mm-mode').forEach(x => x.classList.toggle('on', x === b)); return; }
   if (b.dataset.biome) { root.querySelectorAll('.mm-biome').forEach(x => x.classList.toggle('on', x === b)); return; }
   const act = b.dataset.act, rowEl = b.closest('.mm-town'), id = rowEl && rowEl.dataset.id;
   if (act === 'fullscreen') { toggleFullscreen(); return; }
+  if (act === 'sound') { document.getElementById('opt-music')?.click(); syncSound(); return; }
   if (act === 'continue' || act === 'resume') pokiBreak().then(close);   // Poki: an ad at this natural pause (instant elsewhere)
   else if (act === 'start') pokiBreak().then(() => { newSlot(PLACE[S.seed % PLACE.length] + ' Town', S.seed, S.biome); close(); hooks.onStart(); save(); });
   else if (act === 'save') { toast(save() ? 'Saved' : 'Could not save: the browser storage is full'); saveCard(); }
@@ -191,8 +207,9 @@ root.addEventListener('click', e => {
     const name = root.querySelector('#m-name').value.trim() || 'New town', seed = parseInt(root.querySelector('#m-seed').value, 10) || (Math.floor(Math.random() * 1e9) + 1);
     const biome = root.querySelector('.mm-biome.on')?.dataset.biome || 'suburban';
     if (!scratch && activeId() && !hooks.townIsFresh()) save();   // keep the town you are leaving
-    newSlot(name, seed, biome);
-    if (seed === S.seed && biome === S.biome && hooks.townIsFresh()) { close(); hooks.onStart(); save(); }   // this very island, still empty
+    const mode = root.querySelector('.mm-mode.on')?.dataset.mode || 'guided';
+    newSlot(name, seed, biome); setNewMode(mode);
+    if (seed === S.seed && biome === S.biome && hooks.townIsFresh()) { if (mode === 'free' && isGuided()) switchToFreeBuild(); close(); hooks.onStart(); save(); }   // this very island, still empty
     else reloadInto('new');
   }
   else if (act === 'play' && id) { save(); setActive(id); reloadInto('continue'); }

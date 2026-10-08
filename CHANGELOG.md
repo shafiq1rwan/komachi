@@ -8,6 +8,29 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+- HUD rearranged for the goals (2026-10-08): the top-left card is the town's figures alone, icon pills behind the fold toggle, with
+  no icon or wordmark; a level card sits at the top centre (Town Level, its title, the chapter's progress bar) in guided towns;
+  the goal card hangs under the top-left card; notices now slide in under the clock at the top right, above the inspect card.
+  On phones and tablets the figures start folded so the three cards share the bar.
+
+- Guided Town: goals, town levels and building unlocks (2026-10-08, Phase 11.5, docs/GOALS-AND-PROGRESSION-PLAN.md). New towns
+  in every build start guided: Chapter 1, First Neighbours (a street from the ring, a home, the first household moving in) and
+  Chapter 2, A Living Street (a finished shop, a finished workplace, ten neighbours) earn Town Levels 1–4, each opening buildings:
+  basic homes and streets from the start; a konbini, bakery and ramen shop plus a studio, office and workshop at Level 2; the
+  café, grocery and the player's fishing at Level 3; terrace homes and the community centre at Level 4, which also opens the rest
+  of the catalogue until later chapters ship. Levels come only from completed goals, never time; nothing earned is ever lost.
+  A goal card at the lower left (a strip above the dock on phones) shows the current goal, how, why, what the crew is doing on
+  the site, Show me where, the chapter book and the levels overview; locked picker chips carry a lock and their level and
+  explain themselves on tap; Auto only picks open kinds and caps the drag at the largest open size; a locked placement is refused
+  at the boundary before anything changes; "Join the anglers" reads "Fishing · Unlocks at Town Level 3" until then. Level-ups
+  show a card with what opened and one action (View shops, Go to the jetty, View civic buildings). The New town page offers
+  Guided Town or Free Build; Settings has a one-way Switch to Free Build that keeps the town and its achievements; saves without
+  progression load as Free Build with nothing relocked; scratch/test tabs are Free Build unless `?guided`. The five-step guide
+  of 2026-10-05 stands down in guided towns. Measured at 1× on seed 7: first train 0.04 h, first crew at work 14 s after the home
+  was placed, the household moved in after 93 s. An opt-in local session log (`?log` or komachi.devlog) records the first
+  street, home, crew, move-in, goals, chapters and mode switches on active time only. `node scripts/test-progression.mjs`
+  (ten checks on the pure core, run by `npm test` first) and three smoke checks cover it.
+
 - A free web demo for the itch page (2026-10-07, src/demo.js, `npm run build:demo`): the whole game, playable before paying.
   One town, kept for the browser session; photos for the session; no export or import; the title shows a "Get the full game"
   row instead of New town and Load town, and the brand card carries a small Demo link. When the town reaches day four the

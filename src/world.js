@@ -728,8 +728,8 @@ function connectHillRoads() {
 }
 /** the kind for a new block: from its tier's pool, the kind whose nearest example is furthest away (ties at random),
  *  so a street gets a bakery where there is none rather than a third konbini; `skip` leaves out the current kind */
-function chooseKind(type, sel, skip = null) {
-  const pool = (TIERS[type] && TIERS[type][Math.min(3, sel.length)] || (type === 'shop' ? SHOP_KINDS : WORK_KINDS)).filter(k => k !== skip);
+function chooseKind(type, sel, skip = null, allowed = null) {   // allowed: the progression's open kinds (progress.js); null means all
+  const pool = (TIERS[type] && TIERS[type][Math.min(3, sel.length)] || (type === 'shop' ? SHOP_KINDS : WORK_KINDS)).filter(k => k !== skip && (!allowed || allowed.includes(k)));
   if (!pool.length) return null;
   if (type === 'civic') {   // a service the town lacks first; the town hall before a second bath; one town hall and one fire station only
     const have = new Set(blocks.filter(b => b.type === 'civic').map(b => b.kind)), single = ['townhall', 'firestation', 'community'];

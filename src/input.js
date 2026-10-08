@@ -11,6 +11,7 @@ import { tourists } from './tourists.js';
 import { pickerForTool, currentPick, pickLabel, onPickerMode } from './picker.js';
 import { ui, esc } from './ui.js';
 import { toast } from './toast.js';
+import { placementProblem, pickAuto, autoMax, tierText, isGuided, pokeProgress } from './progress.js';
 import { openMenu, menuOpen, menuEscape } from './title.js';
 import { initPhoto, enterPhoto, exitPhoto, photoActive } from './photo.js';
 
@@ -46,8 +47,8 @@ ui.inspect.addEventListener('click', e => {
   if (b.dataset.follow === 'stop') { setFollow(null); return; }
   const t = pinned || hovered || (follow ? { res: follow } : null); if (t && t.res) { follow = t.res; pinned = t; }
 });
-for (const [btn, panel] of [['btn-stats', 'stats']]) document.getElementById(btn).addEventListener('click', e => { const s = document.getElementById(panel); const open = s.classList.toggle('collapsed') === false; e.currentTarget.classList.toggle('on', open); e.currentTarget.setAttribute('aria-expanded', String(open)); });
-if (innerWidth < 720) { document.getElementById('stats').classList.add('collapsed'); const b = document.getElementById('btn-stats'); b.classList.remove('on'); b.setAttribute('aria-expanded', 'false'); }   // phones: figures start folded so both cards fit side by side
+document.getElementById('btn-stats').addEventListener('click', e => { const s = document.getElementById('stats-details'); const open = !s.classList.toggle('collapsed'); e.currentTarget.setAttribute('aria-expanded', String(open)); });
+addEventListener('pointerdown', e => { if (!e.target.closest('#brand')) { document.getElementById('stats-details').classList.add('collapsed'); document.getElementById('btn-stats').setAttribute('aria-expanded', 'false'); } });
 // the controls card folds into a round icon button after a few seconds; click to unfold (it folds again on its own)
 {
   const hint = document.getElementById('hint'); let hintTimer = 0;
@@ -56,7 +57,7 @@ if (innerWidth < 720) { document.getElementById('stats').classList.add('collapse
   hintTimer = setTimeout(fold, 5000);
   document.getElementById('hint-toggle').addEventListener('click', () => { if (hint.classList.contains('collapsed')) unfold(8000); else { clearTimeout(hintTimer); fold(); } });
 }
-document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('explore'); if (S.guide !== 'pending') toast('Pick Homes (2) and drag beside the station ring; draw more streets with the Streets tool (5)'); });   // the guide (guide.js) takes it from here on a fresh town
+document.getElementById('intro-go').addEventListener('click', () => { document.getElementById('intro').remove(); setTool('explore'); if (S.guide !== 'pending' && !isGuided()) toast('Pick Homes (2) and drag beside the station ring; draw more streets with the Streets tool (5)'); });   // the guide (guide.js) takes it from here on a fresh town
 
 function groundCell() {
   raycaster.setFromCamera(ptr.ndc, camera);
@@ -65,7 +66,7 @@ function groundCell() {
 }
 function setNdc(e) { ptr.x = e.clientX; ptr.y = e.clientY; ptr.ndc.set((e.clientX / innerWidth) * 2 - 1, -(e.clientY / innerHeight) * 2 + 1); }
 function selectable(c, sel) {
-  const pk = currentPick(), max = tool === 'park' ? 2 : pk ? Math.max(...pk.sizes) : 3;   // a picked kind caps the drag at its largest size
+  const pk = currentPick(), max = tool === 'park' ? 2 : pk ? Math.max(...pk.sizes) : isGuided() ? autoMax(tool) : 3;   // a picked kind caps the drag at its largest size; Auto at the largest open size
   if (!placeable(c, sel) || sel.includes(c) || sel.length >= max) return false;
   return sel.length === 0 || sel.some(s => Math.abs(s.i - c.i) + Math.abs(s.j - c.j) === 1);
 }
@@ -111,7 +112,7 @@ canvas.addEventListener('pointermove', e => {
 function endPointer(e) {
   touches.delete(e.pointerId);
   if (gesture) { if (touches.size < 2) gesture = null; return; }
-  if (!ptr.down) return; ptr.down = false; ptr.warned = false; document.body.classList.remove('dragging');
+  if (!ptr.down) return; ptr.down = false; ptr.warned = false; document.body.classList.remove('dragging'); pokeProgress();
   if (ptr.panning) {
     ptr.panning = false;
     if (ptr.moved < 6 && ptr.button === 0) {
@@ -126,11 +127,12 @@ function endPointer(e) {
     let n = 0, kept = 0; for (const c of run) { if (roadKeepReason(c)) kept++; else if (eraseRoad(c)) n++; }
     toast(n ? (kept ? `${n} street cells removed; ${kept} stay because buildings open onto them` : `${n} street cells removed`) : 'Those streets stay: buildings open onto them, or they are the island\'s'); return;
   }
-  if (ptr.road) { const { a, b } = ptr.road; ptr.road = null; const laid = drawRoad(a, b); if (!laid) toast('Streets run over land on one level, or straight across the canal'); else if (laid.length === 1) toast('Drag to draw a longer street'); else if (!joinedToTown(laid[0])) toast('Join this street to the station ring so people can reach it'); return; }
+  if (ptr.road) { const { a, b } = ptr.road; ptr.road = null; const laid = drawRoad(a, b); pokeProgress(); if (!laid) toast('Streets run over land on one level, or straight across the canal'); else if (laid.length === 1) toast('Drag to draw a longer street'); else if (!joinedToTown(laid[0])) toast('Join this street to the station ring so people can reach it'); return; }
   if (ptr.sel && tool === 'park') { const sel = ptr.sel; ptr.sel = null; if (sel.length && !sel.every(c => placeable(c, sel))) toast('A car park needs a street on one side'); else if (sel.length) { placeCarPark(sel); toast(sel.length > 1 ? 'A car park with eight bays. Cars from homes and workplaces nearby will use it' : 'A small car park with four bays. Cars from homes and workplaces nearby will use it'); } return; }
   const pk = currentPick();
   if (ptr.sel && pk && ptr.sel.length && !pk.sizes.includes(ptr.sel.length)) { const n = pk.sizes; toast(`${pickLabel()} needs ${n.length > 1 ? n[0] + ' or ' + n[n.length - 1] : n[0]} cell${n[n.length - 1] > 1 ? 's' : ''}: drag along the street`); ptr.sel = null; return; }
-  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const b = placeBlock(tool, ptr.sel, pk ? (tool === 'res' ? { variant: pk.kind, picked: true } : { kind: pk.kind, picked: true }) : null); pickerForTool(tool); if (blocks.length === 1) toast('Your first block. Draw more streets with the Streets tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
+  if (ptr.sel && ptr.sel.length) { const problem = placementProblem(tool, ptr.sel, pk); if (problem) { toast(problem); ptr.sel = null; return; } }   // Guided Town: locked kinds and sizes stop here, before anything changes
+  if (ptr.sel) { if (ptr.sel.length && !ptr.sel.every(c => placeable(c, ptr.sel))) toast('Every building needs a street on one side'); else if (ptr.sel.length) { const auto = !pk && isGuided() ? pickAuto(tool, ptr.sel) : null; const b = placeBlock(tool, ptr.sel, pk ? (tool === 'res' ? { variant: pk.kind, picked: true } : { kind: pk.kind, picked: true }) : auto ? (tool === 'res' ? { variant: auto } : { kind: auto }) : null); pokeProgress(); pickerForTool(tool); if (isGuided()) { /* the goal card says what comes next */ } else if (blocks.length === 1) toast('Your first block. Draw more streets with the Streets tool (5) and zone beside them'); else if (blocks.length === 2 && b.type === 'res') toast('Try a Shop or Workspace so people have somewhere to go'); } ptr.sel = null; }
 }
 canvas.addEventListener('pointerup', endPointer); canvas.addEventListener('pointercancel', endPointer);
 canvas.addEventListener('contextmenu', e => e.preventDefault());
@@ -174,7 +176,7 @@ const tierEl = document.getElementById('tier');
 function updatePreview() {
   let n = 0;
   const zoneDrag = ptr.sel && ptr.sel.length && (tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm');
-  if (zoneDrag) { const pk = currentPick(), t = pk && tool !== 'park' ? `${pickLabel()} · ${ptr.sel.length} of ${pk.sizes.length > 1 ? pk.sizes[0] + '–' + pk.sizes[pk.sizes.length - 1] : pk.sizes[0]} cell${Math.max(...pk.sizes) > 1 ? 's' : ''}` : tierLabel(tool, Math.min(3, ptr.sel.length)); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
+  if (zoneDrag) { const pk = currentPick(), t = pk && tool !== 'park' ? `${pickLabel()} · ${ptr.sel.length} of ${pk.sizes.length > 1 ? pk.sizes[0] + '–' + pk.sizes[pk.sizes.length - 1] : pk.sizes[0]} cell${Math.max(...pk.sizes) > 1 ? 's' : ''}` : (isGuided() && tool !== 'park' ? tierText(tool, Math.min(3, ptr.sel.length)) : tierLabel(tool, Math.min(3, ptr.sel.length))); if (tierEl.textContent !== t) tierEl.textContent = t; tierEl.classList.add('show'); } else tierEl.classList.remove('show');
   const show = (c, m) => { if (n >= prevPool.length) return; const p = prevPool[n++]; p.visible = true; p.material = m; p.position.set(cx(c.i), 0.16 + (c.h || 0), cz(c.j)); };
   const zone = tool === 'res' || tool === 'shop' || tool === 'work' || tool === 'park' || tool === 'civic' || tool === 'farm';
   if (zone && !ptr.panning) {

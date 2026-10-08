@@ -305,6 +305,13 @@ effect through the town instead.
   comes back only with a certificate and notarisation secrets
 - Left for later: Windows code signing (certificate as secrets)
 
+## ✅ Phase 11.5 — Guided Town: goals, levels and unlocks (2026-10-08)
+
+Shipped from docs/GOALS-AND-PROGRESSION-PLAN.md after Poki playtests showed most players leaving inside two minutes: two chapters
+(First Neighbours, A Living Street), Town Levels 1–4 earned only by completed goals, buildings that open with each level, a goal
+card with the crew's status, locked picker chips that explain themselves, fishing as the Level 3 reward, Free Build as the
+alternative on the New town page and a one-way switch in Settings. Levels 5–10 are defined in the plan for after playtesting.
+
 ## ✅ Phase 11 — Guided first town (agreed 2026-10-02, shipped 2026-10-05)
 
 The first paid update: the price goes from two dollars to five with it, and "interiors coming" is the headline of what is

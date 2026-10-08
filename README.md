@@ -161,6 +161,9 @@ Some things worth knowing:
 - **Photo mode and the album.** The camera button in the top bar (or P) puts the HUD away; frame the town with the ordinary
   camera, pause with Space for the moment you want, and take the photo. It goes into the town's album in the menu, with a
   caption of the day, time, season and weather that you can change, and can be saved to your device.
+- **Goals and levels.** A new town is a Guided Town: a street, a home, the first household, then a shop, a workplace and ten
+  neighbours earn four town levels, each opening more buildings. A goal card shows what to do next and what the crew is doing.
+  Prefer to build anything from the start? Choose Free Build on the New town page, or switch any town over in Settings.
 - **A guided start.** A new island walks you through its first street, two homes, a shop and a workplace with prompts that clear
   as you do each thing, then shows you the first crew stepping off the train and the first family moving in. After that the
   prompts stop for good; they never appear on a town that already has buildings.

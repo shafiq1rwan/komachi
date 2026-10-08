@@ -20,6 +20,7 @@ import { showFeeling, endTalk } from './bubbles.js';
 import { residents } from './sim.js';
 import { playFishingSound } from './audio.js';
 import { createFishProp, animateFishProp, createJunkProp } from './fish-prop.js';
+import { fishingAllowed, FISHING_LOCK } from './progress.js';
 
 // on since 2026-10-02; the invitation only shows while a resident is fishing there (join them, never an empty quay)
 const ENABLED = true;
@@ -138,6 +139,7 @@ function drawMeter() {
   document.getElementById('fish-progress').setAttribute('aria-valuenow', p);
 }
 function start() {
+  if (!fishingAllowed()) { toast(FISHING_LOCK.why); return; }   // Guided Town: Level 3 opens it (progress.js); ambient anglers fish regardless
   if (game.active) return; game.angler = pickAngler(); game.spot = fishingSpot(game.angler); if (!game.spot) return;
   if (!float) build();
   savedCamera = { target: cam.target.clone(), view: cam.tView, yaw: cam.tYaw };
@@ -234,6 +236,7 @@ function updateFishingGame(dt) {
   if (!game.active) {   // the invitation: close to the jetty, zoomed in, and a resident fishing there
     const head = P.at(P.len - 0.1, 0); const close = ENABLED && fishingNow() > 0 && cam.view < 9 && Math.hypot(cam.target.x - head.x, cam.target.z - head.z) < 5 && !document.body.classList.contains('menu-full') && !document.body.classList.contains('menu-pause');
     near.hidden = !close;
+    if (close) { const locked = !fishingAllowed(); near.classList.toggle('locked', locked); near.setAttribute('aria-disabled', locked ? 'true' : 'false'); const want = locked ? `<i class="fa-solid fa-lock"></i> ${FISHING_LOCK.label}` : '<i class="fa-solid fa-fish"></i> Join the anglers'; if (near.dataset.html !== want) { near.dataset.html = want; near.innerHTML = want; } }
     if (close) { v.set(head.x, 0.35, head.z).project(camera); near.style.left = ((v.x + 1) / 2 * innerWidth).toFixed(0) + 'px'; near.style.top = ((1 - v.y) / 2 * innerHeight).toFixed(0) + 'px'; }
     return;
   }

@@ -397,23 +397,33 @@ try {
   const paused = await menuTab.evaluate(() => document.getElementById('menu').classList.contains('show') && !!document.querySelector('#menu [data-act="resume"]') && !!document.querySelector('#menu [data-act="credits"]') && document.querySelectorAll('#menu .mm-btn').length <= 5);   // Resume, Album, Settings, Credits, quit
   await menuTab.close();
   check('title screen on a plain visit; Start makes a town; the menu button pauses', ttl && ttl.open && ttl.screen === 'main' && ttl.logo && ttl.bg && started.closed && started.slots >= 1 && started.active && paused, JSON.stringify({ ttl, started, paused }));
-  // the guided first town (guide.js): on a fresh kept town the first prompt follows the welcome card, and drawing a street clears it
+  // Guided Town (progress.js, goal-ui.js): a fresh kept town starts guided with only the starter kit; a shop is refused at the
+  // boundary with no side effects; a street from the ring exit, then a home, give Level 2 (konbini open, café not yet); fishing stays
+  // locked; the progress survives a reload; the switch to Free Build opens everything and puts the card away
   const guideTab = await browser.newPage(); await guideTab.setViewport({ width: 1280, height: 800 });
   await guideTab.goto(`http://localhost:${PORT}/?look=classic`, { waitUntil: 'networkidle0', timeout: 60000 });
   await guideTab.evaluate(async () => { for (let k = 0; k < 160 && !document.getElementById('loading').classList.contains('gone'); k++) await new Promise(r => setTimeout(r, 250)); });
   const guided = await guideTab.evaluate(async () => {
     const wait = async (f, n = 120) => { for (let k = 0; k < n; k++) { if (f()) return true; await new Promise(r => setTimeout(r, 100)); } return false; };
     document.querySelector('#menu [data-act="start"], #menu [data-act="continue"]').click(); await wait(() => MT.opening.active || !document.getElementById('menu').classList.contains('show'), 40);
-    if (MT.opening.active) { dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })); await wait(() => !MT.opening.active, 40); }   // Continue (a town already exists in this browser) plays no opening
+    if (MT.opening.active) { dispatchEvent(new KeyboardEvent('keydown', { code: 'Escape' })); await wait(() => !MT.opening.active, 40); }
     const intro = document.getElementById('intro-go'); if (intro) intro.click();
-    const started = await wait(() => MT.guideState().active, 300);   // the town's first frames are slow under software GL
-    const first = MT.guideState().key, pulsing = [...document.querySelectorAll('.tool.guide')].map(b => b.dataset.tool), card = document.getElementById('milestone').classList.contains('show');
-    let drew = false; for (const r of MT.cells.filter(x => x.type === 'road' && x.keep)) { for (const [di, dj] of [[0, 1], [0, -1], [1, 0], [-1, 0]]) { const mid = MT.cell(r.i + di, r.j + dj), far = MT.cell(r.i + di * 4, r.j + dj * 4); if (mid && far && mid.type === 'empty' && far.type === 'empty' && MT.drawRoad(mid, far)) { drew = true; break; } } if (drew) break; }
-    const advanced = await wait(() => MT.guideState().key === 'homes', 40);
-    return { started, first, pulsing, card, drew, advanced, second: MT.guideState().key, nextPulse: [...document.querySelectorAll('.tool.guide')].map(b => b.dataset.tool) };
+    const shown = await wait(() => MT.isGuided() && MT.goalUiState().shown, 300);   // the town's first frames are slow under software GL
+    const start = { guided: MT.isGuided(), next: MT.goalUiState().next, pulse: MT.goalUiState().pulse, konbini: MT.canBuild('shop', 'konbini'), terrace: MT.canBuild('res', 'terrace'), fishing: MT.fishingAllowed() };
+    const cue = MT.progressCue(); const a = cue && cue.cells[0]; const blocks0 = MT.blocks.length;
+    const shop = a ? MT.tryPlace('shop', [a]) : { problem: 'no cue' };
+    let laid = null; if (a) for (const [di, dj] of [[0, 1], [1, 0], [0, -1], [-1, 0]]) { const b = MT.cell(a.i + di * 3, a.j + dj * 3); if (b && b.type === 'empty' && !b.h) { laid = MT.drawRoad(a, b); if (laid) break; } }
+    const street = await wait(() => MT.progress().completedGoalIds.includes('first-street'), 400);
+    const plot = MT.progressCue() && MT.progressCue().cells[0]; const home = plot ? MT.tryPlace('res', [plot]) : { problem: 'no plot' };
+    const level2 = await wait(() => MT.progress().completedGoalIds.includes('first-home') && MT.canBuild('shop', 'konbini'), 400);   // evaluation rides on frames, slow under software GL
+    return { shown, start, shopRefused: !!shop.problem, noSideEffect: MT.blocks.length === blocks0 + (home.block ? 1 : 0), laid: laid && laid.length, street, homePlaced: !!home.block, level2, cafe: MT.canBuild('shop', 'cafe'), fishing: MT.fishingAllowed(), status: MT.progressCue() && MT.progressCue().status };
   });
+  await guideTab.evaluate(() => MT.save()); await guideTab.reload({ waitUntil: 'networkidle0', timeout: 60000 });
+  await guideTab.evaluate(async () => { for (let k = 0; k < 160 && !document.getElementById('loading').classList.contains('gone'); k++) await new Promise(r => setTimeout(r, 250)); });
+  const kept = await guideTab.evaluate(() => { const p = MT.progress(); const r = { mode: p.mode, goals: p.completedGoalIds, konbini: MT.canBuild('shop', 'konbini'), terrace: MT.canBuild('res', 'terrace') }; MT.switchToFreeBuild(); return { ...r, free: MT.progress().mode, manshon: MT.canBuild('res', 'manshon'), fishing: MT.fishingAllowed(), goalsKept: MT.progress().completedGoalIds.length }; });
   await guideTab.close();
-  check('guided first town: the first prompt follows the welcome card with the Streets tool pulsing; a street clears it', guided.started && guided.first === 'street' && guided.card && guided.pulsing.includes('road') && guided.drew && guided.advanced && guided.nextPulse.includes('res'), JSON.stringify(guided));
+  check('Guided Town: starter kit only, a locked shop refused without side effects, a street and a home give Level 2, fishing locked', guided.shown && guided.start.guided && guided.start.next === 'first-street' && guided.start.pulse === 'road' && !guided.start.konbini && !guided.start.terrace && !guided.start.fishing && guided.shopRefused && guided.noSideEffect && guided.street && guided.homePlaced && guided.level2 && !guided.cafe && !guided.fishing && !!guided.status, JSON.stringify(guided));
+  check('Guided Town: progress and locks survive a reload; Free Build keeps the goals and opens everything', kept.mode === 'guided' && kept.goals.includes('first-home') && kept.konbini && !kept.terrace && kept.free === 'free' && kept.manshon && kept.fishing && kept.goalsKept === 2, JSON.stringify(kept));
   let fx2 = null;   // the kitsune: once the hill is open, a fox comes down from the shrine at dusk; the first sighting is recorded and stone foxes appear
   for (let k = 0; k < 30 && !(fx2 && fx2.ready); k++) { await sleep(200); fx2 = await page.evaluate(() => { MT.setSpeed(0); MT.openHill(true); MT.callKitsune(); MT.fastForward(0.05, 0.00167); const k = MT.kitsune(); return { ready: !!k.fox }; }); }
   fx2 = await page.evaluate(() => { let sat = false; for (let k = 0; k < 120 && !sat; k++) { MT.fastForward(0.02, 0.00167); const v = MT.kitsune().visit; sat = !!v && v.leg === 'sit'; } const k = MT.kitsune(); return { fox: !!k.fox, sat, statues: !!k.statues, chron: MT.chronicle.some(e => /fox was seen/.test(e.text)) }; });
@@ -424,6 +434,7 @@ try {
     if (pwa.active && pwa.cached > 30) break; await sleep(500);
   }
   check('PWA: manifest with icons, and the service worker has cached the game', pwa.active && pwa.cached > 30 && pwa.icons >= 3, JSON.stringify(pwa));
+  check('scratch and demo tabs are Free Build with the whole catalogue open', await page.evaluate(() => !MT.isGuided() && MT.canBuild('civic', 'square') && MT.fishingAllowed() && !MT.goalUiState().shown));
   check('no page errors', errors.length === 0, errors.join(' | ') + (nanStack ? ' @ ' + nanStack.slice(0, 600) : ''));
 } finally {
   await browser.close(); stopServer();

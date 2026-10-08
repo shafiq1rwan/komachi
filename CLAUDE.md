@@ -13,7 +13,7 @@ npm run build      # required before npm test
 npm run lint       # ESLint, must be clean (no-undef is an error)
 node scripts/capture-readme.mjs   # after a build: retakes the six docs/screenshot-*.png used by the README
 node scripts/build-icons.mjs      # rebuilds public/favicon.ico and public/icons/favicon-*.png, icon-256.png from assets/brand/komachi-icon.png
-npm test           # scripts/smoke.mjs: headless Chromium over dist/, 61 checks + screenshots in scripts/out/
+npm test           # scripts/test-progression.mjs (the pure progression core, 10 checks) then scripts/smoke.mjs: headless Chromium over dist/, 63 checks + screenshots in scripts/out/
 npm run app:check  # after a build: the Electron app launches, photographs its own window (scripts/out/electron.png) and quits
 npm run app:build  # Windows installer + portable exe in release/
 node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
@@ -289,7 +289,40 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
   title.js: 'album' row (title when a town exists, pause always) and page (.mm-album grid of .mm-shot), `viewPhoto(p)` (#mm-photo
   viewer: Save to device via a download link, Caption via `ask`, Delete); deleteSlot also calls `deleteTownPhotos`. The smoke
   pause-menu check allows four rows. Dev hooks `MT.enterPhoto/exitPhoto/takePhoto/photo`.
-- Guided first town (2026-10-05, src/guide.js): `S.guide` null | 'pending' | 'running' | 'done' ('done' saved by save.js; restore sets
+- Guided Town (2026-10-08, Phase 11.5): src/progression.js is the pure core (CHAPTERS, GOALS with `done(facts)`, LEVELS 1–4 with
+  `unlocks` per type, RELEASE_BRIDGE 'release-catalogue-access' granted with Chapter 2, `fresh`, `normalise` (anything odd → Free
+  Build), `evaluate(state, facts)` → events goal | chapter | entitlement | level, `available`, `lockReason`, `fishingAllowed`,
+  `switchToFree`; no DOM or world imports, tested by scripts/test-progression.mjs). src/progress.js is the adapter: `initProgress({
+  saved, mode, save })` from main.js after restore (saved `progression` or a fresh state: guided for new kept towns in every build,
+  Free Build for scratch tabs unless ?guided, or the New town page's choice via slots.js `setNewMode`/`takeNewMode`), `facts()`
+  (drawnConnected = drawn road cells in townNet, homesConnected = res units of connected blocks, housed = residents with a home and
+  !movingIn, shopsDone/worksDone = connected blocks at DONE), `updateProgress(dt)` every frame (evaluates every 0.5 s or on
+  `pokeProgress()`, which input.js calls on every pointer-up), `onProgress(fn)` listeners, the availability API (`canBuild`,
+  `lockText`, `allowedKinds`, `autoMax`, `pickAuto` → world.chooseKind(type, sel, null, allowed), `placementProblem`, `tierText`,
+  `fishingAllowed`, FISHING_LOCK), `switchToFreeBuild`, `chooseActiveGoal`, `setCollapsed`, `activeCue()` (tool, exit cells
+  beside the ring / plot cells beside connected drawn streets, a place to look, `siteStatus(b)` in words), `levelsOverview`, the
+  opt-in session log. src/goal-ui.js: #goals (lower left; above the dock when innerWidth ≤ 1000, top left when innerHeight ≤ 520),
+  #goals-pill when collapsed, the chapter book and levels list, #level-up cards queued one at a time (14 s), `.tool.guide` pulse,
+  40 soft cue planes; hidden by body.opening/menu-full/menu-pause/photo/fishing/trailer/demo-wall. Enforcement: input.js
+  (`placementProblem` before placeBlock, Auto preset from `pickAuto`, drag cap `autoMax`, tier line `tierText`), picker.js (locked
+  chips with data-lock, toast on tap, re-render on progress events), minigame-fishing.js (`start` refuses, #fish-near relabels).
+  save.js writes `progression`; restore leaves it to initProgress. title.js: New town page `.mm-mode` choice; #opt-free in the
+  Settings card (hidden in Free Build). Internal simulation (changeTrade, restore, hillMarket) never goes through the guard. In a
+  guided town `S.guide` is set 'done' so guide.js never starts. Dev hooks `MT.progress()`, `progressFacts`, `progressCue`,
+  `isGuided`, `switchToFreeBuild`, `tryPlace(type, cells, pick)` (through the guard), `canBuild`, `fishingAllowed`,
+  `goalUiState`, `sessionLog`. Pacing measured 2026-10-08 (seed 7, 1×): crew at work 14 s after the home, move-in at 93 s; no
+  onboarding assistance was needed. Levels 5–10 are defined in the plan and deliberately not built (Phase 5 there).
+- Progress presentation: the gameplay HUD uses text-labelled Population/Homes/Shops, with remaining metrics in #stats-details.
+  Population counts housed residents who have actually moved in, matching the goal adapter. #level-hud is a compact floating
+  Lv/count/bar button; progression.nextLevelProgress tracks the next level, including partial population progress. Goals sit
+  below measured stats bounds and expose construction progress separately. Notices move above the dock/picker at lower left.
+  goal-ui.js queues level reveals until gameplay is visible, completes/shines the HUD line, then shows the actual unlocked model
+  with selectable reward thumbnails, brief DOM confetti and audio.playLevelUpSound (effects/volume/Poki mute respected).
+  Keep building dismisses; Build this calls picker.selectBuilding to select the exact kind, not Auto. picker.buildingThumbnail
+  shares its model render queue/cache; live unlocked chips carry session-local NEW markers until selected. Reduced motion removes
+  confetti/ray/reveal animations. Rewards are already permanent before the reveal and reloads do not replay it.
+  Run node scripts/check-progress-hud.mjs after a build for responsive captures and unlock/selection/reduced-motion/reload checks.
+- Guided first town (2026-10-05, src/guide.js; stands down in guided towns, still runs for a fresh Free Build town): `S.guide` null | 'pending' | 'running' | 'done' ('done' saved by save.js; restore sets
   'done' for any save with buildings); main.js `initGuide({ drawnCount, pulse })`, sets 'pending' when `guideWanted()` (not scratch, no
   blocks, not done) and calls `updateGuide()` each frame; the guide starts 0.6 real seconds after the opening, the menu and #intro are
   all gone. STEPS { key, tool, title, line, icon, look, done() }: street (drawn road or any block) → homes (2 res) → shops (shop + work)
@@ -484,8 +517,11 @@ Decisions already made (do not reopen without asking):
   because side-by-side blocks got odd joins). Only the station has a ring. Cables only run along streets
   between poles that share a row/column of road.
 - Homes are named after places (Sakura Terrace); shops and workspaces from per-kind pools; all fictional.
-- HUD: one slim top bar; view toggles fold behind a sliders button; controls card folds into a help
-  icon after 5 s; instant tooltips; the inspect card opens on a click, never on hover, and the hover mark is one thin Box3Helper
+- HUD (rearranged 2026-10-08): one slim top bar: the figures card at the top left (icon pills behind #btn-stats, folded by default
+  under 1000 px, no icon or wordmark since the goals work), #level-hud in the bar's flow at the centre (goal-ui.js
+  renderLevelHud: Town Level, title, chapter progress; hidden in Free Build), the clock card at the right; the goal card #goals
+  under the top-left card (top 86px; a strip above the dock on phones), notices (#toast) under the clock at the top right, the
+  milestone card at the top centre under the level card; controls card folds into a help icon after 5 s; instant tooltips; the inspect card opens on a click, never on hover, and the hover mark is one thin Box3Helper
   outline (input.js `outline`, `outlineFor`; cream 0.4 on hover, sage 0.85 when pinned, rose for Clear; decided 2026-10-06, the
   per-cell cream frames flashed too much); progress pills float over sites under construction; notices slide in as a cream
   card under the brand card (top left), never over the town centre.
@@ -543,6 +579,8 @@ world, a town chronicle, residents who remember, visible growth, small ceremonie
 10. ✅ Electron desktop app (2026-09-29): Windows installer and portable exe, Linux AppImage from CI; macOS dropped 2026-10-01
 11. ✅ Guided first town (2026-10-05): milestone-card prompts for the first street, homes, shop, crew and family, once per town;
     the five-dollar update
+    11.5 ✅ Guided Town (2026-10-08): goals, two chapters, Town Levels 1–4 with building unlocks, the goal card, Free Build; Levels
+    5–10 planned in docs/GOALS-AND-PROGRESSION-PLAN.md for after playtesting
 12. Little Nest inside Komachi (agreed 2026-10-02): the user's room-decorating game (C:/Users/shafiq.irwan/Documents/home-deco-sim,
     Three.js 0.170, 48 GLB props, pure tested core) becomes the interiors once its own feature set is final; shared package, not a
     copy; the room stands in the main scene like the opening carriage; decorating box reskinned as a Komachi card; then residents

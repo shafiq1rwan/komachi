@@ -8,6 +8,7 @@ import { chronicle, restoreChronicle } from './chronicle.js';
 import { weatherSnapshot, restoreWeather } from './weather.js';
 import { activeId, newSlot, readSlot, writeSlot, slotKey } from './slots.js';
 import { renderer } from './scene.js';
+import { progressSnapshot } from './progress.js';
 
 export const SAVE_KEY = 'komachi.save';   // the single save before towns had slots (slots.js moves it into the first town)
 const BLOCK_KEYS = ['type', 'stage', 'stageT', 'level', 'occT', 'renoT', 'roof', 'wall', 'awning', 'family', 'kind', 'variant', 'roofStyle', 'name', 'summoned', 'visitScore', 'deliveredStage', 'visitsToday', 'lastVisits', 'popular', 'quietDays', 'changing', 'created', 'villaFor', 'picked'];
@@ -19,7 +20,7 @@ export function snapshot() {
   const town = blocks.filter(b => b.type !== 'station');
   const ref = u => { if (!u) return null; const bi = town.indexOf(u.block); return bi < 0 ? null : [bi, u.block.units.indexOf(u)]; };
   return {
-    v: 3, terrainVersion: S.terrainVersion, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, guide: S.guide === 'done' ? 'done' : null, chronicle: chronicle.slice(), weather: weatherSnapshot(),
+    v: 3, terrainVersion: S.terrainVersion, savedAt: Date.now(), seed: S.seed, biome: S.biome, T: S.T, nextId: S.nextId, trains: STATION.block ? STATION.block.trains : 0, hillOpen: hill.open, guide: S.guide === 'done' ? 'done' : null, progression: progressSnapshot(), chronicle: chronicle.slice(), weather: weatherSnapshot(),
     roads: cells.filter(c => c.drawn).map(c => [c.i, c.j]),
     parks: cells.filter(c => c.park === 'public').map(c => [c.i, c.j]),
     blocks: town.map(b => ({ ...pickKeys(b, BLOCK_KEYS), cells: b.cells.map(c => [c.i, c.j]), units: b.units.map(u => ({ variant: u.variant, facing: u.facing })) })),
