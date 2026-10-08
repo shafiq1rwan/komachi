@@ -8,6 +8,9 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+## [0.4.1] - 2026-10-08
+
+Mobile polish: the goal and level cards on phones, the in-game settings page by touch, itch screenshots for 0.4.
 ## [0.4.0] - 2026-10-08
 
 Guided Town: goals, levels and building unlocks, the rearranged HUD, the Poki title, the browser demo, the toy fish and the fight.
