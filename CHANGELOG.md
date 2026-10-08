@@ -8,6 +8,12 @@ All notable changes to Komachi are recorded here. The format follows
 
 ### Added
 
+## [0.4.2] - 2026-10-08
+
+Poki: hidden tabs stop the playtime count.
+- Poki: a hidden tab now sends gameplayStop and a visible one gameplayStart again (2026-10-08), so playtests no longer count idle
+  tabs as play; the browser already froze the town while hidden.
+
 ## [0.4.1] - 2026-10-08
 
 Mobile polish: the goal and level cards on phones, the in-game settings page by touch, itch screenshots for 0.4.

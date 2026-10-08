@@ -55,6 +55,16 @@ try {
   await page.keyboard.press('Escape'); await sleep(300);
   const paused = await page.evaluate(() => ({ menu: document.getElementById('menu').classList.contains('show'), calls: MT.pokiState().calls, ready: MT.pokiState().ready }));
   check('gameplayStop sent when the pause menu opens (when the SDK is live)', paused.menu && (!paused.ready || paused.calls.includes('gameplayStop')), paused.calls.join(' ') || 'no SDK');
+  // a hidden tab stops the count and a visible one restarts it (the pause menu is closed first so play is on)
+  await page.keyboard.press('Escape'); await sleep(600);
+  const vis = await page.evaluate(async () => {
+    const before = MT.pokiState().calls.length; let hidden = true;
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => hidden }); Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => hidden ? 'hidden' : 'visible' });
+    document.dispatchEvent(new Event('visibilitychange')); const afterHide = MT.pokiState().calls.slice(before);
+    hidden = false; document.dispatchEvent(new Event('visibilitychange')); const afterShow = MT.pokiState().calls.slice(before);
+    return { ready: MT.pokiState().ready, afterHide, afterShow, playing: MT.pokiState().playing };
+  });
+  check('a hidden tab sends gameplayStop and a visible one gameplayStart again (when the SDK is live)', !vis.ready || (vis.afterHide.includes('gameplayStop') && vis.afterShow.includes('gameplayStart') && vis.playing), JSON.stringify(vis));
   check('fonts loaded from the build itself', await page.evaluate(() => document.fonts.check('800 16px Nunito') && document.fonts.check('600 16px Caveat')));
   check('no page errors', errors.length === 0, errors.join(' | '));
   await page.screenshot({ path: 'scripts/out/poki.png' });

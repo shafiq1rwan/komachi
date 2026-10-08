@@ -371,7 +371,8 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 - Poki build (2026-10-01, src/poki.js): `POKI` = import.meta.env.MODE === 'poki' (vite.config.js: mode poki → outDir dist-poki, no
   offline() plugin). `pokiInit()` from main.js appends the SDK script (game-cdn.poki.com) and init()s; `pokiLoaded()` from loading.js
   finish, `pokiPlay()`/`pokiPause()` from title.js close()/open(), `pokiBreak()` before continue/resume/start (mutes via audio.js
-  `setMuted`); calls are queued until init resolves and sent loading-first (Poki's order). On Poki: no Exit row (`standalone` false), credits
+  `setMuted`); calls are queued until init resolves and sent loading-first (Poki's order); visibilitychange sends gameplayStop while
+  hidden and gameplayStart on return (`hiddenHold`, 2026-10-08: idle tabs were counted as play). On Poki: no Exit row (`standalone` false), credits
   links stripped to text, #opt-install removed, no service worker registration. scripts/check-poki.mjs (vite preview --outDir dist-poki;
   requests made by the SDK itself are ignored via request.initiator(); preview answers missing paths with index.html, so sw.js is checked by
   content-type), scripts/pack-poki.mjs (PowerShell Compress-Archive). Fonts are self-hosted in public/fonts (fonts.css, latin woff2) for all builds.
@@ -494,7 +495,7 @@ residents, trains), `construction.js` (crews, trucks), `daynight.js`, `ambient.j
 
 ## Where things stand (handoff for a fresh session)
 
-Version 0.4.1 shipped 2026-10-08 (tags v0.3.0 to v0.4.1: Guided Town, HUD, Poki title, demo: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
+Version 0.4.2 shipped 2026-10-08 (tags v0.3.0 to v0.4.2: Guided Town, HUD, Poki title, demo: guided town, fishing, desktop, Poki; itch price $4.99 from then); a git repo now exists (initialised by the user around 2026-09-16), commit when asked. Phases 1, 2 and 3 are
 complete and verified (lint, build, `npm test`, screenshots). Between phases the user asked for and got:
 zoning over streets, visible avenue lines, hip-height benches, a clear station entrance, plaza detours,
 taller vending machines, a nine-cell station highlight, and a wooded hill with a shrine (the mountain

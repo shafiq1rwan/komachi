@@ -47,7 +47,16 @@ export function pokiPlayOnInteraction() {
   addEventListener('pointerdown', once, true); addEventListener('keydown', once, true);
 }
 /** title.js: a menu covers the town */
-export function pokiPause() { if (!POKI) return; wantPlaying = false; if (state.playing) { state.playing = false; send('gameplayStop'); } }
+export function pokiPause() { if (!POKI) return; wantPlaying = false; hiddenHold = false; if (state.playing) { state.playing = false; send('gameplayStop'); } }
+// a hidden tab (2026-10-08): the browser stops the game's frames, so the town stands still, but Poki's clock kept running and
+// playtests counted idle tabs as play. gameplayStop goes out when the tab is hidden and gameplayStart when it comes back, as
+// long as play was on (a pause menu, which has already sent its stop, is left alone).
+let hiddenHold = false;
+document.addEventListener('visibilitychange', () => {
+  if (!POKI) return;
+  if (document.hidden) { if (state.playing) { state.playing = false; hiddenHold = true; send('gameplayStop'); } }
+  else if (hiddenHold) { hiddenHold = false; if (wantPlaying && !state.playing) { state.playing = true; send('gameplayStart'); } }
+});
 /** before play resumes from a menu: a commercial break with the music muted; resolves when it is over (at once without the SDK) */
 export function pokiBreak() {
   const P = sdk(); if (!P || state.playing) return Promise.resolve();   // breaks only while play is stopped, as Poki asks
