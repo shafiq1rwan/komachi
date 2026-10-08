@@ -176,7 +176,7 @@ Create a dedicated objective component and revise the gameplay HUD as specified 
 
 ### Top-centre level HUD
 
-- Use a compact single-line level control centred in the viewport: **Level 3 — progress line — 2/3**. Width approximately 244px desktop / 224px mobile; height 48px / 40px. Match the other HUD panels: cream surface, dark green text, teal progress fill, 16px corners, and the same restrained border/shadow as the statistics panel. The earlier bare text was hard to see; the dark evergreen/gold pill did not match the HUD. Preserve an opaque surface and 8px track for legibility. Keep the full title and reward details in the expanded view, not a large permanent card.
+- Use a compact single-line level control centred in the viewport: **Level 3 — progress line — 2/3**. Width approximately 244px desktop / 164px mobile; height 48px / 28px. Match the other HUD panels: cream surface, dark green text, teal progress fill, 16px corners on desktop / 10px on mobile, and the same restrained border/shadow as the statistics panel. The earlier bare text was hard to see; the dark evergreen/gold pill did not match the HUD. Preserve an opaque surface and an 8px desktop / 5px mobile track for legibility. Keep the full title and reward details in the expanded view, not a large permanent card.
 - This is the authoritative persistent level display. The goal card shows the selected goal, not another duplicate level bar.
 - The count represents completed goals for the next level, never the current chapter or elapsed time. The thin line may include real partial requirement progress, such as population 8/10; the goal card states the actual count. Construction has its own explicitly labelled progress meter, not fake XP.
 - Clicking/tapping opens the chapter and unlock overview. Keep the upcoming reward visible there.
@@ -204,7 +204,10 @@ Create a dedicated objective component and revise the gameplay HUD as specified 
 ### Responsive behaviour
 
 - When all three top HUD cards cannot fit, use a first row for compact statistics and essential clock/menu controls, then a centred level row. Keep the goal card immediately below the statistics/level area, initially collapsed on narrow or short screens.
+- Mobile revision: keep the 164×28px level control at the very top centre. A 40px row beneath it holds population/home/shop icons and counts (compact notation for large values) on the left and clock controls on the right. The goal summary below is no wider than 244px and keeps the goal title, progress and one short instruction visible; its chevron expands the full instructions and unlock information. Free Build omits the level row. The same compact treatment applies to short landscape screens, where the level control fits between the statistics and clock in the first row at widths above 720px.
 - Expanded mobile goals are bounded in height and collapse easily; do not cover the toolbar. Expanded stat details use a bounded popover rather than an unbounded vertical stack.
+- Limit expanded goal details to 34% of the viewport height and the remaining space above the picker/dock, with scrolling. A new active goal returns to the compact summary. Keep full statistic labels and exact counts available to assistive technology.
+- Hide the three goal-card action buttons on mobile, including in expanded details. The top-centre level control still opens the level/unlock overview.
 - Mobile notifications use one compact bottom card above the toolbar/picker. Only one major celebration is visible at a time.
 - Use safe-area insets and measured layout; no overlaps at 390px portrait or short landscape widths. Verify both rich and classic presentation modes.
 

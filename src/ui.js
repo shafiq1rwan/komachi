@@ -137,12 +137,16 @@ function renderInspect(target, follow = null) {
   }
   ui.inspect.innerHTML = html; ui.inspect.classList.add('show'); ui.inspect.classList.toggle('person', !!(target.res || target.worker || target.tourist));
 }
+const shortCount = new Intl.NumberFormat('en', { notation: 'compact', maximumFractionDigits: 1 });
 function setStat(el, value) {
   const before = Number(el.textContent); if (before === value) return;
   el.textContent = value;
+  const short = el.nextElementSibling;
+  if (short?.classList.contains('stat-short')) short.textContent = shortCount.format(value);
   if (value > before && el.closest('.stat') && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
-    el.getAnimations().forEach(a => a.cancel());
-    el.animate([{ transform: 'scale(1)', color: '#2e514b' }, { transform: 'scale(1.2)', color: '#b4924f', offset: 0.35 }, { transform: 'scale(1)', color: '#2e514b' }], { duration: 650, easing: 'ease-out' });
+    const visible = short && matchMedia('(max-width: 720px), (max-height: 540px)').matches ? short : el;
+    visible.getAnimations().forEach(a => a.cancel());
+    visible.animate([{ transform: 'scale(1)', color: '#2e514b' }, { transform: 'scale(1.2)', color: '#b4924f', offset: 0.35 }, { transform: 'scale(1)', color: '#2e514b' }], { duration: 650, easing: 'ease-out' });
   }
 }
 function updateStats() {

@@ -17,6 +17,14 @@ const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;',
 const reducedMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
 const blocked = () => document.hidden || ['opening', 'menu-full', 'menu-pause', 'photo', 'fishing', 'trailer', 'demo-wall'].some(c => document.body.classList.contains(c));
 let hudCelebrating = false;
+const compactViewport = () => matchMedia('(max-width: 720px), (max-height: 540px)').matches;
+let shownGoal = null;
+const SUMMARY = {
+  'first-street': 'Draw a street from the station.', 'first-home': 'Place a home beside your street.',
+  'first-household': 'Waiting for your first neighbours.', 'first-shop': 'Build a shop beside a street.',
+  'first-workplace': 'Build a workplace beside a street.', 'ten-neighbours': 'Make room for 10 neighbours.',
+};
+const peekButton = () => `<button class="g-peek" data-g="expand" aria-label="${root.classList.contains('mobile-expanded') ? 'Hide' : 'Show'} goal details" aria-expanded="${root.classList.contains('mobile-expanded')}" aria-controls="goal-details"><i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>`;
 
 /** main.js: build the card; hooks.setTool picks a tool, hooks.jetty() gives the jetty head { x, z } or null */
 export function initGoalUi(h = {}) {
@@ -25,10 +33,14 @@ export function initGoalUi(h = {}) {
   root = document.createElement('section'); root.id = 'goals'; root.setAttribute('aria-live', 'polite'); document.body.appendChild(root);
   pill = document.createElement('button'); pill.id = 'goals-pill'; pill.type = 'button'; pill.innerHTML = '<i class="fa-solid fa-flag"></i><span>Current goal</span>'; document.body.appendChild(pill);
   pill.addEventListener('click', () => { setCollapsed(false); render(true); });
-  document.getElementById('level-hud')?.addEventListener('click', () => { setCollapsed(false); root.classList.toggle('levels'); render(true); });
+  document.getElementById('level-hud')?.addEventListener('click', () => { setCollapsed(false); root.classList.toggle('levels'); if (compactViewport()) root.classList.add('mobile-expanded'); render(true); });
   root.addEventListener('click', e => {
     const b = e.target.closest('[data-g]'); if (!b) return; const act = b.dataset.g;
     if (act === 'collapse') { setCollapsed(true); render(true); }
+    else if (act === 'expand') {
+      const expanded = root.classList.toggle('mobile-expanded');
+      b.setAttribute('aria-expanded', String(expanded)); b.setAttribute('aria-label', `${expanded ? 'Hide' : 'Show'} goal details`); place();
+    }
     else if (act === 'where') lookAt();
     else if (act === 'book') { root.classList.toggle('book'); }
     else if (act === 'levels') { root.classList.toggle('levels'); renderLevels(); }
@@ -49,6 +61,7 @@ if (document.body.classList.contains('demo')) { /* the demo uses the same card; 
 // ── the card ──
 function renderLevelHud(P) {
   const el = document.getElementById('level-hud'); if (!el) return;
+  el.parentElement.classList.toggle('has-level', isGuided());
   if (!isGuided()) { el.hidden = true; return; }
   el.hidden = false; if (hudCelebrating) return;
   const p = nextLevelProgress(P, currentFacts());
@@ -64,6 +77,7 @@ function render(force = false) {
   if (!root) return;
   if (!isGuided()) { root.hidden = true; pill.hidden = true; setPulse(null); setCueCells([]); return; }
   const P = progressState(), cue = activeCue();
+  if (shownGoal !== cue?.id) { root.classList.remove('mobile-expanded'); shownGoal = cue?.id; }
   const key = cue ? [cue.id, cue.done, cue.of, cue.status, cue.construction, cue.how, cue.cells.length, cue.cells[0] ? cue.cells[0].i + ',' + cue.cells[0].j : '', P.collapsed, root.classList.contains('book')].join('|') : 'done|' + P.collapsed;
   if (!force && key === cueKey) return; cueKey = key;
   setPulse(cue && !P.collapsed ? cue.tool : null); setCueCells(cue && !P.collapsed ? cue.cells : []);
@@ -72,20 +86,22 @@ function render(force = false) {
   const lv = levelOf(P);
   if (!cue) {
     root.innerHTML = `<div class="g-head"><span class="g-ch">TOWN LEVEL ${lv} · ${esc(LEVELS[lv].title.toUpperCase())}</span><button class="g-x" data-g="collapse" aria-label="Collapse"><i class="fa-solid fa-chevron-down"></i></button></div>
-      <b class="g-title">Your town is yours to grow</b><span class="g-how">Every building is open. The hill opens at 60 residents.</span>
-      <div class="g-actions"><button class="g-btn" data-g="levels"><i class="fa-solid fa-layer-group"></i> Levels</button></div><div class="g-levels"></div>`;
+      <b class="g-title">Your town is yours to grow</b>${peekButton()}<span class="g-summary">Every building is now open.</span><div class="g-details" id="goal-details"><span class="g-how">Every building is open. The hill opens at 60 residents.</span>
+      <div class="g-actions"><button class="g-btn" data-g="levels"><i class="fa-solid fa-layer-group"></i> Levels</button></div><div class="g-levels"></div></div>`;
     place(); return;
   }
   const ch = cue.chapter, idx = ch.goals.indexOf(cue.id) + 1, open = ch.goals.filter(g => !P.completedGoalIds.includes(g));
   const bookRows = CHAPTERS.map(c => `<div class="g-bk${c === ch ? ' now' : ''}"><small>${esc(c.title)} · Level ${c.level}</small>${c.goals.map(g => { const done = P.completedGoalIds.includes(g), pickable = c === ch && !ch.sequential && !done && g !== cue.id; return `<button class="g-row${done ? ' done' : g === cue.id ? ' now' : ''}" data-g="${pickable ? 'pick' : 'none'}" data-id="${g}" ${pickable ? '' : 'disabled'}><i class="fa-solid ${done ? 'fa-circle-check' : g === cue.id ? 'fa-circle-dot' : 'fa-circle'}"></i>${esc(GOALS[g].title)}</button>`; }).join('')}</div>`).join('');
   root.innerHTML = `<div class="g-head"><span class="g-ch">${esc(ch.title.toUpperCase())} · ${ch.sequential ? `${idx} OF ${ch.goals.length}` : `${ch.goals.length - open.length} OF ${ch.goals.length} DONE`}</span><span class="g-lv">Lv ${lv}</span><button class="g-x" data-g="collapse" aria-label="Collapse"><i class="fa-solid fa-chevron-down"></i></button></div>
     <b class="g-title">${esc(cue.goal.title)}${cue.of > 1 ? ` <em>${cue.done}/${cue.of}</em>` : ''}</b>
+    ${peekButton()}<span class="g-summary">${esc(cue.construction !== undefined ? cue.construction ? `Construction · ${cue.construction}% complete` : 'Waiting for a crew to arrive.' : SUMMARY[cue.id])}</span>
+    <div class="g-details" id="goal-details">
     <span class="g-how">${esc(cue.how)}</span>
     ${cue.status ? `<span class="g-status"><i class="fa-solid fa-person-digging"></i> ${esc(cue.status)}</span>` : `<span class="g-why">${esc(cue.goal.why)}</span>`}
     ${cue.construction !== undefined ? `<div class="g-construction"><span>Construction <b>${cue.construction}%</b></span><div role="progressbar" aria-label="Construction" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${cue.construction}"><i style="width:${cue.construction}%"></i></div></div>` : ''}
     <div class="g-actions">${cue.at ? '<button class="g-btn" data-g="where"><i class="fa-solid fa-location-crosshairs"></i> Show me where</button>' : ''}<button class="g-btn ghost" data-g="book"><i class="fa-solid fa-book"></i> Goals</button><button class="g-btn ghost" data-g="levels"><i class="fa-solid fa-layer-group"></i> Levels</button></div>
     <div class="g-next"><small>NEXT LEVEL UNLOCKS</small><span>${esc(LEVELS[Math.min(lv + 1, MAX_LEVEL)].note)}</span></div>
-    <div class="g-book">${bookRows}</div><div class="g-levels"></div>`;
+    <div class="g-book">${bookRows}</div><div class="g-levels"></div></div>`;
   if (root.classList.contains('levels')) renderLevels();
   place();
 }
@@ -100,12 +116,13 @@ function place() {
   const dock = document.getElementById('tools'), r = dock ? dock.getBoundingClientRect() : null;
   const brand = document.getElementById('brand'), details = document.getElementById('stats-details');
   const levelHud = document.getElementById('level-hud');
-  const top = Math.round(Math.max(brand?.getBoundingClientRect().bottom || 70, details && !details.classList.contains('collapsed') ? details.getBoundingClientRect().bottom : 0, innerWidth <= 1100 && levelHud && !levelHud.hidden ? levelHud.getBoundingClientRect().bottom : 0) + 12);
+  const compact = compactViewport();
+  const top = Math.round(Math.max(brand?.getBoundingClientRect().bottom || 70, details && !details.classList.contains('collapsed') ? details.getBoundingClientRect().bottom : 0, innerWidth <= 1100 && levelHud && !levelHud.hidden ? levelHud.getBoundingClientRect().bottom : 0) + (compact ? 6 : 12));
   root.style.top = pill.style.top = top + 'px'; root.style.bottom = pill.style.bottom = 'auto';
   const dockTop = r ? r.top : innerHeight - 80, picker = document.getElementById('picker');
   const floor = document.body.classList.contains('picking') && picker ? Math.min(dockTop, picker.getBoundingClientRect().top) : dockTop;
   document.body.style.setProperty('--notice-bottom', Math.round(innerHeight - floor + 12) + 'px');
-  root.style.maxHeight = Math.max(80, floor - top - 14) + 'px';
+  root.style.maxHeight = Math.max(80, Math.min(floor - top - 14, compact ? innerHeight * .34 : Infinity)) + 'px';
   const inspect = document.getElementById('inspect');
   if (inspect && innerWidth <= 720) {
     const goalBottom = (root.hidden ? pill : root).getBoundingClientRect().bottom;

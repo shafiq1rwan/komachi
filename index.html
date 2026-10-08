@@ -29,11 +29,11 @@
   <div id="brand" class="card">
     <button class="icon-btn" id="btn-options" data-tip="Settings"><i class="fa-solid fa-gear"></i></button>
     <div id="stats">
-      <span class="stat" data-tip="People living here"><small>Population</small><b id="s-pop">0</b></span>
-      <span class="stat" data-tip="Finished homes"><small>Homes</small><b id="s-homes">0</b></span>
-      <span class="stat" data-tip="Shops open"><small>Shops</small><b id="s-shops">0</b></span>
+      <span class="stat" data-tip="People living here"><i class="stat-icon fa-solid fa-users" aria-hidden="true"></i><small>Population</small><b id="s-pop">0</b><b class="stat-short" aria-hidden="true">0</b></span>
+      <span class="stat" data-tip="Finished homes"><i class="stat-icon fa-solid fa-house" aria-hidden="true"></i><small>Homes</small><b id="s-homes">0</b><b class="stat-short" aria-hidden="true">0</b></span>
+      <span class="stat" data-tip="Shops open"><i class="stat-icon fa-solid fa-store" aria-hidden="true"></i><small>Shops</small><b id="s-shops">0</b><b class="stat-short" aria-hidden="true">0</b></span>
     </div>
-    <button id="btn-stats" type="button" aria-label="More town statistics" aria-controls="stats-details" aria-expanded="false">More <i class="fa-solid fa-chevron-down"></i></button>
+    <button id="btn-stats" type="button" aria-label="More town statistics" aria-controls="stats-details" aria-expanded="false"><span class="stats-more">More</span><i class="stats-chevron fa-solid fa-chevron-down" aria-hidden="true"></i><i class="stats-dots fa-solid fa-ellipsis" aria-hidden="true"></i></button>
     <div id="stats-details" class="collapsed">
       <span><small>Open jobs</small><b id="s-jobs">0</b></span>
       <span><small>Seeking work</small><b id="s-seek">0</b></span>
@@ -45,7 +45,7 @@
     <div id="sun"></div>
     <div id="clock-text"><div id="time">07:00</div><div id="day">Day 1 · Morning</div></div>
     <div id="speed-dd">
-      <button class="speed-btn" id="btn-speed" aria-haspopup="true" aria-expanded="false" data-tip="Game speed"><b id="speed-label">1×</b><i class="fa-solid fa-chevron-down"></i></button>
+      <button class="speed-btn" id="btn-speed" aria-haspopup="true" aria-expanded="false" data-tip="Game speed"><b id="speed-label">1×</b><i class="speed-pause fa-solid fa-pause" aria-hidden="true"></i><i class="fa-solid fa-chevron-down"></i></button>
       <div class="speed-menu" id="speed" role="menu">
         <button data-s="1" class="on" role="menuitem">1× <small>normal</small></button>
         <button data-s="2" role="menuitem">2× <small>quicker</small></button>

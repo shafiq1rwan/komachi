@@ -1,0 +1,22 @@
+{
+  "roadSquares": null,
+  "celebration": null,
+  "errors": [],
+  "viewport": [
+    1920,
+    1080
+  ],
+  "guidedLevel": "Level 2",
+  "captions": [
+    {
+      "file": "komachi-goals.png",
+      "title": "Start small. Build something yours.",
+      "copy": "Follow clear goals and give your first neighbours a place to call home."
+    },
+    {
+      "file": "komachi-unlocks.png",
+      "title": "New level. New possibilities.",
+      "copy": "Complete goals to unlock new buildings for your growing town."
+    }
+  ]
+}

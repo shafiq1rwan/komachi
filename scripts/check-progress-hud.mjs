@@ -33,6 +33,54 @@ try {
     return level.backgroundColor === stats.backgroundColor && level.borderRadius === stats.borderRadius && level.boxShadow === stats.boxShadow;
   }), 'Level indicator shares the statistics HUD surface, corners, and shadow');
   await page.screenshot({ path: 'scripts/out/progress-hud-desktop.png' });
+  // Ordinary phone play should leave most of the town visible; full guidance is opened only on request.
+  for (const [width, height] of [[320, 700], [360, 740], [390, 844], [844, 390], [568, 320]]) {
+    await page.setViewport({ width, height });
+    await page.waitForFunction(() => {
+      const goal = document.getElementById('goals').getBoundingClientRect(), brand = document.getElementById('brand').getBoundingClientRect(), level = document.getElementById('level-hud').getBoundingClientRect();
+      return goal.y >= Math.max(brand.bottom, level.bottom) && goal.height <= 90;
+    });
+    r = await layout();
+    assert.ok(r.brand.height <= 42 && r.clock.height <= 42, `Slim mobile header at ${width}×${height}`);
+    assert.ok(Math.abs(r.level.x + r.level.width / 2 - width / 2) < 1, 'Level HUD stays at the viewport centre');
+    if (width <= 720) assert.ok(r.level.y < r.brand.y && r.level.bottom <= r.brand.y, 'Level is the topmost mobile HUD row');
+    assert.ok(r.brand.right <= r.clock.x, `Stats and clock stay separate at ${width}`);
+    assert.ok(r.goal.width <= 244 && r.goal.height < height * .25, `Compact goal leaves the town visible at ${width}×${height}`);
+    assert.equal(r.scroll, width);
+    assert.ok(await page.$eval('#s-pop', e => getComputedStyle(e.previousElementSibling.previousElementSibling).display !== 'none'), 'Population icon is visible');
+    const largeCountsFit = await page.evaluate(() => {
+      const counts = [...document.querySelectorAll('#stats .stat-short')], values = counts.map(e => e.textContent);
+      counts.forEach((e, i) => { e.textContent = ['1.2K', '240', '180'][i]; });
+      const fits = document.getElementById('brand').getBoundingClientRect().right <= document.getElementById('clock').getBoundingClientRect().left;
+      counts.forEach((e, i) => { e.textContent = values[i]; }); return fits;
+    });
+    assert.ok(largeCountsFit, `A populated town still fits the mobile header at ${width}`);
+    await page.mouse.move(width - 8, height / 2);
+    await page.screenshot({ path: `scripts/out/mobile-hud-${width}.png` });
+    await page.click('#goals .g-peek');
+    assert.equal(await page.$eval('#goals .g-peek', e => e.getAttribute('aria-expanded')), 'true');
+    assert.ok(await page.$eval('#goal-details', e => getComputedStyle(e).display !== 'none'), 'Goal instructions are available on demand');
+    assert.equal(await page.$eval('#goals .g-actions', e => getComputedStyle(e).display), 'none', 'Mobile goal details omit the three action buttons');
+    assert.ok((await layout()).goal.height <= height * .34 + 1, 'Expanded details remain bounded');
+    if (width === 390) await page.screenshot({ path: 'scripts/out/mobile-hud-details.png' });
+    await page.click('#goals .g-peek');
+    assert.equal(await page.$eval('#goal-details', e => getComputedStyle(e).display), 'none');
+    await page.click('#btn-stats');
+    await page.waitForFunction(() => document.getElementById('goals').getBoundingClientRect().y >= document.getElementById('stats-details').getBoundingClientRect().bottom);
+    assert.equal(await page.$eval('#btn-stats', e => e.getAttribute('aria-expanded')), 'true');
+    await page.click('#btn-stats');
+  }
+  await page.setViewport({ width: 390, height: 844 });
+  await page.evaluate(() => MT.setLook('rich'));
+  await page.waitForFunction(() => document.body.classList.contains('rich') && document.getElementById('goals').getBoundingClientRect().height <= 90);
+  r = await layout(); assert.ok(r.brand.right <= r.clock.x && r.brand.height <= 42, 'Rich look uses the same compact phone layout');
+  await page.mouse.move(382, 422);
+  await page.screenshot({ path: 'scripts/out/mobile-hud-rich.png' });
+  await page.click('#goals .g-peek');
+  await page.mouse.move(382, 422);
+  await page.screenshot({ path: 'scripts/out/mobile-hud-details.png' });
+  await page.click('#goals .g-peek');
+  await page.setViewport({ width: 1440, height: 900 });
   await page.evaluate(() => MT.setHour(21));
   await page.waitForFunction(() => document.getElementById('sun').classList.contains('night'), { timeout: 30000 });
   await page.screenshot({ path: 'scripts/out/progress-hud-night.png' });

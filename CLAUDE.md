@@ -19,6 +19,8 @@ npm run app:build  # Windows installer + portable exe in release/
 node scripts/make-trailer.mjs     # after a build: records raw footage to output/trailer/komachi-trailer.mp4 in a real Chrome window (about 40 s)
                                   # the user's scripts/edit-promo-trailer.py (Python, Pillow + imageio-ffmpeg) cuts it into output/trailer/promo/ (the deliverables)
 node scripts/build-itch-theme.mjs # itch cover, banner and background at itch's sizes into output/itch/theme/
+node scripts/check-mobile-settings.mjs # after a build: touch checks for in-game Settings, scroll, Back and Resume on phones/landscape
+node scripts/check-mobile-settings.mjs --poki # same checks against dist-poki/ after build:poki
 npm run build:poki && npm run check:poki && npm run pack:poki   # the Poki build: dist-poki/, headless rule checks, output/poki/komachi-poki-<version>.zip
 npm run build:demo && npm run check:demo && npm run pack:demo   # the free web demo for the itch page: dist-demo/, checks, output/demo/komachi-demo-<version>.zip
 ```

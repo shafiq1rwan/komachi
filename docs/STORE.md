@@ -8,9 +8,9 @@ Draw a street. Zone a few homes. Watch a small Japanese town live its days.
 
 ## Short description (under 300 characters)
 
-Komachi is a cosy town diorama on a small island. Draw streets, zone homes, shops and workplaces, and watch the
-residents arrive by train, find work, shop, fish, chat on benches and go home at night. Nothing can go wrong. Everything
-you do shows up in the town, never in a number.
+Build a cosy Japanese island town, one street at a time. Follow guided goals, welcome neighbours, and unlock new
+buildings as your town grows—or create freely in Free Build. Watch daily life unfold, enjoy the changing seasons,
+and join the anglers at the quay.
 
 ## Long description
 
@@ -20,7 +20,11 @@ in, shops open and change trade with their custom, commuters catch the morning t
 and the kōban light stays on all night.
 
 **Every system is visible.** Water works mean watered gardens. A substation means steadier light. A quiet shop puts up
-its shutters. A busy one gets a striped awning and crates outside. There are no bars to fill and no failure states.
+its shutters. A busy one gets a striped awning and crates outside.
+
+**A small beginning, something to look forward to.** Guided Town gives you clear goals: connect a street, build your
+first home, and welcome your neighbours. Earn new town levels and celebrate unlocking shops, workplaces and fishing
+at the quay. Prefer to build at your own pace with the whole catalogue? Choose Free Build.
 
 **Days, seasons and weather.** A day takes about four minutes. Rain brings umbrellas and puddles, snow settles on the
 roofs in winter, cherry petals fall in spring, and the summer festival ends with fireworks over the sea.
@@ -31,16 +35,22 @@ chronicle of its own firsts, and you keep an album of the photos you take.
 **Features**
 
 - Streets-first building on a procedurally generated island (pick a seed and a theme)
+- Guided goals, town levels and new building unlocks, plus an unrestricted Free Build mode
 - Homes, shops, workplaces, civic buildings and farms in one-, two- and three-cell sizes
 - Residents with households, jobs, shifts, errands and bench chats
 - Trains, bikes, taxis, a car ferry, a tourist bus and service rounds
 - Weather, seasons, a market morning, a summer festival with fireworks
 - Landmarks: lighthouse, bridge, pavilion, shrine on the hill, fish market, stone jetty
 - Photo mode with a per-town album
+- Playable fishing at the quay
 - Named saves, an opening scene, background music
 - Desktop app for Windows and Linux, and a browser version that installs as an app on a phone
 
 ## Screenshots (docs/, retaken by `node scripts/capture-readme.mjs`)
+
+For the current itch.io gallery, use the eight captioned 1920 × 1080 captures in `output/itch/upload/`.
+`output/itch/README.md` lists the upload order and exact wording. Regenerate them with
+`npm run build` followed by `node scripts/capture-itch.mjs`. Clean versions remain in `output/itch/`.
 
 1. screenshot-day.png: the station neighbourhood on a clear morning
 2. screenshot-night.png: the same streets after dark, windows and lamps lit

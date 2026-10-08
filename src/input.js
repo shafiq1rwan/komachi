@@ -27,7 +27,7 @@ onPickerMode(setTool);   // the Streets strip's Street | Car park chips switch b
 initPhoto({ onEnter: () => { setTool('explore'); pinned = null; follow = null; } });   // photo mode starts from a clean view
 // the speed dropdown beside the clock: 1×, 2× or 4×; pausing is the menu (Esc, the ☰ button) or Space, and the label then says so
 const speedDD = document.getElementById('speed-dd'), speedLabel = document.getElementById('speed-label');
-function showSpeed() { speedLabel.textContent = S.speed ? S.speed + '×' : 'Paused'; document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
+function showSpeed() { speedLabel.textContent = S.speed ? S.speed + '×' : 'Paused'; const button = document.getElementById('btn-speed'); button.dataset.paused = String(!S.speed); button.setAttribute('aria-label', `Game speed: ${speedLabel.textContent}`); document.querySelectorAll('#speed button').forEach(x => x.classList.toggle('on', +x.dataset.s === S.speed)); }
 document.getElementById('btn-speed').addEventListener('click', e => { e.stopPropagation(); const open = speedDD.classList.toggle('open'); e.currentTarget.setAttribute('aria-expanded', open ? 'true' : 'false'); });
 document.querySelectorAll('#speed button').forEach(b => b.addEventListener('click', () => { S.speed = +b.dataset.s; showSpeed(); speedDD.classList.remove('open'); }));
 addEventListener('pointerdown', e => { if (!speedDD.contains(e.target)) speedDD.classList.remove('open'); });
